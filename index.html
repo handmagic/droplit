@@ -77,27 +77,27 @@
     /* Filters */
     .filters { background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
     .time-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; }
-    /* Time buttons - with background */
-    .time-btn { height: 34px; padding: 0 12px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
+    /* Time buttons */
+    .time-btn { height: 34px; padding: 0 12px; border: 2px solid transparent; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
     .time-btn:active { transform: scale(0.97); }
-    .time-btn[data-time="all"] { background: var(--color-primary); color: white; }
+    /* ALL button - coral filled */
+    .time-btn[data-time="all"] { background: var(--color-primary); color: white; border-color: var(--color-primary); }
     .time-btn[data-time="all"] .cnt { background: rgba(255,255,255,0.25); color: white; }
-    .time-btn:not([data-time="all"]).active { background: var(--color-text); color: white; }
-    .time-btn:not([data-time="all"]).active .cnt { background: rgba(255,255,255,0.25); color: white; }
+    /* Other time buttons active - coral border only */
+    .time-btn:not([data-time="all"]).active { border-color: var(--color-active); background: var(--color-bg-btn); color: var(--color-text-soft); }
+    .time-btn:not([data-time="all"]).active .cnt { background: var(--color-active); color: white; }
     .cnt { min-width: 20px; height: 20px; padding: 0 6px; background: rgba(0,0,0,0.08); border-radius: var(--radius-full); font-size: 0.65rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-    /* Sort button - with background */
-    .sort-btn { height: 34px; width: 40px; padding: 0; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); font-size: 0.9rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    /* Sort button */
+    .sort-btn { height: 34px; width: 40px; padding: 0; border: 2px solid transparent; background: var(--color-bg-btn); border-radius: var(--radius-full); font-size: 0.9rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
     .sort-btn:active { transform: scale(0.97); }
-    .sort-btn.desc { background: var(--color-text); color: white; }
+    .sort-btn.desc { border-color: var(--color-active); }
 
-    .cat-row { display: flex; align-items: center; gap: 4px; }
-    .cat-nav { width: 28px; height: 34px; border: none; background: var(--color-bg-btn); cursor: pointer; color: var(--color-text-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: var(--radius-full); }
-    .cat-nav:active { background: var(--color-bg-soft); }
-    .cats { display: flex; gap: 6px; overflow-x: auto; flex: 1; scrollbar-width: none; scroll-behavior: smooth; padding: 2px 0; }
-    .cats::-webkit-scrollbar { display: none; }
-    .cat { flex-shrink: 0; height: 34px; padding: 0 12px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.65rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
+    /* Categories row - no arrows, just swipe */
+    .cat-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; padding: 2px 4px; }
+    .cat-row::-webkit-scrollbar { display: none; }
+    .cat { flex-shrink: 0; height: 34px; padding: 0 12px; border: 2px solid transparent; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.65rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
     .cat:active { transform: scale(0.97); }
-    .cat.active { box-shadow: inset 0 0 0 2px var(--color-active); }
+    .cat.active { border-color: var(--color-active); }
     .cat[data-category="tasks"] { background: var(--cat-tasks-bg); color: var(--cat-tasks-text); }
     .cat[data-category="tasks"] .cnt { background: rgba(146,64,14,0.15); }
     .cat[data-category="ideas"] { background: var(--cat-ideas-bg); color: var(--cat-ideas-text); }
@@ -261,19 +261,15 @@
         <button class="time-btn" data-time="7days">7d <span class="cnt" id="cnt7d">0</span></button>
         <button class="sort-btn" id="sortBtn" onclick="toggleSort()" title="Sort order">↑</button>
       </div>
-      <div class="cat-row">
-        <button class="cat-nav" onclick="scrollCats(-1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
-        <div class="cats" id="cats">
-          <button class="cat" data-category="tasks">Tasks <span class="cnt" id="cntTasks">0</span></button>
-          <button class="cat" data-category="ideas">Ideas <span class="cnt" id="cntIdeas">0</span></button>
-          <button class="cat" data-category="handmagic">Handmagic <span class="cnt" id="cntHandmagic">0</span></button>
-          <button class="cat" data-category="design">Design <span class="cnt" id="cntDesign">0</span></button>
-          <button class="cat" data-category="bugs">Bugs <span class="cnt" id="cntBugs">0</span></button>
-          <button class="cat" data-category="questions">Questions <span class="cnt" id="cntQuestions">0</span></button>
-          <button class="cat" data-category="inbox">Inbox <span class="cnt" id="cntInbox">0</span></button>
-          <button class="cat-add" onclick="addCatPrompt()">+</button>
-        </div>
-        <button class="cat-nav" onclick="scrollCats(1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+      <div class="cat-row" id="cats">
+        <button class="cat" data-category="tasks">Tasks <span class="cnt" id="cntTasks">0</span></button>
+        <button class="cat" data-category="ideas">Ideas <span class="cnt" id="cntIdeas">0</span></button>
+        <button class="cat" data-category="handmagic">Handmagic <span class="cnt" id="cntHandmagic">0</span></button>
+        <button class="cat" data-category="design">Design <span class="cnt" id="cntDesign">0</span></button>
+        <button class="cat" data-category="bugs">Bugs <span class="cnt" id="cntBugs">0</span></button>
+        <button class="cat" data-category="questions">Questions <span class="cnt" id="cntQuestions">0</span></button>
+        <button class="cat" data-category="inbox">Inbox <span class="cnt" id="cntInbox">0</span></button>
+        <button class="cat-add" onclick="addCatPrompt()">+</button>
       </div>
     </div>
     <div class="ideas-wrap" id="ideasWrap">
@@ -300,7 +296,7 @@
 
   <div class="toast-wrap" id="toastWrap"></div>
 
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.5.1 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Tap card to see actions.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.5.2 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Tap card to see actions.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">🤖</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">📱</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">✉️</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">📋</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -501,7 +497,6 @@ document.getElementById('cats').addEventListener('click',e=>{
   activeCardId=null;render();
 });
 
-function scrollCats(d){document.getElementById('cats').scrollBy({left:d*100,behavior:'smooth'});}
 function addCatPrompt(){document.getElementById('addCatModal').classList.add('show');}
 function closeAddCatModal(){document.getElementById('addCatModal').classList.remove('show');}
 
@@ -515,7 +510,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.5.1';
+  md+='---\nExported from DropLit v0.5.2';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
