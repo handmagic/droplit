@@ -1091,7 +1091,7 @@
   <div class="app">
     <header class="header">
       <div class="header-top">
-        <span class="logo-mini">DropLit v0.4.3</span>
+        <span class="logo-mini">DropLit v0.4.4</span>
         <div class="header-actions">
           <button class="btn-icon" onclick="exportAll()" title="Export">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1275,7 +1275,7 @@
       <div class="settings-brand">
         <div class="settings-logo">💧</div>
         <div class="settings-name">DropLit</div>
-        <div class="settings-version">Version 0.4.3 by Syntrise</div>
+        <div class="settings-version">Version 0.4.4 by Syntrise</div>
       </div>
       <div class="modal-text">
         Coming soon:<br><br>
@@ -1408,13 +1408,34 @@
       };
 
       recognition.onresult = (event) => {
+        let currentTranscript = '';
+        
+        // Build transcript from ALL results (not just new ones)
+        for (let i = 0; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            currentTranscript += result[0].transcript + ' ';
+          }
+        }
+        
+        // Get interim (not yet final) results
         let interimTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) finalTranscript += transcript + ' ';
-          else interimTranscript += transcript;
+          if (!event.results[i].isFinal) {
+            interimTranscript += event.results[i][0].transcript;
+          }
         }
-        document.getElementById('recordingText').textContent = finalTranscript + interimTranscript || 'Listening...';
+        
+        // Update final transcript only if we have new content
+        if (currentTranscript.trim()) {
+          finalTranscript = currentTranscript.trim();
+        }
+        
+        // Show current state
+        const displayText = (finalTranscript + ' ' + interimTranscript).trim();
+        document.getElementById('recordingText').textContent = displayText || 'Listening...';
+        
+        // Reset silence timer
         clearTimeout(silenceTimer);
         silenceTimer = setTimeout(() => {
           if (finalTranscript.trim() && !alreadySaved) {
