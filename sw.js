@@ -1,5 +1,5 @@
-// DropLit Service Worker v0.7.1
-const CACHE_NAME = 'droplit-v0.7.1';
+// DropLit Service Worker v0.7.2
+const CACHE_NAME = 'droplit-v0.7.2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
