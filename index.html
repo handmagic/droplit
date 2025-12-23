@@ -217,6 +217,7 @@
     .select-btn:active { transform: scale(0.97); }
     .select-btn.cancel { background: var(--color-bg-btn); color: var(--color-text-soft); }
     .select-btn.merge { background: var(--color-merge); color: white; }
+    .select-btn.delete { background: var(--color-error); color: white; }
 
     /* Modals */
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; padding: 20px; z-index: 100; backdrop-filter: blur(4px); }
@@ -275,6 +276,11 @@
 
     /* Merge preview */
     .merge-preview { background: var(--color-bg); border-radius: var(--radius-sm); padding: 12px; font-size: 0.8rem; max-height: 200px; overflow-y: auto; margin-bottom: 16px; line-height: 1.6; white-space: pre-wrap; }
+
+    /* Image viewer */
+    .image-viewer { background: rgba(0,0,0,0.95); padding: 0; }
+    .image-viewer img { max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 0; }
+    .image-viewer-close { position: absolute; top: 20px; right: 20px; width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; }
 
     @media (min-width:481px) { 
       .app { margin: 20px auto; height: calc(100vh - 40px); border-radius: var(--radius-lg); box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; }
@@ -346,21 +352,23 @@
     <div class="select-info"><span id="selectCount">0</span> selected</div>
     <div class="select-actions">
       <button class="select-btn cancel" onclick="cancelSelect()">Cancel</button>
-      <button class="select-btn merge" onclick="showMergePreview()">🔀 Merge</button>
+      <button class="select-btn delete" onclick="deleteSelected()">🗑️ Delete</button>
+      <button class="select-btn merge" onclick="showMergePreview()">📋 Merge/Copy</button>
     </div>
   </div>
 
   <div class="toast-wrap" id="toastWrap"></div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.7.0 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.7.1 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">🤖</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">📱</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">✉️</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">📋</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
   <div class="overlay" id="delModal"><div class="modal"><div class="modal-title">Delete this idea?</div><div class="modal-text">This action cannot be undone.</div><div class="modal-actions"><button class="modal-btn sec" onclick="closeDelModal()">Cancel</button><button class="modal-btn danger" onclick="confirmDel()">Delete</button></div></div></div>
   <div class="overlay" id="settingsModal"><div class="modal"><div class="modal-title">Settings</div><div class="modal-text">Coming soon:<br><br>• 🔍 Search<br>• 🎨 Themes<br>• 📁 Custom categories<br>• ☁️ Cloud sync</div><div class="modal-actions"><button class="modal-btn sec" onclick="exportAll()">Export</button><button class="modal-btn pri" onclick="closeSettings()">Done</button></div></div></div>
   <div class="overlay" id="addCatModal"><div class="modal"><div class="modal-title">Add Category</div><div class="modal-text">Custom categories coming in a future update!</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAddCatModal()">OK</button></div></div></div>
-  <div class="overlay" id="mergeModal"><div class="modal"><div class="modal-title">🔀 Merge Preview</div><div class="merge-preview" id="mergePreview"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeMergeModal()">Cancel</button><button class="modal-btn sec" onclick="copyMerged()">📋 Copy</button><button class="modal-btn merge" onclick="saveMerged()">💾 Save</button></div></div></div>
+  <div class="overlay" id="mergeModal"><div class="modal"><div class="modal-title">📋 Merge Preview</div><div class="merge-preview" id="mergePreview"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeMergeModal()">Cancel</button><button class="modal-btn sec" onclick="copyMerged()">📋 Copy</button><button class="modal-btn merge" onclick="saveMerged()">💾 Save</button></div></div></div>
+  <div class="overlay image-viewer" id="imageViewer" onclick="closeImageViewer()"><img id="imageViewerImg" src="" alt="Full size"><div class="image-viewer-close">✕</div></div>
 
 <script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
@@ -419,6 +427,18 @@ function cancelSelect(){
   document.getElementById('app').classList.remove('select-mode');
   document.getElementById('selectBar').classList.remove('show');
   render();
+}
+
+function deleteSelected(){
+  if(selectedIds.length===0)return;
+  const count=selectedIds.length;
+  if(confirm('Delete '+count+' selected items?')){
+    ideas=ideas.filter(i=>!selectedIds.includes(i.id));
+    save();
+    cancelSelect();
+    render();counts();
+    toast(count+' items deleted','info');
+  }
 }
 
 function toggleSelect(id){
@@ -701,7 +721,13 @@ function toggleExpand(id,e){
 
 function viewImage(src,e){
   e.stopPropagation();
-  window.open(src,'_blank');
+  document.getElementById('imageViewerImg').src=src;
+  document.getElementById('imageViewer').classList.add('show');
+}
+
+function closeImageViewer(){
+  document.getElementById('imageViewer').classList.remove('show');
+  document.getElementById('imageViewerImg').src='';
 }
 
 function counts(){
@@ -746,7 +772,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.7.0';
+  md+='---\nExported from DropLit v0.7.1';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
