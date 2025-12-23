@@ -43,6 +43,8 @@
       --cat-design-bg: #D1FAE5; --cat-design-text: #065F46;
       --cat-bugs-bg: #FEE2E2; --cat-bugs-text: #991B1B;
       --cat-questions-bg: #E0F2FE; --cat-questions-text: #075985;
+      --cat-sketch-bg: #FEE2E2; --cat-sketch-text: #DC2626;
+      --cat-scan-bg: #DBEAFE; --cat-scan-text: #1D4ED8;
       --cat-inbox-bg: #F5F5F4; --cat-inbox-text: #57534E;
       --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --radius-sm: 8px;
@@ -137,12 +139,16 @@
     .card-cat.bugs { background: var(--cat-bugs-bg); color: var(--cat-bugs-text); }
     .card-cat.questions { background: var(--cat-questions-bg); color: var(--cat-questions-text); }
     .card-cat.inbox { background: var(--color-bg-btn); color: var(--cat-inbox-text); }
+    .card-cat.sketch { background: var(--cat-sketch-bg); color: var(--cat-sketch-text); }
+    .card-cat.scan { background: var(--cat-scan-bg); color: var(--cat-scan-text); }
     
     .card-text { font-size: 1.05rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; }
     .card-text.truncated { max-height: 150px; overflow: hidden; position: relative; }
     .card-text.truncated::after { content: ''; position: absolute; bottom: 0; left: 0; right: 30px; height: 40px; background: linear-gradient(transparent, var(--color-bg-card)); pointer-events: none; }
     .card-text.expanded { max-height: none !important; }
     .card-text.expanded::after { display: none; }
+    .card-image { width: 100%; max-height: 200px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: 8px; cursor: pointer; }
+    .card-image:active { opacity: 0.9; }
     .card-more { display: none; padding: 8px 0 4px; font-size: 0.8rem; color: var(--color-primary); font-weight: 600; cursor: pointer; }
     .card-more.show { display: block; }
     .select-mode .card-text { padding-right: 40px; }
@@ -180,6 +186,13 @@
     .fab-record svg { width: 30px; height: 30px; color: white; }
     .select-mode .fab-record { display: none; }
     @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 12px rgba(239,68,68,0)} }
+
+    /* FAB - Camera button */
+    .fab-camera { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 20px; width: 68px; height: 68px; border: none; background: linear-gradient(135deg, #6366F1, #8B5CF6); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(99,102,241,0.4); z-index: 50; transition: all 0.2s; }
+    .fab-camera:active { transform: scale(0.95); }
+    .fab-camera svg { width: 28px; height: 28px; color: white; }
+    .select-mode .fab-camera { display: none; }
+    .camera-input { display: none; }
 
     /* Recording status */
     .rec-status { position: fixed; bottom: calc(96px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 8px; padding: 10px 20px; background: var(--color-bg-card); border-radius: var(--radius-full); box-shadow: var(--shadow-scroll); z-index: 50; }
@@ -230,6 +243,8 @@
     .cat-opt[data-cat="bugs"] { background: var(--cat-bugs-bg); color: var(--cat-bugs-text); }
     .cat-opt[data-cat="questions"] { background: var(--cat-questions-bg); color: var(--cat-questions-text); }
     .cat-opt[data-cat="inbox"] { background: var(--color-bg-btn); color: var(--cat-inbox-text); }
+    .cat-opt[data-cat="sketch"] { background: var(--cat-sketch-bg); color: var(--cat-sketch-text); }
+    .cat-opt[data-cat="scan"] { background: var(--cat-scan-bg); color: var(--cat-scan-text); }
 
     .send-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
     .send-opt { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--color-bg); border-radius: var(--radius-md); cursor: pointer; }
@@ -264,6 +279,7 @@
     @media (min-width:481px) { 
       .app { margin: 20px auto; height: calc(100vh - 40px); border-radius: var(--radius-lg); box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; }
       .fab-record { right: calc(50% - 220px); }
+      .fab-camera { left: calc(50% - 220px); }
       .scroll-fab { right: calc(50% - 220px); }
       .select-bar { left: 50%; right: auto; transform: translateX(-50%); max-width: 480px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
     }
@@ -308,6 +324,11 @@
     </div>
   </div>
 
+  <button class="fab-camera" id="fabCamera" onclick="document.getElementById('cameraInput').click()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+  </button>
+  <input type="file" id="cameraInput" class="camera-input" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+
   <button class="fab-record" id="fabRecord" onclick="toggleRec()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
   </button>
@@ -332,8 +353,8 @@
   <div class="toast-wrap" id="toastWrap"></div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.6.5 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
-  <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.7.0 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">🤖</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">📱</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">✉️</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">📋</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
   <div class="overlay" id="delModal"><div class="modal"><div class="modal-title">Delete this idea?</div><div class="modal-text">This action cannot be undone.</div><div class="modal-actions"><button class="modal-btn sec" onclick="closeDelModal()">Cancel</button><button class="modal-btn danger" onclick="confirmDel()">Delete</button></div></div></div>
@@ -348,7 +369,8 @@ let curCat='all',curTime='all',sortAsc=true,isRec=false,recognition=null,saved=f
 let sendId=null,delId=null,catChangeId=null,editId=null,activeCardId=null;
 let selectMode=false,selectedIds=[];
 let lastScrollTop=0,longPressTimer=null;
-const CATS={tasks:{name:'TASKS',single:'TASK',kw:['задача','сделать','нужно','надо','task','todo']},ideas:{name:'IDEAS',single:'IDEA',kw:['идея','мысль','придумал','idea']},handmagic:{name:'HANDMAGIC',single:'HANDMAGIC',kw:['handmagic','хендмеджик','магия']},design:{name:'DESIGN',single:'DESIGN',kw:['дизайн','ui','ux','кнопка','цвет','design']},bugs:{name:'BUGS',single:'BUG',kw:['баг','ошибка','bug','fix']},questions:{name:'QUESTIONS',single:'QUESTION',kw:['вопрос','спросить','claude']},inbox:{name:'INBOX',single:'INBOX',kw:[]}};
+const CATS={tasks:{name:'TASKS',single:'TASK',kw:['задача','сделать','нужно','надо','task','todo'],isMedia:false},ideas:{name:'IDEAS',single:'IDEA',kw:['идея','мысль','придумал','idea'],isMedia:false},handmagic:{name:'HANDMAGIC',single:'HANDMAGIC',kw:['handmagic','хендмеджик','магия'],isMedia:false},design:{name:'DESIGN',single:'DESIGN',kw:['дизайн','ui','ux','кнопка','цвет','design'],isMedia:false},bugs:{name:'BUGS',single:'BUG',kw:['баг','ошибка','bug','fix'],isMedia:false},questions:{name:'QUESTIONS',single:'QUESTION',kw:['вопрос','спросить','claude'],isMedia:false},sketch:{name:'SKETCHES',single:'SKETCH',kw:[],isMedia:true},scan:{name:'SCANS',single:'SCAN',kw:[],isMedia:true},inbox:{name:'INBOX',single:'INBOX',kw:[],isMedia:false}};
+const MEDIA_CATS=['sketch','scan','inbox'];
 
 function parseD(s){const[d,m,y]=s.split('.').map(Number);return new Date(y,m-1,d);}
 function inDays(s,n){return(new Date()-parseD(s))/(864e5)<=n;}
@@ -535,7 +557,7 @@ function updateRecUI(on){
 function detectCat(t){const l=t.toLowerCase();for(const[k,v]of Object.entries(CATS)){if(k==='inbox')continue;for(const w of v.kw)if(l.startsWith(w)||l.includes(' '+w+' '))return k;}return'inbox';}
 function saveIdea(t){
   const c=detectCat(t);
-  const idea={id:Date.now(),text:t,category:c,timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})};
+  const idea={id:Date.now(),text:t,category:c,timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMedia:false};
   ideas.push(idea);save();
   curCat='all';curTime='all';activeCardId=null;
   document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
@@ -545,8 +567,47 @@ function saveIdea(t){
   toast('Saved to '+CATS[c].name,'success');
 }
 
+function handlePhoto(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    savePhoto(ev.target.result);
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
+
+function savePhoto(dataUrl){
+  const idea={id:Date.now(),text:'',image:dataUrl,category:'sketch',timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMedia:true};
+  ideas.push(idea);save();
+  curCat='all';curTime='all';activeCardId=null;
+  document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.time-btn').forEach(x=>x.classList.remove('active'));
+  render();counts();
+  setTimeout(scrollToBottom,100);
+  toast('Photo saved to SKETCHES','success');
+}
+
 function aiProcess(id){toast('AI processing coming soon!','info');}
-function openCatModal(id){catChangeId=id;document.getElementById('catModal').classList.add('show');}
+function openCatModal(id){
+  catChangeId=id;
+  const item=ideas.find(x=>x.id===id);
+  const isMedia=item?.isMedia;
+  const grid=document.querySelector('#catModal .cat-grid');
+  // Show only appropriate categories
+  grid.querySelectorAll('.cat-opt').forEach(btn=>{
+    const cat=btn.dataset.cat;
+    if(isMedia){
+      // Media items can only go to sketch, scan, inbox
+      btn.style.display=MEDIA_CATS.includes(cat)?'block':'none';
+    } else {
+      // Text items can go to all except sketch, scan
+      btn.style.display=!CATS[cat]?.isMedia?'block':'none';
+    }
+  });
+  document.getElementById('catModal').classList.add('show');
+}
 function closeCatModal(){document.getElementById('catModal').classList.remove('show');catChangeId=null;}
 function changeCat(c){if(catChangeId){const i=ideas.find(x=>x.id===catChangeId);if(i){i.category=c;save();render();counts();toast('Moved to '+CATS[c].name,'success');}}closeCatModal();}
 function reqDel(id){delId=id;document.getElementById('delModal').classList.add('show');}
@@ -582,24 +643,39 @@ function render(){
       const isActive=activeCardId===i.id;
       const isEditing=editId===i.id;
       const isSelected=selectedIds.includes(i.id);
-      const cc=i.text.length;
+      const cc=i.isMedia?0:(i.text?.length||0);
       const isTruncated=cc>500;
       h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
-      h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+CATS[i.category].single+'</span>';
-      h+='<span class="card-chars">'+cc+'</span>';
+      h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
+      if(i.isMedia)h+='<span class="card-chars">📷</span>';
+      else h+='<span class="card-chars">'+cc+'</span>';
       h+='<span class="card-time">'+smartTime(i)+'</span></div>';
-      h+='<div class="card-text'+(isTruncated?' truncated':'')+'" id="text-'+i.id+'">'+esc(i.text)+'</div>';
-      if(isTruncated)h+='<div class="card-more show" onclick="toggleExpand('+i.id+',event)">Show more ▼</div>';
-      h+='<div class="card-edit"><textarea class="card-ta">'+esc(i.text)+'</textarea></div>';
+      if(i.isMedia&&i.image){
+        h+='<img class="card-image" src="'+i.image+'" onclick="viewImage(\''+i.image+'\',event)" alt="Photo">';
+      }
+      if(i.text){
+        h+='<div class="card-text'+(isTruncated?' truncated':'')+'" id="text-'+i.id+'">'+esc(i.text)+'</div>';
+        if(isTruncated)h+='<div class="card-more show" onclick="toggleExpand('+i.id+',event)">Show more ▼</div>';
+      }
+      if(!i.isMedia){
+        h+='<div class="card-edit"><textarea class="card-ta">'+esc(i.text||'')+'</textarea></div>';
+      }
       h+='<div class="card-actions">';
-      h+='<button class="act ai" onclick="aiProcess('+i.id+')">✨ AI</button>';
-      h+='<button class="act" onclick="startEdit('+i.id+')">✏️ Edit</button>';
+      if(i.isMedia){
+        h+='<button class="act ai" onclick="aiProcess('+i.id+')">🔍 OCR</button>';
+        h+='<button class="act ai" onclick="aiProcess('+i.id+')">✨ AI</button>';
+      } else {
+        h+='<button class="act ai" onclick="aiProcess('+i.id+')">✨ AI</button>';
+        h+='<button class="act" onclick="startEdit('+i.id+')">✏️ Edit</button>';
+      }
       h+='<button class="act" onclick="openSendModal('+i.id+')">📤 Send</button>';
       h+='<button class="act" onclick="copyIdea('+i.id+')">📋 Copy</button>';
       h+='<button class="act" onclick="reqDel('+i.id+')">🗑️</button>';
       h+='</div>';
-      h+='<div class="card-edit-actions"><button class="act primary" onclick="saveEdit('+i.id+')">Save</button><button class="act secondary" onclick="cancelEdit('+i.id+')">Cancel</button></div>';
+      if(!i.isMedia){
+        h+='<div class="card-edit-actions"><button class="act primary" onclick="saveEdit('+i.id+')">Save</button><button class="act secondary" onclick="cancelEdit('+i.id+')">Cancel</button></div>';
+      }
       h+='</div>';
     }
   }
@@ -621,6 +697,11 @@ function toggleExpand(id,e){
     textEl.classList.remove('truncated');
     btn.textContent='Show less ▲';
   }
+}
+
+function viewImage(src,e){
+  e.stopPropagation();
+  window.open(src,'_blank');
 }
 
 function counts(){
@@ -665,7 +746,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.6.5';
+  md+='---\nExported from DropLit v0.7.0';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
