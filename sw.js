@@ -1,697 +1,84 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#1E293B">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="DropLit">
-  <meta name="application-name" content="DropLit">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="format-detection" content="telephone=no">
-  <meta name="description" content="DropLit — Voice-first idea capture app. Never lose your ideas again.">
-  <title>DropLit</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --color-primary: #FF6B4A;
-      --color-primary-dark: #E85A3A;
-      --color-primary-light: #FF8A70;
-      --color-recording: #EF4444;
-      --color-success: #10B981;
-      --color-warning: #F59E0B;
-      --color-error: #EF4444;
-      --color-merge: #8B5CF6;
-      --color-bg: #F5F5F4;
-      --color-bg-card: #FFFFFF;
-      --color-bg-soft: #E7E5E4;
-      --color-bg-btn: #E7E5E4;
-      --color-text: #1C1917;
-      --color-text-soft: #57534E;
-      --color-text-muted: #78716C;
-      --color-border: #D6D3D1;
-      --color-active: #FF6B4A;
-      --cat-tasks-bg: #FEF3C7; --cat-tasks-text: #92400E;
-      --cat-ideas-bg: #E0E7FF; --cat-ideas-text: #3730A3;
-      --cat-handmagic-bg: #FCE7F3; --cat-handmagic-text: #9D174D;
-      --cat-design-bg: #D1FAE5; --cat-design-text: #065F46;
-      --cat-bugs-bg: #FEE2E2; --cat-bugs-text: #991B1B;
-      --cat-questions-bg: #E0F2FE; --cat-questions-text: #075985;
-      --cat-inbox-bg: #F5F5F4; --cat-inbox-text: #57534E;
-      --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --radius-full: 9999px;
-      --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-fab: 0 4px 14px rgba(255,107,74,0.4);
-      --shadow-scroll: 0 2px 10px rgba(0,0,0,0.1);
-      --safe-top: env(safe-area-inset-top);
-      --safe-bottom: env(safe-area-inset-bottom);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html, body { height: 100%; overflow: hidden; touch-action: manipulation; }
-    body { font-family: var(--font-main); background: var(--color-bg); color: var(--color-text); -webkit-font-smoothing: antialiased; }
-    
-    .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--color-bg); position: relative; padding-top: var(--safe-top); }
+// DropLit Service Worker v0.6.3
+const CACHE_NAME = 'droplit-v0.6.3';
+const ASSETS_TO_CACHE = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
+];
 
-    /* Header */
-    .header { display: flex; align-items: center; padding: 8px 14px; background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); gap: 10px; }
-    .logo-btn { width: 36px; height: 36px; border: none; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(255,107,74,0.25); }
-    .logo-btn:active { transform: scale(0.95); }
-    .logo-btn svg { width: 18px; height: 18px; }
-    .header-title { flex: 1; font-size: 0.9rem; font-weight: 700; color: var(--color-text); }
-    .header-title span { color: var(--color-primary); }
-    .btn-icon { width: 36px; height: 36px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); flex-shrink: 0; }
-    .btn-icon:active { background: var(--color-bg-soft); }
-
-    .network-banner { display: none; padding: 6px; background: var(--color-error); color: white; font-size: 0.7rem; font-weight: 600; text-align: center; }
-    .network-banner.show { display: block; }
-    .warning { padding: 8px; background: #FEF3C7; color: #92400E; font-size: 0.75rem; text-align: center; font-weight: 600; display: none; }
-
-    /* Filters */
-    .filters { background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
-    .time-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; }
-    .time-btn { height: 34px; padding: 0 12px; border: 2px solid transparent; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
-    .time-btn:active { transform: scale(0.97); }
-    .time-btn[data-time="all"] { background: var(--color-primary); color: white; border-color: var(--color-primary); }
-    .time-btn[data-time="all"] .cnt { background: rgba(255,255,255,0.25); color: white; }
-    .time-btn:not([data-time="all"]).active { border-color: var(--color-active); background: var(--color-bg-btn); color: var(--color-text-soft); }
-    .time-btn:not([data-time="all"]).active .cnt { background: var(--color-active); color: white; }
-    .cnt { min-width: 20px; height: 20px; padding: 0 6px; background: rgba(0,0,0,0.08); border-radius: var(--radius-full); font-size: 0.65rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-    .sort-btn { height: 34px; width: 40px; padding: 0; border: 2px solid transparent; background: var(--color-bg-btn); border-radius: var(--radius-full); font-size: 0.9rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-    .sort-btn:active { transform: scale(0.97); }
-    .sort-btn.desc { border-color: var(--color-active); }
-
-    .cat-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; padding: 2px 4px; }
-    .cat-row::-webkit-scrollbar { display: none; }
-    .cat { flex-shrink: 0; height: 34px; padding: 0 12px; border: 2px solid transparent; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.65rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
-    .cat:active { transform: scale(0.97); }
-    .cat.active { border-color: var(--color-active); }
-    .cat[data-category="tasks"] { background: var(--cat-tasks-bg); color: var(--cat-tasks-text); }
-    .cat[data-category="tasks"] .cnt { background: rgba(146,64,14,0.15); }
-    .cat[data-category="ideas"] { background: var(--cat-ideas-bg); color: var(--cat-ideas-text); }
-    .cat[data-category="ideas"] .cnt { background: rgba(55,48,163,0.15); }
-    .cat[data-category="handmagic"] { background: var(--cat-handmagic-bg); color: var(--cat-handmagic-text); }
-    .cat[data-category="handmagic"] .cnt { background: rgba(157,23,77,0.15); }
-    .cat[data-category="design"] { background: var(--cat-design-bg); color: var(--cat-design-text); }
-    .cat[data-category="design"] .cnt { background: rgba(6,95,70,0.15); }
-    .cat[data-category="bugs"] { background: var(--cat-bugs-bg); color: var(--cat-bugs-text); }
-    .cat[data-category="bugs"] .cnt { background: rgba(153,27,27,0.15); }
-    .cat[data-category="questions"] { background: var(--cat-questions-bg); color: var(--cat-questions-text); }
-    .cat[data-category="questions"] .cnt { background: rgba(7,89,133,0.15); }
-    .cat[data-category="inbox"] { background: var(--color-bg-btn); color: var(--cat-inbox-text); }
-    .cat[data-category="inbox"] .cnt { background: rgba(0,0,0,0.08); }
-    .cat-add { flex-shrink: 0; width: 34px; height: 34px; border: 2px dashed var(--color-border); border-radius: var(--radius-full); background: transparent; color: var(--color-text-muted); font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .cat-add:active { border-color: var(--color-primary); color: var(--color-primary); }
-
-    /* Ideas container */
-    .ideas-wrap { flex: 1; overflow-y: auto; padding: 12px 14px 100px; -webkit-overflow-scrolling: touch; }
-    .ideas { display: flex; flex-direction: column; gap: 2px; }
-    .date-sep { display: flex; align-items: center; justify-content: center; padding: 16px 0 8px; font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
-
-    /* Card */
-    .card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px 14px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 8px; position: relative; }
-    .card:active { transform: scale(0.995); }
-    .card.active { box-shadow: 0 0 0 2px var(--color-active), var(--shadow-card); }
-    .card.editing { box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-card); }
-    .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
-    .card-checkbox { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border: 2px solid var(--color-border); border-radius: 6px; background: white; display: none; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: bold; }
-    .select-mode .card-checkbox { display: flex; }
-    .card.selected .card-checkbox { background: var(--color-merge); border-color: var(--color-merge); }
-    .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .card-chars { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
-    .card-time { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; margin-left: auto; }
-    .card-cat { padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; cursor: pointer; letter-spacing: 0.02em; }
-    .card-cat:active { opacity: 0.8; }
-    .card-cat.tasks { background: var(--cat-tasks-bg); color: var(--cat-tasks-text); }
-    .card-cat.ideas { background: var(--cat-ideas-bg); color: var(--cat-ideas-text); }
-    .card-cat.handmagic { background: var(--cat-handmagic-bg); color: var(--cat-handmagic-text); }
-    .card-cat.design { background: var(--cat-design-bg); color: var(--cat-design-text); }
-    .card-cat.bugs { background: var(--cat-bugs-bg); color: var(--cat-bugs-text); }
-    .card-cat.questions { background: var(--cat-questions-bg); color: var(--cat-questions-text); }
-    .card-cat.inbox { background: var(--color-bg-btn); color: var(--cat-inbox-text); }
-    
-    .card-text { font-size: 1.05rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; max-height: 120px; overflow: hidden; position: relative; }
-    .card-text.expanded { max-height: none; }
-    .card-text.truncated::after { content: ''; position: absolute; bottom: 0; left: 0; right: 30px; height: 40px; background: linear-gradient(transparent, var(--color-bg-card)); }
-    .card-more { display: none; padding: 4px 0; font-size: 0.75rem; color: var(--color-primary); font-weight: 600; cursor: pointer; }
-    .card-more.show { display: block; }
-    .select-mode .card-text { padding-right: 40px; }
-    .card-edit { display: none; margin-top: 10px; }
-    .card.editing .card-text { display: none; }
-    .card.editing .card-edit { display: block; }
-    .card-ta { width: 100%; min-height: 120px; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 0.95rem; line-height: 1.5; color: var(--color-text); resize: vertical; background: var(--color-bg); }
-    .card-ta:focus { outline: none; border-color: var(--color-primary); }
-    
-    .card-actions { display: none; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--color-border); overflow-x: auto; scrollbar-width: none; }
-    .card-actions::-webkit-scrollbar { display: none; }
-    .card.active .card-actions { display: flex; }
-    .card.editing .card-actions { display: none; }
-    .select-mode .card.active .card-actions { display: none; }
-    .card-edit-actions { display: none; gap: 6px; margin-top: 10px; }
-    .card.editing .card-edit-actions { display: flex; }
-    .act { flex-shrink: 0; height: 32px; padding: 0 12px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.65rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
-    .act:active { background: var(--color-bg-soft); }
-    .act.primary { background: var(--color-primary); color: white; }
-    .act.ai { background: linear-gradient(135deg, #8B5CF6, #6366F1); color: white; }
-    .act.merge { background: var(--color-merge); color: white; }
-    .act.secondary { background: var(--color-bg-btn); color: var(--color-text-soft); }
-
-    /* Empty state */
-    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 30px; }
-    .empty-icon { width: 80px; height: 80px; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: var(--shadow-fab); }
-    .empty-icon svg { width: 40px; height: 40px; }
-    .empty-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
-    .empty-text { font-size: 0.85rem; color: var(--color-text-soft); }
-
-    /* FAB - Record button */
-    .fab-record { position: fixed; bottom: calc(24px + var(--safe-bottom)); right: 20px; width: 68px; height: 68px; border: none; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-fab); z-index: 50; transition: all 0.2s; }
-    .fab-record:active { transform: scale(0.95); }
-    .fab-record.recording { background: var(--color-recording); animation: pulse 1.5s ease infinite; box-shadow: 0 4px 14px rgba(239,68,68,0.4); }
-    .fab-record svg { width: 30px; height: 30px; color: white; }
-    .select-mode .fab-record { display: none; }
-    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 12px rgba(239,68,68,0)} }
-
-    /* Recording status */
-    .rec-status { position: fixed; bottom: calc(96px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 8px; padding: 10px 20px; background: var(--color-bg-card); border-radius: var(--radius-full); box-shadow: var(--shadow-scroll); z-index: 50; }
-    .rec-status.show { display: flex; }
-    .rec-dot { width: 8px; height: 8px; background: var(--color-recording); border-radius: 50%; animation: blink 1s ease infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-    .rec-text { font-size: 0.8rem; font-weight: 600; color: var(--color-text); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* Scroll FAB */
-    .scroll-fab { position: fixed; right: 20px; width: 44px; height: 44px; border: none; background: var(--color-bg-card); border-radius: var(--radius-full); box-shadow: var(--shadow-scroll); cursor: pointer; display: none; align-items: center; justify-content: center; color: var(--color-primary); font-size: 1.1rem; font-weight: 700; z-index: 40; transition: all 0.2s; }
-    .scroll-fab.show { display: flex; }
-    .scroll-fab:active { transform: scale(0.9); }
-    .scroll-fab.top { bottom: calc(160px + var(--safe-bottom)); }
-    .scroll-fab.bottom { bottom: calc(100px + var(--safe-bottom)); }
-
-    /* Selection bar */
-    .select-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-bg-card); border-top: 1px solid var(--color-border); padding: 12px 16px calc(12px + var(--safe-bottom)); display: none; align-items: center; justify-content: space-between; gap: 10px; z-index: 60; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); }
-    .select-bar.show { display: flex; }
-    .select-info { font-size: 0.85rem; font-weight: 600; color: var(--color-text); }
-    .select-actions { display: flex; gap: 8px; }
-    .select-btn { height: 40px; padding: 0 20px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-    .select-btn:active { transform: scale(0.97); }
-    .select-btn.cancel { background: var(--color-bg-btn); color: var(--color-text-soft); }
-    .select-btn.merge { background: var(--color-merge); color: white; }
-
-    /* Modals */
-    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; padding: 20px; z-index: 100; backdrop-filter: blur(4px); }
-    .overlay.show { display: flex; }
-    .modal { width: 100%; max-width: 320px; background: var(--color-bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: modalIn 0.25s ease; }
-    @keyframes modalIn { from{opacity:0;transform:scale(0.95) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
-    .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; text-align: center; }
-    .modal-text { font-size: 0.85rem; color: var(--color-text-soft); margin-bottom: 20px; line-height: 1.6; }
-    .modal-actions { display: flex; gap: 10px; justify-content: center; }
-    .modal-btn { padding: 12px 24px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
-    .modal-btn:active { transform: scale(0.97); }
-    .modal-btn.sec { background: var(--color-bg-btn); color: var(--color-text); }
-    .modal-btn.pri { background: var(--color-primary); color: white; }
-    .modal-btn.merge { background: var(--color-merge); color: white; }
-    .modal-btn.danger { background: var(--color-error); color: white; }
-
-    .cat-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
-    .cat-opt { padding: 10px 16px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; }
-    .cat-opt:active { transform: scale(1.05); }
-    .cat-opt[data-cat="tasks"] { background: var(--cat-tasks-bg); color: var(--cat-tasks-text); }
-    .cat-opt[data-cat="ideas"] { background: var(--cat-ideas-bg); color: var(--cat-ideas-text); }
-    .cat-opt[data-cat="handmagic"] { background: var(--cat-handmagic-bg); color: var(--cat-handmagic-text); }
-    .cat-opt[data-cat="design"] { background: var(--cat-design-bg); color: var(--cat-design-text); }
-    .cat-opt[data-cat="bugs"] { background: var(--cat-bugs-bg); color: var(--cat-bugs-text); }
-    .cat-opt[data-cat="questions"] { background: var(--cat-questions-bg); color: var(--cat-questions-text); }
-    .cat-opt[data-cat="inbox"] { background: var(--color-bg-btn); color: var(--cat-inbox-text); }
-
-    .send-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-    .send-opt { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--color-bg); border-radius: var(--radius-md); cursor: pointer; }
-    .send-opt:active { background: var(--color-bg-soft); }
-    .send-icon { width: 36px; height: 36px; background: var(--color-bg-card); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; box-shadow: var(--shadow-card); }
-    .send-info { flex: 1; }
-    .send-title { font-size: 0.85rem; font-weight: 600; }
-    .send-desc { font-size: 0.7rem; color: var(--color-text-muted); }
-    .send-badge { font-size: 0.55rem; font-weight: 700; padding: 3px 8px; background: linear-gradient(135deg,#8B5CF6,#6366F1); color: white; border-radius: var(--radius-full); text-transform: uppercase; }
-    .send-div { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 0.6rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 600; }
-    .send-div::before, .send-div::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
-
-    .export-box { background: var(--color-bg); border-radius: var(--radius-sm); padding: 12px; font-family: monospace; font-size: 0.65rem; max-height: 180px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; margin-bottom: 16px; }
-
-    .about-brand { text-align: center; padding: 20px 0; margin-bottom: 16px; border-bottom: 1px solid var(--color-border); }
-    .about-logo { width: 72px; height: 72px; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; box-shadow: var(--shadow-fab); }
-    .about-logo svg { width: 36px; height: 36px; }
-    .about-name { font-size: 1.4rem; font-weight: 800; }
-    .about-ver { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px; }
-
-    .toast-wrap { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); z-index: 200; pointer-events: none; }
-    .toast { padding: 12px 20px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); opacity: 0; transform: translateY(10px); transition: all 0.3s; pointer-events: auto; }
-    .toast.show { opacity: 1; transform: translateY(0); }
-    .toast.success { background: var(--color-success); color: white; }
-    .toast.warning { background: var(--color-warning); color: white; }
-    .toast.error { background: var(--color-error); color: white; }
-    .toast.info { background: var(--color-text); color: white; }
-
-    /* Merge preview */
-    .merge-preview { background: var(--color-bg); border-radius: var(--radius-sm); padding: 12px; font-size: 0.8rem; max-height: 200px; overflow-y: auto; margin-bottom: 16px; line-height: 1.6; white-space: pre-wrap; }
-
-    @media (min-width:481px) { 
-      .app { margin: 20px auto; height: calc(100vh - 40px); border-radius: var(--radius-lg); box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; }
-      .fab-record { right: calc(50% - 220px); }
-      .scroll-fab { right: calc(50% - 220px); }
-      .select-bar { left: 50%; right: auto; transform: translateX(-50%); max-width: 480px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
-    }
-  </style>
-</head>
-<body>
-  <div class="app" id="app">
-    <header class="header">
-      <button class="logo-btn" onclick="openAbout()">
-        <svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
-      </button>
-      <div class="header-title"><span>Drop</span>Lit</div>
-      <button class="btn-icon" onclick="openSettings()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-    </header>
-    <div class="network-banner" id="netBanner">No internet</div>
-    <div class="warning" id="warning">Speech recognition not supported. Use Chrome.</div>
-    <div class="filters">
-      <div class="time-row" id="timeRow">
-        <button class="time-btn" data-time="all">All <span class="cnt" id="cntAll">0</span></button>
-        <button class="time-btn" data-time="today">Today <span class="cnt" id="cntToday">0</span></button>
-        <button class="time-btn" data-time="7days">7d <span class="cnt" id="cnt7d">0</span></button>
-        <button class="sort-btn" id="sortBtn" onclick="toggleSort()" title="Sort order">↑</button>
-      </div>
-      <div class="cat-row" id="cats">
-        <button class="cat" data-category="tasks">Tasks <span class="cnt" id="cntTasks">0</span></button>
-        <button class="cat" data-category="ideas">Ideas <span class="cnt" id="cntIdeas">0</span></button>
-        <button class="cat" data-category="handmagic">Handmagic <span class="cnt" id="cntHandmagic">0</span></button>
-        <button class="cat" data-category="design">Design <span class="cnt" id="cntDesign">0</span></button>
-        <button class="cat" data-category="bugs">Bugs <span class="cnt" id="cntBugs">0</span></button>
-        <button class="cat" data-category="questions">Questions <span class="cnt" id="cntQuestions">0</span></button>
-        <button class="cat" data-category="inbox">Inbox <span class="cnt" id="cntInbox">0</span></button>
-        <button class="cat-add" onclick="addCatPrompt()">+</button>
-      </div>
-    </div>
-    <div class="ideas-wrap" id="ideasWrap">
-      <div class="ideas" id="ideasList"></div>
-      <div class="empty" id="emptyState">
-        <div class="empty-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div>
-        <div class="empty-title">No ideas yet</div>
-        <div class="empty-text">Tap the mic button and speak</div>
-      </div>
-    </div>
-  </div>
-
-  <button class="fab-record" id="fabRecord" onclick="toggleRec()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-  </button>
-
-  <div class="rec-status" id="recStatus">
-    <span class="rec-dot"></span>
-    <span class="rec-text" id="recText">Listening...</span>
-  </div>
-
-  <button class="scroll-fab top" id="scrollTop" onclick="scrollToTop()">↑</button>
-  <button class="scroll-fab bottom" id="scrollBottom" onclick="scrollToBottom()">↓</button>
-
-  <!-- Selection bar for merge -->
-  <div class="select-bar" id="selectBar">
-    <div class="select-info"><span id="selectCount">0</span> selected</div>
-    <div class="select-actions">
-      <button class="select-btn cancel" onclick="cancelSelect()">Cancel</button>
-      <button class="select-btn merge" onclick="showMergePreview()">🔀 Merge</button>
-    </div>
-  </div>
-
-  <div class="toast-wrap" id="toastWrap"></div>
-
-  <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.6.3 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
-  <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
-  <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">🤖</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">📱</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">✉️</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">📋</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
-  <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
-  <div class="overlay" id="delModal"><div class="modal"><div class="modal-title">Delete this idea?</div><div class="modal-text">This action cannot be undone.</div><div class="modal-actions"><button class="modal-btn sec" onclick="closeDelModal()">Cancel</button><button class="modal-btn danger" onclick="confirmDel()">Delete</button></div></div></div>
-  <div class="overlay" id="settingsModal"><div class="modal"><div class="modal-title">Settings</div><div class="modal-text">Coming soon:<br><br>• 🔍 Search<br>• 🎨 Themes<br>• 📁 Custom categories<br>• ☁️ Cloud sync</div><div class="modal-actions"><button class="modal-btn sec" onclick="exportAll()">Export</button><button class="modal-btn pri" onclick="closeSettings()">Done</button></div></div></div>
-  <div class="overlay" id="addCatModal"><div class="modal"><div class="modal-title">Add Category</div><div class="modal-text">Custom categories coming in a future update!</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAddCatModal()">OK</button></div></div></div>
-  <div class="overlay" id="mergeModal"><div class="modal"><div class="modal-title">🔀 Merge Preview</div><div class="merge-preview" id="mergePreview"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeMergeModal()">Cancel</button><button class="modal-btn sec" onclick="copyMerged()">📋 Copy</button><button class="modal-btn merge" onclick="saveMerged()">💾 Save</button></div></div></div>
-
-<script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
-let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
-let curCat='all',curTime='all',sortAsc=true,isRec=false,recognition=null,saved=false;
-let sendId=null,delId=null,catChangeId=null,editId=null,activeCardId=null;
-let selectMode=false,selectedIds=[];
-let lastScrollTop=0,longPressTimer=null;
-const CATS={tasks:{name:'TASKS',single:'TASK',kw:['задача','сделать','нужно','надо','task','todo']},ideas:{name:'IDEAS',single:'IDEA',kw:['идея','мысль','придумал','idea']},handmagic:{name:'HANDMAGIC',single:'HANDMAGIC',kw:['handmagic','хендмеджик','магия']},design:{name:'DESIGN',single:'DESIGN',kw:['дизайн','ui','ux','кнопка','цвет','design']},bugs:{name:'BUGS',single:'BUG',kw:['баг','ошибка','bug','fix']},questions:{name:'QUESTIONS',single:'QUESTION',kw:['вопрос','спросить','claude']},inbox:{name:'INBOX',single:'INBOX',kw:[]}};
-
-function parseD(s){const[d,m,y]=s.split('.').map(Number);return new Date(y,m-1,d);}
-function inDays(s,n){return(new Date()-parseD(s))/(864e5)<=n;}
-function isToday(s){return s===new Date().toLocaleDateString('ru-RU');}
-
-const ideasWrap=document.getElementById('ideasWrap');
-const scrollTopBtn=document.getElementById('scrollTop');
-const scrollBottomBtn=document.getElementById('scrollBottom');
-let scrollTimeout=null;
-
-ideasWrap.addEventListener('scroll',()=>{
-  const st=ideasWrap.scrollTop;
-  const maxScroll=ideasWrap.scrollHeight-ideasWrap.clientHeight;
-  const dir=st>lastScrollTop?1:-1;
-  lastScrollTop=st;
-  clearTimeout(scrollTimeout);
-  scrollTopBtn.classList.remove('show');
-  scrollBottomBtn.classList.remove('show');
-  if(maxScroll>300){
-    if(dir<0 && st>200) scrollTopBtn.classList.add('show');
-    else if(dir>0 && st<maxScroll-200) scrollBottomBtn.classList.add('show');
-  }
-  scrollTimeout=setTimeout(()=>{
-    scrollTopBtn.classList.remove('show');
-    scrollBottomBtn.classList.remove('show');
-  },2000);
+// Install: Cache core assets
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('DropLit: Caching core assets');
+        return cache.addAll(ASSETS_TO_CACHE);
+      })
+      .then(() => self.skipWaiting())
+  );
 });
 
-function scrollToTop(){ideasWrap.scrollTo({top:0,behavior:'smooth'});scrollTopBtn.classList.remove('show');}
-function scrollToBottom(){ideasWrap.scrollTo({top:ideasWrap.scrollHeight,behavior:'smooth'});scrollBottomBtn.classList.remove('show');}
-function toggleSort(){sortAsc=!sortAsc;document.getElementById('sortBtn').textContent=sortAsc?'↑':'↓';document.getElementById('sortBtn').classList.toggle('desc',!sortAsc);render();}
-
-// Selection mode
-function enterSelectMode(id){
-  selectMode=true;
-  selectedIds=[id];
-  activeCardId=null;
-  document.getElementById('app').classList.add('select-mode');
-  updateSelectBar();
-  render();
-}
-
-function cancelSelect(){
-  selectMode=false;
-  selectedIds=[];
-  document.getElementById('app').classList.remove('select-mode');
-  document.getElementById('selectBar').classList.remove('show');
-  render();
-}
-
-function toggleSelect(id){
-  if(selectedIds.includes(id)){
-    selectedIds=selectedIds.filter(x=>x!==id);
-    if(selectedIds.length===0) cancelSelect();
-  } else {
-    selectedIds.push(id);
-  }
-  updateSelectBar();
-  render();
-}
-
-function updateSelectBar(){
-  document.getElementById('selectCount').textContent=selectedIds.length;
-  document.getElementById('selectBar').classList.toggle('show',selectMode&&selectedIds.length>0);
-}
-
-function getMergedText(){
-  const selected=ideas.filter(i=>selectedIds.includes(i.id));
-  // Sort by timestamp
-  selected.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
-  return selected.map(i=>`• [${CATS[i.category].name}] ${i.text}`).join('\n');
-}
-
-function showMergePreview(){
-  if(selectedIds.length<2){toast('Select at least 2 cards','warning');return;}
-  document.getElementById('mergePreview').textContent=getMergedText();
-  document.getElementById('mergeModal').classList.add('show');
-}
-
-function closeMergeModal(){document.getElementById('mergeModal').classList.remove('show');}
-
-function copyMerged(){
-  navigator.clipboard.writeText(getMergedText());
-  toast('Copied to clipboard!','success');
-  closeMergeModal();
-}
-
-function saveMerged(){
-  const text=getMergedText();
-  const idea={id:Date.now(),text:text,category:'inbox',timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})};
-  ideas.push(idea);
-  save();
-  closeMergeModal();
-  cancelSelect();
-  render();counts();
-  toast('Merged & saved!','success');
-  setTimeout(scrollToBottom,100);
-}
-
-// Card interactions
-function handleCardClick(id,e){
-  if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox'))return;
-  if(selectMode){
-    toggleSelect(id);
-  } else if(editId && editId !== id) {
-    // If editing another card, don't activate this one
-    return;
-  } else {
-    activeCardId=activeCardId===id?null:id;
-    render();
-  }
-}
-
-function handleCardLongPress(id){
-  if(!selectMode){
-    enterSelectMode(id);
-    if(navigator.vibrate)navigator.vibrate(50);
-  }
-}
-
-let touchStartX=0,touchStartY=0;
-
-function cardTouchStart(id,e){
-  if(selectMode||editId)return;
-  const touch=e.touches[0];
-  touchStartX=touch.clientX;
-  touchStartY=touch.clientY;
-  longPressTimer=setTimeout(()=>handleCardLongPress(id),800);
-}
-
-function cardTouchMove(e){
-  if(!longPressTimer)return;
-  const touch=e.touches[0];
-  const dx=Math.abs(touch.clientX-touchStartX);
-  const dy=Math.abs(touch.clientY-touchStartY);
-  // Cancel if moved more than 10px (scrolling)
-  if(dx>10||dy>10){
-    clearTimeout(longPressTimer);
-    longPressTimer=null;
-  }
-}
-
-function cardTouchEnd(){
-  clearTimeout(longPressTimer);
-  longPressTimer=null;
-}
-
-document.addEventListener('click',(e)=>{
-  if(activeCardId&&!e.target.closest('.card')&&!e.target.closest('.overlay')&&!e.target.closest('.fab-record')&&!e.target.closest('.select-bar')){
-    activeCardId=null;render();
-  }
+// Activate: Clean old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => {
+              console.log('DropLit: Deleting old cache:', name);
+              return caches.delete(name);
+            })
+        );
+      })
+      .then(() => self.clients.claim())
+  );
 });
 
-function initSR(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){document.getElementById('warning').style.display='block';document.getElementById('fabRecord').style.opacity='0.5';return false;}
-  recognition=new SR();
-  recognition.lang='ru-RU';
-  recognition.continuous=false;
-  recognition.interimResults=true;
-  recognition.maxAlternatives=1;
-  recognition.onstart=()=>{isRec=true;saved=false;updateRecUI(true);};
-  recognition.onresult=(e)=>{
-    let f='',i='';
-    for(let x=0;x<e.results.length;x++){if(e.results[x].isFinal)f+=e.results[x][0].transcript;else i+=e.results[x][0].transcript;}
-    document.getElementById('recText').textContent=(f||i)||'Listening...';
-    if(f&&!saved){saved=true;saveIdea(f.trim());}
-  };
-  recognition.onerror=(e)=>{
-    if(e.error==='no-speech')toast('No speech detected','warning');
-    else if(e.error==='not-allowed')toast('Microphone access denied','error');
-    isRec=false;updateRecUI(false);
-  };
-  recognition.onend=()=>{isRec=false;updateRecUI(false);};
-  return true;
-}
+// Fetch: Network first, fallback to cache
+self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') return;
+  
+  // Skip chrome-extension and other non-http(s) requests
+  if (!event.request.url.startsWith('http')) return;
 
-function toggleRec(){if(isRec)recognition.stop();else{saved=false;recognition.start();}}
-function updateRecUI(on){
-  const fab=document.getElementById('fabRecord'),status=document.getElementById('recStatus');
-  if(on){fab.classList.add('recording');status.classList.add('show');document.getElementById('recText').textContent='Listening...';}
-  else{fab.classList.remove('recording');status.classList.remove('show');}
-}
-function detectCat(t){const l=t.toLowerCase();for(const[k,v]of Object.entries(CATS)){if(k==='inbox')continue;for(const w of v.kw)if(l.startsWith(w)||l.includes(' '+w+' '))return k;}return'inbox';}
-function saveIdea(t){
-  const c=detectCat(t);
-  const idea={id:Date.now(),text:t,category:c,timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})};
-  ideas.push(idea);save();
-  curCat='all';curTime='all';activeCardId=null;
-  document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
-  document.querySelectorAll('.time-btn').forEach(x=>x.classList.remove('active'));
-  render();counts();
-  setTimeout(scrollToBottom,100);
-  toast('Saved to '+CATS[c].name,'success');
-}
-
-function aiProcess(id){toast('AI processing coming soon!','info');}
-function openCatModal(id){catChangeId=id;document.getElementById('catModal').classList.add('show');}
-function closeCatModal(){document.getElementById('catModal').classList.remove('show');catChangeId=null;}
-function changeCat(c){if(catChangeId){const i=ideas.find(x=>x.id===catChangeId);if(i){i.category=c;save();render();counts();toast('Moved to '+CATS[c].name,'success');}}closeCatModal();}
-function reqDel(id){delId=id;document.getElementById('delModal').classList.add('show');}
-function closeDelModal(){document.getElementById('delModal').classList.remove('show');delId=null;}
-function confirmDel(){if(delId){ideas=ideas.filter(x=>x.id!==delId);save();activeCardId=null;render();counts();toast('Deleted','info');}closeDelModal();}
-function startEdit(id){if(editId)cancelEdit(editId);editId=id;activeCardId=id;render();setTimeout(()=>{const card=document.querySelector('[data-id="'+id+'"]');const ta=card?.querySelector('.card-ta');if(ta){card.scrollIntoView({behavior:'smooth',block:'center'});ta.focus();}},100);}
-function saveEdit(id){const card=document.querySelector('[data-id="'+id+'"]'),ta=card?.querySelector('.card-ta');if(ta){const t=ta.value.trim();if(t){const i=ideas.find(x=>x.id===id);if(i){i.text=t;i.category=detectCat(t);save();toast('Saved','success');}}}editId=null;render();counts();}
-function cancelEdit(id){editId=null;render();}
-function openSendModal(id){sendId=id;document.getElementById('sendModal').classList.add('show');}
-function closeSendModal(){document.getElementById('sendModal').classList.remove('show');sendId=null;}
-function sendAI(){const i=ideas.find(x=>x.id===sendId);if(i){navigator.clipboard.writeText(i.text);window.open('https://claude.ai','_blank');toast('Copied to clipboard!','success');}closeSendModal();}
-function shareNative(){const i=ideas.find(x=>x.id===sendId);if(i&&navigator.share)navigator.share({title:'DropLit',text:i.text}).catch(()=>{});else if(i){navigator.clipboard.writeText(i.text);toast('Copied','success');}closeSendModal();}
-function sendMail(){const i=ideas.find(x=>x.id===sendId);if(i)window.open('mailto:?subject='+encodeURIComponent('DropLit: '+CATS[i.category].name)+'&body='+encodeURIComponent(i.text));closeSendModal();}
-function copyClip(){const i=ideas.find(x=>x.id===sendId);if(i){navigator.clipboard.writeText(i.text);toast('Copied','success');}closeSendModal();}
-function copyIdea(id){const i=ideas.find(x=>x.id===id);if(i){navigator.clipboard.writeText(i.text);toast('Copied','success');}}
-function save(){localStorage.setItem('droplit_ideas',JSON.stringify(ideas));}
-function smartTime(i){const td=new Date().toLocaleDateString('ru-RU'),yd=new Date(Date.now()-864e5).toLocaleDateString('ru-RU');if(i.date===td)return i.time;if(i.date===yd)return'Yesterday '+i.time;const p=i.date.split('.');return p[0]+'.'+p[1]+' '+i.time;}
-function filtered(){let f=[...ideas];if(curTime==='today')f=f.filter(x=>isToday(x.date));else if(curTime==='7days')f=f.filter(x=>inDays(x.date,7));if(curCat!=='all')f=f.filter(x=>x.category===curCat);return f;}
-
-function render(){
-  const wrap=document.getElementById('ideasList'),empty=document.getElementById('emptyState'),list=filtered();
-  if(!list.length){wrap.innerHTML='';empty.style.display='flex';return;}
-  empty.style.display='none';
-  const grp={};for(const i of list){if(!grp[i.date])grp[i.date]=[];grp[i.date].push(i);}
-  let dates=Object.keys(grp).sort((a,b)=>sortAsc?parseD(a)-parseD(b):parseD(b)-parseD(a));
-  let h='';
-  const td=new Date().toLocaleDateString('ru-RU'),yd=new Date(Date.now()-864e5).toLocaleDateString('ru-RU');
-  for(const d of dates){
-    let lbl=d;if(d===td)lbl='Today';else if(d===yd)lbl='Yesterday';
-    h+='<div class="date-sep">'+lbl+'</div>';
-    let dayIdeas=grp[d];if(!sortAsc)dayIdeas=dayIdeas.slice().reverse();
-    for(const i of dayIdeas){
-      const isActive=activeCardId===i.id;
-      const isEditing=editId===i.id;
-      const isSelected=selectedIds.includes(i.id);
-      const cc=i.text.length;
-      const isTruncated=cc>200;
-      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
-      h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
-      h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+CATS[i.category].single+'</span>';
-      h+='<span class="card-chars">'+cc+'</span>';
-      h+='<span class="card-time">'+smartTime(i)+'</span></div>';
-      h+='<div class="card-text'+(isTruncated?' truncated':'')+'" id="text-'+i.id+'">'+esc(i.text)+'</div>';
-      if(isTruncated)h+='<div class="card-more show" onclick="toggleExpand('+i.id+',event)">Show more ▼</div>';
-      h+='<div class="card-edit"><textarea class="card-ta">'+esc(i.text)+'</textarea></div>';
-      h+='<div class="card-actions">';
-      h+='<button class="act ai" onclick="aiProcess('+i.id+')">✨ AI</button>';
-      h+='<button class="act" onclick="startEdit('+i.id+')">✏️ Edit</button>';
-      h+='<button class="act" onclick="openSendModal('+i.id+')">📤 Send</button>';
-      h+='<button class="act" onclick="copyIdea('+i.id+')">📋 Copy</button>';
-      h+='<button class="act" onclick="reqDel('+i.id+')">🗑️</button>';
-      h+='</div>';
-      h+='<div class="card-edit-actions"><button class="act primary" onclick="saveEdit('+i.id+')">Save</button><button class="act secondary" onclick="cancelEdit('+i.id+')">Cancel</button></div>';
-      h+='</div>';
-    }
-  }
-  wrap.innerHTML=h;
-}
-
-function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
-
-function toggleExpand(id,e){
-  e.stopPropagation();
-  const textEl=document.getElementById('text-'+id);
-  const btn=e.target;
-  if(textEl.classList.contains('expanded')){
-    textEl.classList.remove('expanded');
-    textEl.classList.add('truncated');
-    btn.textContent='Show more ▼';
-  } else {
-    textEl.classList.add('expanded');
-    textEl.classList.remove('truncated');
-    btn.textContent='Show less ▲';
-  }
-}
-
-function counts(){
-  document.getElementById('cntAll').textContent=ideas.length;
-  document.getElementById('cntToday').textContent=ideas.filter(x=>isToday(x.date)).length;
-  document.getElementById('cnt7d').textContent=ideas.filter(x=>inDays(x.date,7)).length;
-  let tf=[...ideas];
-  if(curTime==='today')tf=tf.filter(x=>isToday(x.date));
-  else if(curTime==='7days')tf=tf.filter(x=>inDays(x.date,7));
-  for(const k of Object.keys(CATS)){
-    const el=document.getElementById('cnt'+k.charAt(0).toUpperCase()+k.slice(1));
-    if(el)el.textContent=tf.filter(x=>x.category===k).length;
-  }
-}
-
-document.getElementById('timeRow').addEventListener('click',e=>{
-  const b=e.target.closest('.time-btn');if(!b)return;
-  document.querySelectorAll('.time-btn').forEach(x=>x.classList.remove('active'));
-  if(b.dataset.time!=='all')b.classList.add('active');
-  curTime=b.dataset.time;curCat='all';activeCardId=null;
-  document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
-  render();counts();
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Clone and cache successful responses
+        if (response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Network failed, try cache
+        return caches.match(event.request)
+          .then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // Return offline fallback for navigation requests
+            if (event.request.mode === 'navigate') {
+              return caches.match('/index.html');
+            }
+            return new Response('Offline', { status: 503 });
+          });
+      })
+  );
 });
 
-document.getElementById('cats').addEventListener('click',e=>{
-  const c=e.target.closest('.cat');if(!c)return;
-  if(c.classList.contains('active')){c.classList.remove('active');curCat='all';}
-  else{document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));c.classList.add('active');curCat=c.dataset.category;}
-  activeCardId=null;render();
-});
-
-function addCatPrompt(){document.getElementById('addCatModal').classList.add('show');}
-function closeAddCatModal(){document.getElementById('addCatModal').classList.remove('show');}
-
-function exportAll(){
-  closeSettings();
-  if(!ideas.length){toast('Nothing to export','warning');return;}
-  const grp={};for(const i of ideas){if(!grp[i.category])grp[i.category]=[];grp[i.category].push(i);}
-  let md='# DropLit Export\n'+new Date().toLocaleDateString('ru-RU')+' • '+ideas.length+' ideas\n\n';
-  for(const[k,arr]of Object.entries(grp)){
-    md+='## '+CATS[k].name+' ('+arr.length+')\n';
-    for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
-    md+='\n';
+// Handle messages from main app
+self.addEventListener('message', (event) => {
+  if (event.data.action === 'skipWaiting') {
+    self.skipWaiting();
   }
-  md+='---\nExported from DropLit v0.6.3';
-  document.getElementById('exportBox').textContent=md;
-  document.getElementById('exportModal').classList.add('show');
-}
-
-function closeExportModal(){document.getElementById('exportModal').classList.remove('show');}
-function copyExport(){navigator.clipboard.writeText(document.getElementById('exportBox').textContent);toast('Copied!','success');closeExportModal();}
-function openAbout(){document.getElementById('aboutModal').classList.add('show');}
-function closeAbout(){document.getElementById('aboutModal').classList.remove('show');}
-function openSettings(){document.getElementById('settingsModal').classList.add('show');}
-function closeSettings(){document.getElementById('settingsModal').classList.remove('show');}
-
-function toast(m,t='info'){
-  const w=document.getElementById('toastWrap'),el=document.createElement('div');
-  el.className='toast '+t;
-  el.innerHTML=({success:'✓',warning:'⚠',error:'✖',info:'ℹ'})[t]+' '+m;
-  w.appendChild(el);
-  setTimeout(()=>el.classList.add('show'),10);
-  setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),300);},2500);
-}
-
-function updateNet(){document.getElementById('netBanner').classList.toggle('show',!navigator.onLine);}
-window.addEventListener('online',updateNet);
-window.addEventListener('offline',updateNet);
-
-document.addEventListener('DOMContentLoaded',()=>{
-  initSR();render();counts();updateNet();
-  setTimeout(scrollToBottom,100);
 });
-</script>
-</body>
-</html>
