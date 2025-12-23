@@ -125,7 +125,9 @@
     .card-checkbox { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border: 2px solid var(--color-border); border-radius: 6px; background: white; display: none; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: bold; }
     .select-mode .card-checkbox { display: flex; }
     .card.selected .card-checkbox { background: var(--color-merge); border-color: var(--color-merge); }
-    .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .card-chars { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
+    .card-time { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; margin-left: auto; }
     .card-cat { padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; cursor: pointer; letter-spacing: 0.02em; }
     .card-cat:active { opacity: 0.8; }
     .card-cat.tasks { background: var(--cat-tasks-bg); color: var(--cat-tasks-text); }
@@ -135,13 +137,13 @@
     .card-cat.bugs { background: var(--cat-bugs-bg); color: var(--cat-bugs-text); }
     .card-cat.questions { background: var(--cat-questions-bg); color: var(--cat-questions-text); }
     .card-cat.inbox { background: var(--color-bg-btn); color: var(--cat-inbox-text); }
-    .card-meta { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
-    .card-text { font-size: 0.95rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; }
+    
+    .card-text { font-size: 1.05rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; }
     .select-mode .card-text { padding-right: 40px; }
     .card-edit { display: none; margin-top: 10px; }
     .card.editing .card-text { display: none; }
     .card.editing .card-edit { display: block; }
-    .card-ta { width: 100%; min-height: 70px; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 0.95rem; line-height: 1.5; color: var(--color-text); resize: vertical; background: var(--color-bg); }
+    .card-ta { width: 100%; min-height: 120px; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 0.95rem; line-height: 1.5; color: var(--color-text); resize: vertical; background: var(--color-bg); }
     .card-ta:focus { outline: none; border-color: var(--color-primary); }
     
     .card-actions { display: none; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--color-border); overflow-x: auto; scrollbar-width: none; }
@@ -166,10 +168,10 @@
     .empty-text { font-size: 0.85rem; color: var(--color-text-soft); }
 
     /* FAB - Record button */
-    .fab-record { position: fixed; bottom: calc(24px + var(--safe-bottom)); right: 20px; width: 60px; height: 60px; border: none; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-fab); z-index: 50; transition: all 0.2s; }
+    .fab-record { position: fixed; bottom: calc(24px + var(--safe-bottom)); right: 20px; width: 68px; height: 68px; border: none; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-fab); z-index: 50; transition: all 0.2s; }
     .fab-record:active { transform: scale(0.95); }
     .fab-record.recording { background: var(--color-recording); animation: pulse 1.5s ease infinite; box-shadow: 0 4px 14px rgba(239,68,68,0.4); }
-    .fab-record svg { width: 26px; height: 26px; color: white; }
+    .fab-record svg { width: 30px; height: 30px; color: white; }
     .select-mode .fab-record { display: none; }
     @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 12px rgba(239,68,68,0)} }
 
@@ -324,7 +326,7 @@
   <div class="toast-wrap" id="toastWrap"></div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.6.0 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.6.1 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">🤖</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">📱</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">✉️</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">📋</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -557,7 +559,8 @@ function render(){
       h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
       h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+CATS[i.category].name+'</span>';
-      h+='<div class="card-meta"><span>'+cc+'</span><span>'+smartTime(i)+'</span></div></div>';
+      h+='<span class="card-chars">'+cc+'</span>';
+      h+='<span class="card-time">'+smartTime(i)+'</span></div>';
       h+='<div class="card-text">'+esc(i.text)+'</div>';
       h+='<div class="card-edit"><textarea class="card-ta">'+esc(i.text)+'</textarea></div>';
       h+='<div class="card-actions">';
@@ -618,7 +621,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.6.0';
+  md+='---\nExported from DropLit v0.6.1';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
