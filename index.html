@@ -149,6 +149,8 @@
     .card-text.expanded::after { display: none; }
     .card-image { width: 100%; max-height: 200px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: 8px; cursor: pointer; }
     .card-image:active { opacity: 0.9; }
+    .card-media-meta { font-size: 0.7rem; color: var(--color-text-muted); display: flex; gap: 10px; margin-bottom: 4px; }
+    .card-notes { font-size: 0.85rem; color: var(--color-text-soft); line-height: 1.4; }
     .card-more { display: none; padding: 8px 0 4px; font-size: 0.8rem; color: var(--color-primary); font-weight: 600; cursor: pointer; }
     .card-more.show { display: block; }
     .select-mode .card-text { padding-right: 40px; }
@@ -278,9 +280,29 @@
     .merge-preview { background: var(--color-bg); border-radius: var(--radius-sm); padding: 12px; font-size: 0.8rem; max-height: 200px; overflow-y: auto; margin-bottom: 16px; line-height: 1.6; white-space: pre-wrap; }
 
     /* Image viewer */
-    .image-viewer { background: rgba(0,0,0,0.95); padding: 0; }
-    .image-viewer img { max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 0; }
-    .image-viewer-close { position: absolute; top: 20px; right: 20px; width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; }
+    .image-viewer { background: rgba(0,0,0,0.95); padding: 0; flex-direction: column; }
+    .image-viewer-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 60px 10px 10px; }
+    .image-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius-sm); }
+    .image-viewer-close { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; z-index: 10; }
+    .image-viewer-close:active { background: rgba(255,255,255,0.3); }
+    .image-viewer-panel { background: var(--color-bg-card); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px 16px calc(16px + var(--safe-bottom)); }
+    .image-meta { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 10px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .image-meta span { display: flex; align-items: center; gap: 4px; }
+    .image-notes-wrap { margin-bottom: 12px; }
+    .image-notes { width: 100%; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 0.9rem; resize: none; background: var(--color-bg); }
+    .image-notes:focus { outline: none; border-color: var(--color-primary); }
+    .image-actions { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+    .image-actions::-webkit-scrollbar { display: none; }
+    .img-act { flex-shrink: 0; height: 38px; padding: 0 14px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .img-act:active { background: var(--color-bg-soft); }
+
+    @media print {
+      body * { visibility: hidden; }
+      .image-viewer, .image-viewer img { visibility: visible; }
+      .image-viewer { position: absolute; left: 0; top: 0; background: white; }
+      .image-viewer img { max-width: 100%; max-height: 100%; }
+      .image-viewer-close, .image-viewer-panel { display: none !important; }
+    }
 
     @media (min-width:481px) { 
       .app { margin: 20px auto; height: calc(100vh - 40px); border-radius: var(--radius-lg); box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; }
@@ -360,7 +382,7 @@
   <div class="toast-wrap" id="toastWrap"></div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.7.1 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.7.2 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">🤖</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">📱</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">✉️</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">📋</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -368,7 +390,25 @@
   <div class="overlay" id="settingsModal"><div class="modal"><div class="modal-title">Settings</div><div class="modal-text">Coming soon:<br><br>• 🔍 Search<br>• 🎨 Themes<br>• 📁 Custom categories<br>• ☁️ Cloud sync</div><div class="modal-actions"><button class="modal-btn sec" onclick="exportAll()">Export</button><button class="modal-btn pri" onclick="closeSettings()">Done</button></div></div></div>
   <div class="overlay" id="addCatModal"><div class="modal"><div class="modal-title">Add Category</div><div class="modal-text">Custom categories coming in a future update!</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAddCatModal()">OK</button></div></div></div>
   <div class="overlay" id="mergeModal"><div class="modal"><div class="modal-title">📋 Merge Preview</div><div class="merge-preview" id="mergePreview"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeMergeModal()">Cancel</button><button class="modal-btn sec" onclick="copyMerged()">📋 Copy</button><button class="modal-btn merge" onclick="saveMerged()">💾 Save</button></div></div></div>
-  <div class="overlay image-viewer" id="imageViewer" onclick="closeImageViewer()"><img id="imageViewerImg" src="" alt="Full size"><div class="image-viewer-close">✕</div></div>
+  <div class="overlay image-viewer" id="imageViewer" onclick="handleImageViewerClick(event)">
+    <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
+    <div class="image-viewer-content">
+      <img id="imageViewerImg" src="" alt="Full size">
+    </div>
+    <div class="image-viewer-panel" onclick="event.stopPropagation()">
+      <div class="image-meta" id="imageMeta"></div>
+      <div class="image-notes-wrap">
+        <textarea class="image-notes" id="imageNotes" placeholder="Add notes..." rows="2"></textarea>
+      </div>
+      <div class="image-actions">
+        <button class="img-act" onclick="ocrImage()">🔍 OCR</button>
+        <button class="img-act" onclick="aiDescribe()">✨ AI</button>
+        <button class="img-act" onclick="shareImage()">📤 Share</button>
+        <button class="img-act" onclick="saveImageToGallery()">💾 Save</button>
+        <button class="img-act" onclick="printImage()">🖨️ Print</button>
+      </div>
+    </div>
+  </div>
 
 <script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
@@ -461,7 +501,15 @@ function getMergedText(){
   const selected=ideas.filter(i=>selectedIds.includes(i.id));
   // Sort by timestamp
   selected.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
-  return selected.map(i=>`• [${CATS[i.category].name}] ${i.text}`).join('\n');
+  return selected.map(i=>{
+    const cat=CATS[i.category]?.name||'INBOX';
+    if(i.isMedia){
+      // Media card - use notes or placeholder
+      const content=i.notes||'[📷 Photo '+i.date+' '+i.time+']';
+      return `• [${cat}] ${content}`;
+    }
+    return `• [${cat}] ${i.text}`;
+  }).join('\n');
 }
 
 function showMergePreview(){
@@ -592,14 +640,34 @@ function handlePhoto(e){
   if(!file)return;
   const reader=new FileReader();
   reader.onload=function(ev){
-    savePhoto(ev.target.result);
+    // Try to get geolocation
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        (pos)=>savePhoto(ev.target.result,{lat:pos.coords.latitude,lng:pos.coords.longitude}),
+        ()=>savePhoto(ev.target.result,null),
+        {timeout:5000,maximumAge:60000}
+      );
+    } else {
+      savePhoto(ev.target.result,null);
+    }
   };
   reader.readAsDataURL(file);
   e.target.value='';
 }
 
-function savePhoto(dataUrl){
-  const idea={id:Date.now(),text:'',image:dataUrl,category:'sketch',timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMedia:true};
+function savePhoto(dataUrl,geo){
+  const idea={
+    id:Date.now(),
+    text:'',
+    notes:'',
+    image:dataUrl,
+    category:'sketch',
+    timestamp:new Date().toISOString(),
+    date:new Date().toLocaleDateString('ru-RU'),
+    time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+    geo:geo,
+    isMedia:true
+  };
   ideas.push(idea);save();
   curCat='all';curTime='all';activeCardId=null;
   document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
@@ -672,7 +740,13 @@ function render(){
       else h+='<span class="card-chars">'+cc+'</span>';
       h+='<span class="card-time">'+smartTime(i)+'</span></div>';
       if(i.isMedia&&i.image){
-        h+='<img class="card-image" src="'+i.image+'" onclick="viewImage(\''+i.image+'\',event)" alt="Photo">';
+        h+='<img class="card-image" src="'+i.image+'" onclick="viewImage('+i.id+',event)" alt="Photo">';
+        // Show date/geo and notes under image
+        h+='<div class="card-media-meta">';
+        h+='<span>📅 '+i.date+' '+i.time+'</span>';
+        if(i.geo)h+='<span>📍 '+i.geo.lat.toFixed(2)+','+i.geo.lng.toFixed(2)+'</span>';
+        h+='</div>';
+        if(i.notes)h+='<div class="card-notes">'+esc(i.notes)+'</div>';
       }
       if(i.text){
         h+='<div class="card-text'+(isTruncated?' truncated':'')+'" id="text-'+i.id+'">'+esc(i.text)+'</div>';
@@ -683,13 +757,12 @@ function render(){
       }
       h+='<div class="card-actions">';
       if(i.isMedia){
-        h+='<button class="act ai" onclick="aiProcess('+i.id+')">🔍 OCR</button>';
-        h+='<button class="act ai" onclick="aiProcess('+i.id+')">✨ AI</button>';
+        h+='<button class="act" onclick="viewImage('+i.id+',event)">✏️ Edit</button>';
       } else {
         h+='<button class="act ai" onclick="aiProcess('+i.id+')">✨ AI</button>';
         h+='<button class="act" onclick="startEdit('+i.id+')">✏️ Edit</button>';
       }
-      h+='<button class="act" onclick="openSendModal('+i.id+')">📤 Send</button>';
+      h+='<button class="act" onclick="openSendModal('+i.id+')">📤 Share</button>';
       h+='<button class="act" onclick="copyIdea('+i.id+')">📋 Copy</button>';
       h+='<button class="act" onclick="reqDel('+i.id+')">🗑️</button>';
       h+='</div>';
@@ -719,15 +792,95 @@ function toggleExpand(id,e){
   }
 }
 
-function viewImage(src,e){
+let currentImageId=null;
+
+function viewImage(id,e){
   e.stopPropagation();
-  document.getElementById('imageViewerImg').src=src;
+  const item=ideas.find(x=>x.id===id);
+  if(!item||!item.image)return;
+  currentImageId=id;
+  document.getElementById('imageViewerImg').src=item.image;
+  
+  // Build meta info
+  let meta='<span>📅 '+item.date+' '+item.time+'</span>';
+  if(item.geo){
+    meta+='<span>📍 '+item.geo.lat.toFixed(4)+', '+item.geo.lng.toFixed(4)+'</span>';
+  }
+  document.getElementById('imageMeta').innerHTML=meta;
+  
+  // Set notes
+  document.getElementById('imageNotes').value=item.notes||'';
+  
   document.getElementById('imageViewer').classList.add('show');
 }
 
+function handleImageViewerClick(e){
+  // Close only if clicking on background, not on panel or image
+  if(e.target.classList.contains('image-viewer')||e.target.classList.contains('image-viewer-content')){
+    closeImageViewer();
+  }
+}
+
 function closeImageViewer(){
+  // Save notes before closing
+  if(currentImageId){
+    const notes=document.getElementById('imageNotes').value.trim();
+    const item=ideas.find(x=>x.id===currentImageId);
+    if(item&&item.notes!==notes){
+      item.notes=notes;
+      save();
+      render();
+    }
+  }
+  currentImageId=null;
   document.getElementById('imageViewer').classList.remove('show');
   document.getElementById('imageViewerImg').src='';
+}
+
+function shareImage(){
+  const item=ideas.find(x=>x.id===currentImageId);
+  if(!item)return;
+  
+  // Convert base64 to blob for sharing
+  fetch(item.image)
+    .then(res=>res.blob())
+    .then(blob=>{
+      const file=new File([blob],'droplit-sketch.jpg',{type:'image/jpeg'});
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+        navigator.share({
+          files:[file],
+          title:'DropLit Sketch',
+          text:item.notes||'Shared from DropLit'
+        }).catch(()=>{});
+      } else {
+        // Fallback - open in new tab
+        window.open(item.image,'_blank');
+        toast('Use browser menu to share','info');
+      }
+    });
+}
+
+function saveImageToGallery(){
+  const item=ideas.find(x=>x.id===currentImageId);
+  if(!item)return;
+  
+  const link=document.createElement('a');
+  link.href=item.image;
+  link.download='droplit-sketch-'+item.id+'.jpg';
+  link.click();
+  toast('Image saved!','success');
+}
+
+function printImage(){
+  window.print();
+}
+
+function ocrImage(){
+  toast('OCR coming soon with AI!','info');
+}
+
+function aiDescribe(){
+  toast('AI description coming soon!','info');
 }
 
 function counts(){
@@ -772,7 +925,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.7.1';
+  md+='---\nExported from DropLit v0.7.2';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
