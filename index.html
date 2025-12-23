@@ -10,7 +10,7 @@
   <meta name="application-name" content="DropLit">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="format-detection" content="telephone=no">
-  <meta name="description" content="DropLit — Voice-first idea capture app.">
+  <meta name="description" content="DropLit — Voice-first idea capture app. Never lose your ideas again.">
   <title>DropLit</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
@@ -27,6 +27,7 @@
       --color-success: #10B981;
       --color-warning: #F59E0B;
       --color-error: #EF4444;
+      --color-merge: #8B5CF6;
       --color-bg: #F5F5F4;
       --color-bg-card: #FFFFFF;
       --color-bg-soft: #E7E5E4;
@@ -77,22 +78,17 @@
     /* Filters */
     .filters { background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
     .time-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; }
-    /* Time buttons */
     .time-btn { height: 34px; padding: 0 12px; border: 2px solid transparent; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
     .time-btn:active { transform: scale(0.97); }
-    /* ALL button - coral filled */
     .time-btn[data-time="all"] { background: var(--color-primary); color: white; border-color: var(--color-primary); }
     .time-btn[data-time="all"] .cnt { background: rgba(255,255,255,0.25); color: white; }
-    /* Other time buttons active - coral border only */
     .time-btn:not([data-time="all"]).active { border-color: var(--color-active); background: var(--color-bg-btn); color: var(--color-text-soft); }
     .time-btn:not([data-time="all"]).active .cnt { background: var(--color-active); color: white; }
     .cnt { min-width: 20px; height: 20px; padding: 0 6px; background: rgba(0,0,0,0.08); border-radius: var(--radius-full); font-size: 0.65rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-    /* Sort button */
     .sort-btn { height: 34px; width: 40px; padding: 0; border: 2px solid transparent; background: var(--color-bg-btn); border-radius: var(--radius-full); font-size: 0.9rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
     .sort-btn:active { transform: scale(0.97); }
     .sort-btn.desc { border-color: var(--color-active); }
 
-    /* Categories row - no arrows, just swipe */
     .cat-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; padding: 2px 4px; }
     .cat-row::-webkit-scrollbar { display: none; }
     .cat { flex-shrink: 0; height: 34px; padding: 0 12px; border: 2px solid transparent; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.65rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
@@ -121,10 +117,14 @@
     .date-sep { display: flex; align-items: center; justify-content: center; padding: 16px 0 8px; font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
     /* Card */
-    .card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px 14px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 8px; }
+    .card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px 14px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 8px; position: relative; }
     .card:active { transform: scale(0.995); }
     .card.active { box-shadow: 0 0 0 2px var(--color-active), var(--shadow-card); }
     .card.editing { box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-card); }
+    .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
+    .card-checkbox { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border: 2px solid var(--color-border); border-radius: 6px; background: white; display: none; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: bold; }
+    .select-mode .card-checkbox { display: flex; }
+    .card.selected .card-checkbox { background: var(--color-merge); border-color: var(--color-merge); }
     .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .card-cat { padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; cursor: pointer; letter-spacing: 0.02em; }
     .card-cat:active { opacity: 0.8; }
@@ -136,24 +136,26 @@
     .card-cat.questions { background: var(--cat-questions-bg); color: var(--cat-questions-text); }
     .card-cat.inbox { background: var(--color-bg-btn); color: var(--cat-inbox-text); }
     .card-meta { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
-    .card-text { font-size: 0.95rem; line-height: 1.5; color: var(--color-text); }
+    .card-text { font-size: 0.95rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; }
+    .select-mode .card-text { padding-right: 40px; }
     .card-edit { display: none; margin-top: 10px; }
     .card.editing .card-text { display: none; }
     .card.editing .card-edit { display: block; }
     .card-ta { width: 100%; min-height: 70px; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 0.95rem; line-height: 1.5; color: var(--color-text); resize: vertical; background: var(--color-bg); }
     .card-ta:focus { outline: none; border-color: var(--color-primary); }
     
-    /* Actions */
     .card-actions { display: none; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--color-border); overflow-x: auto; scrollbar-width: none; }
     .card-actions::-webkit-scrollbar { display: none; }
     .card.active .card-actions { display: flex; }
     .card.editing .card-actions { display: none; }
+    .select-mode .card.active .card-actions { display: none; }
     .card-edit-actions { display: none; gap: 6px; margin-top: 10px; }
     .card.editing .card-edit-actions { display: flex; }
     .act { flex-shrink: 0; height: 32px; padding: 0 12px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.65rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
     .act:active { background: var(--color-bg-soft); }
     .act.primary { background: var(--color-primary); color: white; }
     .act.ai { background: linear-gradient(135deg, #8B5CF6, #6366F1); color: white; }
+    .act.merge { background: var(--color-merge); color: white; }
     .act.secondary { background: var(--color-bg-btn); color: var(--color-text-soft); }
 
     /* Empty state */
@@ -168,6 +170,7 @@
     .fab-record:active { transform: scale(0.95); }
     .fab-record.recording { background: var(--color-recording); animation: pulse 1.5s ease infinite; box-shadow: 0 4px 14px rgba(239,68,68,0.4); }
     .fab-record svg { width: 26px; height: 26px; color: white; }
+    .select-mode .fab-record { display: none; }
     @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 12px rgba(239,68,68,0)} }
 
     /* Recording status */
@@ -184,6 +187,16 @@
     .scroll-fab.top { bottom: calc(160px + var(--safe-bottom)); }
     .scroll-fab.bottom { bottom: calc(100px + var(--safe-bottom)); }
 
+    /* Selection bar */
+    .select-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-bg-card); border-top: 1px solid var(--color-border); padding: 12px 16px calc(12px + var(--safe-bottom)); display: none; align-items: center; justify-content: space-between; gap: 10px; z-index: 60; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); }
+    .select-bar.show { display: flex; }
+    .select-info { font-size: 0.85rem; font-weight: 600; color: var(--color-text); }
+    .select-actions { display: flex; gap: 8px; }
+    .select-btn { height: 40px; padding: 0 20px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .select-btn:active { transform: scale(0.97); }
+    .select-btn.cancel { background: var(--color-bg-btn); color: var(--color-text-soft); }
+    .select-btn.merge { background: var(--color-merge); color: white; }
+
     /* Modals */
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; padding: 20px; z-index: 100; backdrop-filter: blur(4px); }
     .overlay.show { display: flex; }
@@ -196,6 +209,7 @@
     .modal-btn:active { transform: scale(0.97); }
     .modal-btn.sec { background: var(--color-bg-btn); color: var(--color-text); }
     .modal-btn.pri { background: var(--color-primary); color: white; }
+    .modal-btn.merge { background: var(--color-merge); color: white; }
     .modal-btn.danger { background: var(--color-error); color: white; }
 
     .cat-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
@@ -236,15 +250,19 @@
     .toast.error { background: var(--color-error); color: white; }
     .toast.info { background: var(--color-text); color: white; }
 
+    /* Merge preview */
+    .merge-preview { background: var(--color-bg); border-radius: var(--radius-sm); padding: 12px; font-size: 0.8rem; max-height: 200px; overflow-y: auto; margin-bottom: 16px; line-height: 1.6; white-space: pre-wrap; }
+
     @media (min-width:481px) { 
       .app { margin: 20px auto; height: calc(100vh - 40px); border-radius: var(--radius-lg); box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; }
       .fab-record { right: calc(50% - 220px); }
       .scroll-fab { right: calc(50% - 220px); }
+      .select-bar { left: 50%; right: auto; transform: translateX(-50%); max-width: 480px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
     }
   </style>
 </head>
 <body>
-  <div class="app">
+  <div class="app" id="app">
     <header class="header">
       <button class="logo-btn" onclick="openAbout()">
         <svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
@@ -294,22 +312,34 @@
   <button class="scroll-fab top" id="scrollTop" onclick="scrollToTop()">↑</button>
   <button class="scroll-fab bottom" id="scrollBottom" onclick="scrollToBottom()">↓</button>
 
+  <!-- Selection bar for merge -->
+  <div class="select-bar" id="selectBar">
+    <div class="select-info"><span id="selectCount">0</span> selected</div>
+    <div class="select-actions">
+      <button class="select-btn cancel" onclick="cancelSelect()">Cancel</button>
+      <button class="select-btn merge" onclick="showMergePreview()">🔀 Merge</button>
+    </div>
+  </div>
+
   <div class="toast-wrap" id="toastWrap"></div>
 
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.5.2 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Tap card to see actions.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <!-- Modals -->
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.6.0 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">🤖</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">📱</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">✉️</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">📋</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
   <div class="overlay" id="delModal"><div class="modal"><div class="modal-title">Delete this idea?</div><div class="modal-text">This action cannot be undone.</div><div class="modal-actions"><button class="modal-btn sec" onclick="closeDelModal()">Cancel</button><button class="modal-btn danger" onclick="confirmDel()">Delete</button></div></div></div>
   <div class="overlay" id="settingsModal"><div class="modal"><div class="modal-title">Settings</div><div class="modal-text">Coming soon:<br><br>• 🔍 Search<br>• 🎨 Themes<br>• 📁 Custom categories<br>• ☁️ Cloud sync</div><div class="modal-actions"><button class="modal-btn sec" onclick="exportAll()">Export</button><button class="modal-btn pri" onclick="closeSettings()">Done</button></div></div></div>
   <div class="overlay" id="addCatModal"><div class="modal"><div class="modal-title">Add Category</div><div class="modal-text">Custom categories coming in a future update!</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAddCatModal()">OK</button></div></div></div>
+  <div class="overlay" id="mergeModal"><div class="modal"><div class="modal-title">🔀 Merge Preview</div><div class="merge-preview" id="mergePreview"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeMergeModal()">Cancel</button><button class="modal-btn sec" onclick="copyMerged()">📋 Copy</button><button class="modal-btn merge" onclick="saveMerged()">💾 Save</button></div></div></div>
 
 <script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 let curCat='all',curTime='all',sortAsc=true,isRec=false,recognition=null,saved=false;
 let sendId=null,delId=null,catChangeId=null,editId=null,activeCardId=null;
-let lastScrollTop=0;
+let selectMode=false,selectedIds=[];
+let lastScrollTop=0,longPressTimer=null;
 const CATS={tasks:{name:'TASKS',kw:['задача','сделать','нужно','надо','task','todo']},ideas:{name:'IDEAS',kw:['идея','мысль','придумал','idea']},handmagic:{name:'HANDMAGIC',kw:['handmagic','хендмеджик','магия']},design:{name:'DESIGN',kw:['дизайн','ui','ux','кнопка','цвет','design']},bugs:{name:'BUGS',kw:['баг','ошибка','bug','fix']},questions:{name:'QUESTIONS',kw:['вопрос','спросить','claude']},inbox:{name:'INBOX',kw:[]}};
 
 function parseD(s){const[d,m,y]=s.split('.').map(Number);return new Date(y,m-1,d);}
@@ -326,16 +356,13 @@ ideasWrap.addEventListener('scroll',()=>{
   const maxScroll=ideasWrap.scrollHeight-ideasWrap.clientHeight;
   const dir=st>lastScrollTop?1:-1;
   lastScrollTop=st;
-  
   clearTimeout(scrollTimeout);
   scrollTopBtn.classList.remove('show');
   scrollBottomBtn.classList.remove('show');
-  
   if(maxScroll>300){
     if(dir<0 && st>200) scrollTopBtn.classList.add('show');
     else if(dir>0 && st<maxScroll-200) scrollBottomBtn.classList.add('show');
   }
-  
   scrollTimeout=setTimeout(()=>{
     scrollTopBtn.classList.remove('show');
     scrollBottomBtn.classList.remove('show');
@@ -344,22 +371,106 @@ ideasWrap.addEventListener('scroll',()=>{
 
 function scrollToTop(){ideasWrap.scrollTo({top:0,behavior:'smooth'});scrollTopBtn.classList.remove('show');}
 function scrollToBottom(){ideasWrap.scrollTo({top:ideasWrap.scrollHeight,behavior:'smooth'});scrollBottomBtn.classList.remove('show');}
+function toggleSort(){sortAsc=!sortAsc;document.getElementById('sortBtn').textContent=sortAsc?'↑':'↓';document.getElementById('sortBtn').classList.toggle('desc',!sortAsc);render();}
 
-function toggleSort(){
-  sortAsc=!sortAsc;
-  document.getElementById('sortBtn').textContent=sortAsc?'↑':'↓';
-  document.getElementById('sortBtn').classList.toggle('desc',!sortAsc);
+// Selection mode
+function enterSelectMode(id){
+  selectMode=true;
+  selectedIds=[id];
+  activeCardId=null;
+  document.getElementById('app').classList.add('select-mode');
+  updateSelectBar();
   render();
 }
 
-function activateCard(id,e){
-  if(e&&(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')))return;
-  activeCardId=activeCardId===id?null:id;
+function cancelSelect(){
+  selectMode=false;
+  selectedIds=[];
+  document.getElementById('app').classList.remove('select-mode');
+  document.getElementById('selectBar').classList.remove('show');
   render();
+}
+
+function toggleSelect(id){
+  if(selectedIds.includes(id)){
+    selectedIds=selectedIds.filter(x=>x!==id);
+    if(selectedIds.length===0) cancelSelect();
+  } else {
+    selectedIds.push(id);
+  }
+  updateSelectBar();
+  render();
+}
+
+function updateSelectBar(){
+  document.getElementById('selectCount').textContent=selectedIds.length;
+  document.getElementById('selectBar').classList.toggle('show',selectMode&&selectedIds.length>0);
+}
+
+function getMergedText(){
+  const selected=ideas.filter(i=>selectedIds.includes(i.id));
+  // Sort by timestamp
+  selected.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  return selected.map(i=>`• [${CATS[i.category].name}] ${i.text}`).join('\n');
+}
+
+function showMergePreview(){
+  if(selectedIds.length<2){toast('Select at least 2 cards','warning');return;}
+  document.getElementById('mergePreview').textContent=getMergedText();
+  document.getElementById('mergeModal').classList.add('show');
+}
+
+function closeMergeModal(){document.getElementById('mergeModal').classList.remove('show');}
+
+function copyMerged(){
+  navigator.clipboard.writeText(getMergedText());
+  toast('Copied to clipboard!','success');
+  closeMergeModal();
+}
+
+function saveMerged(){
+  const text=getMergedText();
+  const idea={id:Date.now(),text:text,category:'inbox',timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})};
+  ideas.push(idea);
+  save();
+  closeMergeModal();
+  cancelSelect();
+  render();counts();
+  toast('Merged & saved!','success');
+  setTimeout(scrollToBottom,100);
+}
+
+// Card interactions
+function handleCardClick(id,e){
+  if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox'))return;
+  if(selectMode){
+    toggleSelect(id);
+  } else {
+    activeCardId=activeCardId===id?null:id;
+    render();
+  }
+}
+
+function handleCardLongPress(id){
+  if(!selectMode){
+    enterSelectMode(id);
+    if(navigator.vibrate)navigator.vibrate(50);
+  }
+}
+
+function cardTouchStart(id,e){
+  if(selectMode||editId)return;
+  longPressTimer=setTimeout(()=>handleCardLongPress(id),500);
+}
+
+function cardTouchEnd(){
+  clearTimeout(longPressTimer);
 }
 
 document.addEventListener('click',(e)=>{
-  if(activeCardId&&!e.target.closest('.card')&&!e.target.closest('.overlay')&&!e.target.closest('.fab-record')){activeCardId=null;render();}
+  if(activeCardId&&!e.target.closest('.card')&&!e.target.closest('.overlay')&&!e.target.closest('.fab-record')&&!e.target.closest('.select-bar')){
+    activeCardId=null;render();
+  }
 });
 
 function initSR(){
@@ -387,16 +498,12 @@ function initSR(){
 }
 
 function toggleRec(){if(isRec)recognition.stop();else{saved=false;recognition.start();}}
-
 function updateRecUI(on){
-  const fab=document.getElementById('fabRecord');
-  const status=document.getElementById('recStatus');
+  const fab=document.getElementById('fabRecord'),status=document.getElementById('recStatus');
   if(on){fab.classList.add('recording');status.classList.add('show');document.getElementById('recText').textContent='Listening...';}
   else{fab.classList.remove('recording');status.classList.remove('show');}
 }
-
 function detectCat(t){const l=t.toLowerCase();for(const[k,v]of Object.entries(CATS)){if(k==='inbox')continue;for(const w of v.kw)if(l.startsWith(w)||l.includes(' '+w+' '))return k;}return'inbox';}
-
 function saveIdea(t){
   const c=detectCat(t);
   const idea={id:Date.now(),text:t,category:c,timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})};
@@ -410,7 +517,6 @@ function saveIdea(t){
 }
 
 function aiProcess(id){toast('AI processing coming soon!','info');}
-
 function openCatModal(id){catChangeId=id;document.getElementById('catModal').classList.add('show');}
 function closeCatModal(){document.getElementById('catModal').classList.remove('show');catChangeId=null;}
 function changeCat(c){if(catChangeId){const i=ideas.find(x=>x.id===catChangeId);if(i){i.category=c;save();render();counts();toast('Moved to '+CATS[c].name,'success');}}closeCatModal();}
@@ -446,8 +552,10 @@ function render(){
     for(const i of dayIdeas){
       const isActive=activeCardId===i.id;
       const isEditing=editId===i.id;
+      const isSelected=selectedIds.includes(i.id);
       const cc=i.text.length;
-      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+'" data-id="'+i.id+'" onclick="activateCard('+i.id+',event)">';
+      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
+      h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
       h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+CATS[i.category].name+'</span>';
       h+='<div class="card-meta"><span>'+cc+'</span><span>'+smartTime(i)+'</span></div></div>';
       h+='<div class="card-text">'+esc(i.text)+'</div>';
@@ -510,7 +618,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.5.2';
+  md+='---\nExported from DropLit v0.6.0';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
