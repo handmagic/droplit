@@ -138,7 +138,11 @@
     .card-cat.questions { background: var(--cat-questions-bg); color: var(--cat-questions-text); }
     .card-cat.inbox { background: var(--color-bg-btn); color: var(--cat-inbox-text); }
     
-    .card-text { font-size: 1.05rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; }
+    .card-text { font-size: 1.05rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; max-height: 120px; overflow: hidden; position: relative; }
+    .card-text.expanded { max-height: none; }
+    .card-text.truncated::after { content: ''; position: absolute; bottom: 0; left: 0; right: 30px; height: 40px; background: linear-gradient(transparent, var(--color-bg-card)); }
+    .card-more { display: none; padding: 4px 0; font-size: 0.75rem; color: var(--color-primary); font-weight: 600; cursor: pointer; }
+    .card-more.show { display: block; }
     .select-mode .card-text { padding-right: 40px; }
     .card-edit { display: none; margin-top: 10px; }
     .card.editing .card-text { display: none; }
@@ -326,7 +330,7 @@
   <div class="toast-wrap" id="toastWrap"></div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.6.1 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.6.3 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">🤖</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">📱</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">✉️</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">📋</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -342,7 +346,7 @@ let curCat='all',curTime='all',sortAsc=true,isRec=false,recognition=null,saved=f
 let sendId=null,delId=null,catChangeId=null,editId=null,activeCardId=null;
 let selectMode=false,selectedIds=[];
 let lastScrollTop=0,longPressTimer=null;
-const CATS={tasks:{name:'TASKS',kw:['задача','сделать','нужно','надо','task','todo']},ideas:{name:'IDEAS',kw:['идея','мысль','придумал','idea']},handmagic:{name:'HANDMAGIC',kw:['handmagic','хендмеджик','магия']},design:{name:'DESIGN',kw:['дизайн','ui','ux','кнопка','цвет','design']},bugs:{name:'BUGS',kw:['баг','ошибка','bug','fix']},questions:{name:'QUESTIONS',kw:['вопрос','спросить','claude']},inbox:{name:'INBOX',kw:[]}};
+const CATS={tasks:{name:'TASKS',single:'TASK',kw:['задача','сделать','нужно','надо','task','todo']},ideas:{name:'IDEAS',single:'IDEA',kw:['идея','мысль','придумал','idea']},handmagic:{name:'HANDMAGIC',single:'HANDMAGIC',kw:['handmagic','хендмеджик','магия']},design:{name:'DESIGN',single:'DESIGN',kw:['дизайн','ui','ux','кнопка','цвет','design']},bugs:{name:'BUGS',single:'BUG',kw:['баг','ошибка','bug','fix']},questions:{name:'QUESTIONS',single:'QUESTION',kw:['вопрос','спросить','claude']},inbox:{name:'INBOX',single:'INBOX',kw:[]}};
 
 function parseD(s){const[d,m,y]=s.split('.').map(Number);return new Date(y,m-1,d);}
 function inDays(s,n){return(new Date()-parseD(s))/(864e5)<=n;}
@@ -447,6 +451,9 @@ function handleCardClick(id,e){
   if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox'))return;
   if(selectMode){
     toggleSelect(id);
+  } else if(editId && editId !== id) {
+    // If editing another card, don't activate this one
+    return;
   } else {
     activeCardId=activeCardId===id?null:id;
     render();
@@ -460,13 +467,31 @@ function handleCardLongPress(id){
   }
 }
 
+let touchStartX=0,touchStartY=0;
+
 function cardTouchStart(id,e){
   if(selectMode||editId)return;
-  longPressTimer=setTimeout(()=>handleCardLongPress(id),500);
+  const touch=e.touches[0];
+  touchStartX=touch.clientX;
+  touchStartY=touch.clientY;
+  longPressTimer=setTimeout(()=>handleCardLongPress(id),800);
+}
+
+function cardTouchMove(e){
+  if(!longPressTimer)return;
+  const touch=e.touches[0];
+  const dx=Math.abs(touch.clientX-touchStartX);
+  const dy=Math.abs(touch.clientY-touchStartY);
+  // Cancel if moved more than 10px (scrolling)
+  if(dx>10||dy>10){
+    clearTimeout(longPressTimer);
+    longPressTimer=null;
+  }
 }
 
 function cardTouchEnd(){
   clearTimeout(longPressTimer);
+  longPressTimer=null;
 }
 
 document.addEventListener('click',(e)=>{
@@ -556,12 +581,14 @@ function render(){
       const isEditing=editId===i.id;
       const isSelected=selectedIds.includes(i.id);
       const cc=i.text.length;
-      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
+      const isTruncated=cc>200;
+      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
-      h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+CATS[i.category].name+'</span>';
+      h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+CATS[i.category].single+'</span>';
       h+='<span class="card-chars">'+cc+'</span>';
       h+='<span class="card-time">'+smartTime(i)+'</span></div>';
-      h+='<div class="card-text">'+esc(i.text)+'</div>';
+      h+='<div class="card-text'+(isTruncated?' truncated':'')+'" id="text-'+i.id+'">'+esc(i.text)+'</div>';
+      if(isTruncated)h+='<div class="card-more show" onclick="toggleExpand('+i.id+',event)">Show more ▼</div>';
       h+='<div class="card-edit"><textarea class="card-ta">'+esc(i.text)+'</textarea></div>';
       h+='<div class="card-actions">';
       h+='<button class="act ai" onclick="aiProcess('+i.id+')">✨ AI</button>';
@@ -578,6 +605,21 @@ function render(){
 }
 
 function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+
+function toggleExpand(id,e){
+  e.stopPropagation();
+  const textEl=document.getElementById('text-'+id);
+  const btn=e.target;
+  if(textEl.classList.contains('expanded')){
+    textEl.classList.remove('expanded');
+    textEl.classList.add('truncated');
+    btn.textContent='Show more ▼';
+  } else {
+    textEl.classList.add('expanded');
+    textEl.classList.remove('truncated');
+    btn.textContent='Show less ▲';
+  }
+}
 
 function counts(){
   document.getElementById('cntAll').textContent=ideas.length;
@@ -621,7 +663,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.6.1';
+  md+='---\nExported from DropLit v0.6.3';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
