@@ -453,7 +453,18 @@ let curCat='all',curTime='all',sortAsc=true,isRec=false,recognition=null,saved=f
 let sendId=null,delId=null,catChangeId=null,editId=null,activeCardId=null;
 let selectMode=false,selectedIds=[];
 let lastScrollTop=0,longPressTimer=null;
-const CATS={tasks:{name:'TASKS',single:'TASK',kw:['Ð·Ð°Ð´Ð°Ñ‡Ð°','ÑÐ´ÐµÐ»Ð°Ñ‚ÑŒ','Ð½ÑƒÐ¶Ð½Ð¾','Ð½Ð°Ð´Ð¾','task','todo'],isMedia:false},ideas:{name:'IDEAS',single:'IDEA',kw:['Ð¸Ð´ÐµÑ','Ð¼Ñ‹ÑÐ»ÑŒ','Ð¿Ñ€Ð¸Ð´ÑƒÐ¼Ð°Ð»','idea'],isMedia:false},handmagic:{name:'HANDMAGIC',single:'HANDMAGIC',kw:['handmagic','Ñ…ÐµÐ½Ð´Ð¼ÐµÐ´Ð¶Ð¸Ðº','Ð¼Ð°Ð³Ð¸Ñ'],isMedia:false},design:{name:'DESIGN',single:'DESIGN',kw:['Ð´Ð¸Ð·Ð°Ð¹Ð½','ui','ux','ÐºÐ½Ð¾Ð¿ÐºÐ°','Ñ†Ð²ÐµÑ‚','design'],isMedia:false},bugs:{name:'BUGS',single:'BUG',kw:['Ð±Ð°Ð³','Ð¾ÑˆÐ¸Ð±ÐºÐ°','bug','fix'],isMedia:false},questions:{name:'QUESTIONS',single:'QUESTION',kw:['Ð²Ð¾Ð¿Ñ€Ð¾Ñ','ÑÐ¿Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ','claude'],isMedia:false},sketch:{name:'SKETCHES',single:'SKETCH',kw:[],isMedia:true},scan:{name:'SCANS',single:'SCAN',kw:[],isMedia:true},photo:{name:'PHOTOS',single:'PHOTO',kw:[],isMedia:true},inbox:{name:'INBOX',single:'INBOX',kw:[],isMedia:false}};
+const CATS={
+  tasks:{name:'TASKS',single:'TASK',kw:['task','tasks','todo','задача','задачи','сделать','нужно','надо'],isMedia:false},
+  ideas:{name:'IDEAS',single:'IDEA',kw:['idea','ideas','идея','идеи','мысль','придумал'],isMedia:false},
+  handmagic:{name:'HANDMAGIC',single:'HANDMAGIC',kw:['handmagic','хендмеджик','магия','ручная магия'],isMedia:false},
+  design:{name:'DESIGN',single:'DESIGN',kw:['design','дизайн','ui','ux','кнопка','цвет','интерфейс'],isMedia:false},
+  bugs:{name:'BUGS',single:'BUG',kw:['bug','bugs','fix','баг','баги','ошибка','ошибки','исправить'],isMedia:false},
+  questions:{name:'QUESTIONS',single:'QUESTION',kw:['question','questions','вопрос','вопросы','спросить','claude','клод'],isMedia:false},
+  sketch:{name:'SKETCHES',single:'SKETCH',kw:[],isMedia:true},
+  scan:{name:'SCANS',single:'SCAN',kw:[],isMedia:true},
+  photo:{name:'PHOTOS',single:'PHOTO',kw:[],isMedia:true},
+  inbox:{name:'INBOX',single:'INBOX',kw:[],isMedia:false}
+};
 const MEDIA_CATS=['photo','sketch','scan'];
 
 function parseD(s){const[d,m,y]=s.split('.').map(Number);return new Date(y,m-1,d);}
@@ -661,7 +672,19 @@ function updateRecUI(on){
   if(on){fab.classList.add('recording');status.classList.add('show');document.getElementById('recText').textContent='Listening...';}
   else{fab.classList.remove('recording');status.classList.remove('show');}
 }
-function detectCat(t){const l=t.toLowerCase();for(const[k,v]of Object.entries(CATS)){if(k==='inbox')continue;for(const w of v.kw)if(l.startsWith(w)||l.includes(' '+w+' '))return k;}return'inbox';}
+function detectCat(t){
+  const l=t.toLowerCase();
+  for(const[k,v]of Object.entries(CATS)){
+    if(k==='inbox'||!v.kw||v.kw.length===0)continue;
+    for(const w of v.kw){
+      // Check: starts with word, contains word with spaces, or ends with word
+      if(l.startsWith(w+' ')||l.startsWith(w+',')||l.startsWith(w+'.')||
+         l.includes(' '+w+' ')||l.includes(' '+w+',')||l.includes(' '+w+'.')||
+         l.endsWith(' '+w)||l===w)return k;
+    }
+  }
+  return'inbox';
+}
 function saveIdea(t){
   const c=detectCat(t);
   const idea={id:Date.now(),text:t,category:c,timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMedia:false};
