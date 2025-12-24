@@ -758,17 +758,37 @@ function handlePhoto(e){
   
   toast('Processing photo...','info');
   
+  // Compress image before saving
+  const img=new Image();
+  img.onload=function(){
+    const canvas=document.createElement('canvas');
+    const maxSize=1200; // Max dimension
+    let w=img.width,h=img.height;
+    
+    if(w>maxSize||h>maxSize){
+      if(w>h){h=Math.round(h*maxSize/w);w=maxSize;}
+      else{w=Math.round(w*maxSize/h);h=maxSize;}
+    }
+    
+    canvas.width=w;
+    canvas.height=h;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0,w,h);
+    
+    // Compress to JPEG 70% quality
+    const dataUrl=canvas.toDataURL('image/jpeg',0.7);
+    savePhoto(dataUrl,null);
+  };
+  img.onerror=function(){
+    toast('Failed to load photo','error');
+  };
+  
   const reader=new FileReader();
+  reader.onload=function(ev){
+    img.src=ev.target.result;
+  };
   reader.onerror=function(){
     toast('Failed to read photo','error');
-  };
-  reader.onload=function(ev){
-    const dataUrl=ev.target.result;
-    if(!dataUrl){
-      toast('Empty photo data','error');
-      return;
-    }
-    savePhoto(dataUrl,null);
   };
   reader.readAsDataURL(file);
   e.target.value='';
@@ -833,9 +853,12 @@ function copyClip(){const i=ideas.find(x=>x.id===sendId);if(i){navigator.clipboa
 function copyIdea(id){const i=ideas.find(x=>x.id===id);if(i){navigator.clipboard.writeText(i.text);toast('Copied','success');}}
 function save(){
   try{
-    localStorage.setItem('droplit_ideas',JSON.stringify(ideas));
+    const data=JSON.stringify(ideas);
+    localStorage.setItem('droplit_ideas',data);
   }catch(err){
-    toast('Storage full! Delete some items','error');
+    // Storage full - usually QuotaExceededError
+    const sizeMB=(JSON.stringify(ideas).length/1024/1024).toFixed(1);
+    toast('Storage full ('+sizeMB+'MB)! Delete old photos','error');
   }
 }
 function smartTime(i){const td=new Date().toLocaleDateString('ru-RU'),yd=new Date(Date.now()-864e5).toLocaleDateString('ru-RU');if(i.date===td)return i.time;if(i.date===yd)return'Yesterday '+i.time;const p=i.date.split('.');return p[0]+'.'+p[1]+' '+i.time;}
