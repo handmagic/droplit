@@ -146,6 +146,10 @@
     .card-cat.questions { background: var(--cat-questions-bg); color: var(--cat-questions-text); }
     .card-cat.inbox { background: var(--color-bg-btn); color: var(--cat-inbox-text); }
     .card-cat.sketch { background: var(--cat-sketch-bg); color: var(--cat-sketch-text); }
+    
+    /* Card markers */
+    .card-marker { font-size: 1rem; margin-left: auto; opacity: 0.9; animation: markerPop 0.2s ease; }
+    @keyframes markerPop { 0% { transform: scale(0); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
     .card-cat.scan { background: var(--cat-scan-bg); color: var(--cat-scan-text); }
     .card-cat.photo { background: var(--cat-photo-bg); color: var(--cat-photo-text); }
     
@@ -206,10 +210,10 @@
     .camera-input { display: none; }
 
     /* FAB - Plus button (center) */
-    .fab-plus { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); width: 56px; height: 56px; border: none; background: linear-gradient(135deg, #10B981, #059669); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(16,185,129,0.4); z-index: 50; transition: all 0.2s; }
+    .fab-plus { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); width: 68px; height: 68px; border: none; background: linear-gradient(135deg, #10B981, #059669); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(16,185,129,0.4); z-index: 50; transition: all 0.2s; }
     .fab-plus:active { transform: translateX(-50%) scale(0.95); }
     .fab-plus.open { transform: translateX(-50%) rotate(45deg); }
-    .fab-plus svg { width: 24px; height: 24px; color: white; transition: transform 0.2s; }
+    .fab-plus svg { width: 28px; height: 28px; color: white; transition: transform 0.2s; }
     .select-mode .fab-plus { display: none; }
 
     /* Plus menu */
@@ -411,7 +415,7 @@
       <div class="empty" id="emptyState">
         <div class="empty-icon"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div>
         <div class="empty-title">Your ideas start here</div>
-        <div class="empty-text">🎤 Speak · ➕ Type or paste · 📷 Snap a photo</div>
+        <div class="empty-text">📷 Photo · ➕ Type · 🎤 Speak</div>
       </div>
     </div>
   </div>
@@ -545,6 +549,18 @@ const CATS={
   inbox:{name:'INBOX',single:'INBOX',kw:[],isMedia:false}
 };
 const MEDIA_CATS=['photo','sketch','scan'];
+
+// Markers system (scalable for future)
+const MARKERS={
+  heart:'❤️',
+  star:'⭐',
+  fire:'🔥',
+  done:'✅',
+  trash:'💩',
+  think:'🤔'
+};
+// Currently enabled markers (MVP = only heart)
+const ENABLED_MARKERS=['heart'];
 
 function parseD(s){
   if(!s||typeof s!=='string')return new Date(0);
@@ -1158,7 +1174,12 @@ function render(){
       h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
       if(i.isMedia)h+='<span class="card-chars">IMG</span>';
       else h+='<span class="card-chars">'+cc+'</span>';
-      h+='<span class="card-time">'+smartTime(i)+'</span></div>';
+      h+='<span class="card-time">'+smartTime(i)+'</span>';
+      // Markers
+      if(i.markers&&i.markers.length){
+        h+='<span class="card-marker">'+i.markers.map(m=>MARKERS[m]||'').join('')+'</span>';
+      }
+      h+='</div>';
       if(i.isMedia&&i.image){
         h+='<img class="card-image" src="'+i.image+'" alt="Photo">';
         // Show date/geo and notes under image
