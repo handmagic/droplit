@@ -738,17 +738,42 @@ function resetToShowAll(){
 function handlePhoto(e){
   const file=e.target.files[0];
   if(!file)return;
+  
+  toast('Processing photo...','info');
+  
   const reader=new FileReader();
+  reader.onerror=function(){
+    toast('Failed to read photo','error');
+  };
   reader.onload=function(ev){
-    // Try to get geolocation
+    const dataUrl=ev.target.result;
+    // Try to get geolocation with short timeout
     if(navigator.geolocation){
+      let saved=false;
+      // Timeout fallback - save without geo after 2s
+      const fallbackTimer=setTimeout(()=>{
+        if(!saved){saved=true;savePhoto(dataUrl,null);}
+      },2000);
+      
       navigator.geolocation.getCurrentPosition(
-        (pos)=>savePhoto(ev.target.result,{lat:pos.coords.latitude,lng:pos.coords.longitude}),
-        ()=>savePhoto(ev.target.result,null),
-        {timeout:5000,maximumAge:60000}
+        (pos)=>{
+          if(!saved){
+            saved=true;
+            clearTimeout(fallbackTimer);
+            savePhoto(dataUrl,{lat:pos.coords.latitude,lng:pos.coords.longitude});
+          }
+        },
+        ()=>{
+          if(!saved){
+            saved=true;
+            clearTimeout(fallbackTimer);
+            savePhoto(dataUrl,null);
+          }
+        },
+        {timeout:2000,maximumAge:60000}
       );
     } else {
-      savePhoto(ev.target.result,null);
+      savePhoto(dataUrl,null);
     }
   };
   reader.readAsDataURL(file);
