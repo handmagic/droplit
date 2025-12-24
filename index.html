@@ -673,7 +673,7 @@ function saveIdea(t){
 function resetToShowAll(){
   // Reset filter variables
   curCat='all';
-  curTime='all';
+  curTime='7days';
   activeCardId=null;
   sortAsc=true;
   // Update sort button UI
@@ -682,13 +682,18 @@ function resetToShowAll(){
     sortBtn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>';
     sortBtn.classList.remove('desc');
   }
-  // Remove active class from all filter buttons
+  // Remove active class from category buttons
   document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
+  // Update time buttons - activate 7d
   document.querySelectorAll('.time-btn').forEach(x=>x.classList.remove('active'));
-  // Render and scroll
+  const btn7d=document.querySelector('.time-btn[data-time="7days"]');
+  if(btn7d)btn7d.classList.add('active');
+  // Render and scroll (instant, no animation)
   render();
   counts();
-  setTimeout(scrollToBottom,150);
+  setTimeout(()=>{
+    ideasWrap.scrollTo({top:ideasWrap.scrollHeight,behavior:'auto'});
+  },50);
 }
 
 function handlePhoto(e){
@@ -1287,12 +1292,10 @@ function counts(){
   document.getElementById('cntAll').textContent=ideas.length;
   document.getElementById('cntToday').textContent=ideas.filter(x=>isToday(x.date)).length;
   document.getElementById('cnt7d').textContent=ideas.filter(x=>inDays(x.date,7)).length;
-  let tf=[...ideas];
-  if(curTime==='today')tf=tf.filter(x=>isToday(x.date));
-  else if(curTime==='7days')tf=tf.filter(x=>inDays(x.date,7));
+  // Count ALL items in each category (not filtered by time)
   for(const k of Object.keys(CATS)){
     const el=document.getElementById('cnt'+k.charAt(0).toUpperCase()+k.slice(1));
-    if(el)el.textContent=tf.filter(x=>x.category===k).length;
+    if(el)el.textContent=ideas.filter(x=>x.category===k).length;
   }
 }
 
