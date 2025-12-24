@@ -131,7 +131,7 @@
     .card.active { box-shadow: 0 0 0 2px var(--color-active), var(--shadow-card); }
     .card.editing { box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-card); }
     .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
-    /* Checkbox removed in v0.7.4 */
+    /* Checkbox removed in v0.7.5 */
     .card-checkbox { display: none !important; }
     .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
     .card-chars { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
@@ -204,6 +204,38 @@
     .fab-camera svg { width: 28px; height: 28px; color: white; }
     .select-mode .fab-camera { display: none; }
     .camera-input { display: none; }
+
+    /* FAB - Plus button (center) */
+    .fab-plus { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); width: 56px; height: 56px; border: none; background: linear-gradient(135deg, #10B981, #059669); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(16,185,129,0.4); z-index: 50; transition: all 0.2s; }
+    .fab-plus:active { transform: translateX(-50%) scale(0.95); }
+    .fab-plus.open { transform: translateX(-50%) rotate(45deg); }
+    .fab-plus svg { width: 24px; height: 24px; color: white; transition: transform 0.2s; }
+    .select-mode .fab-plus { display: none; }
+
+    /* Plus menu */
+    .plus-menu { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--color-bg-card); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); z-index: 49; opacity: 0; visibility: hidden; transition: all 0.2s ease; min-width: 200px; overflow: hidden; }
+    .plus-menu.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+    .plus-menu-item { display: flex; align-items: center; gap: 12px; padding: 14px 20px; cursor: pointer; transition: background 0.15s; border: none; background: none; width: 100%; text-align: left; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text); }
+    .plus-menu-item:hover { background: var(--color-bg-btn); }
+    .plus-menu-item:active { background: var(--color-border); }
+    .plus-menu-item span.icon { font-size: 1.3rem; width: 28px; text-align: center; }
+    .plus-menu-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 48; opacity: 0; visibility: hidden; transition: opacity 0.2s; }
+    .plus-menu-backdrop.show { opacity: 1; visibility: visible; }
+
+    /* Text input modal */
+    .text-input-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+    .text-input-modal.show { display: flex; }
+    .text-input-content { background: var(--color-bg-card); width: 100%; max-height: 70vh; border-radius: 20px 20px 0 0; padding: 20px; padding-bottom: calc(20px + var(--safe-bottom)); animation: slideUp 0.25s ease; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .text-input-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .text-input-title { font-size: 1.1rem; font-weight: 600; color: var(--color-text); }
+    .text-input-close { width: 32px; height: 32px; border: none; background: var(--color-bg-btn); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); font-size: 1.2rem; }
+    .text-input-area { width: 100%; min-height: 120px; padding: 14px; border: 1px solid var(--color-border); border-radius: 12px; font-family: var(--font-main); font-size: 1rem; resize: none; background: var(--color-bg); color: var(--color-text); }
+    .text-input-area:focus { outline: none; border-color: var(--color-primary); }
+    .text-input-actions { display: flex; gap: 12px; margin-top: 16px; }
+    .text-input-btn { flex: 1; height: 48px; border: none; border-radius: 12px; font-family: var(--font-main); font-size: 0.95rem; font-weight: 600; cursor: pointer; }
+    .text-input-btn.cancel { background: var(--color-bg-btn); color: var(--color-text-soft); }
+    .text-input-btn.save { background: var(--color-primary); color: white; }
 
     /* Recording status */
     .rec-status { position: fixed; bottom: calc(96px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 8px; padding: 10px 20px; background: var(--color-bg-card); border-radius: var(--radius-full); box-shadow: var(--shadow-scroll); z-index: 50; }
@@ -388,6 +420,46 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
   </button>
   <input type="file" id="cameraInput" class="camera-input" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+  <input type="file" id="imageUpload" class="camera-input" accept="image/*" onchange="handleUploadedImage(event)">
+
+  <!-- FAB Plus button -->
+  <button class="fab-plus" id="fabPlus" onclick="togglePlusMenu()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+
+  <!-- Plus menu backdrop -->
+  <div class="plus-menu-backdrop" id="plusBackdrop" onclick="closePlusMenu()"></div>
+
+  <!-- Plus menu -->
+  <div class="plus-menu" id="plusMenu">
+    <button class="plus-menu-item" onclick="openTextInput()">
+      <span class="icon">📝</span>
+      <span>Text note</span>
+    </button>
+    <button class="plus-menu-item" onclick="pasteLink()">
+      <span class="icon">🔗</span>
+      <span>Paste link</span>
+    </button>
+    <button class="plus-menu-item" onclick="uploadImage()">
+      <span class="icon">🖼️</span>
+      <span>Upload image</span>
+    </button>
+  </div>
+
+  <!-- Text input modal -->
+  <div class="text-input-modal" id="textInputModal">
+    <div class="text-input-content">
+      <div class="text-input-header">
+        <span class="text-input-title">New text note</span>
+        <button class="text-input-close" onclick="closeTextInput()">×</button>
+      </div>
+      <textarea class="text-input-area" id="textInputArea" placeholder="Type your idea here..."></textarea>
+      <div class="text-input-actions">
+        <button class="text-input-btn cancel" onclick="closeTextInput()">Cancel</button>
+        <button class="text-input-btn save" onclick="saveTextNote()">Save</button>
+      </div>
+    </div>
+  </div>
 
   <button class="fab-record" id="fabRecord" onclick="toggleRec()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -414,7 +486,7 @@
   <div class="toast-wrap" id="toastWrap"></div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.7.4 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.7.5 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -466,6 +538,7 @@ const CATS={
   design:{name:'DESIGN',single:'DESIGN',kw:['design','дизайн','ui','ux','кнопка','цвет','интерфейс'],isMedia:false},
   bugs:{name:'BUGS',single:'BUG',kw:['bug','bugs','fix','баг','баги','ошибка','ошибки','исправить'],isMedia:false},
   questions:{name:'QUESTIONS',single:'QUESTION',kw:['question','questions','вопрос','вопросы','спросить','claude','клод'],isMedia:false},
+  link:{name:'LINKS',single:'LINK',kw:['link','url','http','https','www','ссылка'],isMedia:false},
   sketch:{name:'SKETCHES',single:'SKETCH',kw:[],isMedia:true},
   scan:{name:'SCANS',single:'SCAN',kw:[],isMedia:true},
   photo:{name:'PHOTOS',single:'PHOTO',kw:[],isMedia:true},
@@ -820,6 +893,193 @@ function savePhoto(dataUrl,geo){
   }catch(err){
     // Silent fail - photo is saved
   }
+}
+
+// ============================================
+// PLUS MENU FUNCTIONS
+// ============================================
+
+function togglePlusMenu(){
+  const menu=document.getElementById('plusMenu');
+  const backdrop=document.getElementById('plusBackdrop');
+  const btn=document.getElementById('fabPlus');
+  
+  if(menu.classList.contains('show')){
+    closePlusMenu();
+  } else {
+    menu.classList.add('show');
+    backdrop.classList.add('show');
+    btn.classList.add('open');
+  }
+}
+
+function closePlusMenu(){
+  document.getElementById('plusMenu').classList.remove('show');
+  document.getElementById('plusBackdrop').classList.remove('show');
+  document.getElementById('fabPlus').classList.remove('open');
+}
+
+// TEXT NOTE
+function openTextInput(){
+  closePlusMenu();
+  document.getElementById('textInputModal').classList.add('show');
+  setTimeout(()=>{
+    document.getElementById('textInputArea').focus();
+  },100);
+}
+
+function closeTextInput(){
+  document.getElementById('textInputModal').classList.remove('show');
+  document.getElementById('textInputArea').value='';
+}
+
+function saveTextNote(){
+  const text=document.getElementById('textInputArea').value.trim();
+  if(!text){
+    toast('Please enter some text','error');
+    return;
+  }
+  
+  const category=detectCat(text);
+  const idea={
+    id:Date.now(),
+    text:text,
+    category:category,
+    timestamp:new Date().toISOString(),
+    date:new Date().toLocaleDateString('ru-RU'),
+    time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})
+  };
+  ideas.push(idea);
+  save();
+  toast('Note saved!','success');
+  closeTextInput();
+  resetToShowAll();
+}
+
+// PASTE LINK
+async function pasteLink(){
+  closePlusMenu();
+  
+  try{
+    // Try to read from clipboard
+    const text=await navigator.clipboard.readText();
+    
+    if(text&&isUrl(text.trim())){
+      createLinkCard(text.trim());
+    } else if(text&&text.trim()){
+      // Not a URL but has text - ask user
+      toast('Clipboard: "'+text.substring(0,30)+'..."','info');
+      // Create as text note with the link
+      const category=detectCat(text);
+      const idea={
+        id:Date.now(),
+        text:text.trim(),
+        category:category,
+        timestamp:new Date().toISOString(),
+        date:new Date().toLocaleDateString('ru-RU'),
+        time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})
+      };
+      ideas.push(idea);
+      save();
+      toast('Saved from clipboard!','success');
+      resetToShowAll();
+    } else {
+      toast('Clipboard is empty','error');
+    }
+  }catch(err){
+    // Clipboard API not available or denied
+    toast('Cannot access clipboard. Please paste manually.','error');
+    openTextInput();
+  }
+}
+
+function isUrl(str){
+  return /^(https?:\/\/|www\.)/i.test(str);
+}
+
+function createLinkCard(url){
+  // Ensure URL has protocol
+  let href=url;
+  if(url.startsWith('www.'))href='https://'+url;
+  
+  const idea={
+    id:Date.now(),
+    text:href,
+    category:'link',
+    timestamp:new Date().toISOString(),
+    date:new Date().toLocaleDateString('ru-RU'),
+    time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+    isLink:true
+  };
+  ideas.push(idea);
+  save();
+  toast('Link saved!','success');
+  resetToShowAll();
+}
+
+// UPLOAD IMAGE
+function uploadImage(){
+  closePlusMenu();
+  document.getElementById('imageUpload').click();
+}
+
+function handleUploadedImage(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  
+  toast('Processing image...','info');
+  
+  // Compress image before saving
+  const img=new Image();
+  img.onload=function(){
+    const canvas=document.createElement('canvas');
+    const maxSize=1200;
+    let w=img.width,h=img.height;
+    
+    if(w>maxSize||h>maxSize){
+      if(w>h){h=Math.round(h*maxSize/w);w=maxSize;}
+      else{w=Math.round(w*maxSize/h);h=maxSize;}
+    }
+    
+    canvas.width=w;
+    canvas.height=h;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0,w,h);
+    
+    const dataUrl=canvas.toDataURL('image/jpeg',0.7);
+    
+    // Save as uploaded image (no geo)
+    const idea={
+      id:Date.now(),
+      text:'',
+      notes:'',
+      image:dataUrl,
+      category:'photo',
+      timestamp:new Date().toISOString(),
+      date:new Date().toLocaleDateString('ru-RU'),
+      time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+      geo:null,
+      isMedia:true,
+      isUploaded:true
+    };
+    ideas.push(idea);
+    save();
+    toast('Image uploaded!','success');
+    resetToShowAll();
+  };
+  img.onerror=function(){
+    toast('Failed to load image','error');
+  };
+  
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    img.src=ev.target.result;
+  };
+  reader.onerror=function(){
+    toast('Failed to read image','error');
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
 }
 
 function aiProcess(id){toast('AI processing coming soon!','info');}
@@ -1632,7 +1892,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.7.4';
+  md+='---\nExported from DropLit v0.7.5';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
