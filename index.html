@@ -313,9 +313,9 @@
     .image-notes-wrap.editing { display: block; }
     .image-notes { width: 100%; padding: 10px; border: 2px solid var(--color-primary); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 0.9rem; resize: none; background: var(--color-bg); }
     .image-notes:focus { outline: none; }
-    .image-actions { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; min-height: 40px; }
+    .image-actions { display: flex !important; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; min-height: 40px; background: yellow; }
     .image-actions::-webkit-scrollbar { display: none; }
-    .image-actions.hidden { display: none; }
+    /* .image-actions.hidden { display: none; } DISABLED FOR DEBUG */
     .image-edit-actions { display: none; gap: 8px; justify-content: flex-end; }
     .image-edit-actions.show { display: flex; }
     .img-act { flex-shrink: 0; height: 36px; padding: 0 14px; border: none; background: #00FF00; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: black; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
