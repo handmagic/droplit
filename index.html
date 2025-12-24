@@ -303,8 +303,8 @@
     .image-viewer-nav.prev { left: 10px; }
     .image-viewer-nav.next { right: 10px; }
     .image-viewer-nav.show { display: flex; }
-    .image-viewer-panel { flex-shrink: 0; background: #FF0000; border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 10px 16px 10px 16px; width: 100%; box-sizing: border-box; position: relative; z-index: 20; }
-    .image-meta { font-size: 0.75rem; color: white; margin-bottom: 8px; display: flex; gap: 12px; flex-wrap: wrap; background: blue; }
+    .image-viewer-panel { flex-shrink: 0; background: var(--color-bg-card); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 12px 16px 16px 16px; width: 100%; box-sizing: border-box; position: relative; z-index: 20; }
+    .image-meta { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 8px; display: flex; gap: 12px; flex-wrap: wrap; }
     .image-meta span { display: flex; align-items: center; gap: 4px; }
     .image-caption-display { font-size: 0.9rem; color: var(--color-text); margin-bottom: 10px; line-height: 1.4; }
     .image-caption-display.empty { color: var(--color-text-muted); font-style: italic; }
@@ -313,12 +313,12 @@
     .image-notes-wrap.editing { display: block; }
     .image-notes { width: 100%; padding: 10px; border: 2px solid var(--color-primary); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 0.9rem; resize: none; background: var(--color-bg); }
     .image-notes:focus { outline: none; }
-    .image-actions { display: flex !important; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; min-height: 40px; background: yellow; }
+    .image-actions { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; margin-bottom: 10px; }
     .image-actions::-webkit-scrollbar { display: none; }
-    /* .image-actions.hidden { display: none; } DISABLED FOR DEBUG */
+    .image-actions.hidden { display: none; }
     .image-edit-actions { display: none; gap: 8px; justify-content: flex-end; }
     .image-edit-actions.show { display: flex; }
-    .img-act { flex-shrink: 0; height: 36px; padding: 0 14px; border: none; background: #00FF00; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: black; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .img-act { flex-shrink: 0; height: 36px; padding: 0 14px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
     .img-act:active { background: var(--color-bg-soft); }
     .img-act.primary { background: var(--color-primary); color: white; }
     .image-counter { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: white; padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 600; z-index: 10; }
@@ -429,7 +429,7 @@
       <img id="imageViewerImg" src="" alt="Full size">
     </div>
     <div class="image-viewer-panel" onclick="event.stopPropagation()">
-      <div class="image-actions" id="imageActions" style="background:yellow;min-height:50px;display:flex !important;margin-bottom:10px;">
+      <div class="image-actions" id="imageActions">
         <button class="img-act" onclick="ocrImage()">OCR</button>
         <button class="img-act" onclick="aiDescribe()">AI</button>
         <button class="img-act" onclick="shareImage()">Share</button>
