@@ -282,24 +282,33 @@
 
     /* Image viewer */
     .image-viewer { background: rgba(0,0,0,0.95); padding: 0; flex-direction: column; align-items: stretch; overflow: hidden; }
-    .image-viewer-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 60px 0 10px; touch-action: none; min-height: 0; position: relative; }
-    .image-viewer img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; border-radius: 0; transition: transform 0.15s ease; transform-origin: center center; user-select: none; -webkit-user-drag: none; }
-    .image-viewer img.portrait { width: 100%; max-width: 100%; height: auto; max-height: none; }
-    .image-viewer img.landscape { width: auto; max-width: 100%; height: auto; max-height: 100%; }
-    .image-viewer img.zoomed { max-width: none; max-height: none; cursor: grab; }
-    .image-viewer img.zoomed:active { cursor: grabbing; }
+    .image-viewer-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 50px 0 0; touch-action: none; min-height: 0; position: relative; }
+    .image-viewer img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; border-radius: 0; transform-origin: center center; user-select: none; -webkit-user-drag: none; will-change: transform; }
     .image-viewer-close { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; z-index: 10; }
     .image-viewer-close:active { background: rgba(255,255,255,0.3); }
-    .image-viewer-panel { flex-shrink: 0; background: var(--color-bg-card); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px; padding-bottom: calc(16px + var(--safe-bottom)); width: 100%; box-sizing: border-box; position: relative; z-index: 20; }
-    .image-meta { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 10px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .image-viewer-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: var(--radius-full); display: none; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; z-index: 10; }
+    .image-viewer-nav:active { background: rgba(255,255,255,0.3); }
+    .image-viewer-nav.prev { left: 10px; }
+    .image-viewer-nav.next { right: 10px; }
+    .image-viewer-nav.show { display: flex; }
+    .image-viewer-panel { flex-shrink: 0; background: var(--color-bg-card); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 14px 16px; padding-bottom: calc(14px + var(--safe-bottom)); width: 100%; box-sizing: border-box; position: relative; z-index: 20; }
+    .image-meta { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 8px; display: flex; gap: 12px; flex-wrap: wrap; }
     .image-meta span { display: flex; align-items: center; gap: 4px; }
-    .image-notes-wrap { margin-bottom: 12px; }
-    .image-notes { width: 100%; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 0.9rem; resize: none; background: var(--color-bg); }
-    .image-notes:focus { outline: none; border-color: var(--color-primary); }
+    .image-caption-display { font-size: 0.9rem; color: var(--color-text); margin-bottom: 10px; line-height: 1.4; min-height: 20px; }
+    .image-caption-display.empty { color: var(--color-text-muted); font-style: italic; }
+    .image-notes-wrap { margin-bottom: 10px; display: none; }
+    .image-notes-wrap.editing { display: block; }
+    .image-notes { width: 100%; padding: 10px; border: 2px solid var(--color-primary); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 0.9rem; resize: none; background: var(--color-bg); }
+    .image-notes:focus { outline: none; }
     .image-actions { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
     .image-actions::-webkit-scrollbar { display: none; }
-    .img-act { flex-shrink: 0; height: 38px; padding: 0 14px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .image-actions.editing { display: none; }
+    .image-edit-actions { display: none; gap: 8px; justify-content: flex-end; }
+    .image-edit-actions.editing { display: flex; }
+    .img-act { flex-shrink: 0; height: 36px; padding: 0 14px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
     .img-act:active { background: var(--color-bg-soft); }
+    .img-act.primary { background: var(--color-primary); color: white; }
+    .image-counter { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: white; padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 600; z-index: 10; }
 
     @media print {
       body * { visibility: hidden; }
@@ -397,20 +406,28 @@
   <div class="overlay" id="mergeModal"><div class="modal"><div class="modal-title">Merge Preview</div><div class="merge-preview" id="mergePreview"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeMergeModal()">Cancel</button><button class="modal-btn sec" onclick="copyMerged()">Copy</button><button class="modal-btn merge" onclick="saveMerged()">Save</button></div></div></div>
   <div class="overlay image-viewer" id="imageViewer" onclick="handleImageViewerClick(event)">
     <div class="image-viewer-close" onclick="closeImageViewer()">X</div>
-    <div class="image-viewer-content">
-      <img id="imageViewerImg" src="" alt="Full size" onclick="handleImageDoubleTap(event)">
+    <div class="image-counter" id="imageCounter">1 / 1</div>
+    <div class="image-viewer-nav prev" id="imgNavPrev" onclick="navigateImage(-1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg></div>
+    <div class="image-viewer-nav next" id="imgNavNext" onclick="navigateImage(1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg></div>
+    <div class="image-viewer-content" id="imageViewerContent">
+      <img id="imageViewerImg" src="" alt="Full size">
     </div>
     <div class="image-viewer-panel" onclick="event.stopPropagation()">
       <div class="image-meta" id="imageMeta"></div>
-      <div class="image-notes-wrap">
-        <textarea class="image-notes" id="imageNotes" placeholder="Add notes..." rows="2"></textarea>
+      <div class="image-caption-display" id="imageCaptionDisplay"></div>
+      <div class="image-notes-wrap" id="imageNotesWrap">
+        <textarea class="image-notes" id="imageNotes" placeholder="Add caption or notes..." rows="2"></textarea>
       </div>
-      <div class="image-actions">
+      <div class="image-actions" id="imageActions">
         <button class="img-act" onclick="ocrImage()">OCR</button>
         <button class="img-act" onclick="aiDescribe()">AI</button>
         <button class="img-act" onclick="shareImage()">Share</button>
         <button class="img-act" onclick="saveImageToGallery()">Save</button>
-        <button class="img-act" onclick="printImage()">Print</button>
+        <button class="img-act" onclick="startEditCaption()">Edit</button>
+      </div>
+      <div class="image-edit-actions" id="imageEditActions">
+        <button class="img-act" onclick="cancelEditCaption()">Cancel</button>
+        <button class="img-act primary" onclick="saveCaption()">Save</button>
       </div>
     </div>
   </div>
@@ -814,144 +831,225 @@ function toggleExpand(id,e){
 }
 
 let currentImageId=null;
-let lastTapTime=0;
+let allMediaIds=[];
+let currentMediaIndex=0;
 
-// Stepped zoom levels
-const ZOOM_LEVELS=[1, 1.5, 2, 2.5, 3];
-let currentZoomIndex=0;
+// Zoom state
 let currentScale=1;
+let lastTapTime=0;
+const ZOOM_STEP=1.5; // Double-tap zoom increment
+const MAX_ZOOM=4;
+const MIN_ZOOM=1;
 
 // Pinch zoom state
 let initialPinchDistance=0;
 let pinchStartScale=1;
 let isPinching=false;
 
+// Swipe state
+let swipeStartX=0;
+let swipeStartY=0;
+let isSwiping=false;
+
+// Caption edit state
+let isEditingCaption=false;
+let originalCaption='';
+
+function getMediaItems(){
+  return ideas.filter(i=>i.isMedia&&i.image);
+}
+
 function viewImage(id,e){
-  e.stopPropagation();
+  if(e)e.stopPropagation();
   const item=ideas.find(x=>x.id===id);
   if(!item||!item.image)return;
+  
+  // Build list of all media items
+  allMediaIds=getMediaItems().map(i=>i.id);
+  currentMediaIndex=allMediaIds.indexOf(id);
   currentImageId=id;
-  currentZoomIndex=0;
+  
+  // Reset states
   currentScale=1;
+  isEditingCaption=false;
+  
+  loadCurrentImage();
+  updateNavigation();
+  
+  document.getElementById('imageViewer').classList.add('show');
+  
+  // Add touch listeners
+  const content=document.getElementById('imageViewerContent');
+  content.addEventListener('touchstart',handleTouchStart,{passive:false});
+  content.addEventListener('touchmove',handleTouchMove,{passive:false});
+  content.addEventListener('touchend',handleTouchEnd,{passive:false});
+}
+
+function loadCurrentImage(){
+  const item=ideas.find(x=>x.id===currentImageId);
+  if(!item)return;
   
   const img=document.getElementById('imageViewerImg');
-  img.classList.remove('zoomed','portrait','landscape');
   img.style.transform='scale(1)';
-  
-  const tempImg=new Image();
-  tempImg.onload=function(){
-    if(this.height>this.width){
-      img.classList.add('portrait');
-    } else {
-      img.classList.add('landscape');
-    }
-  };
-  tempImg.src=item.image;
+  currentScale=1;
   img.src=item.image;
   
+  // Meta info
   let meta='<span>'+item.date+' '+item.time+'</span>';
   if(item.geo){
     meta+='<span>'+item.geo.lat.toFixed(4)+', '+item.geo.lng.toFixed(4)+'</span>';
   }
   document.getElementById('imageMeta').innerHTML=meta;
-  document.getElementById('imageNotes').value=item.notes||'';
-  document.getElementById('imageViewer').classList.add('show');
   
-  // Add touch listeners for pinch zoom
-  const content=document.querySelector('.image-viewer-content');
-  content.addEventListener('touchstart',handlePinchStart,{passive:false});
-  content.addEventListener('touchmove',handlePinchMove,{passive:false});
-  content.addEventListener('touchend',handlePinchEnd,{passive:false});
+  // Caption display
+  updateCaptionDisplay(item);
+  
+  // Exit edit mode
+  exitEditMode();
 }
 
-function handleImageDoubleTap(e){
-  const now=Date.now();
-  if(now-lastTapTime<300){
-    e.preventDefault();
-    e.stopPropagation();
-    stepZoom();
-    lastTapTime=0;
+function updateCaptionDisplay(item){
+  const display=document.getElementById('imageCaptionDisplay');
+  if(item.notes&&item.notes.trim()){
+    display.textContent=item.notes;
+    display.classList.remove('empty');
   } else {
-    lastTapTime=now;
+    display.textContent='No caption';
+    display.classList.add('empty');
   }
 }
 
-function stepZoom(){
-  const img=document.getElementById('imageViewerImg');
-  currentZoomIndex=(currentZoomIndex+1)%ZOOM_LEVELS.length;
-  currentScale=ZOOM_LEVELS[currentZoomIndex];
+function updateNavigation(){
+  const counter=document.getElementById('imageCounter');
+  const prevBtn=document.getElementById('imgNavPrev');
+  const nextBtn=document.getElementById('imgNavNext');
   
-  applyZoom(img);
-}
-
-function applyZoom(img){
-  img.style.transform='scale('+currentScale+')';
+  counter.textContent=(currentMediaIndex+1)+' / '+allMediaIds.length;
   
-  if(currentScale>1){
-    img.classList.remove('portrait','landscape');
-    img.classList.add('zoomed');
+  if(allMediaIds.length>1){
+    prevBtn.classList.toggle('show',currentMediaIndex>0);
+    nextBtn.classList.toggle('show',currentMediaIndex<allMediaIds.length-1);
   } else {
-    img.classList.remove('zoomed');
-    if(img.naturalHeight>img.naturalWidth){
-      img.classList.add('portrait');
-    } else {
-      img.classList.add('landscape');
-    }
+    prevBtn.classList.remove('show');
+    nextBtn.classList.remove('show');
   }
 }
 
-// Pinch zoom handlers
-function handlePinchStart(e){
+function navigateImage(direction){
+  const newIndex=currentMediaIndex+direction;
+  if(newIndex<0||newIndex>=allMediaIds.length)return;
+  
+  // Save current caption if editing
+  if(isEditingCaption){
+    saveCaption();
+  }
+  
+  currentMediaIndex=newIndex;
+  currentImageId=allMediaIds[currentMediaIndex];
+  loadCurrentImage();
+  updateNavigation();
+}
+
+// Touch handling for zoom and swipe
+function handleTouchStart(e){
   if(e.touches.length===2){
+    // Pinch zoom start
     e.preventDefault();
     isPinching=true;
+    isSwiping=false;
     initialPinchDistance=getPinchDistance(e.touches);
     pinchStartScale=currentScale;
+  } else if(e.touches.length===1){
+    // Potential swipe or tap
+    swipeStartX=e.touches[0].clientX;
+    swipeStartY=e.touches[0].clientY;
+    isSwiping=true;
+    isPinching=false;
   }
 }
 
-function handlePinchMove(e){
-  if(!isPinching||e.touches.length!==2)return;
-  e.preventDefault();
-  
-  const currentDistance=getPinchDistance(e.touches);
-  const scaleChange=currentDistance/initialPinchDistance;
-  let newScale=pinchStartScale*scaleChange;
-  
-  // Clamp scale between 1 and 4
-  newScale=Math.max(1,Math.min(4,newScale));
-  currentScale=newScale;
-  
-  const img=document.getElementById('imageViewerImg');
-  img.style.transition='none';
-  applyZoom(img);
+function handleTouchMove(e){
+  if(isPinching&&e.touches.length===2){
+    e.preventDefault();
+    
+    const currentDistance=getPinchDistance(e.touches);
+    const scaleChange=currentDistance/initialPinchDistance;
+    let newScale=pinchStartScale*scaleChange;
+    
+    // Clamp scale
+    newScale=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,newScale));
+    currentScale=newScale;
+    
+    const img=document.getElementById('imageViewerImg');
+    img.style.transform='scale('+currentScale+')';
+  } else if(isSwiping&&e.touches.length===1&&currentScale<=1){
+    // Only allow swipe when not zoomed
+    const deltaX=e.touches[0].clientX-swipeStartX;
+    const deltaY=e.touches[0].clientY-swipeStartY;
+    
+    // If horizontal movement is dominant, prevent vertical scroll
+    if(Math.abs(deltaX)>Math.abs(deltaY)&&Math.abs(deltaX)>10){
+      e.preventDefault();
+    }
+  }
 }
 
-function handlePinchEnd(e){
+function handleTouchEnd(e){
   if(isPinching){
     isPinching=false;
-    const img=document.getElementById('imageViewerImg');
-    img.style.transition='transform 0.15s ease';
-    
-    // Snap to nearest zoom level
-    let nearestIndex=0;
-    let minDiff=Math.abs(currentScale-ZOOM_LEVELS[0]);
-    for(let i=1;i<ZOOM_LEVELS.length;i++){
-      const diff=Math.abs(currentScale-ZOOM_LEVELS[i]);
-      if(diff<minDiff){
-        minDiff=diff;
-        nearestIndex=i;
-      }
-    }
-    // Also check if scale > max level
-    if(currentScale>ZOOM_LEVELS[ZOOM_LEVELS.length-1]){
-      nearestIndex=ZOOM_LEVELS.length-1;
-    }
-    
-    currentZoomIndex=nearestIndex;
-    currentScale=ZOOM_LEVELS[currentZoomIndex];
-    applyZoom(img);
+    // Keep current scale, no snap
+    return;
   }
+  
+  if(isSwiping&&currentScale<=1){
+    const deltaX=e.changedTouches[0].clientX-swipeStartX;
+    const deltaY=e.changedTouches[0].clientY-swipeStartY;
+    
+    // Check for swipe (min 50px horizontal, not too much vertical)
+    if(Math.abs(deltaX)>50&&Math.abs(deltaY)<100){
+      if(deltaX>0&&currentMediaIndex>0){
+        // Swipe right - previous image
+        navigateImage(-1);
+      } else if(deltaX<0&&currentMediaIndex<allMediaIds.length-1){
+        // Swipe left - next image
+        navigateImage(1);
+      }
+      isSwiping=false;
+      return;
+    }
+    
+    // Check for double tap
+    const now=Date.now();
+    if(now-lastTapTime<300&&Math.abs(deltaX)<10&&Math.abs(deltaY)<10){
+      e.preventDefault();
+      toggleZoom();
+      lastTapTime=0;
+    } else {
+      lastTapTime=now;
+    }
+  }
+  
+  isSwiping=false;
+}
+
+function toggleZoom(){
+  const img=document.getElementById('imageViewerImg');
+  
+  if(currentScale>1){
+    // Zoomed in - reset to fit
+    currentScale=1;
+  } else {
+    // At fit - zoom in by ZOOM_STEP
+    currentScale=ZOOM_STEP;
+  }
+  
+  img.style.transition='transform 0.2s ease';
+  img.style.transform='scale('+currentScale+')';
+  
+  // Remove transition after animation
+  setTimeout(()=>{
+    img.style.transition='none';
+  },200);
 }
 
 function getPinchDistance(touches){
@@ -960,37 +1058,75 @@ function getPinchDistance(touches){
   return Math.sqrt(dx*dx+dy*dy);
 }
 
+// Caption editing
+function startEditCaption(){
+  isEditingCaption=true;
+  const item=ideas.find(x=>x.id===currentImageId);
+  originalCaption=item?.notes||'';
+  
+  document.getElementById('imageNotes').value=originalCaption;
+  document.getElementById('imageCaptionDisplay').style.display='none';
+  document.getElementById('imageNotesWrap').classList.add('editing');
+  document.getElementById('imageActions').classList.add('editing');
+  document.getElementById('imageEditActions').classList.add('editing');
+  
+  // Focus the textarea
+  setTimeout(()=>{
+    document.getElementById('imageNotes').focus();
+  },100);
+}
+
+function saveCaption(){
+  const notes=document.getElementById('imageNotes').value.trim();
+  const item=ideas.find(x=>x.id===currentImageId);
+  if(item){
+    item.notes=notes;
+    save();
+    render();
+    updateCaptionDisplay(item);
+  }
+  exitEditMode();
+}
+
+function cancelEditCaption(){
+  exitEditMode();
+}
+
+function exitEditMode(){
+  isEditingCaption=false;
+  document.getElementById('imageCaptionDisplay').style.display='block';
+  document.getElementById('imageNotesWrap').classList.remove('editing');
+  document.getElementById('imageActions').classList.remove('editing');
+  document.getElementById('imageEditActions').classList.remove('editing');
+}
+
 function handleImageViewerClick(e){
-  // Close only if clicking on background, not on panel or image
-  if(e.target.classList.contains('image-viewer')||e.target.classList.contains('image-viewer-content')){
+  // Close only if clicking on background
+  if(e.target.classList.contains('image-viewer')){
     closeImageViewer();
   }
 }
 
 function closeImageViewer(){
-  // Save notes before closing
-  if(currentImageId){
-    const notes=document.getElementById('imageNotes').value.trim();
-    const item=ideas.find(x=>x.id===currentImageId);
-    if(item&&item.notes!==notes){
-      item.notes=notes;
-      save();
-      render();
-    }
+  // Save caption if editing
+  if(isEditingCaption){
+    saveCaption();
   }
   
-  // Reset zoom state
-  currentZoomIndex=0;
+  // Reset states
   currentScale=1;
   isPinching=false;
+  isSwiping=false;
+  isEditingCaption=false;
   
   // Remove touch listeners
-  const content=document.querySelector('.image-viewer-content');
-  content.removeEventListener('touchstart',handlePinchStart);
-  content.removeEventListener('touchmove',handlePinchMove);
-  content.removeEventListener('touchend',handlePinchEnd);
+  const content=document.getElementById('imageViewerContent');
+  content.removeEventListener('touchstart',handleTouchStart);
+  content.removeEventListener('touchmove',handleTouchMove);
+  content.removeEventListener('touchend',handleTouchEnd);
   
   currentImageId=null;
+  allMediaIds=[];
   document.getElementById('imageViewer').classList.remove('show');
   document.getElementById('imageViewerImg').src='';
 }
@@ -999,7 +1135,6 @@ function shareImage(){
   const item=ideas.find(x=>x.id===currentImageId);
   if(!item)return;
   
-  // Convert base64 to blob for sharing
   fetch(item.image)
     .then(res=>res.blob())
     .then(blob=>{
@@ -1011,7 +1146,6 @@ function shareImage(){
           text:item.notes||'Shared from DropLit'
         }).catch(()=>{});
       } else {
-        // Fallback - open in new tab
         window.open(item.image,'_blank');
         toast('Use browser menu to share','info');
       }
@@ -1027,10 +1161,6 @@ function saveImageToGallery(){
   link.download='droplit-sketch-'+item.id+'.jpg';
   link.click();
   toast('Image saved!','success');
-}
-
-function printImage(){
-  window.print();
 }
 
 function ocrImage(){
