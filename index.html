@@ -1121,32 +1121,21 @@ function navigateImage(direction){
   // Reset zoom before navigating
   resetTransform();
   
-  // Animate slide out
   const img = document.getElementById('imageViewerImg');
-  img.style.transition = 'transform 0.2s ease-out, opacity 0.15s ease-out';
-  img.style.transform = `translateX(${direction * -100}px)`;
+  
+  // Quick fade transition for button navigation
+  img.style.transition = 'opacity 0.15s ease-out';
   img.style.opacity = '0';
   
   setTimeout(() => {
-    // Update index and load new image
     currentMediaIndex=newIndex;
     currentImageId=allMediaIds[currentMediaIndex];
-    
-    // Position for slide in from opposite side
-    img.style.transition = 'none';
-    img.style.transform = `translateX(${direction * 100}px)`;
-    
-    // Load new image
     loadCurrentImageNoReset();
     
-    // Animate slide in
-    setTimeout(() => {
-      img.style.transition = 'transform 0.2s ease-out, opacity 0.15s ease-out';
-      img.style.transform = 'translateX(0)';
-      img.style.opacity = '1';
-      updateNavigation();
-    }, 20);
-  }, 150);
+    img.style.transition = 'opacity 0.15s ease-out';
+    img.style.opacity = '1';
+    updateNavigation();
+  }, 100);
 }
 
 function loadCurrentImageNoReset(){
@@ -1310,13 +1299,27 @@ function handleTouchMove(e){
     applyTransform(false);
     
   } else if(isSwiping && touches.length === 1 && scale <= 1){
-    // SWIPE MOVE (only when not zoomed)
+    // SWIPE MOVE - image follows finger
     const deltaX = touches[0].clientX - swipeStartX;
     const deltaY = touches[0].clientY - swipeStartY;
     
-    // Prevent vertical scroll if horizontal swipe detected
-    if(Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10){
+    // Only horizontal swipe
+    if(Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 5){
       e.preventDefault();
+      
+      // Move image with finger (with resistance at edges)
+      const img = document.getElementById('imageViewerImg');
+      let moveX = deltaX;
+      
+      // Add resistance if at first/last image
+      if((currentMediaIndex === 0 && deltaX > 0) || 
+         (currentMediaIndex === allMediaIds.length - 1 && deltaX < 0)){
+        moveX = deltaX * 0.3; // Rubber band effect
+      }
+      
+      img.style.transition = 'none';
+      img.style.transform = `translateX(${moveX}px)`;
+      img.style.opacity = Math.max(0.5, 1 - Math.abs(deltaX) / 500);
     }
   }
 }
@@ -1376,16 +1379,48 @@ function handleTouchEnd(e){
     const y = changedTouches[0].clientY;
     const deltaX = x - swipeStartX;
     const deltaY = y - swipeStartY;
+    const img = document.getElementById('imageViewerImg');
     
-    // Check for SWIPE (horizontal, more than 50px)
-    if(Math.abs(deltaX) > 50 && Math.abs(deltaY) < 100){
-      if(deltaX > 0 && currentMediaIndex > 0){
-        navigateImage(-1); // Swipe right = previous
-      } else if(deltaX < 0 && currentMediaIndex < allMediaIds.length - 1){
-        navigateImage(1);  // Swipe left = next
+    // Check for SWIPE (horizontal, more than 80px threshold)
+    if(Math.abs(deltaX) > 80 && Math.abs(deltaY) < 100){
+      // Animate current image out
+      const direction = deltaX > 0 ? 1 : -1;
+      const canNavigate = (direction > 0 && currentMediaIndex > 0) || 
+                          (direction < 0 && currentMediaIndex < allMediaIds.length - 1);
+      
+      if(canNavigate){
+        // Slide out completely
+        img.style.transition = 'transform 0.2s ease-out, opacity 0.15s ease-out';
+        img.style.transform = `translateX(${direction * 300}px)`;
+        img.style.opacity = '0';
+        
+        setTimeout(() => {
+          // Update index
+          currentMediaIndex += (direction > 0 ? -1 : 1);
+          currentImageId = allMediaIds[currentMediaIndex];
+          
+          // Position for slide in
+          img.style.transition = 'none';
+          img.style.transform = `translateX(${-direction * 100}px)`;
+          
+          loadCurrentImageNoReset();
+          
+          // Animate in
+          setTimeout(() => {
+            img.style.transition = 'transform 0.2s ease-out, opacity 0.15s ease-out';
+            img.style.transform = 'translateX(0)';
+            img.style.opacity = '1';
+            updateNavigation();
+          }, 20);
+        }, 150);
+        return;
       }
-      return;
     }
+    
+    // Return to center (swipe cancelled or at edge)
+    img.style.transition = 'transform 0.25s ease-out, opacity 0.15s ease-out';
+    img.style.transform = 'translateX(0)';
+    img.style.opacity = '1';
     
     // Check for DOUBLE TAP (to zoom in)
     const now = Date.now();
@@ -1393,7 +1428,7 @@ function handleTouchEnd(e){
       Math.pow(x - lastTapX, 2) + Math.pow(y - lastTapY, 2)
     );
     
-    if(now - lastTapTime < 300 && tapDist < 30){
+    if(now - lastTapTime < 300 && tapDist < 30 && Math.abs(deltaX) < 10){
       // DOUBLE TAP - zoom to 2x centered on tap point
       e.preventDefault();
       doubleTapZoom(x, y);
