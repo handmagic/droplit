@@ -148,8 +148,17 @@
     .card-cat.sketch { background: var(--cat-sketch-bg); color: var(--cat-sketch-text); }
     
     /* Card markers */
-    .card-marker { font-size: 1rem; margin-left: auto; opacity: 0.9; animation: markerPop 0.2s ease; }
+    .card-marker { font-size: 0.9rem; margin-left: 6px; opacity: 0.9; }
+    .card-marker.pop { animation: markerPop 0.2s ease; }
     @keyframes markerPop { 0% { transform: scale(0); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+    
+    /* Markers panel (shown when card is active) */
+    .card-markers { display: none; flex-wrap: wrap; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-btn); border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin: -12px -12px 12px -12px; }
+    .card.active .card-markers { display: flex; }
+    .marker-btn { width: 36px; height: 36px; border: none; background: var(--color-bg-card); border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; opacity: 0.5; }
+    .marker-btn:hover { opacity: 0.8; transform: scale(1.1); }
+    .marker-btn:active { transform: scale(0.95); }
+    .marker-btn.active { opacity: 1; background: var(--color-primary); box-shadow: 0 2px 8px rgba(255,107,74,0.3); }
     .card-cat.scan { background: var(--cat-scan-bg); color: var(--cat-scan-text); }
     .card-cat.photo { background: var(--cat-photo-bg); color: var(--cat-photo-text); }
     
@@ -702,30 +711,11 @@ function saveMerged(){
 }
 
 // Card interactions
-let cardLastTapTime=0;
-let cardLastTapId=null;
-
 function handleCardClick(id,e){
-  // Ignore clicks on category badge, action buttons, textarea, checkbox
-  if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox'))return;
+  // Ignore clicks on category badge, action buttons, textarea, checkbox, markers
+  if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox')||e.target.closest('.card-markers'))return;
   
   const item=ideas.find(x=>x.id===id);
-  const now=Date.now();
-  
-  // Check for double-tap (same card, within 300ms)
-  if(cardLastTapId===id && now-cardLastTapTime<300){
-    // DOUBLE TAP - toggle heart marker
-    e.preventDefault();
-    e.stopPropagation();
-    toggleMarker(id,'heart');
-    cardLastTapTime=0;
-    cardLastTapId=null;
-    return;
-  }
-  
-  // Record this tap
-  cardLastTapTime=now;
-  cardLastTapId=id;
   
   if(selectMode){
     // In select mode - always toggle selection
@@ -743,7 +733,8 @@ function handleCardClick(id,e){
   }
 }
 
-function toggleMarker(id,marker){
+function toggleMarker(id,marker,e){
+  if(e){e.stopPropagation();}
   const item=ideas.find(x=>x.id===id);
   if(!item)return;
   
@@ -1211,14 +1202,21 @@ function render(){
       const isTruncated=cc>500;
       h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
       h+='<div class="card-checkbox">'+(isSelected?'V':'')+'</div>';
+      // Markers panel (visible when active)
+      h+='<div class="card-markers">';
+      for(const mk of Object.keys(MARKERS)){
+        const isMarked=i.markers&&i.markers.includes(mk);
+        h+='<button class="marker-btn'+(isMarked?' active':'')+'" onclick="toggleMarker('+i.id+',\''+mk+'\',event)">'+MARKERS[mk]+'</button>';
+      }
+      h+='</div>';
       h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
-      if(i.isMedia)h+='<span class="card-chars">IMG</span>';
-      else h+='<span class="card-chars">'+cc+'</span>';
-      h+='<span class="card-time">'+smartTime(i)+'</span>';
-      // Markers
+      // Markers (right after category)
       if(i.markers&&i.markers.length){
         h+='<span class="card-marker">'+i.markers.map(m=>MARKERS[m]||'').join('')+'</span>';
       }
+      if(i.isMedia)h+='<span class="card-chars">IMG</span>';
+      else h+='<span class="card-chars">'+cc+'</span>';
+      h+='<span class="card-time">'+smartTime(i)+'</span>';
       h+='</div>';
       if(i.isMedia&&i.image){
         h+='<img class="card-image" src="'+i.image+'" alt="Photo">';
