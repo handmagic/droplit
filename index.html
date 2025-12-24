@@ -573,9 +573,8 @@ function saveMerged(){
   save();
   closeMergeModal();
   cancelSelect();
-  render();counts();
+  resetToShowAll();
   toast('Merged & saved!','success');
-  setTimeout(scrollToBottom,100);
 }
 
 // Card interactions
@@ -667,16 +666,29 @@ function saveIdea(t){
   const c=detectCat(t);
   const idea={id:Date.now(),text:t,category:c,timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMedia:false};
   ideas.push(idea);save();
-  // Reset to show all + newest at bottom
-  curCat='all';curTime='all';activeCardId=null;
+  resetToShowAll();
+  toast('Saved to '+CATS[c].name,'success');
+}
+
+function resetToShowAll(){
+  // Reset filter variables
+  curCat='all';
+  curTime='all';
+  activeCardId=null;
   sortAsc=true;
-  document.getElementById('sortBtn').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>';
-  document.getElementById('sortBtn').classList.remove('desc');
+  // Update sort button UI
+  const sortBtn=document.getElementById('sortBtn');
+  if(sortBtn){
+    sortBtn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>';
+    sortBtn.classList.remove('desc');
+  }
+  // Remove active class from all filter buttons
   document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.time-btn').forEach(x=>x.classList.remove('active'));
-  render();counts();
-  setTimeout(scrollToBottom,100);
-  toast('Saved to '+CATS[c].name,'success');
+  // Render and scroll
+  render();
+  counts();
+  setTimeout(scrollToBottom,150);
 }
 
 function handlePhoto(e){
@@ -713,15 +725,7 @@ function savePhoto(dataUrl,geo){
     isMedia:true
   };
   ideas.push(idea);save();
-  // Reset to show all + newest at bottom
-  curCat='all';curTime='all';activeCardId=null;
-  sortAsc=true;
-  document.getElementById('sortBtn').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>';
-  document.getElementById('sortBtn').classList.remove('desc');
-  document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
-  document.querySelectorAll('.time-btn').forEach(x=>x.classList.remove('active'));
-  render();counts();
-  setTimeout(scrollToBottom,100);
+  resetToShowAll();
   toast('Photo saved to PHOTOS','success');
 }
 
