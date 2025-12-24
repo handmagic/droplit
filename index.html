@@ -840,8 +840,9 @@ let currentImageOrientation='';
 
 // Zoom state
 let currentScale=1;
+let currentZoomStep=0;
 let lastTapTime=0;
-const ZOOM_STEP=1.5;
+const ZOOM_LEVELS=[1, 1.25, 1.5, 1.8, 2.2, 2.7, 3.5];
 const MAX_ZOOM=4;
 const MIN_ZOOM=1;
 
@@ -871,6 +872,7 @@ function viewImage(id,e){
   currentMediaIndex=allMediaIds.indexOf(id);
   currentImageId=id;
   currentScale=1;
+  currentZoomStep=0;
   isEditingCaption=false;
   
   showImagePanel();
@@ -893,6 +895,7 @@ function loadCurrentImage(){
   img.style.transform='scale(1)';
   img.classList.remove('portrait','landscape','zoomed');
   currentScale=1;
+  currentZoomStep=0;
   
   // Detect orientation
   const tempImg=new Image();
@@ -930,10 +933,28 @@ function updateCaptionDisplay(item){
 
 function showImagePanel(){
   isEditingCaption=false;
-  document.getElementById('imageCaptionDisplay').style.display='';
-  document.getElementById('imageNotesWrap').classList.remove('editing');
-  document.getElementById('imageActions').classList.remove('hidden');
-  document.getElementById('imageEditActions').classList.remove('show');
+  
+  // Force reset all panel elements
+  const captionDisplay=document.getElementById('imageCaptionDisplay');
+  const notesWrap=document.getElementById('imageNotesWrap');
+  const actions=document.getElementById('imageActions');
+  const editActions=document.getElementById('imageEditActions');
+  
+  if(captionDisplay){
+    captionDisplay.style.display='block';
+  }
+  if(notesWrap){
+    notesWrap.classList.remove('editing');
+    notesWrap.style.display='none';
+  }
+  if(actions){
+    actions.classList.remove('hidden');
+    actions.style.display='flex';
+  }
+  if(editActions){
+    editActions.classList.remove('show');
+    editActions.style.display='none';
+  }
 }
 
 function updateNavigation(){
@@ -1015,14 +1036,27 @@ function handleTouchEnd(e){
   
   if(isPinching){
     isPinching=false;
-    // After pinch, update zoomed state
+    // After pinch, update state
     if(currentScale<=1){
       currentScale=1;
+      currentZoomStep=0;
       img.style.transform='scale(1)';
       img.classList.remove('zoomed');
       if(currentImageOrientation){
         img.classList.add(currentImageOrientation);
       }
+    } else {
+      // Find nearest zoom step for currentScale
+      let nearest=0;
+      let minDiff=Math.abs(currentScale-ZOOM_LEVELS[0]);
+      for(let i=1;i<ZOOM_LEVELS.length;i++){
+        const diff=Math.abs(currentScale-ZOOM_LEVELS[i]);
+        if(diff<minDiff){
+          minDiff=diff;
+          nearest=i;
+        }
+      }
+      currentZoomStep=nearest;
     }
     return;
   }
@@ -1072,20 +1106,31 @@ function handleTouchEnd(e){
 function toggleZoom(){
   const img=document.getElementById('imageViewerImg');
   
+  // Step through zoom levels
+  currentZoomStep++;
+  if(currentZoomStep>=ZOOM_LEVELS.length){
+    currentZoomStep=0;
+  }
+  
+  currentScale=ZOOM_LEVELS[currentZoomStep];
+  
   if(currentScale>1){
-    resetZoom();
-  } else {
-    // Zoom in
-    currentScale=ZOOM_STEP;
     img.classList.remove('portrait','landscape');
     img.classList.add('zoomed');
-    img.style.transform='scale('+currentScale+')';
+  } else {
+    img.classList.remove('zoomed');
+    if(currentImageOrientation){
+      img.classList.add(currentImageOrientation);
+    }
   }
+  
+  img.style.transform='scale('+currentScale+')';
 }
 
 function resetZoom(){
   const img=document.getElementById('imageViewerImg');
   currentScale=1;
+  currentZoomStep=0;
   img.classList.remove('zoomed');
   if(currentImageOrientation){
     img.classList.add(currentImageOrientation);
@@ -1104,11 +1149,26 @@ function startEditCaption(){
   isEditingCaption=true;
   const item=ideas.find(x=>x.id===currentImageId);
   
+  const captionDisplay=document.getElementById('imageCaptionDisplay');
+  const notesWrap=document.getElementById('imageNotesWrap');
+  const actions=document.getElementById('imageActions');
+  const editActions=document.getElementById('imageEditActions');
+  
   document.getElementById('imageNotes').value=item?.notes||'';
-  document.getElementById('imageCaptionDisplay').style.display='none';
-  document.getElementById('imageNotesWrap').classList.add('editing');
-  document.getElementById('imageActions').classList.add('hidden');
-  document.getElementById('imageEditActions').classList.add('show');
+  
+  if(captionDisplay) captionDisplay.style.display='none';
+  if(notesWrap){
+    notesWrap.classList.add('editing');
+    notesWrap.style.display='block';
+  }
+  if(actions){
+    actions.classList.add('hidden');
+    actions.style.display='none';
+  }
+  if(editActions){
+    editActions.classList.add('show');
+    editActions.style.display='flex';
+  }
   
   setTimeout(()=>{
     document.getElementById('imageNotes').focus();
@@ -1143,6 +1203,7 @@ function closeImageViewer(){
   }
   
   currentScale=1;
+  currentZoomStep=0;
   isPinching=false;
   isSwiping=false;
   isEditingCaption=false;
