@@ -969,23 +969,41 @@ let allMediaIds=[];
 let currentMediaIndex=0;
 let currentImageOrientation='';
 
-// Zoom state
-let currentScale=1;
-let currentZoomStep=0;
-let lastTapTime=0;
-const ZOOM_LEVELS=[1, 1.25, 1.5, 1.8, 2.2, 2.7, 3.5];
-const MAX_ZOOM=4;
-const MIN_ZOOM=1;
+// ============================================
+// ZOOM/PAN SYSTEM (iOS/Android standard)
+// ============================================
 
-// Pinch zoom state
-let initialPinchDistance=0;
-let pinchStartScale=1;
-let isPinching=false;
+// State
+let scale = 1;           // Current zoom level (1 = fit-to-screen)
+let offsetX = 0;         // Pan offset X
+let offsetY = 0;         // Pan offset Y
+const MIN_SCALE = 1;     // Fit to screen
+const MAX_SCALE = 4;     // Maximum zoom
+const DOUBLE_TAP_SCALE = 2; // Double-tap zoom level
+
+// Touch tracking
+let lastTapTime = 0;
+let lastTapX = 0;
+let lastTapY = 0;
+
+// Pinch state
+let isPinching = false;
+let pinchStartScale = 1;
+let pinchStartDistance = 0;
+let pinchCenterX = 0;
+let pinchCenterY = 0;
+
+// Pan state  
+let isPanning = false;
+let panStartX = 0;
+let panStartY = 0;
+let panStartOffsetX = 0;
+let panStartOffsetY = 0;
 
 // Swipe state
-let swipeStartX=0;
-let swipeStartY=0;
-let isSwiping=false;
+let swipeStartX = 0;
+let swipeStartY = 0;
+let isSwiping = false;
 
 // Caption edit state
 let isEditingCaption=false;
@@ -1002,9 +1020,10 @@ function viewImage(id,e){
   allMediaIds=getMediaItems().map(i=>i.id);
   currentMediaIndex=allMediaIds.indexOf(id);
   currentImageId=id;
-  currentScale=1;
-  currentZoomStep=0;
   isEditingCaption=false;
+  
+  // Reset zoom/pan
+  resetTransform();
   
   showImagePanel();
   loadCurrentImage();
@@ -1023,10 +1042,11 @@ function loadCurrentImage(){
   if(!item)return;
   
   const img=document.getElementById('imageViewerImg');
-  img.style.transform='scale(1)';
   img.classList.remove('portrait','landscape','zoomed');
-  currentScale=1;
-  currentZoomStep=0;
+  
+  // Reset transform
+  resetTransform();
+  applyTransform(false);
   
   // Detect orientation
   const tempImg=new Image();
@@ -1097,140 +1117,35 @@ function navigateImage(direction){
     saveCaption();
   }
   
+  // Reset zoom before navigating
+  resetTransform();
+  applyTransform(false);
+  
   currentMediaIndex=newIndex;
   currentImageId=allMediaIds[currentMediaIndex];
   loadCurrentImage();
   updateNavigation();
 }
 
-// Touch handling
-function handleTouchStart(e){
-  if(e.touches.length===2){
-    e.preventDefault();
-    isPinching=true;
-    isSwiping=false;
-    initialPinchDistance=getPinchDistance(e.touches);
-    pinchStartScale=currentScale;
-  } else if(e.touches.length===1){
-    swipeStartX=e.touches[0].clientX;
-    swipeStartY=e.touches[0].clientY;
-    isSwiping=true;
-    isPinching=false;
-  }
+// ============================================
+// TRANSFORM HELPERS
+// ============================================
+
+function resetTransform(){
+  scale = 1;
+  offsetX = 0;
+  offsetY = 0;
 }
 
-function handleTouchMove(e){
-  if(isPinching&&e.touches.length===2){
-    e.preventDefault();
-    
-    const currentDistance=getPinchDistance(e.touches);
-    const scaleChange=currentDistance/initialPinchDistance;
-    let newScale=pinchStartScale*scaleChange;
-    newScale=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,newScale));
-    currentScale=newScale;
-    
-    const img=document.getElementById('imageViewerImg');
-    img.style.transition='none';
-    img.style.transform='scale('+currentScale+')';
-    
-    if(currentScale>1){
-      img.classList.remove('portrait','landscape');
-      img.classList.add('zoomed');
-    }
-  } else if(isSwiping&&e.touches.length===1&&currentScale<=1){
-    const deltaX=e.touches[0].clientX-swipeStartX;
-    const deltaY=e.touches[0].clientY-swipeStartY;
-    if(Math.abs(deltaX)>Math.abs(deltaY)&&Math.abs(deltaX)>10){
-      e.preventDefault();
-    }
-  }
-}
-
-function handleTouchEnd(e){
-  const img=document.getElementById('imageViewerImg');
-  img.style.transition='transform 0.2s ease';
+function applyTransform(animate = true){
+  const img = document.getElementById('imageViewerImg');
+  if(!img) return;
   
-  if(isPinching){
-    isPinching=false;
-    // After pinch, update state
-    if(currentScale<=1){
-      currentScale=1;
-      currentZoomStep=0;
-      img.style.transform='scale(1)';
-      img.classList.remove('zoomed');
-      if(currentImageOrientation){
-        img.classList.add(currentImageOrientation);
-      }
-    } else {
-      // Find nearest zoom step for currentScale
-      let nearest=0;
-      let minDiff=Math.abs(currentScale-ZOOM_LEVELS[0]);
-      for(let i=1;i<ZOOM_LEVELS.length;i++){
-        const diff=Math.abs(currentScale-ZOOM_LEVELS[i]);
-        if(diff<minDiff){
-          minDiff=diff;
-          nearest=i;
-        }
-      }
-      currentZoomStep=nearest;
-    }
-    return;
-  }
+  img.style.transition = animate ? 'transform 0.25s ease-out' : 'none';
+  img.style.transform = `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`;
   
-  if(isSwiping&&currentScale<=1){
-    const deltaX=e.changedTouches[0].clientX-swipeStartX;
-    const deltaY=e.changedTouches[0].clientY-swipeStartY;
-    
-    // Swipe detection
-    if(Math.abs(deltaX)>50&&Math.abs(deltaY)<100){
-      if(deltaX>0&&currentMediaIndex>0){
-        navigateImage(-1);
-      } else if(deltaX<0&&currentMediaIndex<allMediaIds.length-1){
-        navigateImage(1);
-      }
-      isSwiping=false;
-      return;
-    }
-    
-    // Double tap detection
-    const now=Date.now();
-    if(now-lastTapTime<300&&Math.abs(deltaX)<10&&Math.abs(deltaY)<10){
-      e.preventDefault();
-      toggleZoom();
-      lastTapTime=0;
-    } else {
-      lastTapTime=now;
-    }
-  } else if(isSwiping&&currentScale>1){
-    // Double tap when zoomed - reset to fit
-    const now=Date.now();
-    const deltaX=e.changedTouches[0].clientX-swipeStartX;
-    const deltaY=e.changedTouches[0].clientY-swipeStartY;
-    
-    if(now-lastTapTime<300&&Math.abs(deltaX)<10&&Math.abs(deltaY)<10){
-      e.preventDefault();
-      resetZoom();
-      lastTapTime=0;
-    } else {
-      lastTapTime=now;
-    }
-  }
-  
-  isSwiping=false;
-}
-
-function toggleZoom(){
-  const img=document.getElementById('imageViewerImg');
-  
-  // Step through zoom levels
-  currentZoomStep++;
-  if(currentZoomStep>=ZOOM_LEVELS.length){
-    currentZoomStep=0;
-  }
-  
-  currentScale=ZOOM_LEVELS[currentZoomStep];
-  
-  if(currentScale>1){
+  // Update class for CSS
+  if(scale > 1){
     img.classList.remove('portrait','landscape');
     img.classList.add('zoomed');
   } else {
@@ -1239,25 +1154,245 @@ function toggleZoom(){
       img.classList.add(currentImageOrientation);
     }
   }
-  
-  img.style.transform='scale('+currentScale+')';
 }
 
-function resetZoom(){
-  const img=document.getElementById('imageViewerImg');
-  currentScale=1;
-  currentZoomStep=0;
-  img.classList.remove('zoomed');
-  if(currentImageOrientation){
-    img.classList.add(currentImageOrientation);
+function clampOffset(){
+  // Restrict pan so image doesn't go outside bounds
+  const img = document.getElementById('imageViewerImg');
+  const content = document.getElementById('imageViewerContent');
+  if(!img || !content) return;
+  
+  const contentRect = content.getBoundingClientRect();
+  
+  // Calculate how much image can move based on scale
+  // When scale=1, no movement allowed. When scale>1, allow proportional movement.
+  const imgWidth = img.offsetWidth || 300;
+  const imgHeight = img.offsetHeight || 300;
+  
+  const scaledWidth = imgWidth * scale;
+  const scaledHeight = imgHeight * scale;
+  
+  // Max offset is half the overflow (scaled size - container size) / 2, divided by scale
+  const maxOffsetX = Math.max(0, (scaledWidth - contentRect.width) / 2 / scale);
+  const maxOffsetY = Math.max(0, (scaledHeight - contentRect.height) / 2 / scale);
+  
+  offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, offsetX));
+  offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, offsetY));
+}
+
+// ============================================
+// TOUCH HANDLERS
+// ============================================
+
+function handleTouchStart(e){
+  const touches = e.touches;
+  
+  if(touches.length === 2){
+    // PINCH START
+    e.preventDefault();
+    isPinching = true;
+    isPanning = false;
+    isSwiping = false;
+    
+    pinchStartScale = scale;
+    pinchStartDistance = getPinchDistance(touches);
+    
+  } else if(touches.length === 1){
+    // SINGLE TOUCH START
+    const x = touches[0].clientX;
+    const y = touches[0].clientY;
+    
+    if(scale > 1){
+      // Zoomed in - start panning
+      isPanning = true;
+      isSwiping = false;
+      panStartX = x;
+      panStartY = y;
+      panStartOffsetX = offsetX;
+      panStartOffsetY = offsetY;
+    } else {
+      // Not zoomed - could be swipe or tap
+      isSwiping = true;
+      isPanning = false;
+      swipeStartX = x;
+      swipeStartY = y;
+    }
+    
+    isPinching = false;
   }
-  img.style.transform='scale(1)';
+}
+
+function handleTouchMove(e){
+  const touches = e.touches;
+  
+  if(isPinching && touches.length === 2){
+    // PINCH MOVE
+    e.preventDefault();
+    
+    const newDistance = getPinchDistance(touches);
+    const scaleChange = newDistance / pinchStartDistance;
+    let newScale = pinchStartScale * scaleChange;
+    
+    // Clamp scale
+    newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
+    scale = newScale;
+    
+    // Apply without animation for smooth feel
+    applyTransform(false);
+    
+  } else if(isPanning && touches.length === 1){
+    // PAN MOVE
+    e.preventDefault();
+    
+    const x = touches[0].clientX;
+    const y = touches[0].clientY;
+    
+    // Calculate delta and apply to offset (divide by scale for correct movement)
+    offsetX = panStartOffsetX + (x - panStartX) / scale;
+    offsetY = panStartOffsetY + (y - panStartY) / scale;
+    
+    // Clamp to bounds
+    clampOffset();
+    
+    // Apply without animation
+    applyTransform(false);
+    
+  } else if(isSwiping && touches.length === 1 && scale <= 1){
+    // SWIPE MOVE (only when not zoomed)
+    const deltaX = touches[0].clientX - swipeStartX;
+    const deltaY = touches[0].clientY - swipeStartY;
+    
+    // Prevent vertical scroll if horizontal swipe detected
+    if(Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10){
+      e.preventDefault();
+    }
+  }
+}
+
+function handleTouchEnd(e){
+  const changedTouches = e.changedTouches;
+  
+  if(isPinching){
+    // PINCH END
+    isPinching = false;
+    
+    // Snap to 1 if close
+    if(scale < 1.1){
+      scale = 1;
+      offsetX = 0;
+      offsetY = 0;
+    } else {
+      // Clamp offset after pinch
+      clampOffset();
+    }
+    
+    applyTransform(true);
+    return;
+  }
+  
+  if(isPanning){
+    // PAN END
+    isPanning = false;
+    
+    // Check for double-tap while zoomed (to reset)
+    const now = Date.now();
+    const x = changedTouches[0].clientX;
+    const y = changedTouches[0].clientY;
+    const dx = Math.abs(x - panStartX);
+    const dy = Math.abs(y - panStartY);
+    
+    // If didn't move much, might be a tap
+    if(dx < 10 && dy < 10){
+      if(now - lastTapTime < 300){
+        // Double tap while zoomed - reset to fit
+        e.preventDefault();
+        resetTransform();
+        applyTransform(true);
+        lastTapTime = 0;
+        return;
+      }
+      lastTapTime = now;
+    }
+    return;
+  }
+  
+  if(isSwiping && scale <= 1){
+    // SWIPE END (not zoomed)
+    isSwiping = false;
+    
+    const x = changedTouches[0].clientX;
+    const y = changedTouches[0].clientY;
+    const deltaX = x - swipeStartX;
+    const deltaY = y - swipeStartY;
+    
+    // Check for SWIPE (horizontal, more than 50px)
+    if(Math.abs(deltaX) > 50 && Math.abs(deltaY) < 100){
+      if(deltaX > 0 && currentMediaIndex > 0){
+        navigateImage(-1); // Swipe right = previous
+      } else if(deltaX < 0 && currentMediaIndex < allMediaIds.length - 1){
+        navigateImage(1);  // Swipe left = next
+      }
+      return;
+    }
+    
+    // Check for DOUBLE TAP (to zoom in)
+    const now = Date.now();
+    const tapDist = Math.sqrt(
+      Math.pow(x - lastTapX, 2) + Math.pow(y - lastTapY, 2)
+    );
+    
+    if(now - lastTapTime < 300 && tapDist < 30){
+      // DOUBLE TAP - zoom to 2x centered on tap point
+      e.preventDefault();
+      doubleTapZoom(x, y);
+      lastTapTime = 0;
+      lastTapX = 0;
+      lastTapY = 0;
+    } else {
+      lastTapTime = now;
+      lastTapX = x;
+      lastTapY = y;
+    }
+  }
+  
+  isSwiping = false;
+  isPanning = false;
+}
+
+function doubleTapZoom(tapX, tapY){
+  if(scale > 1){
+    // Already zoomed - reset to fit
+    resetTransform();
+  } else {
+    // Zoom to 2x, centered on tap point
+    const content = document.getElementById('imageViewerContent');
+    const img = document.getElementById('imageViewerImg');
+    if(!content || !img) return;
+    
+    const rect = content.getBoundingClientRect();
+    
+    // Calculate offset to center on tap point
+    const tapRelX = tapX - (rect.left + rect.width / 2);
+    const tapRelY = tapY - (rect.top + rect.height / 2);
+    
+    // New scale
+    scale = DOUBLE_TAP_SCALE;
+    
+    // Offset to keep tap point in same screen position
+    offsetX = -tapRelX / scale;
+    offsetY = -tapRelY / scale;
+    
+    // Clamp
+    clampOffset();
+  }
+  
+  applyTransform(true);
 }
 
 function getPinchDistance(touches){
-  const dx=touches[0].clientX-touches[1].clientX;
-  const dy=touches[0].clientY-touches[1].clientY;
-  return Math.sqrt(dx*dx+dy*dy);
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
 // Caption editing
@@ -1303,9 +1438,10 @@ function closeImageViewer(){
     saveCaption();
   }
   
-  currentScale=1;
-  currentZoomStep=0;
+  // Reset zoom/pan state
+  resetTransform();
   isPinching=false;
+  isPanning=false;
   isSwiping=false;
   isEditingCaption=false;
   
