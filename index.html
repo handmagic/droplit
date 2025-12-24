@@ -710,54 +710,67 @@ function saveIdea(t){
 }
 
 function resetToShowAll(){
-  // Reset filter variables
-  curCat='all';
-  curTime='7days';
-  activeCardId=null;
-  sortAsc=true;
-  // Update sort button UI
-  const sortBtn=document.getElementById('sortBtn');
-  if(sortBtn){
-    sortBtn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>';
-    sortBtn.classList.remove('desc');
+  try{
+    // Reset filter variables
+    curCat='all';
+    curTime='7days';
+    activeCardId=null;
+    sortAsc=true;
+    // Update sort button UI
+    const sortBtn=document.getElementById('sortBtn');
+    if(sortBtn){
+      sortBtn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>';
+      sortBtn.classList.remove('desc');
+    }
+    // Remove active class from category buttons
+    document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
+    // Update time buttons - activate 7d
+    document.querySelectorAll('.time-btn').forEach(x=>x.classList.remove('active'));
+    const btn7d=document.querySelector('.time-btn[data-time="7days"]');
+    if(btn7d)btn7d.classList.add('active');
+    // Render and scroll (instant, no animation)
+    render();
+    counts();
+    setTimeout(()=>{
+      const wrap=document.getElementById('ideasWrap');
+      if(wrap)wrap.scrollTo({top:wrap.scrollHeight,behavior:'auto'});
+    },50);
+  }catch(err){
+    console.error('resetToShowAll error:',err);
   }
-  // Remove active class from category buttons
-  document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
-  // Update time buttons - activate 7d
-  document.querySelectorAll('.time-btn').forEach(x=>x.classList.remove('active'));
-  const btn7d=document.querySelector('.time-btn[data-time="7days"]');
-  if(btn7d)btn7d.classList.add('active');
-  // Render and scroll (instant, no animation)
-  render();
-  counts();
-  setTimeout(()=>{
-    ideasWrap.scrollTo({top:ideasWrap.scrollHeight,behavior:'auto'});
-  },50);
 }
 
 function handlePhoto(e){
   const file=e.target.files[0];
   if(!file)return;
   
+  console.log('handlePhoto: file selected',file.name);
   toast('Processing photo...','info');
   
   const reader=new FileReader();
   reader.onerror=function(){
+    console.error('FileReader error');
     toast('Failed to read photo','error');
   };
   reader.onload=function(ev){
+    console.log('handlePhoto: file loaded');
     const dataUrl=ev.target.result;
     // Try to get geolocation with short timeout
     if(navigator.geolocation){
       let saved=false;
       // Timeout fallback - save without geo after 2s
       const fallbackTimer=setTimeout(()=>{
-        if(!saved){saved=true;savePhoto(dataUrl,null);}
+        if(!saved){
+          console.log('handlePhoto: geo timeout, saving without');
+          saved=true;
+          savePhoto(dataUrl,null);
+        }
       },2000);
       
       navigator.geolocation.getCurrentPosition(
         (pos)=>{
           if(!saved){
+            console.log('handlePhoto: got geo');
             saved=true;
             clearTimeout(fallbackTimer);
             savePhoto(dataUrl,{lat:pos.coords.latitude,lng:pos.coords.longitude});
@@ -765,6 +778,7 @@ function handlePhoto(e){
         },
         ()=>{
           if(!saved){
+            console.log('handlePhoto: geo denied');
             saved=true;
             clearTimeout(fallbackTimer);
             savePhoto(dataUrl,null);
@@ -773,6 +787,7 @@ function handlePhoto(e){
         {timeout:2000,maximumAge:60000}
       );
     } else {
+      console.log('handlePhoto: no geolocation API');
       savePhoto(dataUrl,null);
     }
   };
@@ -781,6 +796,7 @@ function handlePhoto(e){
 }
 
 function savePhoto(dataUrl,geo){
+  console.log('savePhoto: starting, geo=',geo);
   const idea={
     id:Date.now(),
     text:'',
@@ -793,9 +809,20 @@ function savePhoto(dataUrl,geo){
     geo:geo,
     isMedia:true
   };
-  ideas.push(idea);save();
-  resetToShowAll();
+  ideas.push(idea);
+  save();
+  console.log('savePhoto: saved to localStorage, ideas.length=',ideas.length);
+  try{
+    resetToShowAll();
+    console.log('savePhoto: resetToShowAll done');
+  }catch(err){
+    console.error('savePhoto: resetToShowAll error:',err);
+    // Fallback - at least render
+    render();
+    counts();
+  }
   toast('Photo saved to PHOTOS','success');
+  console.log('savePhoto: complete');
 }
 
 function aiProcess(id){toast('AI processing coming soon!','info');}
@@ -1341,13 +1368,22 @@ function aiDescribe(){
 
 
 function counts(){
-  document.getElementById('cntAll').textContent=ideas.length;
-  document.getElementById('cntToday').textContent=ideas.filter(x=>isToday(x.date)).length;
-  document.getElementById('cnt7d').textContent=ideas.filter(x=>inDays(x.date,7)).length;
-  // Count ALL items in each category (not filtered by time)
-  for(const k of Object.keys(CATS)){
-    const el=document.getElementById('cnt'+k.charAt(0).toUpperCase()+k.slice(1));
-    if(el)el.textContent=ideas.filter(x=>x.category===k).length;
+  try{
+    const cntAll=document.getElementById('cntAll');
+    const cntToday=document.getElementById('cntToday');
+    const cnt7d=document.getElementById('cnt7d');
+    
+    if(cntAll)cntAll.textContent=ideas.length;
+    if(cntToday)cntToday.textContent=ideas.filter(x=>isToday(x.date)).length;
+    if(cnt7d)cnt7d.textContent=ideas.filter(x=>inDays(x.date,7)).length;
+    
+    // Count ALL items in each category (not filtered by time)
+    for(const k of Object.keys(CATS)){
+      const el=document.getElementById('cnt'+k.charAt(0).toUpperCase()+k.slice(1));
+      if(el)el.textContent=ideas.filter(x=>x.category===k).length;
+    }
+  }catch(err){
+    console.error('counts error:',err);
   }
 }
 
