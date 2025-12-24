@@ -281,14 +281,16 @@
     .merge-preview { background: var(--color-bg); border-radius: var(--radius-sm); padding: 12px; font-size: 0.8rem; max-height: 200px; overflow-y: auto; margin-bottom: 16px; line-height: 1.6; white-space: pre-wrap; }
 
     /* Image viewer */
-    .image-viewer { background: rgba(0,0,0,0.95); padding: 0; flex-direction: column; }
-    .image-viewer-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 60px 0 10px; touch-action: pan-x pan-y pinch-zoom; }
-    .image-viewer img { width: 100%; height: auto; object-fit: contain; border-radius: 0; transition: transform 0.2s ease; }
-    .image-viewer img.zoomed { width: auto; max-width: none; cursor: grab; }
+    .image-viewer { background: rgba(0,0,0,0.95); padding: 0; flex-direction: column; align-items: stretch; overflow: hidden; }
+    .image-viewer-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 60px 0 10px; touch-action: pan-x pan-y pinch-zoom; min-height: 0; }
+    .image-viewer img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; border-radius: 0; transition: transform 0.2s ease; }
+    .image-viewer img.portrait { width: 100%; max-width: 100%; height: auto; max-height: none; }
+    .image-viewer img.landscape { width: auto; max-width: 100%; height: auto; max-height: 100%; }
+    .image-viewer img.zoomed { max-width: none; max-height: none; cursor: grab; }
     .image-viewer img.zoomed:active { cursor: grabbing; }
     .image-viewer-close { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; z-index: 10; }
     .image-viewer-close:active { background: rgba(255,255,255,0.3); }
-    .image-viewer-panel { background: var(--color-bg-card); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px 16px calc(16px + var(--safe-bottom)); }
+    .image-viewer-panel { flex-shrink: 0; background: var(--color-bg-card); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px; padding-bottom: calc(16px + var(--safe-bottom)); width: 100%; box-sizing: border-box; }
     .image-meta { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 10px; display: flex; gap: 12px; flex-wrap: wrap; }
     .image-meta span { display: flex; align-items: center; gap: 4px; }
     .image-notes-wrap { margin-bottom: 12px; }
@@ -460,6 +462,9 @@ function enterSelectMode(id){
   selectedIds=[id];
   activeCardId=null;
   document.getElementById('app').classList.add('select-mode');
+  // Hide FABs directly
+  document.getElementById('fabRecord').style.display='none';
+  document.getElementById('fabCamera').style.display='none';
   updateSelectBar();
   render();
 }
@@ -469,6 +474,9 @@ function cancelSelect(){
   selectedIds=[];
   document.getElementById('app').classList.remove('select-mode');
   document.getElementById('selectBar').classList.remove('show');
+  // Show FABs again
+  document.getElementById('fabRecord').style.display='flex';
+  document.getElementById('fabCamera').style.display='flex';
   render();
 }
 
@@ -819,9 +827,20 @@ function viewImage(id,e){
   currentImageId=id;
   imageZoomed=false;
   const img=document.getElementById('imageViewerImg');
-  img.src=item.image;
-  img.classList.remove('zoomed');
+  img.classList.remove('zoomed','portrait','landscape');
   img.style.transform='scale(1)';
+  
+  // Load image and detect orientation
+  const tempImg=new Image();
+  tempImg.onload=function(){
+    if(this.height>this.width){
+      img.classList.add('portrait');
+    } else {
+      img.classList.add('landscape');
+    }
+  };
+  tempImg.src=item.image;
+  img.src=item.image;
   
   // Build meta info
   let meta='<span>📅 '+item.date+' '+item.time+'</span>';
@@ -854,11 +873,18 @@ function toggleImageZoom(){
   const img=document.getElementById('imageViewerImg');
   imageZoomed=!imageZoomed;
   if(imageZoomed){
+    img.classList.remove('portrait','landscape');
     img.classList.add('zoomed');
     img.style.transform='scale(2)';
   } else {
     img.classList.remove('zoomed');
     img.style.transform='scale(1)';
+    // Redetect orientation
+    if(img.naturalHeight>img.naturalWidth){
+      img.classList.add('portrait');
+    } else {
+      img.classList.add('landscape');
+    }
   }
 }
 
