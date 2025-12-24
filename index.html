@@ -303,7 +303,7 @@
     .image-viewer-nav.prev { left: 10px; }
     .image-viewer-nav.next { right: 10px; }
     .image-viewer-nav.show { display: flex; }
-    .image-viewer-panel { flex-shrink: 0; background: #FF0000; border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 14px 16px; padding-bottom: calc(14px + var(--safe-bottom)); width: 100%; box-sizing: border-box; position: relative; z-index: 20; min-height: 120px; }
+    .image-viewer-panel { flex-shrink: 0; background: #FF0000; border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 10px 16px 10px 16px; width: 100%; box-sizing: border-box; position: relative; z-index: 20; }
     .image-meta { font-size: 0.75rem; color: white; margin-bottom: 8px; display: flex; gap: 12px; flex-wrap: wrap; background: blue; }
     .image-meta span { display: flex; align-items: center; gap: 4px; }
     .image-caption-display { font-size: 0.9rem; color: var(--color-text); margin-bottom: 10px; line-height: 1.4; }
@@ -429,13 +429,7 @@
       <img id="imageViewerImg" src="" alt="Full size">
     </div>
     <div class="image-viewer-panel" onclick="event.stopPropagation()">
-      <div class="image-meta" id="imageMeta"></div>
-      <div class="image-caption-display" id="imageCaptionDisplay"></div>
-      <button style="background:lime;color:black;padding:15px 30px;font-size:18px;border:3px solid black;margin:10px 0;">TEST BUTTON</button>
-      <div class="image-notes-wrap" id="imageNotesWrap">
-        <textarea class="image-notes" id="imageNotes" placeholder="Add caption or notes..." rows="2"></textarea>
-      </div>
-      <div class="image-actions" id="imageActions" style="background:yellow;min-height:50px;display:flex !important;">
+      <div class="image-actions" id="imageActions" style="background:yellow;min-height:50px;display:flex !important;margin-bottom:10px;">
         <button class="img-act" onclick="ocrImage()">OCR</button>
         <button class="img-act" onclick="aiDescribe()">AI</button>
         <button class="img-act" onclick="shareImage()">Share</button>
@@ -445,6 +439,11 @@
       <div class="image-edit-actions" id="imageEditActions">
         <button class="img-act" onclick="cancelEditCaption()">Cancel</button>
         <button class="img-act primary" onclick="saveCaption()">Save</button>
+      </div>
+      <div class="image-meta" id="imageMeta"></div>
+      <div class="image-caption-display" id="imageCaptionDisplay"></div>
+      <div class="image-notes-wrap" id="imageNotesWrap">
+        <textarea class="image-notes" id="imageNotes" placeholder="Add caption or notes..." rows="2"></textarea>
       </div>
     </div>
   </div>
