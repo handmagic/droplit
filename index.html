@@ -1026,16 +1026,28 @@ function updateCaptionDisplay(item){
 function showImagePanel(){
   isEditingCaption=false;
   
-  // Use only CSS classes, no inline styles
+  // Clear inline styles and use only CSS classes
   const captionDisplay=document.getElementById('imageCaptionDisplay');
   const notesWrap=document.getElementById('imageNotesWrap');
   const actions=document.getElementById('imageActions');
   const editActions=document.getElementById('imageEditActions');
   
-  if(captionDisplay) captionDisplay.classList.remove('hidden');
-  if(notesWrap) notesWrap.classList.remove('editing');
-  if(actions) actions.classList.remove('hidden');
-  if(editActions) editActions.classList.remove('show');
+  if(captionDisplay){
+    captionDisplay.style.display='';
+    captionDisplay.classList.remove('hidden');
+  }
+  if(notesWrap){
+    notesWrap.style.display='';
+    notesWrap.classList.remove('editing');
+  }
+  if(actions){
+    actions.style.display='';
+    actions.classList.remove('hidden');
+  }
+  if(editActions){
+    editActions.style.display='';
+    editActions.classList.remove('show');
+  }
 }
 
 function updateNavigation(){
