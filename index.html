@@ -307,6 +307,7 @@
     .image-meta span { display: flex; align-items: center; gap: 4px; }
     .image-caption-display { font-size: 0.9rem; color: var(--color-text); margin-bottom: 10px; line-height: 1.4; }
     .image-caption-display.empty { color: var(--color-text-muted); font-style: italic; }
+    .image-caption-display.hidden { display: none; }
     .image-notes-wrap { margin-bottom: 10px; display: none; }
     .image-notes-wrap.editing { display: block; }
     .image-notes { width: 100%; padding: 10px; border: 2px solid var(--color-primary); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 0.9rem; resize: none; background: var(--color-bg); }
@@ -565,6 +566,12 @@ function getMergedText(){
 
 function showMergePreview(){
   if(selectedIds.length<2){toast('Select at least 2 cards','warning');return;}
+  // Check if any selected item is media
+  const hasMedia=selectedIds.some(id=>{
+    const item=ideas.find(x=>x.id===id);
+    return item&&item.isMedia;
+  });
+  if(hasMedia){toast('Cannot merge media items','warning');return;}
   document.getElementById('mergePreview').textContent=getMergedText();
   document.getElementById('mergeModal').classList.add('show');
 }
@@ -590,13 +597,22 @@ function saveMerged(){
 
 // Card interactions
 function handleCardClick(id,e){
+  // Ignore clicks on category badge, action buttons, textarea, checkbox
   if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox'))return;
+  
+  const item=ideas.find(x=>x.id===id);
+  
   if(selectMode){
+    // In select mode - always toggle selection
     toggleSelect(id);
   } else if(editId && editId !== id) {
     // If editing another card, don't activate this one
     return;
+  } else if(item && item.isMedia) {
+    // For media cards - open viewer directly
+    viewImage(id,e);
   } else {
+    // For text cards - toggle expand/collapse
     activeCardId=activeCardId===id?null:id;
     render();
   }
@@ -820,7 +836,7 @@ function render(){
       else h+='<span class="card-chars">'+cc+'</span>';
       h+='<span class="card-time">'+smartTime(i)+'</span></div>';
       if(i.isMedia&&i.image){
-        h+='<img class="card-image" src="'+i.image+'" onclick="viewImage('+i.id+',event)" alt="Photo">';
+        h+='<img class="card-image" src="'+i.image+'" alt="Photo">';
         // Show date/geo and notes under image
         h+='<div class="card-media-meta">';
         h+='<span>'+i.date+' '+i.time+'</span>';
@@ -837,7 +853,7 @@ function render(){
       }
       h+='<div class="card-actions">';
       if(i.isMedia){
-        h+='<button class="act" onclick="viewImage('+i.id+',event)">Edit</button>';
+        h+='<button class="act" onclick="viewImage('+i.id+',event)">View</button>';
       } else {
         h+='<button class="act ai" onclick="aiProcess('+i.id+')">AI</button>';
         h+='<button class="act" onclick="startEdit('+i.id+')">Edit</button>';
@@ -985,27 +1001,16 @@ function updateCaptionDisplay(item){
 function showImagePanel(){
   isEditingCaption=false;
   
-  // Force reset all panel elements
+  // Use only CSS classes, no inline styles
   const captionDisplay=document.getElementById('imageCaptionDisplay');
   const notesWrap=document.getElementById('imageNotesWrap');
   const actions=document.getElementById('imageActions');
   const editActions=document.getElementById('imageEditActions');
   
-  if(captionDisplay){
-    captionDisplay.style.display='block';
-  }
-  if(notesWrap){
-    notesWrap.classList.remove('editing');
-    notesWrap.style.display='none';
-  }
-  if(actions){
-    actions.classList.remove('hidden');
-    actions.style.display='flex';
-  }
-  if(editActions){
-    editActions.classList.remove('show');
-    editActions.style.display='none';
-  }
+  if(captionDisplay) captionDisplay.classList.remove('hidden');
+  if(notesWrap) notesWrap.classList.remove('editing');
+  if(actions) actions.classList.remove('hidden');
+  if(editActions) editActions.classList.remove('show');
 }
 
 function updateNavigation(){
@@ -1200,26 +1205,13 @@ function startEditCaption(){
   isEditingCaption=true;
   const item=ideas.find(x=>x.id===currentImageId);
   
-  const captionDisplay=document.getElementById('imageCaptionDisplay');
-  const notesWrap=document.getElementById('imageNotesWrap');
-  const actions=document.getElementById('imageActions');
-  const editActions=document.getElementById('imageEditActions');
-  
   document.getElementById('imageNotes').value=item?.notes||'';
   
-  if(captionDisplay) captionDisplay.style.display='none';
-  if(notesWrap){
-    notesWrap.classList.add('editing');
-    notesWrap.style.display='block';
-  }
-  if(actions){
-    actions.classList.add('hidden');
-    actions.style.display='none';
-  }
-  if(editActions){
-    editActions.classList.add('show');
-    editActions.style.display='flex';
-  }
+  // Use only CSS classes
+  document.getElementById('imageCaptionDisplay').classList.add('hidden');
+  document.getElementById('imageNotesWrap').classList.add('editing');
+  document.getElementById('imageActions').classList.add('hidden');
+  document.getElementById('imageEditActions').classList.add('show');
   
   setTimeout(()=>{
     document.getElementById('imageNotes').focus();
