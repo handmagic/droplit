@@ -1043,6 +1043,7 @@ function loadCurrentImage(){
   
   const img=document.getElementById('imageViewerImg');
   img.classList.remove('portrait','landscape','zoomed');
+  img.style.opacity = '1';
   
   // Reset transform
   resetTransform();
@@ -1119,12 +1120,63 @@ function navigateImage(direction){
   
   // Reset zoom before navigating
   resetTransform();
-  applyTransform(false);
   
-  currentMediaIndex=newIndex;
-  currentImageId=allMediaIds[currentMediaIndex];
-  loadCurrentImage();
-  updateNavigation();
+  // Animate slide out
+  const img = document.getElementById('imageViewerImg');
+  img.style.transition = 'transform 0.2s ease-out, opacity 0.15s ease-out';
+  img.style.transform = `translateX(${direction * -100}px)`;
+  img.style.opacity = '0';
+  
+  setTimeout(() => {
+    // Update index and load new image
+    currentMediaIndex=newIndex;
+    currentImageId=allMediaIds[currentMediaIndex];
+    
+    // Position for slide in from opposite side
+    img.style.transition = 'none';
+    img.style.transform = `translateX(${direction * 100}px)`;
+    
+    // Load new image
+    loadCurrentImageNoReset();
+    
+    // Animate slide in
+    setTimeout(() => {
+      img.style.transition = 'transform 0.2s ease-out, opacity 0.15s ease-out';
+      img.style.transform = 'translateX(0)';
+      img.style.opacity = '1';
+      updateNavigation();
+    }, 20);
+  }, 150);
+}
+
+function loadCurrentImageNoReset(){
+  const item=ideas.find(x=>x.id===currentImageId);
+  if(!item)return;
+  
+  const img=document.getElementById('imageViewerImg');
+  img.classList.remove('portrait','landscape','zoomed');
+  
+  // Detect orientation
+  const tempImg=new Image();
+  tempImg.onload=function(){
+    currentImageOrientation=(this.height>this.width)?'portrait':'landscape';
+    img.classList.add(currentImageOrientation);
+  };
+  tempImg.src=item.image;
+  img.src=item.image;
+  
+  // Meta info
+  let meta='<span>'+item.date+' '+item.time+'</span>';
+  if(item.geo){
+    meta+='<span>'+item.geo.lat.toFixed(4)+', '+item.geo.lng.toFixed(4)+'</span>';
+  }
+  document.getElementById('imageMeta').innerHTML=meta;
+  
+  // Caption display
+  updateCaptionDisplay(item);
+  
+  // Reset to view mode
+  showImagePanel();
 }
 
 // ============================================
