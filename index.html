@@ -283,7 +283,10 @@
     /* Image viewer */
     .image-viewer { background: rgba(0,0,0,0.95); padding: 0; flex-direction: column; align-items: stretch; overflow: hidden; }
     .image-viewer-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 50px 0 0; touch-action: none; min-height: 0; position: relative; }
-    .image-viewer img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; border-radius: 0; transform-origin: center center; user-select: none; -webkit-user-drag: none; will-change: transform; }
+    .image-viewer img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; border-radius: 0; transform-origin: center center; user-select: none; -webkit-user-drag: none; will-change: transform; transition: transform 0.2s ease; }
+    .image-viewer img.portrait { width: 100%; max-width: 100%; height: auto; max-height: none; }
+    .image-viewer img.landscape { width: auto; max-width: 100%; height: auto; max-height: 100%; }
+    .image-viewer img.zoomed { max-width: none; max-height: none; }
     .image-viewer-close { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; z-index: 10; }
     .image-viewer-close:active { background: rgba(255,255,255,0.3); }
     .image-viewer-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: var(--radius-full); display: none; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; z-index: 10; }
@@ -294,7 +297,7 @@
     .image-viewer-panel { flex-shrink: 0; background: var(--color-bg-card); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 14px 16px; padding-bottom: calc(14px + var(--safe-bottom)); width: 100%; box-sizing: border-box; position: relative; z-index: 20; }
     .image-meta { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 8px; display: flex; gap: 12px; flex-wrap: wrap; }
     .image-meta span { display: flex; align-items: center; gap: 4px; }
-    .image-caption-display { font-size: 0.9rem; color: var(--color-text); margin-bottom: 10px; line-height: 1.4; min-height: 20px; }
+    .image-caption-display { font-size: 0.9rem; color: var(--color-text); margin-bottom: 10px; line-height: 1.4; }
     .image-caption-display.empty { color: var(--color-text-muted); font-style: italic; }
     .image-notes-wrap { margin-bottom: 10px; display: none; }
     .image-notes-wrap.editing { display: block; }
@@ -302,9 +305,9 @@
     .image-notes:focus { outline: none; }
     .image-actions { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
     .image-actions::-webkit-scrollbar { display: none; }
-    .image-actions.editing { display: none; }
+    .image-actions.hidden { display: none; }
     .image-edit-actions { display: none; gap: 8px; justify-content: flex-end; }
-    .image-edit-actions.editing { display: flex; }
+    .image-edit-actions.show { display: flex; }
     .img-act { flex-shrink: 0; height: 36px; padding: 0 14px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
     .img-act:active { background: var(--color-bg-soft); }
     .img-act.primary { background: var(--color-primary); color: white; }
@@ -833,11 +836,12 @@ function toggleExpand(id,e){
 let currentImageId=null;
 let allMediaIds=[];
 let currentMediaIndex=0;
+let currentImageOrientation='';
 
 // Zoom state
 let currentScale=1;
 let lastTapTime=0;
-const ZOOM_STEP=1.5; // Double-tap zoom increment
+const ZOOM_STEP=1.5;
 const MAX_ZOOM=4;
 const MIN_ZOOM=1;
 
@@ -853,7 +857,6 @@ let isSwiping=false;
 
 // Caption edit state
 let isEditingCaption=false;
-let originalCaption='';
 
 function getMediaItems(){
   return ideas.filter(i=>i.isMedia&&i.image);
@@ -864,24 +867,18 @@ function viewImage(id,e){
   const item=ideas.find(x=>x.id===id);
   if(!item||!item.image)return;
   
-  // Build list of all media items
   allMediaIds=getMediaItems().map(i=>i.id);
   currentMediaIndex=allMediaIds.indexOf(id);
   currentImageId=id;
-  
-  // Reset states
   currentScale=1;
   isEditingCaption=false;
   
-  // Ensure edit mode is off before loading
-  exitEditMode();
-  
+  showImagePanel();
   loadCurrentImage();
   updateNavigation();
   
   document.getElementById('imageViewer').classList.add('show');
   
-  // Add touch listeners
   const content=document.getElementById('imageViewerContent');
   content.addEventListener('touchstart',handleTouchStart,{passive:false});
   content.addEventListener('touchmove',handleTouchMove,{passive:false});
@@ -894,7 +891,16 @@ function loadCurrentImage(){
   
   const img=document.getElementById('imageViewerImg');
   img.style.transform='scale(1)';
+  img.classList.remove('portrait','landscape','zoomed');
   currentScale=1;
+  
+  // Detect orientation
+  const tempImg=new Image();
+  tempImg.onload=function(){
+    currentImageOrientation=(this.height>this.width)?'portrait':'landscape';
+    img.classList.add(currentImageOrientation);
+  };
+  tempImg.src=item.image;
   img.src=item.image;
   
   // Meta info
@@ -907,8 +913,8 @@ function loadCurrentImage(){
   // Caption display
   updateCaptionDisplay(item);
   
-  // Exit edit mode
-  exitEditMode();
+  // Reset to view mode
+  showImagePanel();
 }
 
 function updateCaptionDisplay(item){
@@ -920,6 +926,14 @@ function updateCaptionDisplay(item){
     display.textContent='No caption';
     display.classList.add('empty');
   }
+}
+
+function showImagePanel(){
+  isEditingCaption=false;
+  document.getElementById('imageCaptionDisplay').style.display='';
+  document.getElementById('imageNotesWrap').classList.remove('editing');
+  document.getElementById('imageActions').classList.remove('hidden');
+  document.getElementById('imageEditActions').classList.remove('show');
 }
 
 function updateNavigation(){
@@ -942,13 +956,9 @@ function navigateImage(direction){
   const newIndex=currentMediaIndex+direction;
   if(newIndex<0||newIndex>=allMediaIds.length)return;
   
-  // Save current caption if editing
   if(isEditingCaption){
     saveCaption();
   }
-  
-  // Always exit edit mode when navigating
-  exitEditMode();
   
   currentMediaIndex=newIndex;
   currentImageId=allMediaIds[currentMediaIndex];
@@ -956,17 +966,15 @@ function navigateImage(direction){
   updateNavigation();
 }
 
-// Touch handling for zoom and swipe
+// Touch handling
 function handleTouchStart(e){
   if(e.touches.length===2){
-    // Pinch zoom start
     e.preventDefault();
     isPinching=true;
     isSwiping=false;
     initialPinchDistance=getPinchDistance(e.touches);
     pinchStartScale=currentScale;
   } else if(e.touches.length===1){
-    // Potential swipe or tap
     swipeStartX=e.touches[0].clientX;
     swipeStartY=e.touches[0].clientY;
     isSwiping=true;
@@ -981,19 +989,20 @@ function handleTouchMove(e){
     const currentDistance=getPinchDistance(e.touches);
     const scaleChange=currentDistance/initialPinchDistance;
     let newScale=pinchStartScale*scaleChange;
-    
-    // Clamp scale
     newScale=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,newScale));
     currentScale=newScale;
     
     const img=document.getElementById('imageViewerImg');
+    img.style.transition='none';
     img.style.transform='scale('+currentScale+')';
+    
+    if(currentScale>1){
+      img.classList.remove('portrait','landscape');
+      img.classList.add('zoomed');
+    }
   } else if(isSwiping&&e.touches.length===1&&currentScale<=1){
-    // Only allow swipe when not zoomed
     const deltaX=e.touches[0].clientX-swipeStartX;
     const deltaY=e.touches[0].clientY-swipeStartY;
-    
-    // If horizontal movement is dominant, prevent vertical scroll
     if(Math.abs(deltaX)>Math.abs(deltaY)&&Math.abs(deltaX)>10){
       e.preventDefault();
     }
@@ -1001,9 +1010,20 @@ function handleTouchMove(e){
 }
 
 function handleTouchEnd(e){
+  const img=document.getElementById('imageViewerImg');
+  img.style.transition='transform 0.2s ease';
+  
   if(isPinching){
     isPinching=false;
-    // Keep current scale, no snap
+    // After pinch, update zoomed state
+    if(currentScale<=1){
+      currentScale=1;
+      img.style.transform='scale(1)';
+      img.classList.remove('zoomed');
+      if(currentImageOrientation){
+        img.classList.add(currentImageOrientation);
+      }
+    }
     return;
   }
   
@@ -1011,24 +1031,35 @@ function handleTouchEnd(e){
     const deltaX=e.changedTouches[0].clientX-swipeStartX;
     const deltaY=e.changedTouches[0].clientY-swipeStartY;
     
-    // Check for swipe (min 50px horizontal, not too much vertical)
+    // Swipe detection
     if(Math.abs(deltaX)>50&&Math.abs(deltaY)<100){
       if(deltaX>0&&currentMediaIndex>0){
-        // Swipe right - previous image
         navigateImage(-1);
       } else if(deltaX<0&&currentMediaIndex<allMediaIds.length-1){
-        // Swipe left - next image
         navigateImage(1);
       }
       isSwiping=false;
       return;
     }
     
-    // Check for double tap
+    // Double tap detection
     const now=Date.now();
     if(now-lastTapTime<300&&Math.abs(deltaX)<10&&Math.abs(deltaY)<10){
       e.preventDefault();
       toggleZoom();
+      lastTapTime=0;
+    } else {
+      lastTapTime=now;
+    }
+  } else if(isSwiping&&currentScale>1){
+    // Double tap when zoomed - reset to fit
+    const now=Date.now();
+    const deltaX=e.changedTouches[0].clientX-swipeStartX;
+    const deltaY=e.changedTouches[0].clientY-swipeStartY;
+    
+    if(now-lastTapTime<300&&Math.abs(deltaX)<10&&Math.abs(deltaY)<10){
+      e.preventDefault();
+      resetZoom();
       lastTapTime=0;
     } else {
       lastTapTime=now;
@@ -1042,20 +1073,24 @@ function toggleZoom(){
   const img=document.getElementById('imageViewerImg');
   
   if(currentScale>1){
-    // Zoomed in - reset to fit
-    currentScale=1;
+    resetZoom();
   } else {
-    // At fit - zoom in by ZOOM_STEP
+    // Zoom in
     currentScale=ZOOM_STEP;
+    img.classList.remove('portrait','landscape');
+    img.classList.add('zoomed');
+    img.style.transform='scale('+currentScale+')';
   }
-  
-  img.style.transition='transform 0.2s ease';
-  img.style.transform='scale('+currentScale+')';
-  
-  // Remove transition after animation
-  setTimeout(()=>{
-    img.style.transition='none';
-  },200);
+}
+
+function resetZoom(){
+  const img=document.getElementById('imageViewerImg');
+  currentScale=1;
+  img.classList.remove('zoomed');
+  if(currentImageOrientation){
+    img.classList.add(currentImageOrientation);
+  }
+  img.style.transform='scale(1)';
 }
 
 function getPinchDistance(touches){
@@ -1068,17 +1103,12 @@ function getPinchDistance(touches){
 function startEditCaption(){
   isEditingCaption=true;
   const item=ideas.find(x=>x.id===currentImageId);
-  originalCaption=item?.notes||'';
   
-  document.getElementById('imageNotes').value=originalCaption;
+  document.getElementById('imageNotes').value=item?.notes||'';
   document.getElementById('imageCaptionDisplay').style.display='none';
   document.getElementById('imageNotesWrap').classList.add('editing');
-  
-  const actions=document.getElementById('imageActions');
-  actions.style.display=''; // Remove inline style, let CSS handle
-  actions.classList.add('editing');
-  
-  document.getElementById('imageEditActions').classList.add('editing');
+  document.getElementById('imageActions').classList.add('hidden');
+  document.getElementById('imageEditActions').classList.add('show');
   
   setTimeout(()=>{
     document.getElementById('imageNotes').focus();
@@ -1094,49 +1124,29 @@ function saveCaption(){
     render();
     updateCaptionDisplay(item);
   }
-  exitEditMode();
+  showImagePanel();
 }
 
 function cancelEditCaption(){
-  exitEditMode();
-}
-
-function exitEditMode(){
-  isEditingCaption=false;
-  const captionDisplay=document.getElementById('imageCaptionDisplay');
-  const notesWrap=document.getElementById('imageNotesWrap');
-  const actions=document.getElementById('imageActions');
-  const editActions=document.getElementById('imageEditActions');
-  
-  if(captionDisplay)captionDisplay.style.display='block';
-  if(notesWrap)notesWrap.classList.remove('editing');
-  if(actions){
-    actions.classList.remove('editing');
-    actions.style.display=''; // Remove inline style, let CSS handle
-  }
-  if(editActions)editActions.classList.remove('editing');
+  showImagePanel();
 }
 
 function handleImageViewerClick(e){
-  // Close only if clicking on background
   if(e.target.classList.contains('image-viewer')){
     closeImageViewer();
   }
 }
 
 function closeImageViewer(){
-  // Save caption if editing
   if(isEditingCaption){
     saveCaption();
   }
   
-  // Reset states
   currentScale=1;
   isPinching=false;
   isSwiping=false;
   isEditingCaption=false;
   
-  // Remove touch listeners
   const content=document.getElementById('imageViewerContent');
   content.removeEventListener('touchstart',handleTouchStart);
   content.removeEventListener('touchmove',handleTouchMove);
@@ -1187,6 +1197,7 @@ function ocrImage(){
 function aiDescribe(){
   toast('AI description coming soon!','info');
 }
+
 
 function counts(){
   document.getElementById('cntAll').textContent=ideas.length;
