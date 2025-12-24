@@ -10,7 +10,7 @@
   <meta name="application-name" content="DropLit">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="format-detection" content="telephone=no">
-  <meta name="description" content="DropLit — Voice-first idea capture app. Never lose your ideas again.">
+  <meta name="description" content="DropLit â€” Voice-first idea capture app. Never lose your ideas again.">
   <title>DropLit</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
@@ -124,9 +124,8 @@
     .card.active { box-shadow: 0 0 0 2px var(--color-active), var(--shadow-card); }
     .card.editing { box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-card); }
     .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
-    .card-checkbox { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border: 2px solid var(--color-border); border-radius: 6px; background: white; display: none; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: bold; }
-    .select-mode .card-checkbox { display: flex; }
-    .card.selected .card-checkbox { background: var(--color-merge); border-color: var(--color-merge); }
+    /* Checkbox removed in v0.7.4 - selection shown via border + background */
+    .card-checkbox { display: none !important; }
     .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
     .card-chars { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
     .card-time { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; margin-left: auto; }
@@ -155,7 +154,7 @@
     .card-notes { font-size: 0.85rem; color: var(--color-text-soft); line-height: 1.4; }
     .card-more { display: none; padding: 8px 0 4px; font-size: 0.8rem; color: var(--color-primary); font-weight: 600; cursor: pointer; }
     .card-more.show { display: block; }
-    .select-mode .card-text { padding-right: 40px; }
+    /* No extra padding needed - checkboxes removed */
     .card-edit { display: none; margin-top: 10px; }
     .card.editing .card-text { display: none; }
     .card.editing .card-edit { display: block; }
@@ -188,14 +187,14 @@
     .fab-record:active { transform: scale(0.95); }
     .fab-record.recording { background: var(--color-recording); animation: pulse 1.5s ease infinite; box-shadow: 0 4px 14px rgba(239,68,68,0.4); }
     .fab-record svg { width: 30px; height: 30px; color: white; }
-    .select-mode .fab-record { display: none; }
+    .select-mode .fab-record { display: none !important; opacity: 0; pointer-events: none; }
     @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 12px rgba(239,68,68,0)} }
 
     /* FAB - Camera button */
     .fab-camera { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 20px; width: 68px; height: 68px; border: none; background: linear-gradient(135deg, #6366F1, #8B5CF6); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(99,102,241,0.4); z-index: 50; transition: all 0.2s; }
     .fab-camera:active { transform: scale(0.95); }
     .fab-camera svg { width: 28px; height: 28px; color: white; }
-    .select-mode .fab-camera { display: none; }
+    .select-mode .fab-camera { display: none !important; opacity: 0; pointer-events: none; }
     .camera-input { display: none; }
 
     /* Recording status */
@@ -283,8 +282,10 @@
 
     /* Image viewer */
     .image-viewer { background: rgba(0,0,0,0.95); padding: 0; flex-direction: column; }
-    .image-viewer-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 60px 10px 10px; }
-    .image-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius-sm); }
+    .image-viewer-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 60px 0 10px; touch-action: pan-x pan-y pinch-zoom; }
+    .image-viewer img { width: 100%; height: auto; object-fit: contain; border-radius: 0; transition: transform 0.2s ease; }
+    .image-viewer img.zoomed { width: auto; max-width: none; cursor: grab; }
+    .image-viewer img.zoomed:active { cursor: grabbing; }
     .image-viewer-close { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; z-index: 10; }
     .image-viewer-close:active { background: rgba(255,255,255,0.3); }
     .image-viewer-panel { background: var(--color-bg-card); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px 16px calc(16px + var(--safe-bottom)); }
@@ -331,7 +332,7 @@
         <button class="time-btn" data-time="all">All <span class="cnt" id="cntAll">0</span></button>
         <button class="time-btn" data-time="today">Today <span class="cnt" id="cntToday">0</span></button>
         <button class="time-btn" data-time="7days">7d <span class="cnt" id="cnt7d">0</span></button>
-        <button class="sort-btn" id="sortBtn" onclick="toggleSort()" title="Sort order">↑</button>
+        <button class="sort-btn" id="sortBtn" onclick="toggleSort()" title="Sort order">â†‘</button>
       </div>
       <div class="cat-row" id="cats">
         <button class="cat" data-category="tasks">Tasks <span class="cnt" id="cntTasks">0</span></button>
@@ -368,34 +369,34 @@
     <span class="rec-text" id="recText">Listening...</span>
   </div>
 
-  <button class="scroll-fab top" id="scrollTop" onclick="scrollToTop()">↑</button>
-  <button class="scroll-fab bottom" id="scrollBottom" onclick="scrollToBottom()">↓</button>
+  <button class="scroll-fab top" id="scrollTop" onclick="scrollToTop()">â†‘</button>
+  <button class="scroll-fab bottom" id="scrollBottom" onclick="scrollToBottom()">â†“</button>
 
   <!-- Selection bar for merge -->
   <div class="select-bar" id="selectBar">
     <div class="select-info"><span id="selectCount">0</span> selected</div>
     <div class="select-actions">
       <button class="select-btn cancel" onclick="cancelSelect()">Cancel</button>
-      <button class="select-btn delete" onclick="deleteSelected()">🗑️ Delete</button>
-      <button class="select-btn merge" onclick="showMergePreview()">📋 Merge/Copy</button>
+      <button class="select-btn delete" onclick="deleteSelected()">ðŸ—‘ï¸ Delete</button>
+      <button class="select-btn merge" onclick="showMergePreview()">ðŸ“‹ Merge/Copy</button>
     </div>
   </div>
 
   <div class="toast-wrap" id="toastWrap"></div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.7.3 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.7.4 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
-  <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">🤖</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">📱</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">✉️</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">📋</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
+  <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">ðŸ¤–</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">ðŸ“±</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">âœ‰ï¸</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">ðŸ“‹</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
   <div class="overlay" id="delModal"><div class="modal"><div class="modal-title">Delete this idea?</div><div class="modal-text">This action cannot be undone.</div><div class="modal-actions"><button class="modal-btn sec" onclick="closeDelModal()">Cancel</button><button class="modal-btn danger" onclick="confirmDel()">Delete</button></div></div></div>
-  <div class="overlay" id="settingsModal"><div class="modal"><div class="modal-title">Settings</div><div class="modal-text">Coming soon:<br><br>• 🔍 Search<br>• 🎨 Themes<br>• 📁 Custom categories<br>• ☁️ Cloud sync</div><div class="modal-actions"><button class="modal-btn sec" onclick="exportAll()">Export</button><button class="modal-btn pri" onclick="closeSettings()">Done</button></div></div></div>
+  <div class="overlay" id="settingsModal"><div class="modal"><div class="modal-title">Settings</div><div class="modal-text">Coming soon:<br><br>â€¢ ðŸ” Search<br>â€¢ ðŸŽ¨ Themes<br>â€¢ ðŸ“ Custom categories<br>â€¢ â˜ï¸ Cloud sync</div><div class="modal-actions"><button class="modal-btn sec" onclick="exportAll()">Export</button><button class="modal-btn pri" onclick="closeSettings()">Done</button></div></div></div>
   <div class="overlay" id="addCatModal"><div class="modal"><div class="modal-title">Add Category</div><div class="modal-text">Custom categories coming in a future update!</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAddCatModal()">OK</button></div></div></div>
-  <div class="overlay" id="mergeModal"><div class="modal"><div class="modal-title">📋 Merge Preview</div><div class="merge-preview" id="mergePreview"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeMergeModal()">Cancel</button><button class="modal-btn sec" onclick="copyMerged()">📋 Copy</button><button class="modal-btn merge" onclick="saveMerged()">💾 Save</button></div></div></div>
+  <div class="overlay" id="mergeModal"><div class="modal"><div class="modal-title">ðŸ“‹ Merge Preview</div><div class="merge-preview" id="mergePreview"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeMergeModal()">Cancel</button><button class="modal-btn sec" onclick="copyMerged()">ðŸ“‹ Copy</button><button class="modal-btn merge" onclick="saveMerged()">ðŸ’¾ Save</button></div></div></div>
   <div class="overlay image-viewer" id="imageViewer" onclick="handleImageViewerClick(event)">
-    <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
+    <div class="image-viewer-close" onclick="closeImageViewer()">âœ•</div>
     <div class="image-viewer-content">
-      <img id="imageViewerImg" src="" alt="Full size">
+      <img id="imageViewerImg" src="" alt="Full size" onclick="handleImageDoubleTap(event)">
     </div>
     <div class="image-viewer-panel" onclick="event.stopPropagation()">
       <div class="image-meta" id="imageMeta"></div>
@@ -403,11 +404,11 @@
         <textarea class="image-notes" id="imageNotes" placeholder="Add notes..." rows="2"></textarea>
       </div>
       <div class="image-actions">
-        <button class="img-act" onclick="ocrImage()">🔍 OCR</button>
-        <button class="img-act" onclick="aiDescribe()">✨ AI</button>
-        <button class="img-act" onclick="shareImage()">📤 Share</button>
-        <button class="img-act" onclick="saveImageToGallery()">💾 Save</button>
-        <button class="img-act" onclick="printImage()">🖨️ Print</button>
+        <button class="img-act" onclick="ocrImage()">ðŸ” OCR</button>
+        <button class="img-act" onclick="aiDescribe()">âœ¨ AI</button>
+        <button class="img-act" onclick="shareImage()">ðŸ“¤ Share</button>
+        <button class="img-act" onclick="saveImageToGallery()">ðŸ’¾ Save</button>
+        <button class="img-act" onclick="printImage()">ðŸ–¨ï¸ Print</button>
       </div>
     </div>
   </div>
@@ -419,7 +420,7 @@ let curCat='all',curTime='all',sortAsc=true,isRec=false,recognition=null,saved=f
 let sendId=null,delId=null,catChangeId=null,editId=null,activeCardId=null;
 let selectMode=false,selectedIds=[];
 let lastScrollTop=0,longPressTimer=null;
-const CATS={tasks:{name:'TASKS',single:'TASK',kw:['задача','сделать','нужно','надо','task','todo'],isMedia:false},ideas:{name:'IDEAS',single:'IDEA',kw:['идея','мысль','придумал','idea'],isMedia:false},handmagic:{name:'HANDMAGIC',single:'HANDMAGIC',kw:['handmagic','хендмеджик','магия'],isMedia:false},design:{name:'DESIGN',single:'DESIGN',kw:['дизайн','ui','ux','кнопка','цвет','design'],isMedia:false},bugs:{name:'BUGS',single:'BUG',kw:['баг','ошибка','bug','fix'],isMedia:false},questions:{name:'QUESTIONS',single:'QUESTION',kw:['вопрос','спросить','claude'],isMedia:false},sketch:{name:'SKETCHES',single:'SKETCH',kw:[],isMedia:true},scan:{name:'SCANS',single:'SCAN',kw:[],isMedia:true},inbox:{name:'INBOX',single:'INBOX',kw:[],isMedia:false}};
+const CATS={tasks:{name:'TASKS',single:'TASK',kw:['Ð·Ð°Ð´Ð°Ñ‡Ð°','ÑÐ´ÐµÐ»Ð°Ñ‚ÑŒ','Ð½ÑƒÐ¶Ð½Ð¾','Ð½Ð°Ð´Ð¾','task','todo'],isMedia:false},ideas:{name:'IDEAS',single:'IDEA',kw:['Ð¸Ð´ÐµÑ','Ð¼Ñ‹ÑÐ»ÑŒ','Ð¿Ñ€Ð¸Ð´ÑƒÐ¼Ð°Ð»','idea'],isMedia:false},handmagic:{name:'HANDMAGIC',single:'HANDMAGIC',kw:['handmagic','Ñ…ÐµÐ½Ð´Ð¼ÐµÐ´Ð¶Ð¸Ðº','Ð¼Ð°Ð³Ð¸Ñ'],isMedia:false},design:{name:'DESIGN',single:'DESIGN',kw:['Ð´Ð¸Ð·Ð°Ð¹Ð½','ui','ux','ÐºÐ½Ð¾Ð¿ÐºÐ°','Ñ†Ð²ÐµÑ‚','design'],isMedia:false},bugs:{name:'BUGS',single:'BUG',kw:['Ð±Ð°Ð³','Ð¾ÑˆÐ¸Ð±ÐºÐ°','bug','fix'],isMedia:false},questions:{name:'QUESTIONS',single:'QUESTION',kw:['Ð²Ð¾Ð¿Ñ€Ð¾Ñ','ÑÐ¿Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ','claude'],isMedia:false},sketch:{name:'SKETCHES',single:'SKETCH',kw:[],isMedia:true},scan:{name:'SCANS',single:'SCAN',kw:[],isMedia:true},inbox:{name:'INBOX',single:'INBOX',kw:[],isMedia:false}};
 const MEDIA_CATS=['sketch','scan','inbox'];
 
 function parseD(s){const[d,m,y]=s.split('.').map(Number);return new Date(y,m-1,d);}
@@ -451,7 +452,7 @@ ideasWrap.addEventListener('scroll',()=>{
 
 function scrollToTop(){ideasWrap.scrollTo({top:0,behavior:'smooth'});scrollTopBtn.classList.remove('show');}
 function scrollToBottom(){ideasWrap.scrollTo({top:ideasWrap.scrollHeight,behavior:'smooth'});scrollBottomBtn.classList.remove('show');}
-function toggleSort(){sortAsc=!sortAsc;document.getElementById('sortBtn').textContent=sortAsc?'↑':'↓';document.getElementById('sortBtn').classList.toggle('desc',!sortAsc);render();}
+function toggleSort(){sortAsc=!sortAsc;document.getElementById('sortBtn').textContent=sortAsc?'â†‘':'â†“';document.getElementById('sortBtn').classList.toggle('desc',!sortAsc);render();}
 
 // Selection mode
 function enterSelectMode(id){
@@ -507,10 +508,10 @@ function getMergedText(){
     const cat=CATS[i.category]?.name||'INBOX';
     if(i.isMedia){
       // Media card - use notes or placeholder
-      const content=i.notes||'[📷 Photo '+i.date+' '+i.time+']';
-      return `• [${cat}] ${content}`;
+      const content=i.notes||'[ðŸ“· Photo '+i.date+' '+i.time+']';
+      return `â€¢ [${cat}] ${content}`;
     }
-    return `• [${cat}] ${i.text}`;
+    return `â€¢ [${cat}] ${i.text}`;
   }).join('\n');
 }
 
@@ -736,37 +737,37 @@ function render(){
       const cc=i.isMedia?0:(i.text?.length||0);
       const isTruncated=cc>500;
       h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
-      h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
+      h+='<div class="card-checkbox">'+(isSelected?'âœ“':'')+'</div>';
       h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
-      if(i.isMedia)h+='<span class="card-chars">📷</span>';
+      if(i.isMedia)h+='<span class="card-chars">ðŸ“·</span>';
       else h+='<span class="card-chars">'+cc+'</span>';
       h+='<span class="card-time">'+smartTime(i)+'</span></div>';
       if(i.isMedia&&i.image){
         h+='<img class="card-image" src="'+i.image+'" onclick="viewImage('+i.id+',event)" alt="Photo">';
         // Show date/geo and notes under image
         h+='<div class="card-media-meta">';
-        h+='<span>📅 '+i.date+' '+i.time+'</span>';
-        if(i.geo)h+='<span>📍 '+i.geo.lat.toFixed(2)+','+i.geo.lng.toFixed(2)+'</span>';
+        h+='<span>ðŸ“… '+i.date+' '+i.time+'</span>';
+        if(i.geo)h+='<span>ðŸ“ '+i.geo.lat.toFixed(2)+','+i.geo.lng.toFixed(2)+'</span>';
         h+='</div>';
         if(i.notes)h+='<div class="card-notes">'+esc(i.notes)+'</div>';
       }
       if(i.text){
         h+='<div class="card-text'+(isTruncated?' truncated':'')+'" id="text-'+i.id+'">'+linkify(i.text)+'</div>';
-        if(isTruncated)h+='<div class="card-more show" onclick="toggleExpand('+i.id+',event)">Show more ▼</div>';
+        if(isTruncated)h+='<div class="card-more show" onclick="toggleExpand('+i.id+',event)">Show more â–¼</div>';
       }
       if(!i.isMedia){
         h+='<div class="card-edit"><textarea class="card-ta">'+esc(i.text||'')+'</textarea></div>';
       }
       h+='<div class="card-actions">';
       if(i.isMedia){
-        h+='<button class="act" onclick="viewImage('+i.id+',event)">✏️ Edit</button>';
+        h+='<button class="act" onclick="viewImage('+i.id+',event)">âœï¸ Edit</button>';
       } else {
-        h+='<button class="act ai" onclick="aiProcess('+i.id+')">✨ AI</button>';
-        h+='<button class="act" onclick="startEdit('+i.id+')">✏️ Edit</button>';
+        h+='<button class="act ai" onclick="aiProcess('+i.id+')">âœ¨ AI</button>';
+        h+='<button class="act" onclick="startEdit('+i.id+')">âœï¸ Edit</button>';
       }
-      h+='<button class="act" onclick="openSendModal('+i.id+')">📤 Share</button>';
-      h+='<button class="act" onclick="copyIdea('+i.id+')">📋 Copy</button>';
-      h+='<button class="act" onclick="reqDel('+i.id+')">🗑️</button>';
+      h+='<button class="act" onclick="openSendModal('+i.id+')">ðŸ“¤ Share</button>';
+      h+='<button class="act" onclick="copyIdea('+i.id+')">ðŸ“‹ Copy</button>';
+      h+='<button class="act" onclick="reqDel('+i.id+')">ðŸ—‘ï¸</button>';
       h+='</div>';
       if(!i.isMedia){
         h+='<div class="card-edit-actions"><button class="act primary" onclick="saveEdit('+i.id+')">Save</button><button class="act secondary" onclick="cancelEdit('+i.id+')">Cancel</button></div>';
@@ -798,22 +799,29 @@ function toggleExpand(id,e){
   if(textEl.classList.contains('expanded')){
     textEl.classList.remove('expanded');
     textEl.classList.add('truncated');
-    btn.textContent='Show more ▼';
+    btn.textContent='Show more â–¼';
   } else {
     textEl.classList.add('expanded');
     textEl.classList.remove('truncated');
-    btn.textContent='Show less ▲';
+    btn.textContent='Show less â–²';
   }
 }
 
+
 let currentImageId=null;
+let imageZoomed=false;
+let lastTapTime=0;
 
 function viewImage(id,e){
   e.stopPropagation();
   const item=ideas.find(x=>x.id===id);
   if(!item||!item.image)return;
   currentImageId=id;
-  document.getElementById('imageViewerImg').src=item.image;
+  imageZoomed=false;
+  const img=document.getElementById('imageViewerImg');
+  img.src=item.image;
+  img.classList.remove('zoomed');
+  img.style.transform='scale(1)';
   
   // Build meta info
   let meta='<span>📅 '+item.date+' '+item.time+'</span>';
@@ -826,6 +834,32 @@ function viewImage(id,e){
   document.getElementById('imageNotes').value=item.notes||'';
   
   document.getElementById('imageViewer').classList.add('show');
+}
+
+// Double-tap to zoom
+function handleImageDoubleTap(e){
+  const now=Date.now();
+  const DOUBLE_TAP_DELAY=300;
+  
+  if(now-lastTapTime<DOUBLE_TAP_DELAY){
+    e.preventDefault();
+    toggleImageZoom();
+    lastTapTime=0;
+  } else {
+    lastTapTime=now;
+  }
+}
+
+function toggleImageZoom(){
+  const img=document.getElementById('imageViewerImg');
+  imageZoomed=!imageZoomed;
+  if(imageZoomed){
+    img.classList.add('zoomed');
+    img.style.transform='scale(2)';
+  } else {
+    img.classList.remove('zoomed');
+    img.style.transform='scale(1)';
+  }
 }
 
 function handleImageViewerClick(e){
@@ -933,13 +967,13 @@ function exportAll(){
   closeSettings();
   if(!ideas.length){toast('Nothing to export','warning');return;}
   const grp={};for(const i of ideas){if(!grp[i.category])grp[i.category]=[];grp[i.category].push(i);}
-  let md='# DropLit Export\n'+new Date().toLocaleDateString('ru-RU')+' • '+ideas.length+' ideas\n\n';
+  let md='# DropLit Export\n'+new Date().toLocaleDateString('ru-RU')+' â€¢ '+ideas.length+' ideas\n\n';
   for(const[k,arr]of Object.entries(grp)){
     md+='## '+CATS[k].name+' ('+arr.length+')\n';
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.7.3';
+  md+='---\nExported from DropLit v0.7.4';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -954,7 +988,7 @@ function closeSettings(){document.getElementById('settingsModal').classList.remo
 function toast(m,t='info'){
   const w=document.getElementById('toastWrap'),el=document.createElement('div');
   el.className='toast '+t;
-  el.innerHTML=({success:'✓',warning:'⚠',error:'✖',info:'ℹ'})[t]+' '+m;
+  el.innerHTML=({success:'âœ“',warning:'âš ',error:'âœ–',info:'â„¹'})[t]+' '+m;
   w.appendChild(el);
   setTimeout(()=>el.classList.add('show'),10);
   setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),300);},2500);
