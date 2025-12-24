@@ -873,6 +873,9 @@ function viewImage(id,e){
   currentScale=1;
   isEditingCaption=false;
   
+  // Ensure edit mode is off before loading
+  exitEditMode();
+  
   loadCurrentImage();
   updateNavigation();
   
@@ -943,6 +946,9 @@ function navigateImage(direction){
   if(isEditingCaption){
     saveCaption();
   }
+  
+  // Always exit edit mode when navigating
+  exitEditMode();
   
   currentMediaIndex=newIndex;
   currentImageId=allMediaIds[currentMediaIndex];
@@ -1067,10 +1073,13 @@ function startEditCaption(){
   document.getElementById('imageNotes').value=originalCaption;
   document.getElementById('imageCaptionDisplay').style.display='none';
   document.getElementById('imageNotesWrap').classList.add('editing');
-  document.getElementById('imageActions').classList.add('editing');
+  
+  const actions=document.getElementById('imageActions');
+  actions.style.display=''; // Remove inline style, let CSS handle
+  actions.classList.add('editing');
+  
   document.getElementById('imageEditActions').classList.add('editing');
   
-  // Focus the textarea
   setTimeout(()=>{
     document.getElementById('imageNotes').focus();
   },100);
@@ -1094,10 +1103,18 @@ function cancelEditCaption(){
 
 function exitEditMode(){
   isEditingCaption=false;
-  document.getElementById('imageCaptionDisplay').style.display='block';
-  document.getElementById('imageNotesWrap').classList.remove('editing');
-  document.getElementById('imageActions').classList.remove('editing');
-  document.getElementById('imageEditActions').classList.remove('editing');
+  const captionDisplay=document.getElementById('imageCaptionDisplay');
+  const notesWrap=document.getElementById('imageNotesWrap');
+  const actions=document.getElementById('imageActions');
+  const editActions=document.getElementById('imageEditActions');
+  
+  if(captionDisplay)captionDisplay.style.display='block';
+  if(notesWrap)notesWrap.classList.remove('editing');
+  if(actions){
+    actions.classList.remove('editing');
+    actions.style.display=''; // Remove inline style, let CSS handle
+  }
+  if(editActions)editActions.classList.remove('editing');
 }
 
 function handleImageViewerClick(e){
