@@ -45,6 +45,7 @@
       --cat-questions-bg: #E0F2FE; --cat-questions-text: #075985;
       --cat-sketch-bg: #FEE2E2; --cat-sketch-text: #DC2626;
       --cat-scan-bg: #DBEAFE; --cat-scan-text: #1D4ED8;
+      --cat-photo-bg: #F3E8FF; --cat-photo-text: #7C3AED;
       --cat-inbox-bg: #F5F5F4; --cat-inbox-text: #57534E;
       --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --radius-sm: 8px;
@@ -110,6 +111,12 @@
     .cat[data-category="questions"] .cnt { background: rgba(7,89,133,0.15); }
     .cat[data-category="inbox"] { background: var(--color-bg-btn); color: var(--cat-inbox-text); }
     .cat[data-category="inbox"] .cnt { background: rgba(0,0,0,0.08); }
+    .cat[data-category="photo"] { background: var(--cat-photo-bg); color: var(--cat-photo-text); }
+    .cat[data-category="photo"] .cnt { background: rgba(124,58,237,0.15); }
+    .cat[data-category="sketch"] { background: var(--cat-sketch-bg); color: var(--cat-sketch-text); }
+    .cat[data-category="sketch"] .cnt { background: rgba(220,38,38,0.15); }
+    .cat[data-category="scan"] { background: var(--cat-scan-bg); color: var(--cat-scan-text); }
+    .cat[data-category="scan"] .cnt { background: rgba(29,78,216,0.15); }
     .cat-add { flex-shrink: 0; width: 34px; height: 34px; border: 2px dashed var(--color-border); border-radius: var(--radius-full); background: transparent; color: var(--color-text-muted); font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .cat-add:active { border-color: var(--color-primary); color: var(--color-primary); }
 
@@ -140,6 +147,7 @@
     .card-cat.inbox { background: var(--color-bg-btn); color: var(--cat-inbox-text); }
     .card-cat.sketch { background: var(--cat-sketch-bg); color: var(--cat-sketch-text); }
     .card-cat.scan { background: var(--cat-scan-bg); color: var(--cat-scan-text); }
+    .card-cat.photo { background: var(--cat-photo-bg); color: var(--cat-photo-text); }
     
     .card-text { font-size: 1.05rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; }
     .card-text a { color: var(--color-primary); text-decoration: underline; word-break: break-all; }
@@ -356,6 +364,9 @@
         <button class="cat" data-category="bugs">Bugs <span class="cnt" id="cntBugs">0</span></button>
         <button class="cat" data-category="questions">Questions <span class="cnt" id="cntQuestions">0</span></button>
         <button class="cat" data-category="inbox">Inbox <span class="cnt" id="cntInbox">0</span></button>
+        <button class="cat" data-category="photo">Photo <span class="cnt" id="cntPhoto">0</span></button>
+        <button class="cat" data-category="sketch">Sketch <span class="cnt" id="cntSketch">0</span></button>
+        <button class="cat" data-category="scan">Scan <span class="cnt" id="cntScan">0</span></button>
         <button class="cat-add" onclick="addCatPrompt()">+</button>
       </div>
     </div>
@@ -442,8 +453,8 @@ let curCat='all',curTime='all',sortAsc=true,isRec=false,recognition=null,saved=f
 let sendId=null,delId=null,catChangeId=null,editId=null,activeCardId=null;
 let selectMode=false,selectedIds=[];
 let lastScrollTop=0,longPressTimer=null;
-const CATS={tasks:{name:'TASKS',single:'TASK',kw:['Ð·Ð°Ð´Ð°Ñ‡Ð°','ÑÐ´ÐµÐ»Ð°Ñ‚ÑŒ','Ð½ÑƒÐ¶Ð½Ð¾','Ð½Ð°Ð´Ð¾','task','todo'],isMedia:false},ideas:{name:'IDEAS',single:'IDEA',kw:['Ð¸Ð´ÐµÑ','Ð¼Ñ‹ÑÐ»ÑŒ','Ð¿Ñ€Ð¸Ð´ÑƒÐ¼Ð°Ð»','idea'],isMedia:false},handmagic:{name:'HANDMAGIC',single:'HANDMAGIC',kw:['handmagic','Ñ…ÐµÐ½Ð´Ð¼ÐµÐ´Ð¶Ð¸Ðº','Ð¼Ð°Ð³Ð¸Ñ'],isMedia:false},design:{name:'DESIGN',single:'DESIGN',kw:['Ð´Ð¸Ð·Ð°Ð¹Ð½','ui','ux','ÐºÐ½Ð¾Ð¿ÐºÐ°','Ñ†Ð²ÐµÑ‚','design'],isMedia:false},bugs:{name:'BUGS',single:'BUG',kw:['Ð±Ð°Ð³','Ð¾ÑˆÐ¸Ð±ÐºÐ°','bug','fix'],isMedia:false},questions:{name:'QUESTIONS',single:'QUESTION',kw:['Ð²Ð¾Ð¿Ñ€Ð¾Ñ','ÑÐ¿Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ','claude'],isMedia:false},sketch:{name:'SKETCHES',single:'SKETCH',kw:[],isMedia:true},scan:{name:'SCANS',single:'SCAN',kw:[],isMedia:true},inbox:{name:'INBOX',single:'INBOX',kw:[],isMedia:false}};
-const MEDIA_CATS=['sketch','scan','inbox'];
+const CATS={tasks:{name:'TASKS',single:'TASK',kw:['Ð·Ð°Ð´Ð°Ñ‡Ð°','ÑÐ´ÐµÐ»Ð°Ñ‚ÑŒ','Ð½ÑƒÐ¶Ð½Ð¾','Ð½Ð°Ð´Ð¾','task','todo'],isMedia:false},ideas:{name:'IDEAS',single:'IDEA',kw:['Ð¸Ð´ÐµÑ','Ð¼Ñ‹ÑÐ»ÑŒ','Ð¿Ñ€Ð¸Ð´ÑƒÐ¼Ð°Ð»','idea'],isMedia:false},handmagic:{name:'HANDMAGIC',single:'HANDMAGIC',kw:['handmagic','Ñ…ÐµÐ½Ð´Ð¼ÐµÐ´Ð¶Ð¸Ðº','Ð¼Ð°Ð³Ð¸Ñ'],isMedia:false},design:{name:'DESIGN',single:'DESIGN',kw:['Ð´Ð¸Ð·Ð°Ð¹Ð½','ui','ux','ÐºÐ½Ð¾Ð¿ÐºÐ°','Ñ†Ð²ÐµÑ‚','design'],isMedia:false},bugs:{name:'BUGS',single:'BUG',kw:['Ð±Ð°Ð³','Ð¾ÑˆÐ¸Ð±ÐºÐ°','bug','fix'],isMedia:false},questions:{name:'QUESTIONS',single:'QUESTION',kw:['Ð²Ð¾Ð¿Ñ€Ð¾Ñ','ÑÐ¿Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ','claude'],isMedia:false},sketch:{name:'SKETCHES',single:'SKETCH',kw:[],isMedia:true},scan:{name:'SCANS',single:'SCAN',kw:[],isMedia:true},photo:{name:'PHOTOS',single:'PHOTO',kw:[],isMedia:true},inbox:{name:'INBOX',single:'INBOX',kw:[],isMedia:false}};
+const MEDIA_CATS=['photo','sketch','scan'];
 
 function parseD(s){const[d,m,y]=s.split('.').map(Number);return new Date(y,m-1,d);}
 function inDays(s,n){return(new Date()-parseD(s))/(864e5)<=n;}
@@ -656,7 +667,11 @@ function saveIdea(t){
   const c=detectCat(t);
   const idea={id:Date.now(),text:t,category:c,timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMedia:false};
   ideas.push(idea);save();
+  // Reset to show all + newest at bottom
   curCat='all';curTime='all';activeCardId=null;
+  sortAsc=true;
+  document.getElementById('sortBtn').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>';
+  document.getElementById('sortBtn').classList.remove('desc');
   document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.time-btn').forEach(x=>x.classList.remove('active'));
   render();counts();
@@ -690,7 +705,7 @@ function savePhoto(dataUrl,geo){
     text:'',
     notes:'',
     image:dataUrl,
-    category:'sketch',
+    category:'photo',
     timestamp:new Date().toISOString(),
     date:new Date().toLocaleDateString('ru-RU'),
     time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
@@ -698,12 +713,16 @@ function savePhoto(dataUrl,geo){
     isMedia:true
   };
   ideas.push(idea);save();
+  // Reset to show all + newest at bottom
   curCat='all';curTime='all';activeCardId=null;
+  sortAsc=true;
+  document.getElementById('sortBtn').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>';
+  document.getElementById('sortBtn').classList.remove('desc');
   document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.time-btn').forEach(x=>x.classList.remove('active'));
   render();counts();
   setTimeout(scrollToBottom,100);
-  toast('Photo saved to SKETCHES','success');
+  toast('Photo saved to PHOTOS','success');
 }
 
 function aiProcess(id){toast('AI processing coming soon!','info');}
