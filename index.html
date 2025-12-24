@@ -431,10 +431,11 @@
     <div class="image-viewer-panel" onclick="event.stopPropagation()">
       <div class="image-meta" id="imageMeta"></div>
       <div class="image-caption-display" id="imageCaptionDisplay"></div>
+      <button style="background:lime;color:black;padding:15px 30px;font-size:18px;border:3px solid black;margin:10px 0;">TEST BUTTON</button>
       <div class="image-notes-wrap" id="imageNotesWrap">
         <textarea class="image-notes" id="imageNotes" placeholder="Add caption or notes..." rows="2"></textarea>
       </div>
-      <div class="image-actions" id="imageActions">
+      <div class="image-actions" id="imageActions" style="background:yellow;min-height:50px;display:flex !important;">
         <button class="img-act" onclick="ocrImage()">OCR</button>
         <button class="img-act" onclick="aiDescribe()">AI</button>
         <button class="img-act" onclick="shareImage()">Share</button>
