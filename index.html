@@ -2948,7 +2948,7 @@ function openAITools(id) {
 
 function closeAITools() {
   document.getElementById('aiToolsModal').classList.remove('show');
-  aiToolsDropId = null;
+  // Don't reset aiToolsDropId here - it's needed for Replace/Create Drop actions
 }
 
 async function runAITool(tool) {
@@ -3113,6 +3113,7 @@ function closeAIResult2() {
   document.getElementById('aiResultModal2').classList.remove('show');
   aiToolsResult = null;
   aiToolsSuggestedCategory = null;
+  aiToolsDropId = null; // Reset here when user closes without action
 }
 
 function replaceOriginal() {
