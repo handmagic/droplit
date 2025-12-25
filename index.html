@@ -362,6 +362,103 @@
     @keyframes bounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
     .ai-loading-label { font-size: 0.9rem; color: var(--color-text-soft); }
     
+    /* Main Menu Modal */
+    .main-menu { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: flex-start; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; overflow-y: auto; }
+    .main-menu.show { opacity: 1; visibility: visible; }
+    .main-menu-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 420px; margin: auto; transform: translateY(-20px); transition: transform 0.25s; }
+    .main-menu.show .main-menu-content { transform: translateY(0); }
+    .main-menu-header { padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
+    .main-menu-header h2 { font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
+    .main-menu-close { width: 36px; height: 36px; border: none; background: rgba(255,255,255,0.1); border-radius: 50%; color: white; font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .main-menu-close:hover { background: rgba(255,255,255,0.2); }
+    
+    /* Balance Card */
+    .balance-card { margin: 16px; padding: 16px; background: linear-gradient(135deg, #8B5CF6, #EC4899); border-radius: 16px; color: white; }
+    .balance-label { font-size: 0.8rem; opacity: 0.9; margin-bottom: 4px; }
+    .balance-value { font-size: 1.8rem; font-weight: 700; }
+    .balance-hint { font-size: 0.75rem; opacity: 0.8; margin-top: 6px; }
+    
+    /* Menu Sections */
+    .menu-section { padding: 16px 20px; border-bottom: 1px solid var(--color-border); }
+    .menu-section:last-child { border-bottom: none; }
+    .menu-section-title { font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    
+    /* Search Box */
+    .menu-search { display: flex; gap: 8px; }
+    .menu-search-input { flex: 1; padding: 12px 16px; border: 2px solid var(--color-border); border-radius: 12px; font-size: 1rem; font-family: var(--font-main); background: var(--color-bg); color: var(--color-text); }
+    .menu-search-input:focus { border-color: #8B5CF6; outline: none; }
+    .menu-search-btn { width: 48px; height: 48px; border: none; background: linear-gradient(135deg, #8B5CF6, #3B82F6); border-radius: 12px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s; }
+    .menu-search-btn:hover { transform: scale(1.05); }
+    .menu-search-btn:active { transform: scale(0.95); }
+    
+    /* Undo List */
+    .undo-list { display: flex; flex-direction: column; gap: 8px; }
+    .undo-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--color-bg); border-radius: 12px; }
+    .undo-item-icon { width: 36px; height: 36px; background: rgba(139,92,246,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .undo-item-info { flex: 1; }
+    .undo-item-title { font-size: 0.9rem; font-weight: 500; color: var(--color-text); }
+    .undo-item-time { font-size: 0.75rem; color: var(--color-text-muted); }
+    .undo-item-btn { padding: 8px 16px; border: none; background: #8B5CF6; color: white; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .undo-item-btn:hover { background: #7C3AED; }
+    .undo-empty { text-align: center; padding: 20px; color: var(--color-text-muted); font-size: 0.9rem; }
+    
+    /* Settings Items */
+    .settings-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--color-border); }
+    .settings-item:last-child { border-bottom: none; }
+    .settings-item-left { display: flex; align-items: center; gap: 12px; }
+    .settings-item-icon { font-size: 1.2rem; }
+    .settings-item-label { font-size: 0.95rem; color: var(--color-text); }
+    .settings-toggle { width: 50px; height: 28px; background: var(--color-border); border-radius: 14px; position: relative; cursor: pointer; transition: background 0.2s; }
+    .settings-toggle.active { background: #8B5CF6; }
+    .settings-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: white; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .settings-toggle.active::after { transform: translateX(22px); }
+    .settings-btn { padding: 10px 20px; border: 2px solid var(--color-border); background: none; border-radius: 10px; font-size: 0.9rem; font-family: var(--font-main); color: var(--color-text); cursor: pointer; transition: all 0.15s; }
+    .settings-btn:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
+    .settings-btn.danger { border-color: #EF4444; color: #EF4444; }
+    .settings-btn.danger:hover { background: rgba(239,68,68,0.1); }
+    
+    /* About Section */
+    .menu-about { text-align: center; padding: 20px; }
+    .menu-about-logo { width: 50px; height: 50px; background: linear-gradient(135deg, #3B82F6, #8B5CF6); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+    .menu-about-logo svg { width: 28px; height: 28px; fill: white; }
+    .menu-about-name { font-size: 1.1rem; font-weight: 700; color: var(--color-text); }
+    .menu-about-ver { font-size: 0.8rem; color: var(--color-text-muted); margin-top: 2px; }
+    
+    /* Search indicator */
+    .search-indicator { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(59,130,246,0.1)); border-bottom: 1px solid var(--color-border); }
+    .search-indicator-text { font-size: 0.9rem; color: var(--color-text); }
+    .search-indicator-text span { font-weight: 600; color: #8B5CF6; }
+    .search-indicator-clear { padding: 6px 12px; border: none; background: rgba(239,68,68,0.1); color: #EF4444; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+    
+    /* Font size variants */
+    body.font-small { font-size: 14px; }
+    body.font-normal { font-size: 16px; }
+    body.font-large { font-size: 18px; }
+    
+    body.font-small .card-text { font-size: 0.95rem; }
+    body.font-normal .card-text { font-size: 1.05rem; }
+    body.font-large .card-text { font-size: 1.15rem; }
+    
+    body.font-small .card-notes { font-size: 0.8rem; }
+    body.font-normal .card-notes { font-size: 0.85rem; }
+    body.font-large .card-notes { font-size: 0.95rem; }
+    
+    body.font-large .card-head { font-size: 0.85rem; }
+    body.font-large .cat, body.font-large .time-btn { font-size: 0.85rem; padding: 8px 14px; }
+    body.font-large .modal-title { font-size: 1.3rem; }
+    body.font-large .menu-section-title { font-size: 0.85rem; }
+    
+    /* Font size selector */
+    .font-size-selector { display: flex; gap: 8px; }
+    .font-size-btn { flex: 1; padding: 12px 8px; border: 2px solid var(--color-border); background: var(--color-bg); border-radius: 10px; font-family: var(--font-main); cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .font-size-btn:hover { border-color: #8B5CF6; }
+    .font-size-btn.active { border-color: #8B5CF6; background: rgba(139,92,246,0.1); }
+    .font-size-btn .size-label { font-weight: 600; color: var(--color-text); }
+    .font-size-btn .size-preview { color: var(--color-text-muted); }
+    .font-size-btn[data-size="small"] .size-preview { font-size: 12px; }
+    .font-size-btn[data-size="normal"] .size-preview { font-size: 14px; }
+    .font-size-btn[data-size="large"] .size-preview { font-size: 16px; }
+    
     /* AI Result with Actions */
     .ai-result-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-border); }
     .ai-result-btn { flex: 1; min-width: 100px; padding: 12px 16px; border: none; border-radius: 10px; font-family: var(--font-main); font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -533,10 +630,14 @@
         <svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
       </button>
       <div class="header-title"><span>Drop</span>Lit</div>
-      <button class="btn-icon" onclick="openSettings()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+      <button class="btn-icon" onclick="openMainMenu()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     </header>
     <div class="network-banner" id="netBanner">No internet</div>
     <div class="warning" id="warning">Speech recognition not supported. Use Chrome.</div>
+    <div class="search-indicator" id="searchIndicator" style="display:none">
+      <span class="search-indicator-text">🔍 Searching: <span id="searchQueryDisplay"></span></span>
+      <button class="search-indicator-clear" onclick="clearSearch()">✕ Clear</button>
+    </div>
     <div class="filters">
       <div class="time-row" id="timeRow">
         <button class="time-btn" data-time="all">All <span class="cnt" id="cntAll">0</span></button>
@@ -821,6 +922,115 @@
 
   <div class="toast-wrap" id="toastWrap"></div>
 
+  <!-- Main Menu Modal -->
+  <div class="main-menu" id="mainMenu" onclick="if(event.target===this)closeMainMenu()">
+    <div class="main-menu-content">
+      <div class="main-menu-header">
+        <h2>☰ Menu</h2>
+        <button class="main-menu-close" onclick="closeMainMenu()">×</button>
+      </div>
+      
+      <!-- Balance Card -->
+      <div class="balance-card">
+        <div class="balance-label">✨ AI Token Balance</div>
+        <div class="balance-value" id="tokenBalance">—</div>
+        <div class="balance-hint">Tokens refresh monthly • <span id="tokenUsage">Loading...</span></div>
+      </div>
+      
+      <!-- Search Section -->
+      <div class="menu-section">
+        <div class="menu-section-title">🔍 Search</div>
+        <div class="menu-search">
+          <input type="text" class="menu-search-input" id="menuSearchInput" placeholder="Search drops..." onkeypress="if(event.key==='Enter')performSearch()">
+          <button class="menu-search-btn" onclick="startVoiceSearch()" title="Voice search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          </button>
+          <button class="menu-search-btn" onclick="performSearch()" title="Search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Undo Section -->
+      <div class="menu-section">
+        <div class="menu-section-title">↶ Undo History</div>
+        <div class="undo-list" id="undoList">
+          <div class="undo-empty">No actions to undo</div>
+        </div>
+      </div>
+      
+      <!-- Settings Section -->
+      <div class="menu-section">
+        <div class="menu-section-title">⚙️ Settings</div>
+        
+        <div class="settings-item">
+          <div class="settings-item-left">
+            <span class="settings-item-icon">🌙</span>
+            <span class="settings-item-label">Dark mode</span>
+          </div>
+          <div class="settings-toggle" id="darkModeToggle" onclick="toggleDarkMode()"></div>
+        </div>
+        
+        <div class="settings-item" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+          <div class="settings-item-left">
+            <span class="settings-item-icon">🔤</span>
+            <span class="settings-item-label">Font size</span>
+          </div>
+          <div class="font-size-selector">
+            <button class="font-size-btn" data-size="small" onclick="setFontSize('small')">
+              <span class="size-label">Small</span>
+              <span class="size-preview">Aa</span>
+            </button>
+            <button class="font-size-btn active" data-size="normal" onclick="setFontSize('normal')">
+              <span class="size-label">Normal</span>
+              <span class="size-preview">Aa</span>
+            </button>
+            <button class="font-size-btn" data-size="large" onclick="setFontSize('large')">
+              <span class="size-label">Large</span>
+              <span class="size-preview">Aa</span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="settings-item">
+          <div class="settings-item-left">
+            <span class="settings-item-icon">📦</span>
+            <span class="settings-item-label">Export data</span>
+          </div>
+          <button class="settings-btn" onclick="exportData()">Export</button>
+        </div>
+        
+        <div class="settings-item">
+          <div class="settings-item-left">
+            <span class="settings-item-icon">📥</span>
+            <span class="settings-item-label">Import data</span>
+          </div>
+          <button class="settings-btn" onclick="document.getElementById('importFileInput').click()">Import</button>
+          <input type="file" id="importFileInput" style="display:none" accept=".json" onchange="handleImportFile(event)">
+        </div>
+        
+        <div class="settings-item">
+          <div class="settings-item-left">
+            <span class="settings-item-icon">🗑️</span>
+            <span class="settings-item-label">Clear all data</span>
+          </div>
+          <button class="settings-btn danger" onclick="clearAllData()">Clear</button>
+        </div>
+      </div>
+      
+      <!-- About Section -->
+      <div class="menu-section">
+        <div class="menu-about">
+          <div class="menu-about-logo">
+            <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
+          </div>
+          <div class="menu-about-name">DropLit</div>
+          <div class="menu-about-ver">v0.8.2 by Syntrise</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modals -->
   <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.2 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
@@ -1066,8 +1276,13 @@ function saveMerged(){
     return;
   }
   
-  const idea={id:Date.now(),text:text,category:'inbox',timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMerged:true};
+  const mergedId = Date.now();
+  const idea={id:mergedId,text:text,category:'inbox',timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMerged:true};
   ideas.push(idea);
+  
+  // Save undo
+  saveUndo('merge', { mergedId: mergedId, count: selectedIds.length });
+  
   save();
   closeMergeModal();
   cancelSelect();
@@ -1585,10 +1800,10 @@ function openCatModal(id){
   document.getElementById('catModal').classList.add('show');
 }
 function closeCatModal(){document.getElementById('catModal').classList.remove('show');catChangeId=null;}
-function changeCat(c){if(catChangeId){const i=ideas.find(x=>x.id===catChangeId);if(i){i.category=c;save();render();counts();toast('Moved to '+CATS[c].name,'success');}}closeCatModal();}
+function changeCat(c){if(catChangeId){const i=ideas.find(x=>x.id===catChangeId);if(i){saveUndo('category',{id:i.id,previousCategory:i.category,newCategory:c});i.category=c;save();render();counts();toast('Moved to '+CATS[c].name,'success');}}closeCatModal();}
 function reqDel(id){delId=id;document.getElementById('delModal').classList.add('show');}
 function closeDelModal(){document.getElementById('delModal').classList.remove('show');delId=null;}
-function confirmDel(){if(delId){ideas=ideas.filter(x=>x.id!==delId);save();activeCardId=null;render();counts();toast('Deleted','info');}closeDelModal();}
+function confirmDel(){if(delId){const delItem=ideas.find(x=>x.id===delId);if(delItem)saveUndo('delete',{...delItem});ideas=ideas.filter(x=>x.id!==delId);save();activeCardId=null;render();counts();toast('Deleted','info');}closeDelModal();}
 function startEdit(id){if(editId)cancelEdit(editId);editId=id;activeCardId=id;render();setTimeout(()=>{const card=document.querySelector('[data-id="'+id+'"]');const ta=card?.querySelector('.card-ta');if(ta){card.scrollIntoView({behavior:'smooth',block:'center'});ta.focus();}},100);}
 function saveEdit(id){const card=document.querySelector('[data-id="'+id+'"]'),ta=card?.querySelector('.card-ta');if(ta){const t=ta.value.trim();if(t){const i=ideas.find(x=>x.id===id);if(i){i.text=t;i.category=detectCat(t);save();toast('Saved','success');}}}editId=null;render();counts();}
 function cancelEdit(id){editId=null;render();}
@@ -1649,6 +1864,17 @@ function save(){
 function smartTime(i){const td=new Date().toLocaleDateString('ru-RU'),yd=new Date(Date.now()-864e5).toLocaleDateString('ru-RU');if(i.date===td)return i.time;if(i.date===yd)return'Yesterday '+i.time;const p=i.date.split('.');return p[0]+'.'+p[1]+' '+i.time;}
 function filtered(){
   let f=[...ideas].filter(x=>x&&x.date); // Filter out invalid entries
+  
+  // Apply search filter
+  if(searchMode && searchQuery) {
+    f = f.filter(x => {
+      const text = (x.text || '').toLowerCase();
+      const notes = (x.notes || '').toLowerCase();
+      return text.includes(searchQuery) || notes.includes(searchQuery);
+    });
+    return f; // Skip other filters when searching
+  }
+  
   if(curTime==='today')f=f.filter(x=>isToday(x.date));
   else if(curTime==='7days')f=f.filter(x=>inDays(x.date,7));
   if(curCat!=='all')f=f.filter(x=>x.category===curCat);
@@ -3107,9 +3333,12 @@ function createTaskDrops(tasks) {
     return;
   }
   
+  const createdIds = [];
+  
   tasks.forEach(taskText => {
+    const id = Date.now() + Math.random();
     const idea = {
-      id: Date.now() + Math.random(),
+      id: id,
       text: taskText,
       category: 'tasks',
       timestamp: new Date().toISOString(),
@@ -3119,7 +3348,11 @@ function createTaskDrops(tasks) {
       sourceDropId: aiToolsDropId
     };
     ideas.push(idea);
+    createdIds.push(id);
   });
+  
+  // Save undo
+  saveUndo('createTasks', { taskIds: createdIds });
   
   save();
   render();
@@ -3172,7 +3405,10 @@ function replaceOriginal() {
   
   const drop = ideas.find(x => x.id === aiToolsDropId);
   if (drop) {
-    // Save original
+    // Save for undo
+    saveUndo('replace', { id: drop.id, originalText: drop.text });
+    
+    // Save original in drop too
     if (!drop.originalText) {
       drop.originalText = drop.text;
     }
@@ -3312,6 +3548,379 @@ function closeAbout(){document.getElementById('aboutModal').classList.remove('sh
 function openSettings(){document.getElementById('settingsModal').classList.add('show');}
 function closeSettings(){document.getElementById('settingsModal').classList.remove('show');}
 
+// ============================================
+// MAIN MENU
+// ============================================
+
+function openMainMenu() {
+  document.getElementById('mainMenu').classList.add('show');
+  updateUndoList();
+  updateTokenBalance();
+  initFontSize(); // Update font size buttons state
+}
+
+function closeMainMenu() {
+  document.getElementById('mainMenu').classList.remove('show');
+}
+
+// ============================================
+// UNDO SYSTEM
+// ============================================
+
+const MAX_UNDO_HISTORY = 10;
+let undoHistory = JSON.parse(localStorage.getItem('droplit_undo') || '[]');
+
+const UNDO_ICONS = {
+  delete: '🗑️',
+  createTasks: '📋',
+  replace: '🔄',
+  edit: '✏️',
+  merge: '🔗',
+  category: '🏷️',
+  create: '➕'
+};
+
+const UNDO_LABELS = {
+  delete: 'Deleted',
+  createTasks: 'Created tasks',
+  replace: 'Replaced text',
+  edit: 'Edited',
+  merge: 'Merged drops',
+  category: 'Changed category',
+  create: 'Created'
+};
+
+function saveUndo(action, data) {
+  const entry = {
+    action,
+    data,
+    timestamp: Date.now()
+  };
+  
+  undoHistory.unshift(entry);
+  if (undoHistory.length > MAX_UNDO_HISTORY) {
+    undoHistory = undoHistory.slice(0, MAX_UNDO_HISTORY);
+  }
+  
+  localStorage.setItem('droplit_undo', JSON.stringify(undoHistory));
+}
+
+function performUndo(index) {
+  const entry = undoHistory[index];
+  if (!entry) return;
+  
+  switch (entry.action) {
+    case 'delete':
+      // Restore deleted drop
+      ideas.push(entry.data);
+      toast('Drop restored! ✓', 'success');
+      break;
+      
+    case 'createTasks':
+      // Remove created tasks
+      const taskIds = entry.data.taskIds;
+      ideas = ideas.filter(i => !taskIds.includes(i.id));
+      toast(`${taskIds.length} tasks removed! ✓`, 'success');
+      break;
+      
+    case 'replace':
+      // Restore original text
+      const dropR = ideas.find(i => i.id === entry.data.id);
+      if (dropR) {
+        dropR.text = entry.data.originalText;
+        toast('Text restored! ✓', 'success');
+      }
+      break;
+      
+    case 'edit':
+      // Restore previous text
+      const dropE = ideas.find(i => i.id === entry.data.id);
+      if (dropE) {
+        dropE.text = entry.data.previousText;
+        toast('Edit undone! ✓', 'success');
+      }
+      break;
+      
+    case 'merge':
+      // Remove merged drop
+      ideas = ideas.filter(i => i.id !== entry.data.mergedId);
+      toast('Merge undone! ✓', 'success');
+      break;
+      
+    case 'category':
+      // Restore previous category
+      const dropC = ideas.find(i => i.id === entry.data.id);
+      if (dropC) {
+        dropC.category = entry.data.previousCategory;
+        toast('Category restored! ✓', 'success');
+      }
+      break;
+      
+    case 'create':
+      // Remove created drop
+      ideas = ideas.filter(i => i.id !== entry.data.id);
+      toast('Creation undone! ✓', 'success');
+      break;
+  }
+  
+  // Remove from history
+  undoHistory.splice(index, 1);
+  localStorage.setItem('droplit_undo', JSON.stringify(undoHistory));
+  
+  save();
+  render();
+  counts();
+  updateUndoList();
+}
+
+function updateUndoList() {
+  const list = document.getElementById('undoList');
+  
+  if (undoHistory.length === 0) {
+    list.innerHTML = '<div class="undo-empty">No actions to undo</div>';
+    return;
+  }
+  
+  list.innerHTML = undoHistory.map((entry, index) => {
+    const icon = UNDO_ICONS[entry.action] || '↶';
+    const label = UNDO_LABELS[entry.action] || 'Action';
+    const time = getTimeAgo(entry.timestamp);
+    const preview = getUndoPreview(entry);
+    
+    return `
+      <div class="undo-item">
+        <div class="undo-item-icon">${icon}</div>
+        <div class="undo-item-info">
+          <div class="undo-item-title">${label}: ${preview}</div>
+          <div class="undo-item-time">${time}</div>
+        </div>
+        <button class="undo-item-btn" onclick="performUndo(${index})">Undo</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function getUndoPreview(entry) {
+  switch (entry.action) {
+    case 'delete':
+      return truncateText(entry.data.text || 'Drop', 25);
+    case 'createTasks':
+      return `${entry.data.taskIds.length} tasks`;
+    case 'replace':
+    case 'edit':
+      return truncateText(entry.data.previousText || entry.data.originalText || 'text', 25);
+    case 'merge':
+      return `${entry.data.count} drops`;
+    case 'category':
+      return `→ ${entry.data.newCategory}`;
+    case 'create':
+      return truncateText(entry.data.text || 'Drop', 25);
+    default:
+      return '';
+  }
+}
+
+function truncateText(text, maxLen) {
+  if (!text) return '';
+  text = text.replace(/\n/g, ' ').trim();
+  if (text.length <= maxLen) return text;
+  return text.substring(0, maxLen) + '...';
+}
+
+function getTimeAgo(timestamp) {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
+// ============================================
+// SEARCH
+// ============================================
+
+let searchMode = false;
+let searchQuery = '';
+
+function performSearch() {
+  const query = document.getElementById('menuSearchInput').value.trim().toLowerCase();
+  if (!query) {
+    clearSearch();
+    return;
+  }
+  
+  searchMode = true;
+  searchQuery = query;
+  closeMainMenu();
+  
+  // Show search indicator
+  document.getElementById('searchIndicator').style.display = 'flex';
+  document.getElementById('searchQueryDisplay').textContent = query;
+  
+  // Filter ideas by search query
+  render();
+  
+  const count = filtered().length;
+  toast(`Found ${count} drop${count !== 1 ? 's' : ''}`, 'info');
+}
+
+function clearSearch() {
+  searchMode = false;
+  searchQuery = '';
+  document.getElementById('menuSearchInput').value = '';
+  document.getElementById('searchIndicator').style.display = 'none';
+  render();
+}
+
+let voiceSearchRecognition = null;
+
+function startVoiceSearch() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    toast('Voice search not supported', 'error');
+    return;
+  }
+  
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  voiceSearchRecognition = new SpeechRecognition();
+  voiceSearchRecognition.continuous = false;
+  voiceSearchRecognition.interimResults = false;
+  voiceSearchRecognition.lang = navigator.language || 'en-US';
+  
+  voiceSearchRecognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    document.getElementById('menuSearchInput').value = transcript;
+    performSearch();
+  };
+  
+  voiceSearchRecognition.onerror = () => {
+    toast('Voice search failed', 'error');
+  };
+  
+  voiceSearchRecognition.start();
+  toast('Listening...', 'info');
+}
+
+// ============================================
+// SETTINGS FUNCTIONS
+// ============================================
+
+function toggleDarkMode() {
+  const toggle = document.getElementById('darkModeToggle');
+  const isDark = toggle.classList.toggle('active');
+  document.body.classList.toggle('dark-mode', isDark);
+  localStorage.setItem('droplit_darkmode', isDark);
+}
+
+function setFontSize(size) {
+  // Remove all font size classes
+  document.body.classList.remove('font-small', 'font-normal', 'font-large');
+  // Add selected
+  document.body.classList.add('font-' + size);
+  
+  // Update buttons
+  document.querySelectorAll('.font-size-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.size === size);
+  });
+  
+  // Save preference
+  localStorage.setItem('droplit_fontsize', size);
+  
+  toast('Font size: ' + size.charAt(0).toUpperCase() + size.slice(1), 'success');
+}
+
+function initFontSize() {
+  const saved = localStorage.getItem('droplit_fontsize') || 'normal';
+  document.body.classList.add('font-' + saved);
+  
+  // Update buttons when menu opens
+  document.querySelectorAll('.font-size-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.size === saved);
+  });
+}
+
+function exportData() {
+  const data = {
+    version: '0.8.2',
+    exported: new Date().toISOString(),
+    ideas: ideas
+  };
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `droplit-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  toast('Data exported! 📦', 'success');
+}
+
+function handleImportFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.ideas && Array.isArray(data.ideas)) {
+        if (confirm(`Import ${data.ideas.length} drops? This will add to existing data.`)) {
+          ideas = ideas.concat(data.ideas);
+          save();
+          render();
+          counts();
+          toast(`Imported ${data.ideas.length} drops! ✓`, 'success');
+        }
+      } else {
+        toast('Invalid backup file', 'error');
+      }
+    } catch (err) {
+      toast('Failed to parse file', 'error');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function clearAllData() {
+  if (confirm('Delete ALL drops? This cannot be undone!')) {
+    if (confirm('Are you REALLY sure? All data will be lost!')) {
+      ideas = [];
+      undoHistory = [];
+      save();
+      localStorage.removeItem('droplit_undo');
+      render();
+      counts();
+      updateUndoList();
+      toast('All data cleared', 'success');
+    }
+  }
+}
+
+// ============================================
+// TOKEN BALANCE
+// ============================================
+
+async function updateTokenBalance() {
+  // For now, show placeholder - will connect to real API later
+  document.getElementById('tokenBalance').textContent = '∞ Free Beta';
+  document.getElementById('tokenUsage').textContent = 'Unlimited during beta';
+  
+  // TODO: Fetch real balance from API
+  // try {
+  //   const response = await fetch(AI_API_URL + '?action=balance');
+  //   const data = await response.json();
+  //   document.getElementById('tokenBalance').textContent = formatTokens(data.balance);
+  //   document.getElementById('tokenUsage').textContent = `Used: ${formatTokens(data.used)}`;
+  // } catch (e) {
+  //   document.getElementById('tokenBalance').textContent = 'N/A';
+  // }
+}
+
 function toast(m,t='info'){
   const w=document.getElementById('toastWrap'),el=document.createElement('div');
   el.className='toast '+t;
@@ -3328,6 +3937,16 @@ window.addEventListener('offline',updateNet);
 document.addEventListener('DOMContentLoaded',()=>{
   initSR();render();counts();updateNet();
   setTimeout(scrollToBottomInstant,50);
+  
+  // Initialize dark mode
+  if (localStorage.getItem('droplit_darkmode') === 'true') {
+    document.getElementById('darkModeToggle')?.classList.add('active');
+    document.body.classList.add('dark-mode');
+  }
+  
+  // Initialize font size
+  const savedFontSize = localStorage.getItem('droplit_fontsize') || 'normal';
+  document.body.classList.add('font-' + savedFontSize);
 });
 </script>
 </body>
