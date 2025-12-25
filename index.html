@@ -350,6 +350,16 @@
     .ai-result-action-row .ai-result-action-btn { flex: 1; }
     .ai-result-close { padding: 12px; border: none; background: none; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text-soft); cursor: pointer; }
     
+    /* AI Loading Overlay */
+    .ai-loading { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s; }
+    .ai-loading.show { opacity: 1; visibility: visible; }
+    .ai-loading-spinner { width: 60px; height: 60px; border: 4px solid rgba(255,255,255,0.2); border-top-color: #8B5CF6; border-radius: 50%; animation: spin 1s linear infinite; }
+    .ai-loading-text { color: white; font-size: 1.1rem; margin-top: 20px; text-align: center; }
+    .ai-loading-subtext { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-top: 8px; }
+    .ai-loading-dots::after { content: ''; animation: dots 1.5s steps(4, end) infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes dots { 0%, 20% { content: ''; } 40% { content: '.'; } 60% { content: '..'; } 80%, 100% { content: '...'; } }
+    
     /* AI Result with Actions */
     .ai-result-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-border); }
     .ai-result-btn { flex: 1; min-width: 100px; padding: 12px 16px; border: none; border-radius: 10px; font-family: var(--font-main); font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -783,6 +793,13 @@
         <button class="ai-result-close" onclick="closeAIResult2()">Close</button>
       </div>
     </div>
+  </div>
+
+  <!-- AI Loading Overlay -->
+  <div class="ai-loading" id="aiLoading">
+    <div class="ai-loading-spinner"></div>
+    <div class="ai-loading-text" id="aiLoadingText">AI is working<span class="ai-loading-dots"></span></div>
+    <div class="ai-loading-subtext" id="aiLoadingSubtext">This may take a few seconds</div>
   </div>
 
   <button class="fab-record" id="fabRecord" onclick="toggleRec()">
@@ -2390,13 +2407,7 @@ async function ocrImage() {
   }
 
   aiProcessing = true;
-  toast('Extracting text...', 'info');
-  
-  const btn = document.querySelector('.img-act[onclick="ocrImage()"]');
-  if (btn) {
-    btn.textContent = '⏳';
-    btn.disabled = true;
-  }
+  showAILoading('ocr');
 
   try {
     const response = await fetch(AI_API_URL, {
@@ -2406,6 +2417,8 @@ async function ocrImage() {
     });
 
     const data = await response.json();
+
+    hideAILoading();
 
     if (data.success && data.result) {
       const existingNotes = item.notes || '';
@@ -2433,13 +2446,10 @@ async function ocrImage() {
     }
   } catch (error) {
     console.error('OCR error:', error);
+    hideAILoading();
     toast('Connection error', 'error');
   } finally {
     aiProcessing = false;
-    if (btn) {
-      btn.textContent = 'OCR';
-      btn.disabled = false;
-    }
   }
 }
 
@@ -2456,13 +2466,7 @@ async function aiDescribe() {
   }
 
   aiProcessing = true;
-  toast('Analyzing image...', 'info');
-  
-  const btn = document.querySelector('.img-act[onclick="aiDescribe()"]');
-  if (btn) {
-    btn.textContent = '⏳';
-    btn.disabled = true;
-  }
+  showAILoading('describe');
 
   try {
     const response = await fetch(AI_API_URL, {
@@ -2472,6 +2476,8 @@ async function aiDescribe() {
     });
 
     const data = await response.json();
+
+    hideAILoading();
 
     if (data.success && data.result) {
       const description = data.result;
@@ -2499,13 +2505,10 @@ async function aiDescribe() {
     }
   } catch (error) {
     console.error('AI describe error:', error);
+    hideAILoading();
     toast('Connection error', 'error');
   } finally {
     aiProcessing = false;
-    if (btn) {
-      btn.textContent = 'AI';
-      btn.disabled = false;
-    }
   }
 }
 
@@ -2861,9 +2864,9 @@ async function generateMagic() {
     location: null
   };
   
-  const btn = document.getElementById('magicGenerate');
-  btn.disabled = true;
-  btn.textContent = '✨ Creating magic...';
+  // Close modal and show loading
+  closeMagic();
+  showAILoading(currentMagicType);
   
   try {
     const requestBody = {
@@ -2886,9 +2889,9 @@ async function generateMagic() {
     
     const data = await response.json();
     
+    hideAILoading();
+    
     if (data.success && data.result) {
-      closeMagic();
-      
       const titles = {
         poem: '📜 Your Poem',
         greeting: '💌 Your Greeting',
@@ -2901,11 +2904,37 @@ async function generateMagic() {
     }
   } catch (error) {
     console.error('Magic error:', error);
+    hideAILoading();
     toast('Connection error', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '✨ Create Magic!';
   }
+}
+
+// ============================================
+// AI LOADING OVERLAY
+// ============================================
+
+const AI_LOADING_MESSAGES = {
+  poem: { text: 'Creating your poem', subtext: 'Finding the perfect words...' },
+  greeting: { text: 'Crafting your greeting', subtext: 'Making it special...' },
+  speech: { text: 'Writing your speech', subtext: 'Building your message...' },
+  summarize: { text: 'Summarizing', subtext: 'Extracting key points...' },
+  expand: { text: 'Expanding your idea', subtext: 'Adding details...' },
+  rewrite: { text: 'Rewriting', subtext: 'Polishing your text...' },
+  tasks: { text: 'Extracting tasks', subtext: 'Finding action items...' },
+  ocr: { text: 'Reading text', subtext: 'Analyzing image...' },
+  describe: { text: 'Analyzing image', subtext: 'Understanding content...' },
+  default: { text: 'AI is working', subtext: 'This may take a few seconds' }
+};
+
+function showAILoading(action) {
+  const msg = AI_LOADING_MESSAGES[action] || AI_LOADING_MESSAGES.default;
+  document.getElementById('aiLoadingText').innerHTML = msg.text + '<span class="ai-loading-dots"></span>';
+  document.getElementById('aiLoadingSubtext').textContent = msg.subtext;
+  document.getElementById('aiLoading').classList.add('show');
+}
+
+function hideAILoading() {
+  document.getElementById('aiLoading').classList.remove('show');
 }
 
 function getTimeOfDay() {
@@ -2960,10 +2989,9 @@ async function runAITool(tool) {
   
   const checkCategory = document.getElementById('aiToolsCheckCategory').checked;
   
-  // Show loading
-  const btns = document.querySelectorAll('.ai-tool-btn');
-  btns.forEach(b => b.style.opacity = '0.5');
-  toast('Processing...', 'info');
+  // Close tools modal and show loading overlay
+  closeAITools();
+  showAILoading(tool);
   
   try {
     const response = await fetch(AI_API_URL, {
@@ -2978,9 +3006,9 @@ async function runAITool(tool) {
     
     const data = await response.json();
     
+    hideAILoading();
+    
     if (data.success && data.result) {
-      closeAITools();
-      
       // Parse result (may be JSON or plain text)
       let resultText = data.result;
       let suggestedCat = null;
@@ -3047,9 +3075,8 @@ async function runAITool(tool) {
     }
   } catch (error) {
     console.error('AI Tools error:', error);
+    hideAILoading();
     toast('Connection error', 'error');
-  } finally {
-    btns.forEach(b => b.style.opacity = '1');
   }
 }
 
