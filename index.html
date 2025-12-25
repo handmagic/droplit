@@ -350,15 +350,17 @@
     .ai-result-action-row .ai-result-action-btn { flex: 1; }
     .ai-result-close { padding: 12px; border: none; background: none; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text-soft); cursor: pointer; }
     
-    /* AI Loading Overlay */
-    .ai-loading { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s; }
-    .ai-loading.show { opacity: 1; visibility: visible; }
-    .ai-loading-spinner { width: 60px; height: 60px; border: 4px solid rgba(255,255,255,0.2); border-top-color: #8B5CF6; border-radius: 50%; animation: spin 1s linear infinite; }
-    .ai-loading-text { color: white; font-size: 1.1rem; margin-top: 20px; text-align: center; }
-    .ai-loading-subtext { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-top: 8px; }
-    .ai-loading-dots::after { content: ''; animation: dots 1.5s steps(4, end) infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes dots { 0%, 20% { content: ''; } 40% { content: '.'; } 60% { content: '..'; } 80%, 100% { content: '...'; } }
+    /* AI Loading Indicator (compact, inside modal) */
+    .ai-loading-inline { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+    .ai-loading-dots { display: flex; gap: 6px; margin-bottom: 16px; }
+    .ai-loading-dots span { width: 10px; height: 10px; background: #8B5CF6; border-radius: 50%; animation: bounce 1.4s ease-in-out infinite; }
+    .ai-loading-dots span:nth-child(1) { animation-delay: 0s; }
+    .ai-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .ai-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    .ai-loading-dots span:nth-child(4) { animation-delay: 0.6s; }
+    .ai-loading-dots span:nth-child(5) { animation-delay: 0.8s; }
+    @keyframes bounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+    .ai-loading-label { font-size: 0.9rem; color: var(--color-text-soft); }
     
     /* AI Result with Actions */
     .ai-result-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-border); }
@@ -793,13 +795,6 @@
         <button class="ai-result-close" onclick="closeAIResult2()">Close</button>
       </div>
     </div>
-  </div>
-
-  <!-- AI Loading Overlay -->
-  <div class="ai-loading" id="aiLoading">
-    <div class="ai-loading-spinner"></div>
-    <div class="ai-loading-text" id="aiLoadingText">AI is working<span class="ai-loading-dots"></span></div>
-    <div class="ai-loading-subtext" id="aiLoadingSubtext">This may take a few seconds</div>
   </div>
 
   <button class="fab-record" id="fabRecord" onclick="toggleRec()">
@@ -2407,7 +2402,7 @@ async function ocrImage() {
   }
 
   aiProcessing = true;
-  showAILoading('ocr');
+  showAILoading('ocr', false);
 
   try {
     const response = await fetch(AI_API_URL, {
@@ -2466,7 +2461,7 @@ async function aiDescribe() {
   }
 
   aiProcessing = true;
-  showAILoading('describe');
+  showAILoading('describe', false);
 
   try {
     const response = await fetch(AI_API_URL, {
@@ -2866,7 +2861,7 @@ async function generateMagic() {
   
   // Close modal and show loading
   closeMagic();
-  showAILoading(currentMagicType);
+  showAILoading(currentMagicType, false);
   
   try {
     const requestBody = {
@@ -2910,31 +2905,57 @@ async function generateMagic() {
 }
 
 // ============================================
-// AI LOADING OVERLAY
+// AI LOADING INDICATOR (compact, inside modal)
 // ============================================
 
-const AI_LOADING_MESSAGES = {
-  poem: { text: 'Creating your poem', subtext: 'Finding the perfect words...' },
-  greeting: { text: 'Crafting your greeting', subtext: 'Making it special...' },
-  speech: { text: 'Writing your speech', subtext: 'Building your message...' },
-  summarize: { text: 'Summarizing', subtext: 'Extracting key points...' },
-  expand: { text: 'Expanding your idea', subtext: 'Adding details...' },
-  rewrite: { text: 'Rewriting', subtext: 'Polishing your text...' },
-  tasks: { text: 'Extracting tasks', subtext: 'Finding action items...' },
-  ocr: { text: 'Reading text', subtext: 'Analyzing image...' },
-  describe: { text: 'Analyzing image', subtext: 'Understanding content...' },
-  default: { text: 'AI is working', subtext: 'This may take a few seconds' }
+const AI_LOADING_LABELS = {
+  poem: 'Creating poem',
+  greeting: 'Crafting greeting',
+  speech: 'Writing speech',
+  summarize: 'Summarizing',
+  expand: 'Expanding',
+  rewrite: 'Rewriting',
+  tasks: 'Extracting tasks',
+  ocr: 'Reading text',
+  describe: 'Analyzing image',
+  default: 'Processing'
 };
 
-function showAILoading(action) {
-  const msg = AI_LOADING_MESSAGES[action] || AI_LOADING_MESSAGES.default;
-  document.getElementById('aiLoadingText').innerHTML = msg.text + '<span class="ai-loading-dots"></span>';
-  document.getElementById('aiLoadingSubtext').textContent = msg.subtext;
-  document.getElementById('aiLoading').classList.add('show');
+let currentLoadingModal = null;
+
+function showAILoading(action, useModal2 = true) {
+  const label = AI_LOADING_LABELS[action] || AI_LOADING_LABELS.default;
+  
+  const loadingHTML = `
+    <div class="ai-loading-inline">
+      <div class="ai-loading-dots">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div class="ai-loading-label">${label}...</div>
+    </div>
+  `;
+  
+  if (useModal2) {
+    // Use AI Result Modal 2 (for AI Tools)
+    currentLoadingModal = 'modal2';
+    document.getElementById('aiResult2Title').textContent = '✨ ' + label;
+    document.getElementById('aiResult2Text').innerHTML = loadingHTML;
+    document.querySelector('.ai-result-actions').style.display = 'none';
+    document.getElementById('aiResult2Category').style.display = 'none';
+    document.getElementById('aiResultModal2').classList.add('show');
+  } else {
+    // Use simple toast for Magic/OCR/Describe
+    currentLoadingModal = 'toast';
+    toast(label + '...', 'info');
+  }
 }
 
 function hideAILoading() {
-  document.getElementById('aiLoading').classList.remove('show');
+  if (currentLoadingModal === 'modal2') {
+    // Restore action buttons
+    document.querySelector('.ai-result-actions').style.display = 'flex';
+  }
+  currentLoadingModal = null;
 }
 
 function getTimeOfDay() {
@@ -3119,6 +3140,9 @@ function showAIResult2(tool, text, currentCategory, suggestedCategory) {
   
   document.getElementById('aiResult2Title').textContent = titles[tool] || '✨ Result';
   document.getElementById('aiResult2Text').textContent = text;
+  
+  // Show action buttons (may have been hidden during loading)
+  document.querySelector('.ai-result-actions').style.display = 'flex';
   
   // Show category suggestion if available
   const catSection = document.getElementById('aiResult2Category');
