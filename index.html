@@ -218,7 +218,7 @@
     .fab-camera { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 20px; width: 68px; height: 68px; border: none; background: linear-gradient(135deg, #6366F1, #8B5CF6); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(99,102,241,0.4); z-index: 50; transition: all 0.2s; }
     .fab-camera:active { transform: scale(0.95); }
     .fab-camera svg { width: 28px; height: 28px; color: white; }
-    .select-mode .fab-camera { display: none; }
+    .select-mode .fab-camera, .editing-mode .fab-camera { display: none !important; }
     .camera-input { display: none; }
 
     /* FAB - Plus button (center) */
@@ -369,8 +369,11 @@
     .main-menu.show .main-menu-content { transform: translateY(0); }
     .main-menu-header { padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
     .main-menu-header h2 { font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
-    .main-menu-close { width: 36px; height: 36px; border: none; background: rgba(255,255,255,0.1); border-radius: 50%; color: white; font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .main-menu-close { padding: 8px 16px; border: none; background: rgba(255,255,255,0.1); border-radius: 20px; color: white; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
     .main-menu-close:hover { background: rgba(255,255,255,0.2); }
+    .main-menu-footer { padding: 16px 20px 24px; }
+    .main-menu-footer-btn { width: 100%; padding: 14px; border: 2px solid var(--color-border); background: var(--color-bg); border-radius: 12px; font-family: var(--font-main); font-size: 1rem; font-weight: 600; color: var(--color-text); cursor: pointer; transition: all 0.15s; }
+    .main-menu-footer-btn:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
     
     /* Balance Card */
     .balance-card { margin: 16px; padding: 16px; background: linear-gradient(135deg, #8B5CF6, #EC4899); border-radius: 16px; color: white; }
@@ -393,7 +396,15 @@
     .menu-search-btn svg { width: 22px; height: 22px; }
     
     /* Undo List */
-    .undo-list { display: flex; flex-direction: column; gap: 8px; }
+    .undo-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .undo-header-left { display: flex; align-items: center; gap: 8px; }
+    .undo-toggle-btn { padding: 6px 12px; border: 1px solid var(--color-border); background: var(--color-bg); border-radius: 8px; font-size: 0.8rem; color: var(--color-text-muted); cursor: pointer; }
+    .undo-toggle-btn:hover { border-color: #8B5CF6; }
+    .undo-main-btn { flex: 1; padding: 14px; border: none; background: linear-gradient(135deg, #8B5CF6, #3B82F6); color: white; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.15s; }
+    .undo-main-btn:hover { transform: scale(1.02); }
+    .undo-main-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .undo-list { display: none; flex-direction: column; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border); }
+    .undo-list.show { display: flex; }
     .undo-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--color-bg); border-radius: 12px; }
     .undo-item-icon { width: 36px; height: 36px; background: rgba(139,92,246,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
     .undo-item-info { flex: 1; }
@@ -979,7 +990,7 @@
     <div class="main-menu-content">
       <div class="main-menu-header">
         <h2>☰ Menu</h2>
-        <button class="main-menu-close" onclick="closeMainMenu()">×</button>
+        <button class="main-menu-close" onclick="closeMainMenu()">Close ×</button>
       </div>
       
       <!-- Balance Card -->
@@ -1005,10 +1016,16 @@
       
       <!-- Undo Section -->
       <div class="menu-section">
-        <div class="menu-section-title">↶ Undo History</div>
-        <div class="undo-list" id="undoList">
-          <div class="undo-empty">No actions to undo</div>
+        <div class="undo-header">
+          <button class="undo-main-btn" id="undoMainBtn" onclick="undoLast()" disabled>
+            ↶ Undo Last Action
+          </button>
         </div>
+        <div id="undoLastInfo" style="text-align: center; font-size: 0.85rem; color: var(--color-text-muted); margin-top: 8px;"></div>
+        <button class="undo-toggle-btn" id="undoToggleBtn" onclick="toggleUndoList()" style="display: none; margin-top: 12px; width: 100%;">
+          Show history (0)
+        </button>
+        <div class="undo-list" id="undoList"></div>
       </div>
       
       <!-- Settings Section -->
@@ -1079,6 +1096,11 @@
           <div class="menu-about-name">DropLit</div>
           <div class="menu-about-ver">v0.8.2 by Syntrise</div>
         </div>
+      </div>
+      
+      <!-- Footer with Close button -->
+      <div class="main-menu-footer">
+        <button class="main-menu-footer-btn" onclick="closeMainMenu()">Close Menu</button>
       </div>
     </div>
   </div>
@@ -1211,7 +1233,7 @@ function enterSelectMode(id){
   selectMode=true;
   selectedIds=[id];
   activeCardId=null;
-  document.getElementById('app').classList.add('select-mode');
+  document.body.classList.add('select-mode');
   document.getElementById('fabRecord').style.display='none';
   document.getElementById('fabCamera').style.display='none';
   updateSelectBar();
@@ -1221,7 +1243,7 @@ function enterSelectMode(id){
 function cancelSelect(){
   selectMode=false;
   selectedIds=[];
-  document.getElementById('app').classList.remove('select-mode');
+  document.body.classList.remove('select-mode');
   document.getElementById('selectBar').classList.remove('show');
   document.getElementById('fabRecord').style.display='flex';
   document.getElementById('fabCamera').style.display='flex';
@@ -3732,13 +3754,41 @@ function performUndo(index) {
 
 function updateUndoList() {
   const list = document.getElementById('undoList');
+  const mainBtn = document.getElementById('undoMainBtn');
+  const toggleBtn = document.getElementById('undoToggleBtn');
+  const lastInfo = document.getElementById('undoLastInfo');
   
   if (undoHistory.length === 0) {
-    list.innerHTML = '<div class="undo-empty">No actions to undo</div>';
+    mainBtn.disabled = true;
+    mainBtn.innerHTML = '↶ Nothing to Undo';
+    lastInfo.textContent = '';
+    toggleBtn.style.display = 'none';
+    list.innerHTML = '';
+    list.classList.remove('show');
     return;
   }
   
-  list.innerHTML = undoHistory.map((entry, index) => {
+  // Enable main button
+  mainBtn.disabled = false;
+  const lastEntry = undoHistory[0];
+  const lastLabel = UNDO_LABELS[lastEntry.action] || 'Action';
+  const lastPreview = getUndoPreview(lastEntry);
+  mainBtn.innerHTML = `↶ Undo: ${lastLabel}`;
+  
+  // Show last action info
+  lastInfo.textContent = `${lastPreview} • ${getTimeAgo(lastEntry.timestamp)}`;
+  
+  // Show toggle button if more than 1 item
+  if (undoHistory.length > 1) {
+    toggleBtn.style.display = 'block';
+    toggleBtn.textContent = `Show all history (${undoHistory.length})`;
+  } else {
+    toggleBtn.style.display = 'none';
+    list.classList.remove('show');
+  }
+  
+  // Build list (hidden by default)
+  list.innerHTML = undoHistory.slice(1).map((entry, index) => {
     const icon = UNDO_ICONS[entry.action] || '↶';
     const label = UNDO_LABELS[entry.action] || 'Action';
     const time = getTimeAgo(entry.timestamp);
@@ -3751,10 +3801,25 @@ function updateUndoList() {
           <div class="undo-item-title">${label}: ${preview}</div>
           <div class="undo-item-time">${time}</div>
         </div>
-        <button class="undo-item-btn" onclick="performUndo(${index})">Undo</button>
+        <button class="undo-item-btn" onclick="performUndo(${index + 1})">Undo</button>
       </div>
     `;
   }).join('');
+}
+
+function toggleUndoList() {
+  const list = document.getElementById('undoList');
+  const toggleBtn = document.getElementById('undoToggleBtn');
+  const isShown = list.classList.toggle('show');
+  toggleBtn.textContent = isShown 
+    ? `Hide history (${undoHistory.length})` 
+    : `Show all history (${undoHistory.length})`;
+}
+
+function undoLast() {
+  if (undoHistory.length > 0) {
+    performUndo(0);
+  }
 }
 
 function getUndoPreview(entry) {
