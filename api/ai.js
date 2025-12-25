@@ -294,6 +294,26 @@ Return JSON format: {"rewritten": "your rewritten text here", "suggestedCategory
       userPrompt = text;
       messages = [{ role: 'user', content: userPrompt }];
 
+    } else if (action === 'enhance') {
+      const checkCategory = body.checkCategory || false;
+      
+      systemPrompt = `You are a professional editor. Enhance the text by:
+1. Fix spelling and grammar errors
+2. Correct punctuation
+3. Fix word agreement and sentence structure
+4. Split into proper sentences/paragraphs if needed
+5. Keep the original meaning and style
+
+IMPORTANT: Keep the SAME language as input. Do not translate.
+Make minimal changes - only fix obvious errors.
+${checkCategory ? `
+Also analyze and suggest the best category from: tasks, ideas, bugs, questions, design, handmagic, inbox.
+Return JSON format: {"enhanced": "your enhanced text here", "suggestedCategory": "category_name"}
+` : 'Output ONLY the enhanced text, no explanations.'}`;
+      
+      userPrompt = text;
+      messages = [{ role: 'user', content: userPrompt }];
+
     } else {
       return new Response(JSON.stringify({ error: 'Unknown action: ' + action }), {
         status: 400,
