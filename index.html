@@ -165,14 +165,17 @@
     .card-text { font-size: 1.05rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; }
     .card-text a { color: var(--color-primary); text-decoration: underline; word-break: break-all; }
     .card-text a:active { opacity: 0.7; }
-    .card-text.truncated { max-height: 100px; overflow: hidden; position: relative; } /* ~4 lines */
+    .card-text.truncated { max-height: 300px; overflow: hidden; position: relative; } /* ~12 lines for text drops */
     .card-text.truncated::after { content: ''; position: absolute; bottom: 0; left: 0; right: 30px; height: 40px; background: linear-gradient(transparent, var(--color-bg-card)); pointer-events: none; }
     .card-text.expanded { max-height: none !important; }
     .card-text.expanded::after { display: none; }
     .card-image { width: 100%; max-height: 200px; object-fit: cover; border-radius: var(--radius-sm); margin-bottom: 8px; cursor: pointer; }
     .card-image:active { opacity: 0.9; }
     .card-media-meta { font-size: 0.7rem; color: var(--color-text-muted); display: flex; gap: 10px; margin-bottom: 4px; }
-    .card-notes { font-size: 0.85rem; color: var(--color-text-soft); line-height: 1.4; }
+    .card-notes { font-size: 0.85rem; color: var(--color-text-soft); line-height: 1.4; max-height: 60px; overflow: hidden; position: relative; } /* ~2-3 lines for photo captions */
+    .card-notes::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 25px; background: linear-gradient(transparent, var(--color-bg-card)); pointer-events: none; }
+    .card-notes.expanded { max-height: none; }
+    .card-notes.expanded::after { display: none; }
     .card-more { display: none; padding: 8px 0 4px; font-size: 0.8rem; color: var(--color-primary); font-weight: 600; cursor: pointer; }
     .card-more.show { display: block; }
     /* No extra padding - checkboxes removed */
@@ -1018,7 +1021,16 @@ function showMergePreview(){
     return item&&item.isMedia;
   });
   if(hasMedia){toast('Cannot merge media items','warning');return;}
-  document.getElementById('mergePreview').textContent=getMergedText();
+  
+  const mergedText = getMergedText();
+  document.getElementById('mergePreview').textContent=mergedText;
+  
+  // Warning for large merge
+  const charCount = mergedText.length;
+  if (charCount > 10000) {
+    toast(`⚠️ Large merge: ${Math.round(charCount/1000)}K chars`, 'warning');
+  }
+  
   document.getElementById('mergeModal').classList.add('show');
 }
 
@@ -1034,6 +1046,14 @@ function copyMerged(){
 function saveMerged(){
   const simple=document.getElementById('mergeSimple').checked;
   const text=getMergedText(simple);
+  
+  // Check size limit
+  const MAX_DROP_SIZE = 50000; // 50KB
+  if (text.length > MAX_DROP_SIZE) {
+    toast(`Too large! Max: ${MAX_DROP_SIZE/1000}K chars`, 'error');
+    return;
+  }
+  
   const idea={id:Date.now(),text:text,category:'inbox',timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMerged:true};
   ideas.push(idea);
   save();
@@ -1640,7 +1660,7 @@ function render(){
       const isEditing=editId===i.id;
       const isSelected=selectedIds.includes(i.id);
       const cc=i.isMedia?0:(i.text?.length||0);
-      const isTruncated=cc>200;
+      const isTruncated=cc>500;
       h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
       h+='<div class="card-checkbox">'+(isSelected?'V':'')+'</div>';
       h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
@@ -1659,7 +1679,11 @@ function render(){
         h+='<span>'+i.date+' '+i.time+'</span>';
         if(i.geo)h+='<span>'+i.geo.lat.toFixed(2)+','+i.geo.lng.toFixed(2)+'</span>';
         h+='</div>';
-        if(i.notes)h+='<div class="card-notes">'+esc(i.notes)+'</div>';
+        if(i.notes){
+          const notesLong = i.notes.length > 100;
+          h+='<div class="card-notes'+(notesLong?'':' expanded')+'" id="notes-'+i.id+'">'+esc(i.notes)+'</div>';
+          if(notesLong)h+='<div class="card-more show" onclick="toggleNotesExpand('+i.id+',event)">Show more</div>';
+        }
       }
       if(i.text){
         h+='<div class="card-text'+(isTruncated?' truncated':'')+'" id="text-'+i.id+'">'+linkify(i.text)+'</div>';
@@ -1721,6 +1745,19 @@ function toggleExpand(id,e){
   } else {
     textEl.classList.add('expanded');
     textEl.classList.remove('truncated');
+    btn.textContent='Show less';
+  }
+}
+
+function toggleNotesExpand(id,e){
+  e.stopPropagation();
+  const notesEl=document.getElementById('notes-'+id);
+  const btn=e.target;
+  if(notesEl.classList.contains('expanded')){
+    notesEl.classList.remove('expanded');
+    btn.textContent='Show more';
+  } else {
+    notesEl.classList.add('expanded');
     btn.textContent='Show less';
   }
 }
@@ -2948,9 +2985,18 @@ async function runAITool(tool) {
       let resultText = data.result;
       let suggestedCat = null;
       
+      // Try to extract JSON from response (may have markdown wrapper)
+      let jsonStr = resultText;
+      const jsonMatch = resultText.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1];
+      } else if (resultText.trim().startsWith('{')) {
+        jsonStr = resultText.trim();
+      }
+      
       try {
         // Try to parse as JSON
-        const parsed = JSON.parse(data.result);
+        const parsed = JSON.parse(jsonStr);
         if (tool === 'summarize' && parsed.summary) {
           resultText = parsed.summary;
           suggestedCat = parsed.suggestedCategory;
@@ -2964,6 +3010,14 @@ async function runAITool(tool) {
           // Create task drops
           createTaskDrops(parsed.tasks);
           return;
+        } else {
+          // JSON parsed but no expected field - use first text value found
+          const textValue = parsed.summary || parsed.expanded || parsed.rewritten || parsed.result || parsed.text;
+          if (textValue) {
+            resultText = textValue;
+            suggestedCat = parsed.suggestedCategory;
+          }
+          // else keep original resultText (will be cleaned below)
         }
       } catch (e) {
         // Not JSON, use as plain text
@@ -2974,6 +3028,14 @@ async function runAITool(tool) {
             .filter(line => line.length > 0);
           createTaskDrops(tasks);
           return;
+        }
+        // For other tools, clean up any JSON-like artifacts
+        if (resultText.trim().startsWith('{') || resultText.trim().startsWith('```')) {
+          // Failed to parse, try to extract text manually
+          const textMatch = resultText.match(/"(?:summary|expanded|rewritten|text)":\s*"([^"]+)"/);
+          if (textMatch) {
+            resultText = textMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+          }
         }
       }
       
