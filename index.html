@@ -131,7 +131,7 @@
     .card.active { box-shadow: 0 0 0 2px var(--color-active), var(--shadow-card); }
     .card.editing { box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-card); }
     .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
-    /* Checkbox removed in v0.8.0 */
+    /* Checkbox removed in v0.8.1 */
     .card-checkbox { display: none !important; }
     .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
     .card-chars { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
@@ -226,14 +226,50 @@
     .select-mode .fab-plus { display: none; }
 
     /* Plus menu */
-    .plus-menu { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--color-bg-card); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); z-index: 49; opacity: 0; visibility: hidden; transition: all 0.2s ease; min-width: 200px; overflow: hidden; }
+    .plus-menu { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--color-bg-card); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); z-index: 49; opacity: 0; visibility: hidden; transition: all 0.2s ease; min-width: 220px; overflow: hidden; }
     .plus-menu.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
     .plus-menu-item { display: flex; align-items: center; gap: 12px; padding: 14px 20px; cursor: pointer; transition: background 0.15s; border: none; background: none; width: 100%; text-align: left; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text); }
     .plus-menu-item:hover { background: var(--color-bg-btn); }
     .plus-menu-item:active { background: var(--color-border); }
     .plus-menu-item span.icon { font-size: 1.3rem; width: 28px; text-align: center; }
+    .plus-menu-divider { height: 1px; background: var(--color-border); margin: 4px 0; }
+    .plus-menu-label { padding: 8px 20px 4px; font-size: 0.7rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .plus-menu-item.magic { background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(236,72,153,0.08)); }
+    .plus-menu-item.magic:hover { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.15)); }
     .plus-menu-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 48; opacity: 0; visibility: hidden; transition: opacity 0.2s; }
     .plus-menu-backdrop.show { opacity: 1; visibility: visible; }
+    
+    /* AI Magic Modal */
+    .magic-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+    .magic-modal.show { opacity: 1; visibility: visible; }
+    .magic-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 400px; max-height: 90vh; overflow: hidden; transform: translateY(20px); transition: transform 0.2s; }
+    .magic-modal.show .magic-content { transform: translateY(0); }
+    .magic-header { padding: 20px; text-align: center; background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; }
+    .magic-header h2 { font-size: 1.3rem; margin-bottom: 4px; }
+    .magic-header p { font-size: 0.85rem; opacity: 0.9; }
+    .magic-body { padding: 20px; }
+    .magic-input-area { width: 100%; min-height: 100px; padding: 14px; border: 2px solid var(--color-border); border-radius: 12px; font-family: var(--font-main); font-size: 1rem; resize: none; margin-bottom: 16px; }
+    .magic-input-area:focus { outline: none; border-color: #8B5CF6; }
+    .magic-voice-btn { width: 100%; padding: 16px; border: 2px dashed var(--color-border); border-radius: 12px; background: var(--color-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: var(--font-main); font-size: 1rem; color: var(--color-text-soft); margin-bottom: 16px; transition: all 0.2s; }
+    .magic-voice-btn:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
+    .magic-voice-btn.recording { border-color: var(--color-recording); background: rgba(239,68,68,0.1); color: var(--color-recording); animation: pulse 1s infinite; }
+    .magic-styles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .magic-style { padding: 8px 16px; border: 2px solid var(--color-border); border-radius: 20px; background: none; font-family: var(--font-main); font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
+    .magic-style:hover { border-color: #8B5CF6; }
+    .magic-style.active { border-color: #8B5CF6; background: rgba(139,92,246,0.1); color: #8B5CF6; }
+    .magic-generate { width: 100%; padding: 16px; border: none; border-radius: 12px; background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; font-family: var(--font-main); font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+    .magic-generate:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(139,92,246,0.4); }
+    .magic-generate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .magic-footer { padding: 12px 20px; border-top: 1px solid var(--color-border); display: flex; justify-content: center; }
+    .magic-cancel { padding: 10px 24px; border: none; background: none; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text-soft); cursor: pointer; }
+    
+    /* AI Result with Actions */
+    .ai-result-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+    .ai-result-btn { flex: 1; min-width: 100px; padding: 12px 16px; border: none; border-radius: 10px; font-family: var(--font-main); font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .ai-result-btn.primary { background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; }
+    .ai-result-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(139,92,246,0.3); }
+    .ai-result-btn.secondary { background: var(--color-bg-btn); color: var(--color-text); }
+    .ai-result-btn.secondary:hover { background: var(--color-border); }
 
     /* Text input modal */
     .text-input-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
@@ -449,6 +485,7 @@
 
   <!-- Plus menu -->
   <div class="plus-menu" id="plusMenu">
+    <div class="plus-menu-label">Create</div>
     <button class="plus-menu-item" onclick="openTextInput()">
       <span class="icon">📝</span>
       <span>Text note</span>
@@ -460,6 +497,20 @@
     <button class="plus-menu-item" onclick="uploadImage()">
       <span class="icon">🖼️</span>
       <span>Upload image</span>
+    </button>
+    <div class="plus-menu-divider"></div>
+    <div class="plus-menu-label">✨ AI Magic</div>
+    <button class="plus-menu-item magic" onclick="openMagic('poem')">
+      <span class="icon">📜</span>
+      <span>Create Poem</span>
+    </button>
+    <button class="plus-menu-item magic" onclick="openMagic('greeting')">
+      <span class="icon">💌</span>
+      <span>Create Greeting</span>
+    </button>
+    <button class="plus-menu-item magic" onclick="openMagic('speech')">
+      <span class="icon">🎤</span>
+      <span>Create Speech</span>
     </button>
   </div>
 
@@ -474,6 +525,35 @@
       <div class="text-input-actions">
         <button class="text-input-btn cancel" onclick="closeTextInput()">Cancel</button>
         <button class="text-input-btn save" onclick="saveTextNote()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Magic Modal -->
+  <div class="magic-modal" id="magicModal" onclick="if(event.target===this)closeMagic()">
+    <div class="magic-content">
+      <div class="magic-header">
+        <h2 id="magicTitle">✨ Create Poem</h2>
+        <p id="magicSubtitle">Tell me what it should be about</p>
+      </div>
+      <div class="magic-body">
+        <textarea class="magic-input-area" id="magicInput" placeholder="Example: Birthday greeting for mom, she loves gardening and has 2 grandkids..."></textarea>
+        <button class="magic-voice-btn" id="magicVoiceBtn" onclick="toggleMagicVoice()">
+          <span>🎤</span>
+          <span id="magicVoiceText">Tap to speak</span>
+        </button>
+        <div class="magic-styles" id="magicStyles">
+          <button class="magic-style active" data-style="classic">Classic</button>
+          <button class="magic-style" data-style="funny">😄 Funny</button>
+          <button class="magic-style" data-style="tender">💕 Tender</button>
+          <button class="magic-style" data-style="epic">🎺 Epic</button>
+        </div>
+        <button class="magic-generate" id="magicGenerate" onclick="generateMagic()">
+          ✨ Create Magic!
+        </button>
+      </div>
+      <div class="magic-footer">
+        <button class="magic-cancel" onclick="closeMagic()">Cancel</button>
       </div>
     </div>
   </div>
@@ -503,7 +583,7 @@
   <div class="toast-wrap" id="toastWrap"></div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.0 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.1 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1962,7 +2042,7 @@ function saveImageToGallery(){
 }
 
 // ============================================
-// AI FUNCTIONS (v0.8.0)
+// AI FUNCTIONS (v0.8.1)
 // ============================================
 
 async function ocrImage() {
@@ -2109,9 +2189,13 @@ function showAIResult(title, text) {
       <div class="modal" style="max-height: 80vh; display: flex; flex-direction: column;">
         <div class="modal-title" id="aiResultTitle">AI Result</div>
         <div id="aiResultContent" style="flex: 1; overflow-y: auto; padding: 16px 0; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; max-height: 50vh;"></div>
-        <div class="modal-actions">
-          <button class="modal-btn sec" onclick="closeAIResult()">Close</button>
-          <button class="modal-btn pri" onclick="copyAIResult()">Copy</button>
+        <div class="ai-result-actions">
+          <button class="ai-result-btn primary" onclick="createDropFromResult()">💧 Create Drop</button>
+          <button class="ai-result-btn secondary" onclick="shareResult()">📤 Share</button>
+          <button class="ai-result-btn secondary" onclick="copyAIResult()">📋 Copy</button>
+        </div>
+        <div style="text-align: center; padding-top: 12px;">
+          <button class="magic-cancel" onclick="closeAIResult()">Close</button>
         </div>
       </div>
     `;
@@ -2134,6 +2218,261 @@ function copyAIResult() {
     navigator.clipboard.writeText(content.textContent);
     toast('Copied!', 'success');
   }
+}
+
+// Create Drop from AI result
+function createDropFromResult() {
+  const content = document.getElementById('aiResultContent');
+  if (!content) return;
+  
+  const text = content.textContent;
+  const title = document.getElementById('aiResultTitle').textContent;
+  
+  // Determine category based on title
+  let category = 'ideas';
+  if (title.includes('Poem') || title.includes('Стих')) category = 'ideas';
+  if (title.includes('Speech') || title.includes('Спич')) category = 'ideas';
+  if (title.includes('Greeting') || title.includes('Поздрав')) category = 'ideas';
+  
+  const idea = {
+    id: Date.now(),
+    text: text,
+    category: category,
+    timestamp: new Date().toISOString(),
+    date: new Date().toLocaleDateString('ru-RU'),
+    time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+    aiGenerated: true // Mark as AI generated
+  };
+  
+  ideas.push(idea);
+  save();
+  closeAIResult();
+  render();
+  counts();
+  toast('Drop created! 💧', 'success');
+}
+
+// Share AI result
+function shareResult() {
+  const content = document.getElementById('aiResultContent');
+  if (!content) return;
+  
+  const text = content.textContent;
+  
+  if (navigator.share) {
+    navigator.share({
+      text: text
+    }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text);
+    toast('Copied! Paste to share', 'success');
+  }
+}
+
+// ============================================
+// AI MAGIC FUNCTIONS (v0.8.1)
+// ============================================
+
+let currentMagicType = 'poem';
+let magicRecognition = null;
+let isMagicRecording = false;
+
+const MAGIC_CONFIG = {
+  poem: {
+    title: '📜 Create Poem',
+    subtitle: 'Tell me what it should be about',
+    placeholder: 'Example: Birthday greeting for mom, she loves gardening and has 2 grandkids...',
+    styles: [
+      { id: 'classic', label: 'Classic' },
+      { id: 'funny', label: '😄 Funny' },
+      { id: 'tender', label: '💕 Tender' },
+      { id: 'epic', label: '🎺 Epic' }
+    ]
+  },
+  greeting: {
+    title: '💌 Create Greeting',
+    subtitle: 'Who is it for and what occasion?',
+    placeholder: 'Example: New Year greeting for colleagues, warm and professional...',
+    styles: [
+      { id: 'warm', label: '💕 Warm' },
+      { id: 'funny', label: '😄 Funny' },
+      { id: 'formal', label: '👔 Formal' },
+      { id: 'poetic', label: '✨ Poetic' }
+    ]
+  },
+  speech: {
+    title: '🎤 Create Speech',
+    subtitle: 'What occasion? Who is the audience?',
+    placeholder: 'Example: Wedding toast for my best friend, he loves fishing, we know each other 15 years...',
+    styles: [
+      { id: 'short', label: '⚡ Short (1-2 min)' },
+      { id: 'medium', label: '📝 Medium (3-5 min)' },
+      { id: 'long', label: '📖 Long (7-10 min)' }
+    ]
+  }
+};
+
+function openMagic(type) {
+  closePlusMenu();
+  currentMagicType = type;
+  
+  const config = MAGIC_CONFIG[type];
+  if (!config) return;
+  
+  // Update UI
+  document.getElementById('magicTitle').textContent = config.title;
+  document.getElementById('magicSubtitle').textContent = config.subtitle;
+  document.getElementById('magicInput').placeholder = config.placeholder;
+  document.getElementById('magicInput').value = '';
+  
+  // Update styles
+  const stylesContainer = document.getElementById('magicStyles');
+  stylesContainer.innerHTML = config.styles.map((s, i) => 
+    `<button class="magic-style${i === 0 ? ' active' : ''}" data-style="${s.id}">${s.label}</button>`
+  ).join('');
+  
+  // Add click handlers to styles
+  stylesContainer.querySelectorAll('.magic-style').forEach(btn => {
+    btn.onclick = () => {
+      stylesContainer.querySelectorAll('.magic-style').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+  });
+  
+  // Show modal
+  document.getElementById('magicModal').classList.add('show');
+  setTimeout(() => document.getElementById('magicInput').focus(), 100);
+}
+
+function closeMagic() {
+  document.getElementById('magicModal').classList.remove('show');
+  if (isMagicRecording) {
+    stopMagicVoice();
+  }
+}
+
+function toggleMagicVoice() {
+  if (isMagicRecording) {
+    stopMagicVoice();
+  } else {
+    startMagicVoice();
+  }
+}
+
+function startMagicVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    toast('Speech not supported', 'error');
+    return;
+  }
+  
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  magicRecognition = new SpeechRecognition();
+  magicRecognition.continuous = true;
+  magicRecognition.interimResults = true;
+  magicRecognition.lang = 'ru-RU';
+  
+  let finalTranscript = document.getElementById('magicInput').value;
+  
+  magicRecognition.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        finalTranscript += (finalTranscript ? ' ' : '') + e.results[i][0].transcript;
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    document.getElementById('magicInput').value = finalTranscript + (interim ? ' ' + interim : '');
+  };
+  
+  magicRecognition.onerror = () => stopMagicVoice();
+  magicRecognition.onend = () => {
+    if (isMagicRecording) stopMagicVoice();
+  };
+  
+  magicRecognition.start();
+  isMagicRecording = true;
+  document.getElementById('magicVoiceBtn').classList.add('recording');
+  document.getElementById('magicVoiceText').textContent = 'Listening... tap to stop';
+}
+
+function stopMagicVoice() {
+  if (magicRecognition) {
+    magicRecognition.stop();
+    magicRecognition = null;
+  }
+  isMagicRecording = false;
+  document.getElementById('magicVoiceBtn').classList.remove('recording');
+  document.getElementById('magicVoiceText').textContent = 'Tap to speak';
+}
+
+async function generateMagic() {
+  const input = document.getElementById('magicInput').value.trim();
+  if (!input) {
+    toast('Please describe what you want', 'error');
+    return;
+  }
+  
+  const activeStyle = document.querySelector('.magic-style.active');
+  const style = activeStyle ? activeStyle.dataset.style : 'classic';
+  
+  // Get context
+  const context = {
+    timeOfDay: getTimeOfDay(),
+    location: null
+  };
+  
+  // Try to get location name (if available)
+  if (navigator.geolocation) {
+    // Just use time for now, location would need geocoding API
+  }
+  
+  const btn = document.getElementById('magicGenerate');
+  btn.disabled = true;
+  btn.textContent = '✨ Creating magic...';
+  
+  try {
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: currentMagicType,
+        text: input,
+        style: style,
+        context: context
+      }),
+    });
+    
+    const data = await response.json();
+    
+    if (data.success && data.result) {
+      closeMagic();
+      
+      const titles = {
+        poem: '📜 Your Poem',
+        greeting: '💌 Your Greeting',
+        speech: '🎤 Your Speech'
+      };
+      
+      showAIResult(titles[currentMagicType] || 'AI Result', data.result);
+    } else {
+      toast(data.error || 'Generation failed', 'error');
+    }
+  } catch (error) {
+    console.error('Magic error:', error);
+    toast('Connection error', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Create Magic!';
+  }
+}
+
+function getTimeOfDay() {
+  const hour = new Date().getHours();
+  if (hour < 6) return 'night';
+  if (hour < 12) return 'morning';
+  if (hour < 18) return 'afternoon';
+  return 'evening';
 }
 
 function deleteFromViewer(){
@@ -2197,7 +2536,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.8.0';
+  md+='---\nExported from DropLit v0.8.1';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
