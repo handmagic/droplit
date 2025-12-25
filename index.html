@@ -558,6 +558,7 @@
   </button>
   <input type="file" id="cameraInput" class="camera-input" accept="image/*" capture="environment" onchange="handlePhoto(event)">
   <input type="file" id="imageUpload" class="camera-input" accept="image/*" onchange="handleUploadedImage(event)">
+  <input type="file" id="fileUpload" style="display:none" accept=".txt,.md,.csv,.json" onchange="handleUploadedFile(event)">
 
   <!-- FAB Plus button -->
   <button class="fab-plus" id="fabPlus" onclick="togglePlusMenu()">
@@ -581,6 +582,10 @@
     <button class="plus-menu-item" onclick="uploadImage()">
       <span class="icon">🖼️</span>
       <span>Upload image</span>
+    </button>
+    <button class="plus-menu-item" onclick="uploadFile()">
+      <span class="icon">📄</span>
+      <span>Upload file</span>
     </button>
     <div class="plus-menu-divider"></div>
     <div class="plus-menu-label">✨ AI Magic</div>
@@ -1455,6 +1460,77 @@ function handleUploadedImage(e){
   };
   reader.readAsDataURL(file);
   e.target.value='';
+}
+
+// ============================================
+// FILE UPLOAD (v0.8.2)
+// ============================================
+
+const MAX_FILE_SIZE = 50 * 1024; // 50KB limit
+const SUPPORTED_TEXT_EXTENSIONS = ['txt', 'md', 'csv', 'json'];
+
+function uploadFile(){
+  closePlusMenu();
+  document.getElementById('fileUpload').click();
+}
+
+function handleUploadedFile(e){
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  // Check extension
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!SUPPORTED_TEXT_EXTENSIONS.includes(ext)) {
+    toast('Supported: .txt, .md, .csv, .json', 'error');
+    e.target.value = '';
+    return;
+  }
+  
+  // Check size
+  if (file.size > MAX_FILE_SIZE) {
+    const sizeKB = Math.round(file.size / 1024);
+    toast(`File too large (${sizeKB}KB). Max: 50KB`, 'error');
+    e.target.value = '';
+    return;
+  }
+  
+  toast('Reading file...', 'info');
+  
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const text = ev.target.result;
+    
+    if (!text || text.trim().length === 0) {
+      toast('File is empty', 'error');
+      return;
+    }
+    
+    // Create drop from file content
+    const idea = {
+      id: Date.now(),
+      text: text.trim(),
+      category: detectCat(text.trim()),
+      timestamp: new Date().toISOString(),
+      date: new Date().toLocaleDateString('ru-RU'),
+      time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+      isImported: true,
+      sourceFile: file.name
+    };
+    
+    ideas.push(idea);
+    save();
+    
+    const charCount = text.length;
+    toast(`Imported! ${charCount} chars from ${file.name}`, 'success');
+    resetToShowAll();
+  };
+  
+  reader.onerror = function() {
+    toast('Failed to read file', 'error');
+  };
+  
+  reader.readAsText(file);
+  e.target.value = '';
 }
 
 function aiProcess(id){toast('AI processing coming soon!','info');}
