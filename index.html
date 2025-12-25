@@ -131,7 +131,7 @@
     .card.active { box-shadow: 0 0 0 2px var(--color-active), var(--shadow-card); }
     .card.editing { box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-card); }
     .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
-    /* Checkbox removed in v0.8.1 */
+    /* Checkbox removed in v0.8.2 */
     .card-checkbox { display: none !important; }
     .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
     .card-chars { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
@@ -165,7 +165,7 @@
     .card-text { font-size: 1.05rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; }
     .card-text a { color: var(--color-primary); text-decoration: underline; word-break: break-all; }
     .card-text a:active { opacity: 0.7; }
-    .card-text.truncated { max-height: 150px; overflow: hidden; position: relative; }
+    .card-text.truncated { max-height: 100px; overflow: hidden; position: relative; } /* ~4 lines */
     .card-text.truncated::after { content: ''; position: absolute; bottom: 0; left: 0; right: 30px; height: 40px; background: linear-gradient(transparent, var(--color-bg-card)); pointer-events: none; }
     .card-text.expanded { max-height: none !important; }
     .card-text.expanded::after { display: none; }
@@ -289,6 +289,63 @@
     .drops-picker-item:hover { border-color: #8B5CF6; }
     .drops-picker-item img { width: 100%; height: 100%; object-fit: cover; }
     .drops-picker-empty { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--color-text-muted); }
+    
+    /* AI Tools Modal (for text drops) */
+    .ai-tools-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+    .ai-tools-modal.show { opacity: 1; visibility: visible; }
+    .ai-tools-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; transform: translateY(20px); transition: transform 0.2s; }
+    .ai-tools-modal.show .ai-tools-content { transform: translateY(0); }
+    .ai-tools-header { padding: 20px; text-align: center; background: linear-gradient(135deg, #3B82F6, #8B5CF6); color: white; }
+    .ai-tools-header h2 { font-size: 1.3rem; margin-bottom: 4px; }
+    .ai-tools-header p { font-size: 0.85rem; opacity: 0.9; }
+    .ai-tools-preview { padding: 16px 20px; background: var(--color-bg); border-bottom: 1px solid var(--color-border); }
+    .ai-tools-preview-text { font-size: 0.9rem; color: var(--color-text-soft); line-height: 1.5; max-height: 80px; overflow: hidden; position: relative; }
+    .ai-tools-preview-text::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 30px; background: linear-gradient(transparent, var(--color-bg)); }
+    .ai-tools-preview-label { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .ai-tools-body { padding: 20px; }
+    .ai-tools-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .ai-tool-btn { display: flex; align-items: center; gap: 14px; padding: 16px; border: 2px solid var(--color-border); border-radius: 14px; background: var(--color-bg-card); cursor: pointer; transition: all 0.15s; text-align: left; font-family: var(--font-main); }
+    .ai-tool-btn:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
+    .ai-tool-btn:active { transform: scale(0.98); }
+    .ai-tool-btn .icon { font-size: 1.5rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1)); border-radius: 10px; }
+    .ai-tool-btn .info { flex: 1; }
+    .ai-tool-btn .title { font-size: 1rem; font-weight: 600; color: var(--color-text); margin-bottom: 2px; }
+    .ai-tool-btn .desc { font-size: 0.8rem; color: var(--color-text-muted); }
+    .ai-tools-option { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: var(--color-bg); border-radius: 12px; margin-bottom: 16px; }
+    .ai-tools-option input[type="checkbox"] { width: 20px; height: 20px; accent-color: #8B5CF6; }
+    .ai-tools-option-label { flex: 1; }
+    .ai-tools-option-label .title { font-size: 0.9rem; font-weight: 500; color: var(--color-text); }
+    .ai-tools-option-label .current { font-size: 0.8rem; color: var(--color-text-muted); }
+    .ai-tools-footer { padding: 16px 20px; border-top: 1px solid var(--color-border); text-align: center; }
+    
+    /* AI Result Modal (large) */
+    .ai-result-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 210; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+    .ai-result-modal.show { opacity: 1; visibility: visible; }
+    .ai-result-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 420px; max-height: 90vh; overflow: hidden; transform: translateY(20px); transition: transform 0.2s; display: flex; flex-direction: column; }
+    .ai-result-modal.show .ai-result-content { transform: translateY(0); }
+    .ai-result-header { padding: 20px; text-align: center; background: linear-gradient(135deg, #10B981, #3B82F6); color: white; flex-shrink: 0; }
+    .ai-result-header h2 { font-size: 1.2rem; }
+    .ai-result-body { padding: 20px; flex: 1; overflow-y: auto; }
+    .ai-result-text { font-size: 1rem; line-height: 1.6; color: var(--color-text); white-space: pre-wrap; }
+    .ai-result-category { margin-top: 20px; padding: 16px; background: var(--color-bg); border-radius: 12px; }
+    .ai-result-category-title { font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .ai-result-category-row { display: flex; align-items: center; gap: 10px; }
+    .ai-result-category-current { font-size: 0.9rem; color: var(--color-text-soft); }
+    .ai-result-category-arrow { color: var(--color-text-muted); }
+    .ai-result-category-suggested { font-size: 0.9rem; font-weight: 600; color: #8B5CF6; }
+    .ai-result-category-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .ai-result-category-btn { flex: 1; padding: 10px; border: 2px solid var(--color-border); border-radius: 8px; background: none; font-family: var(--font-main); font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
+    .ai-result-category-btn:hover { border-color: #8B5CF6; }
+    .ai-result-category-btn.accept { border-color: #10B981; background: rgba(16,185,129,0.1); color: #059669; }
+    .ai-result-actions { padding: 20px; border-top: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+    .ai-result-action-btn { padding: 14px; border: none; border-radius: 12px; font-family: var(--font-main); font-size: 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; }
+    .ai-result-action-btn.primary { background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; }
+    .ai-result-action-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(139,92,246,0.3); }
+    .ai-result-action-btn.secondary { background: var(--color-bg-btn); color: var(--color-text); }
+    .ai-result-action-btn.secondary:hover { background: var(--color-border); }
+    .ai-result-action-row { display: flex; gap: 10px; }
+    .ai-result-action-row .ai-result-action-btn { flex: 1; }
+    .ai-result-close { padding: 12px; border: none; background: none; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text-soft); cursor: pointer; }
     
     /* AI Result with Actions */
     .ai-result-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-border); }
@@ -626,6 +683,100 @@
     </div>
   </div>
 
+  <!-- AI Tools Modal (for text drops) -->
+  <div class="ai-tools-modal" id="aiToolsModal" onclick="if(event.target===this)closeAITools()">
+    <div class="ai-tools-content">
+      <div class="ai-tools-header">
+        <h2>🤖 AI Tools</h2>
+        <p>What would you like to do?</p>
+      </div>
+      <div class="ai-tools-preview">
+        <div class="ai-tools-preview-label">Selected drop:</div>
+        <div class="ai-tools-preview-text" id="aiToolsPreviewText"></div>
+      </div>
+      <div class="ai-tools-body">
+        <div class="ai-tools-grid">
+          <button class="ai-tool-btn" onclick="runAITool('summarize')">
+            <span class="icon">📝</span>
+            <div class="info">
+              <div class="title">Summarize</div>
+              <div class="desc">Make it shorter and clearer</div>
+            </div>
+          </button>
+          <button class="ai-tool-btn" onclick="runAITool('tasks')">
+            <span class="icon">📋</span>
+            <div class="info">
+              <div class="title">Create Tasks</div>
+              <div class="desc">Extract actionable to-dos</div>
+            </div>
+          </button>
+          <button class="ai-tool-btn" onclick="runAITool('expand')">
+            <span class="icon">✨</span>
+            <div class="info">
+              <div class="title">Expand</div>
+              <div class="desc">Add more details and ideas</div>
+            </div>
+          </button>
+          <button class="ai-tool-btn" onclick="runAITool('rewrite')">
+            <span class="icon">🔄</span>
+            <div class="info">
+              <div class="title">Rewrite</div>
+              <div class="desc">Different style or tone</div>
+            </div>
+          </button>
+        </div>
+        <div class="ai-tools-option">
+          <input type="checkbox" id="aiToolsCheckCategory" checked>
+          <div class="ai-tools-option-label">
+            <div class="title">Also check/update category</div>
+            <div class="current">Current: <span id="aiToolsCurrentCategory">INBOX</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="ai-tools-footer">
+        <button class="magic-cancel" onclick="closeAITools()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Result Modal (large, with actions) -->
+  <div class="ai-result-modal" id="aiResultModal2" onclick="if(event.target===this)closeAIResult2()">
+    <div class="ai-result-content">
+      <div class="ai-result-header">
+        <h2 id="aiResult2Title">✨ Result</h2>
+      </div>
+      <div class="ai-result-body">
+        <div class="ai-result-text" id="aiResult2Text"></div>
+        <div class="ai-result-category" id="aiResult2Category" style="display:none;">
+          <div class="ai-result-category-title">🏷️ Suggested category</div>
+          <div class="ai-result-category-row">
+            <span class="ai-result-category-current" id="aiResult2CurrentCat">INBOX</span>
+            <span class="ai-result-category-arrow">→</span>
+            <span class="ai-result-category-suggested" id="aiResult2SuggestedCat">TASKS</span>
+          </div>
+          <div class="ai-result-category-actions">
+            <button class="ai-result-category-btn" onclick="keepCategory()">Keep current</button>
+            <button class="ai-result-category-btn accept" onclick="acceptCategory()">Change ✓</button>
+          </div>
+        </div>
+      </div>
+      <div class="ai-result-actions">
+        <button class="ai-result-action-btn primary" onclick="replaceOriginal()">
+          🔄 Replace original
+        </button>
+        <div class="ai-result-action-row">
+          <button class="ai-result-action-btn secondary" onclick="createNewDrop()">
+            💧 New Drop
+          </button>
+          <button class="ai-result-action-btn secondary" onclick="copyResult2()">
+            📋 Copy
+          </button>
+        </div>
+        <button class="ai-result-close" onclick="closeAIResult2()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <button class="fab-record" id="fabRecord" onclick="toggleRec()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
   </button>
@@ -651,7 +802,7 @@
   <div class="toast-wrap" id="toastWrap"></div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.1 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.2 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1413,7 +1564,7 @@ function render(){
       const isEditing=editId===i.id;
       const isSelected=selectedIds.includes(i.id);
       const cc=i.isMedia?0:(i.text?.length||0);
-      const isTruncated=cc>500;
+      const isTruncated=cc>200;
       h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
       h+='<div class="card-checkbox">'+(isSelected?'V':'')+'</div>';
       h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
@@ -1445,7 +1596,7 @@ function render(){
       if(i.isMedia){
         h+='<button class="act" onclick="viewImage('+i.id+',event)">View</button>';
       } else {
-        h+='<button class="act ai" onclick="aiProcess('+i.id+')">AI</button>';
+        h+='<button class="act ai" onclick="openAITools('+i.id+')">AI</button>';
         h+='<button class="act" onclick="startEdit('+i.id+')">Edit</button>';
       }
       h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
@@ -2110,7 +2261,7 @@ function saveImageToGallery(){
 }
 
 // ============================================
-// AI FUNCTIONS (v0.8.1)
+// AI FUNCTIONS (v0.8.2)
 // ============================================
 
 async function ocrImage() {
@@ -2338,7 +2489,7 @@ function shareResult() {
 }
 
 // ============================================
-// AI MAGIC FUNCTIONS (v0.8.1)
+// AI MAGIC FUNCTIONS (v0.8.2)
 // ============================================
 
 let currentMagicType = 'poem';
@@ -2652,6 +2803,252 @@ function getTimeOfDay() {
   return 'evening';
 }
 
+// ============================================
+// AI TOOLS FOR TEXT DROPS (v0.8.2)
+// ============================================
+
+let aiToolsDropId = null;
+let aiToolsResult = null;
+let aiToolsSuggestedCategory = null;
+
+function openAITools(id) {
+  const drop = ideas.find(x => x.id === id);
+  if (!drop || !drop.text) {
+    toast('No text to process', 'error');
+    return;
+  }
+  
+  aiToolsDropId = id;
+  
+  // Show preview
+  const previewText = drop.text.length > 200 
+    ? drop.text.substring(0, 200) + '...' 
+    : drop.text;
+  document.getElementById('aiToolsPreviewText').textContent = previewText;
+  
+  // Show current category
+  const catName = CATS[drop.category]?.single || drop.category.toUpperCase();
+  document.getElementById('aiToolsCurrentCategory').textContent = catName;
+  
+  document.getElementById('aiToolsModal').classList.add('show');
+}
+
+function closeAITools() {
+  document.getElementById('aiToolsModal').classList.remove('show');
+  aiToolsDropId = null;
+}
+
+async function runAITool(tool) {
+  const drop = ideas.find(x => x.id === aiToolsDropId);
+  if (!drop) {
+    toast('Drop not found', 'error');
+    return;
+  }
+  
+  const checkCategory = document.getElementById('aiToolsCheckCategory').checked;
+  
+  // Show loading
+  const btns = document.querySelectorAll('.ai-tool-btn');
+  btns.forEach(b => b.style.opacity = '0.5');
+  toast('Processing...', 'info');
+  
+  try {
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: tool,
+        text: drop.text,
+        checkCategory: checkCategory
+      }),
+    });
+    
+    const data = await response.json();
+    
+    if (data.success && data.result) {
+      closeAITools();
+      
+      // Parse result (may be JSON or plain text)
+      let resultText = data.result;
+      let suggestedCat = null;
+      
+      try {
+        // Try to parse as JSON
+        const parsed = JSON.parse(data.result);
+        if (tool === 'summarize' && parsed.summary) {
+          resultText = parsed.summary;
+          suggestedCat = parsed.suggestedCategory;
+        } else if (tool === 'expand' && parsed.expanded) {
+          resultText = parsed.expanded;
+          suggestedCat = parsed.suggestedCategory;
+        } else if (tool === 'rewrite' && parsed.rewritten) {
+          resultText = parsed.rewritten;
+          suggestedCat = parsed.suggestedCategory;
+        } else if (tool === 'tasks' && parsed.tasks) {
+          // Create task drops
+          createTaskDrops(parsed.tasks);
+          return;
+        }
+      } catch (e) {
+        // Not JSON, use as plain text
+        if (tool === 'tasks') {
+          // Parse numbered list
+          const tasks = resultText.split('\n')
+            .map(line => line.replace(/^\d+[\.\)]\s*/, '').trim())
+            .filter(line => line.length > 0);
+          createTaskDrops(tasks);
+          return;
+        }
+      }
+      
+      // Show result modal
+      showAIResult2(tool, resultText, drop.category, suggestedCat);
+      
+    } else {
+      toast(data.error || 'Processing failed', 'error');
+    }
+  } catch (error) {
+    console.error('AI Tools error:', error);
+    toast('Connection error', 'error');
+  } finally {
+    btns.forEach(b => b.style.opacity = '1');
+  }
+}
+
+function createTaskDrops(tasks) {
+  if (!tasks || tasks.length === 0) {
+    toast('No tasks found', 'warning');
+    return;
+  }
+  
+  tasks.forEach(taskText => {
+    const idea = {
+      id: Date.now() + Math.random(),
+      text: taskText,
+      category: 'tasks',
+      timestamp: new Date().toISOString(),
+      date: new Date().toLocaleDateString('ru-RU'),
+      time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+      aiGenerated: true,
+      sourceDropId: aiToolsDropId
+    };
+    ideas.push(idea);
+  });
+  
+  save();
+  render();
+  counts();
+  toast(`Created ${tasks.length} tasks! ✓`, 'success');
+  aiToolsDropId = null;
+}
+
+function showAIResult2(tool, text, currentCategory, suggestedCategory) {
+  aiToolsResult = text;
+  aiToolsSuggestedCategory = suggestedCategory;
+  
+  const titles = {
+    summarize: '📝 Summary',
+    expand: '✨ Expanded',
+    rewrite: '🔄 Rewritten'
+  };
+  
+  document.getElementById('aiResult2Title').textContent = titles[tool] || '✨ Result';
+  document.getElementById('aiResult2Text').textContent = text;
+  
+  // Show category suggestion if available
+  const catSection = document.getElementById('aiResult2Category');
+  if (suggestedCategory && suggestedCategory !== currentCategory) {
+    const currentName = CATS[currentCategory]?.single || currentCategory.toUpperCase();
+    const suggestedName = CATS[suggestedCategory]?.single || suggestedCategory.toUpperCase();
+    
+    document.getElementById('aiResult2CurrentCat').textContent = currentName;
+    document.getElementById('aiResult2SuggestedCat').textContent = suggestedName;
+    catSection.style.display = 'block';
+  } else {
+    catSection.style.display = 'none';
+  }
+  
+  document.getElementById('aiResultModal2').classList.add('show');
+}
+
+function closeAIResult2() {
+  document.getElementById('aiResultModal2').classList.remove('show');
+  aiToolsResult = null;
+  aiToolsSuggestedCategory = null;
+}
+
+function replaceOriginal() {
+  if (!aiToolsDropId || !aiToolsResult) return;
+  
+  const drop = ideas.find(x => x.id === aiToolsDropId);
+  if (drop) {
+    // Save original
+    if (!drop.originalText) {
+      drop.originalText = drop.text;
+    }
+    drop.text = aiToolsResult;
+    save();
+    render();
+    toast('Replaced! ✓', 'success');
+  }
+  
+  closeAIResult2();
+  aiToolsDropId = null;
+}
+
+function createNewDrop() {
+  if (!aiToolsResult) return;
+  
+  const sourceDrop = ideas.find(x => x.id === aiToolsDropId);
+  const category = aiToolsSuggestedCategory || sourceDrop?.category || 'ideas';
+  
+  const idea = {
+    id: Date.now(),
+    text: aiToolsResult,
+    category: category,
+    timestamp: new Date().toISOString(),
+    date: new Date().toLocaleDateString('ru-RU'),
+    time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+    aiGenerated: true,
+    sourceDropId: aiToolsDropId
+  };
+  
+  ideas.push(idea);
+  save();
+  render();
+  counts();
+  toast('Drop created! 💧', 'success');
+  
+  closeAIResult2();
+  aiToolsDropId = null;
+}
+
+function copyResult2() {
+  if (aiToolsResult) {
+    navigator.clipboard.writeText(aiToolsResult);
+    toast('Copied!', 'success');
+  }
+}
+
+function keepCategory() {
+  aiToolsSuggestedCategory = null;
+  document.getElementById('aiResult2Category').style.display = 'none';
+}
+
+function acceptCategory() {
+  if (!aiToolsDropId || !aiToolsSuggestedCategory) return;
+  
+  const drop = ideas.find(x => x.id === aiToolsDropId);
+  if (drop) {
+    drop.category = aiToolsSuggestedCategory;
+    save();
+    counts();
+  }
+  
+  document.getElementById('aiResult2Category').style.display = 'none';
+  toast('Category updated! ✓', 'success');
+}
+
 function deleteFromViewer(){
   if(!currentImageId)return;
   if(confirm('Delete this image?')){
@@ -2713,7 +3110,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.8.1';
+  md+='---\nExported from DropLit v0.8.2';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
