@@ -242,15 +242,28 @@
     /* AI Magic Modal */
     .magic-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
     .magic-modal.show { opacity: 1; visibility: visible; }
-    .magic-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 400px; max-height: 90vh; overflow: hidden; transform: translateY(20px); transition: transform 0.2s; }
+    .magic-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; transform: translateY(20px); transition: transform 0.2s; }
     .magic-modal.show .magic-content { transform: translateY(0); }
     .magic-header { padding: 20px; text-align: center; background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; }
     .magic-header h2 { font-size: 1.3rem; margin-bottom: 4px; }
     .magic-header p { font-size: 0.85rem; opacity: 0.9; }
     .magic-body { padding: 20px; }
-    .magic-input-area { width: 100%; min-height: 100px; padding: 14px; border: 2px solid var(--color-border); border-radius: 12px; font-family: var(--font-main); font-size: 1rem; resize: none; margin-bottom: 16px; }
+    .magic-photo-section { margin-bottom: 16px; }
+    .magic-photo-btn { width: 100%; padding: 14px; border: 2px dashed var(--color-border); border-radius: 12px; background: var(--color-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text-soft); transition: all 0.2s; }
+    .magic-photo-btn:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
+    .magic-photo-btn.has-photo { border-style: solid; border-color: #10B981; background: rgba(16,185,129,0.05); color: #059669; }
+    .magic-photo-preview { position: relative; margin-top: 12px; border-radius: 12px; overflow: hidden; }
+    .magic-photo-preview img { width: 100%; max-height: 150px; object-fit: cover; display: block; }
+    .magic-photo-remove { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: none; border-radius: 50%; background: rgba(0,0,0,0.6); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .magic-photo-menu { position: absolute; bottom: 100%; left: 0; right: 0; background: var(--color-bg-card); border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); margin-bottom: 8px; overflow: hidden; display: none; }
+    .magic-photo-menu.show { display: block; }
+    .magic-photo-menu-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text); }
+    .magic-photo-menu-item:hover { background: var(--color-bg-btn); }
+    .magic-photo-menu-item:active { background: var(--color-border); }
+    .magic-input-area { width: 100%; min-height: 80px; padding: 14px; border: 2px solid var(--color-border); border-radius: 12px; font-family: var(--font-main); font-size: 1rem; resize: none; margin-bottom: 16px; }
     .magic-input-area:focus { outline: none; border-color: #8B5CF6; }
-    .magic-voice-btn { width: 100%; padding: 16px; border: 2px dashed var(--color-border); border-radius: 12px; background: var(--color-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: var(--font-main); font-size: 1rem; color: var(--color-text-soft); margin-bottom: 16px; transition: all 0.2s; }
+    .magic-input-label { font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 6px; display: block; }
+    .magic-voice-btn { width: 100%; padding: 14px; border: 2px dashed var(--color-border); border-radius: 12px; background: var(--color-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text-soft); margin-bottom: 16px; transition: all 0.2s; }
     .magic-voice-btn:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
     .magic-voice-btn.recording { border-color: var(--color-recording); background: rgba(239,68,68,0.1); color: var(--color-recording); animation: pulse 1s infinite; }
     .magic-styles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
@@ -262,6 +275,20 @@
     .magic-generate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     .magic-footer { padding: 12px 20px; border-top: 1px solid var(--color-border); display: flex; justify-content: center; }
     .magic-cancel { padding: 10px 24px; border: none; background: none; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text-soft); cursor: pointer; }
+    
+    /* Drops picker modal */
+    .drops-picker { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 250; display: flex; align-items: flex-end; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.2s; }
+    .drops-picker.show { opacity: 1; visibility: visible; }
+    .drops-picker-content { background: var(--color-bg-card); border-radius: 20px 20px 0 0; width: 100%; max-width: 480px; max-height: 70vh; overflow: hidden; transform: translateY(100%); transition: transform 0.3s; }
+    .drops-picker.show .drops-picker-content { transform: translateY(0); }
+    .drops-picker-header { padding: 16px 20px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
+    .drops-picker-header h3 { font-size: 1.1rem; }
+    .drops-picker-close { width: 32px; height: 32px; border: none; background: var(--color-bg-btn); border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+    .drops-picker-grid { padding: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; overflow-y: auto; max-height: calc(70vh - 70px); }
+    .drops-picker-item { aspect-ratio: 1; border-radius: 12px; overflow: hidden; cursor: pointer; border: 3px solid transparent; transition: all 0.15s; }
+    .drops-picker-item:hover { border-color: #8B5CF6; }
+    .drops-picker-item img { width: 100%; height: 100%; object-fit: cover; }
+    .drops-picker-empty { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--color-text-muted); }
     
     /* AI Result with Actions */
     .ai-result-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--color-border); }
@@ -537,6 +564,34 @@
         <p id="magicSubtitle">Tell me what it should be about</p>
       </div>
       <div class="magic-body">
+        <!-- Photo section -->
+        <div class="magic-photo-section">
+          <div style="position: relative;">
+            <button class="magic-photo-btn" id="magicPhotoBtn" onclick="togglePhotoMenu()">
+              <span>📷</span>
+              <span id="magicPhotoBtnText">Add photo (optional)</span>
+            </button>
+            <div class="magic-photo-menu" id="magicPhotoMenu">
+              <button class="magic-photo-menu-item" onclick="takeMagicPhoto()">
+                <span>📷</span> Take photo
+              </button>
+              <button class="magic-photo-menu-item" onclick="chooseMagicPhoto()">
+                <span>🖼️</span> Choose from gallery
+              </button>
+              <button class="magic-photo-menu-item" onclick="openDropsPicker()">
+                <span>💧</span> Choose from Drops
+              </button>
+            </div>
+          </div>
+          <div class="magic-photo-preview" id="magicPhotoPreview" style="display: none;">
+            <img id="magicPhotoImg" src="" alt="Selected photo">
+            <button class="magic-photo-remove" onclick="removeMagicPhoto()">×</button>
+          </div>
+          <input type="file" id="magicPhotoInput" accept="image/*" style="display:none" onchange="handleMagicPhoto(event)">
+          <input type="file" id="magicCameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleMagicPhoto(event)">
+        </div>
+        
+        <label class="magic-input-label" id="magicInputLabel">Add details (optional if photo added)</label>
         <textarea class="magic-input-area" id="magicInput" placeholder="Example: Birthday greeting for mom, she loves gardening and has 2 grandkids..."></textarea>
         <button class="magic-voice-btn" id="magicVoiceBtn" onclick="toggleMagicVoice()">
           <span>🎤</span>
@@ -554,6 +609,19 @@
       </div>
       <div class="magic-footer">
         <button class="magic-cancel" onclick="closeMagic()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drops Picker Modal -->
+  <div class="drops-picker" id="dropsPicker" onclick="if(event.target===this)closeDropsPicker()">
+    <div class="drops-picker-content">
+      <div class="drops-picker-header">
+        <h3>💧 Choose from Drops</h3>
+        <button class="drops-picker-close" onclick="closeDropsPicker()">×</button>
+      </div>
+      <div class="drops-picker-grid" id="dropsPickerGrid">
+        <!-- Filled dynamically -->
       </div>
     </div>
   </div>
@@ -2276,6 +2344,7 @@ function shareResult() {
 let currentMagicType = 'poem';
 let magicRecognition = null;
 let isMagicRecording = false;
+let magicPhotoData = null; // Store selected photo
 
 const MAGIC_CONFIG = {
   poem: {
@@ -2315,6 +2384,7 @@ const MAGIC_CONFIG = {
 function openMagic(type) {
   closePlusMenu();
   currentMagicType = type;
+  magicPhotoData = null; // Reset photo
   
   const config = MAGIC_CONFIG[type];
   if (!config) return;
@@ -2324,6 +2394,12 @@ function openMagic(type) {
   document.getElementById('magicSubtitle').textContent = config.subtitle;
   document.getElementById('magicInput').placeholder = config.placeholder;
   document.getElementById('magicInput').value = '';
+  
+  // Reset photo UI
+  document.getElementById('magicPhotoBtn').classList.remove('has-photo');
+  document.getElementById('magicPhotoBtnText').textContent = 'Add photo (optional)';
+  document.getElementById('magicPhotoPreview').style.display = 'none';
+  document.getElementById('magicPhotoMenu').classList.remove('show');
   
   // Update styles
   const stylesContainer = document.getElementById('magicStyles');
@@ -2346,9 +2422,94 @@ function openMagic(type) {
 
 function closeMagic() {
   document.getElementById('magicModal').classList.remove('show');
+  document.getElementById('magicPhotoMenu').classList.remove('show');
   if (isMagicRecording) {
     stopMagicVoice();
   }
+}
+
+// ============================================
+// MAGIC PHOTO FUNCTIONS
+// ============================================
+
+function togglePhotoMenu() {
+  const menu = document.getElementById('magicPhotoMenu');
+  menu.classList.toggle('show');
+}
+
+function takeMagicPhoto() {
+  document.getElementById('magicPhotoMenu').classList.remove('show');
+  document.getElementById('magicCameraInput').click();
+}
+
+function chooseMagicPhoto() {
+  document.getElementById('magicPhotoMenu').classList.remove('show');
+  document.getElementById('magicPhotoInput').click();
+}
+
+function handleMagicPhoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    magicPhotoData = e.target.result;
+    showMagicPhotoPreview(magicPhotoData);
+  };
+  reader.readAsDataURL(file);
+  
+  // Reset input so same file can be selected again
+  event.target.value = '';
+}
+
+function showMagicPhotoPreview(dataUrl) {
+  document.getElementById('magicPhotoImg').src = dataUrl;
+  document.getElementById('magicPhotoPreview').style.display = 'block';
+  document.getElementById('magicPhotoBtn').classList.add('has-photo');
+  document.getElementById('magicPhotoBtnText').textContent = 'Photo added ✓';
+  document.getElementById('magicInputLabel').textContent = 'Add details about this photo (optional)';
+}
+
+function removeMagicPhoto() {
+  magicPhotoData = null;
+  document.getElementById('magicPhotoPreview').style.display = 'none';
+  document.getElementById('magicPhotoBtn').classList.remove('has-photo');
+  document.getElementById('magicPhotoBtnText').textContent = 'Add photo (optional)';
+  document.getElementById('magicInputLabel').textContent = 'Add details (optional if photo added)';
+}
+
+// Drops Picker
+function openDropsPicker() {
+  document.getElementById('magicPhotoMenu').classList.remove('show');
+  
+  // Get all photo drops
+  const photoDrops = ideas.filter(i => i.image);
+  const grid = document.getElementById('dropsPickerGrid');
+  
+  if (photoDrops.length === 0) {
+    grid.innerHTML = '<div class="drops-picker-empty">No photo drops yet.<br>Take some photos first! 📷</div>';
+  } else {
+    grid.innerHTML = photoDrops.map(drop => `
+      <div class="drops-picker-item" onclick="selectDropPhoto('${drop.id}')">
+        <img src="${drop.image}" alt="Drop photo">
+      </div>
+    `).join('');
+  }
+  
+  document.getElementById('dropsPicker').classList.add('show');
+}
+
+function closeDropsPicker() {
+  document.getElementById('dropsPicker').classList.remove('show');
+}
+
+function selectDropPhoto(id) {
+  const drop = ideas.find(i => i.id == id);
+  if (drop && drop.image) {
+    magicPhotoData = drop.image;
+    showMagicPhotoPreview(drop.image);
+  }
+  closeDropsPicker();
 }
 
 function toggleMagicVoice() {
@@ -2367,33 +2528,45 @@ function startMagicVoice() {
   
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   magicRecognition = new SpeechRecognition();
-  magicRecognition.continuous = true;
+  magicRecognition.continuous = false; // Single phrase, no duplicates
   magicRecognition.interimResults = true;
+  magicRecognition.maxAlternatives = 1;
   magicRecognition.lang = 'ru-RU';
   
-  let finalTranscript = document.getElementById('magicInput').value;
+  const inputEl = document.getElementById('magicInput');
+  const existingText = inputEl.value;
+  let finalTranscript = '';
   
   magicRecognition.onresult = (e) => {
     let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
+    for (let i = 0; i < e.results.length; i++) {
       if (e.results[i].isFinal) {
-        finalTranscript += (finalTranscript ? ' ' : '') + e.results[i][0].transcript;
+        finalTranscript += e.results[i][0].transcript;
       } else {
         interim += e.results[i][0].transcript;
       }
     }
-    document.getElementById('magicInput').value = finalTranscript + (interim ? ' ' + interim : '');
+    // Show interim while speaking
+    document.getElementById('magicVoiceText').textContent = interim || finalTranscript || 'Listening...';
   };
   
-  magicRecognition.onerror = () => stopMagicVoice();
+  magicRecognition.onerror = (e) => {
+    if (e.error === 'no-speech') toast('No speech detected', 'warning');
+    stopMagicVoice();
+  };
+  
   magicRecognition.onend = () => {
-    if (isMagicRecording) stopMagicVoice();
+    // Append final result to existing text
+    if (finalTranscript) {
+      inputEl.value = existingText + (existingText ? ' ' : '') + finalTranscript.trim();
+    }
+    stopMagicVoice();
   };
   
   magicRecognition.start();
   isMagicRecording = true;
   document.getElementById('magicVoiceBtn').classList.add('recording');
-  document.getElementById('magicVoiceText').textContent = 'Listening... tap to stop';
+  document.getElementById('magicVoiceText').textContent = 'Listening...';
 }
 
 function stopMagicVoice() {
@@ -2408,8 +2581,10 @@ function stopMagicVoice() {
 
 async function generateMagic() {
   const input = document.getElementById('magicInput').value.trim();
-  if (!input) {
-    toast('Please describe what you want', 'error');
+  
+  // Need either text or photo
+  if (!input && !magicPhotoData) {
+    toast('Add a photo or describe what you want', 'error');
     return;
   }
   
@@ -2422,25 +2597,27 @@ async function generateMagic() {
     location: null
   };
   
-  // Try to get location name (if available)
-  if (navigator.geolocation) {
-    // Just use time for now, location would need geocoding API
-  }
-  
   const btn = document.getElementById('magicGenerate');
   btn.disabled = true;
   btn.textContent = '✨ Creating magic...';
   
   try {
+    const requestBody = {
+      action: currentMagicType,
+      text: input,
+      style: style,
+      context: context
+    };
+    
+    // Add photo if present
+    if (magicPhotoData) {
+      requestBody.image = magicPhotoData;
+    }
+    
     const response = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: currentMagicType,
-        text: input,
-        style: style,
-        context: context
-      }),
+      body: JSON.stringify(requestBody),
     });
     
     const data = await response.json();
