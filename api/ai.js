@@ -112,6 +112,7 @@ Style: ${styleGuide[style] || styleGuide.classic}
 Language: ALWAYS respond in the SAME language as user's input
 
 Rules:
+- If an image is provided, describe what you see and create a poem about it
 - Use personal details mentioned by user
 - Make it emotional and memorable
 - Keep it 8-16 lines
@@ -119,8 +120,29 @@ Rules:
 
 ${context ? `Context: Time is ${context.timeOfDay}, location: ${context.location}` : ''}`;
 
-      userPrompt = text;
-      messages = [{ role: 'user', content: userPrompt }];
+      userPrompt = text || 'Create a poem about this image';
+      
+      // Check if image provided
+      if (image) {
+        let imageData = image;
+        let mediaType = 'image/jpeg';
+        if (image.startsWith('data:')) {
+          const matches = image.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            mediaType = matches[1];
+            imageData = matches[2];
+          }
+        }
+        messages = [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageData } },
+            { type: 'text', text: userPrompt }
+          ]
+        }];
+      } else {
+        messages = [{ role: 'user', content: userPrompt }];
+      }
 
     } else if (action === 'greeting') {
       const styleGuide = {
@@ -136,6 +158,7 @@ Style: ${styleGuide[style] || styleGuide.warm}
 Language: ALWAYS respond in the SAME language as user's input
 
 Rules:
+- If an image is provided, incorporate what you see into the greeting
 - 2-5 sentences maximum
 - Use personal details if provided
 - Make it shareable and touching
@@ -143,8 +166,28 @@ Rules:
 
 ${context ? `Context: Time is ${context.timeOfDay}, location: ${context.location}` : ''}`;
 
-      userPrompt = text;
-      messages = [{ role: 'user', content: userPrompt }];
+      userPrompt = text || 'Create a greeting based on this image';
+      
+      if (image) {
+        let imageData = image;
+        let mediaType = 'image/jpeg';
+        if (image.startsWith('data:')) {
+          const matches = image.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            mediaType = matches[1];
+            imageData = matches[2];
+          }
+        }
+        messages = [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageData } },
+            { type: 'text', text: userPrompt }
+          ]
+        }];
+      } else {
+        messages = [{ role: 'user', content: userPrompt }];
+      }
 
     } else if (action === 'speech') {
       const lengthGuide = {
@@ -159,6 +202,7 @@ Length: ${lengthGuide[style] || lengthGuide.short}
 Language: ALWAYS respond in the SAME language as user's input
 
 Rules:
+- If an image is provided, incorporate what you see into the speech
 - Strong opening hook
 - Use personal details and anecdotes
 - Include 1-2 metaphors or quotes
@@ -168,8 +212,28 @@ Rules:
 
 ${context ? `Context: Time is ${context.timeOfDay}, location: ${context.location}` : ''}`;
 
-      userPrompt = text;
-      messages = [{ role: 'user', content: userPrompt }];
+      userPrompt = text || 'Create a speech about this image';
+      
+      if (image) {
+        let imageData = image;
+        let mediaType = 'image/jpeg';
+        if (image.startsWith('data:')) {
+          const matches = image.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            mediaType = matches[1];
+            imageData = matches[2];
+          }
+        }
+        messages = [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageData } },
+            { type: 'text', text: userPrompt }
+          ]
+        }];
+      } else {
+        messages = [{ role: 'user', content: userPrompt }];
+      }
 
     } else if (action === 'summarize') {
       systemPrompt = 'Summarize the following text in 1-2 concise sentences. Keep the main point. Same language as input.';
