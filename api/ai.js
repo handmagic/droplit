@@ -236,16 +236,61 @@ ${context ? `Context: Time is ${context.timeOfDay}, location: ${context.location
       }
 
     } else if (action === 'summarize') {
-      systemPrompt = 'Summarize the following text in 1-2 concise sentences. Keep the main point. Same language as input.';
+      const checkCategory = body.checkCategory || false;
+      
+      systemPrompt = `You are a helpful assistant. Summarize the following text concisely in 1-3 sentences.
+Keep the main points. Same language as input.
+${checkCategory ? `
+Also analyze and suggest the best category from: tasks, ideas, bugs, questions, design, handmagic, inbox.
+Return JSON format: {"summary": "your summary here", "suggestedCategory": "category_name"}
+` : 'Output ONLY the summary text, no explanations.'}`;
+      
       userPrompt = text;
       messages = [{ role: 'user', content: userPrompt }];
 
     } else if (action === 'tasks') {
-      systemPrompt = `Extract actionable tasks from the text. 
-Format as a simple numbered list.
-Each task should be clear and actionable.
+      systemPrompt = `Extract actionable tasks from the text.
+Return as JSON array of task strings.
+Each task should be clear, actionable, and concise.
 Same language as input.
-Output ONLY the task list.`;
+Format: {"tasks": ["task 1", "task 2", "task 3"]}`;
+      
+      userPrompt = text;
+      messages = [{ role: 'user', content: userPrompt }];
+
+    } else if (action === 'expand') {
+      const checkCategory = body.checkCategory || false;
+      
+      systemPrompt = `You are a creative assistant. Expand on the given idea or text.
+Add more details, examples, or considerations.
+Keep the same tone and language as input.
+Make it 2-3x longer but stay relevant.
+${checkCategory ? `
+Also analyze and suggest the best category from: tasks, ideas, bugs, questions, design, handmagic, inbox.
+Return JSON format: {"expanded": "your expanded text here", "suggestedCategory": "category_name"}
+` : 'Output ONLY the expanded text, no explanations.'}`;
+      
+      userPrompt = text;
+      messages = [{ role: 'user', content: userPrompt }];
+
+    } else if (action === 'rewrite') {
+      const rewriteStyle = style || 'professional';
+      const checkCategory = body.checkCategory || false;
+      
+      const styleGuides = {
+        professional: 'formal, business-appropriate tone',
+        casual: 'friendly, conversational tone',
+        concise: 'brief and to the point',
+        detailed: 'thorough with more context'
+      };
+      
+      systemPrompt = `You are a writing assistant. Rewrite the text in a ${styleGuides[rewriteStyle] || styleGuides.professional}.
+Keep the same meaning and language.
+${checkCategory ? `
+Also analyze and suggest the best category from: tasks, ideas, bugs, questions, design, handmagic, inbox.
+Return JSON format: {"rewritten": "your rewritten text here", "suggestedCategory": "category_name"}
+` : 'Output ONLY the rewritten text, no explanations.'}`;
+      
       userPrompt = text;
       messages = [{ role: 'user', content: userPrompt }];
 
