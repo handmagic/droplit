@@ -131,7 +131,7 @@
     .card.active { box-shadow: 0 0 0 2px var(--color-active), var(--shadow-card); }
     .card.editing { box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-card); }
     .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
-    /* Checkbox removed in v0.7.8 */
+    /* Checkbox removed in v0.8.0 */
     .card-checkbox { display: none !important; }
     .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
     .card-chars { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
@@ -503,7 +503,7 @@
   <div class="toast-wrap" id="toastWrap"></div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.7.8 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.0 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -549,6 +549,11 @@ let curCat='all',curTime='all',sortAsc=true,isRec=false,recognition=null,saved=f
 let sendId=null,delId=null,catChangeId=null,editId=null,activeCardId=null;
 let selectMode=false,selectedIds=[];
 let lastScrollTop=0,longPressTimer=null;
+
+// AI Configuration
+const AI_API_URL = '/api/ai';
+let aiProcessing = false;
+
 const CATS={
   tasks:{name:'TASKS',single:'TASK',kw:['task','tasks','todo','задача','задачи','сделать','нужно','надо'],isMedia:false},
   ideas:{name:'IDEAS',single:'IDEA',kw:['idea','ideas','идея','идеи','мысль','придумал'],isMedia:false},
@@ -1956,12 +1961,179 @@ function saveImageToGallery(){
   toast('Image saved!','success');
 }
 
-function ocrImage(){
-  toast('OCR coming soon with AI!','info');
+// ============================================
+// AI FUNCTIONS (v0.8.0)
+// ============================================
+
+async function ocrImage() {
+  if (aiProcessing) {
+    toast('AI is processing...', 'info');
+    return;
+  }
+  
+  const item = ideas.find(x => x.id === currentImageId);
+  if (!item || !item.image) {
+    toast('No image to process', 'error');
+    return;
+  }
+
+  aiProcessing = true;
+  toast('Extracting text...', 'info');
+  
+  const btn = document.querySelector('.img-act[onclick="ocrImage()"]');
+  if (btn) {
+    btn.textContent = '⏳';
+    btn.disabled = true;
+  }
+
+  try {
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'ocr', image: item.image }),
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.result) {
+      const existingNotes = item.notes || '';
+      const ocrText = data.result;
+      
+      if (existingNotes) {
+        item.notes = existingNotes + '\n\n--- OCR ---\n' + ocrText;
+      } else {
+        item.notes = ocrText;
+      }
+      
+      if (!item.text) {
+        item.text = ocrText.substring(0, 200) + (ocrText.length > 200 ? '...' : '');
+      }
+      
+      save();
+      
+      const notesArea = document.getElementById('imgNotes');
+      if (notesArea) notesArea.value = item.notes;
+      
+      toast('Text extracted! ✅', 'success');
+      showAIResult('OCR Result', ocrText);
+    } else {
+      toast(data.error || 'OCR failed', 'error');
+    }
+  } catch (error) {
+    console.error('OCR error:', error);
+    toast('Connection error', 'error');
+  } finally {
+    aiProcessing = false;
+    if (btn) {
+      btn.textContent = 'OCR';
+      btn.disabled = false;
+    }
+  }
 }
 
-function aiDescribe(){
-  toast('AI description coming soon!','info');
+async function aiDescribe() {
+  if (aiProcessing) {
+    toast('AI is processing...', 'info');
+    return;
+  }
+  
+  const item = ideas.find(x => x.id === currentImageId);
+  if (!item || !item.image) {
+    toast('No image to process', 'error');
+    return;
+  }
+
+  aiProcessing = true;
+  toast('Analyzing image...', 'info');
+  
+  const btn = document.querySelector('.img-act[onclick="aiDescribe()"]');
+  if (btn) {
+    btn.textContent = '⏳';
+    btn.disabled = true;
+  }
+
+  try {
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'describe', image: item.image }),
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.result) {
+      const description = data.result;
+      const existingNotes = item.notes || '';
+      
+      if (existingNotes) {
+        item.notes = existingNotes + '\n\n--- AI Description ---\n' + description;
+      } else {
+        item.notes = description;
+      }
+      
+      if (!item.text) {
+        item.text = description.substring(0, 200) + (description.length > 200 ? '...' : '');
+      }
+      
+      save();
+      
+      const notesArea = document.getElementById('imgNotes');
+      if (notesArea) notesArea.value = item.notes;
+      
+      toast('Image analyzed! ✅', 'success');
+      showAIResult('AI Description', description);
+    } else {
+      toast(data.error || 'Analysis failed', 'error');
+    }
+  } catch (error) {
+    console.error('AI describe error:', error);
+    toast('Connection error', 'error');
+  } finally {
+    aiProcessing = false;
+    if (btn) {
+      btn.textContent = 'AI';
+      btn.disabled = false;
+    }
+  }
+}
+
+// AI Result Modal
+function showAIResult(title, text) {
+  let modal = document.getElementById('aiResultModal');
+  
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'aiResultModal';
+    modal.className = 'overlay';
+    modal.innerHTML = `
+      <div class="modal" style="max-height: 80vh; display: flex; flex-direction: column;">
+        <div class="modal-title" id="aiResultTitle">AI Result</div>
+        <div id="aiResultContent" style="flex: 1; overflow-y: auto; padding: 16px 0; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; max-height: 50vh;"></div>
+        <div class="modal-actions">
+          <button class="modal-btn sec" onclick="closeAIResult()">Close</button>
+          <button class="modal-btn pri" onclick="copyAIResult()">Copy</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  
+  document.getElementById('aiResultTitle').textContent = title;
+  document.getElementById('aiResultContent').textContent = text;
+  modal.classList.add('show');
+}
+
+function closeAIResult() {
+  const modal = document.getElementById('aiResultModal');
+  if (modal) modal.classList.remove('show');
+}
+
+function copyAIResult() {
+  const content = document.getElementById('aiResultContent');
+  if (content) {
+    navigator.clipboard.writeText(content.textContent);
+    toast('Copied!', 'success');
+  }
 }
 
 function deleteFromViewer(){
@@ -2025,7 +2197,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.7.8';
+  md+='---\nExported from DropLit v0.8.0';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
