@@ -152,13 +152,13 @@
     .card-marker.pop { animation: markerPop 0.2s ease; }
     @keyframes markerPop { 0% { transform: scale(0); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
     
-    /* Markers panel (shown when card is active) */
-    .card-markers { display: none; flex-wrap: wrap; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-btn); border-radius: var(--radius-lg) var(--radius-lg) 0 0; margin: -12px -12px 12px -12px; }
+    /* Markers panel (shown when card is active) - BELOW actions */
+    .card-markers { display: none; flex-wrap: wrap; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--color-border); background: var(--color-bg-btn); border-radius: 0 0 var(--radius-lg) var(--radius-lg); margin: 12px -12px -12px -12px; }
     .card.active .card-markers { display: flex; }
-    .marker-btn { width: 36px; height: 36px; border: none; background: var(--color-bg-card); border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; opacity: 0.5; }
-    .marker-btn:hover { opacity: 0.8; transform: scale(1.1); }
+    .marker-btn { width: 36px; height: 36px; border: none; background: var(--color-bg-card); border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; opacity: 0.4; }
+    .marker-btn:hover { opacity: 0.7; transform: scale(1.1); }
     .marker-btn:active { transform: scale(0.95); }
-    .marker-btn.active { opacity: 1; background: var(--color-primary); box-shadow: 0 2px 8px rgba(255,107,74,0.3); }
+    .marker-btn.active { opacity: 1; background: var(--color-bg); box-shadow: 0 0 0 2px var(--color-primary); }
     .card-cat.scan { background: var(--cat-scan-bg); color: var(--cat-scan-text); }
     .card-cat.photo { background: var(--cat-photo-bg); color: var(--cat-photo-text); }
     
@@ -366,6 +366,7 @@
     .image-actions.hidden { display: none; }
     .image-edit-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
     .img-act { flex-shrink: 0; height: 36px; padding: 0 14px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .img-act.delete { background: rgba(239,68,68,0.15); color: #EF4444; }
     .img-act:active { background: var(--color-bg-soft); }
     .img-act.primary { background: var(--color-primary); color: white; }
     .image-counter { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: white; padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 600; z-index: 10; }
@@ -533,6 +534,7 @@
         <button class="img-act" onclick="aiDescribe()">AI</button>
         <button class="img-act" onclick="shareImage()">Share</button>
         <button class="img-act" onclick="saveImageToGallery()">Download</button>
+        <button class="img-act delete" onclick="deleteFromViewer()">Delete</button>
       </div>
     </div>
   </div>
@@ -1202,13 +1204,6 @@ function render(){
       const isTruncated=cc>500;
       h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
       h+='<div class="card-checkbox">'+(isSelected?'V':'')+'</div>';
-      // Markers panel (visible when active)
-      h+='<div class="card-markers">';
-      for(const mk of Object.keys(MARKERS)){
-        const isMarked=i.markers&&i.markers.includes(mk);
-        h+='<button class="marker-btn'+(isMarked?' active':'')+'" onclick="toggleMarker('+i.id+',\''+mk+'\',event)">'+MARKERS[mk]+'</button>';
-      }
-      h+='</div>';
       h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
       // Markers (right after category)
       if(i.markers&&i.markers.length){
@@ -1248,6 +1243,13 @@ function render(){
       if(!i.isMedia){
         h+='<div class="card-edit-actions"><button class="act primary" onclick="saveEdit('+i.id+')">Save</button><button class="act secondary" onclick="cancelEdit('+i.id+')">Cancel</button></div>';
       }
+      // Markers panel at bottom
+      h+='<div class="card-markers">';
+      for(const mk of Object.keys(MARKERS)){
+        const isMarked=i.markers&&i.markers.includes(mk);
+        h+='<button class="marker-btn'+(isMarked?' active':'')+'" onclick="toggleMarker('+i.id+',\''+mk+'\',event)">'+MARKERS[mk]+'</button>';
+      }
+      h+='</div>';
       h+='</div>';
     }
   }
@@ -1900,6 +1902,18 @@ function ocrImage(){
 
 function aiDescribe(){
   toast('AI description coming soon!','info');
+}
+
+function deleteFromViewer(){
+  if(!currentImageId)return;
+  if(confirm('Delete this image?')){
+    ideas=ideas.filter(x=>x.id!==currentImageId);
+    save();
+    closeImageViewer();
+    render();
+    counts();
+    toast('Deleted','info');
+  }
 }
 
 
