@@ -634,6 +634,57 @@
     .image-viewer img.zoomed { max-width: none; max-height: none; }
     .image-viewer-close { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; z-index: 10; }
     .image-viewer-close:active { background: rgba(255,255,255,0.3); }
+    
+    /* AI button on photo */
+    .image-viewer-ai { position: absolute; top: 72px; right: 16px; width: 52px; height: 52px; background: linear-gradient(135deg, #8B5CF6, #3B82F6); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.4rem; cursor: pointer; z-index: 10; box-shadow: 0 4px 12px rgba(139,92,246,0.4); transition: transform 0.15s; }
+    .image-viewer-ai:active { transform: scale(0.9); }
+    
+    /* Markers button on photo */
+    .image-viewer-markers { position: absolute; top: 16px; left: 16px; min-width: 44px; height: 44px; padding: 0 12px; background: rgba(255,255,255,0.15); border-radius: 22px; display: flex; align-items: center; justify-content: center; gap: 4px; color: white; font-size: 1.1rem; cursor: pointer; z-index: 10; }
+    .image-viewer-markers:active { background: rgba(255,255,255,0.3); }
+    .image-viewer-markers.has-markers { background: rgba(139,92,246,0.6); }
+    
+    /* Photo AI Tools Modal */
+    .photo-ai-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 250; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+    .photo-ai-modal.show { opacity: 1; visibility: visible; }
+    .photo-ai-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 360px; overflow: hidden; transform: scale(0.9); transition: transform 0.2s; }
+    .photo-ai-modal.show .photo-ai-content { transform: scale(1); }
+    .photo-ai-header { padding: 20px; background: linear-gradient(135deg, #8B5CF6, #3B82F6); color: white; text-align: center; }
+    .photo-ai-header h3 { font-size: 1.2rem; margin: 0; }
+    .photo-ai-header p { font-size: 0.85rem; opacity: 0.9; margin: 4px 0 0; }
+    .photo-ai-tools { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .photo-ai-btn { display: flex; align-items: center; gap: 14px; padding: 16px; border: none; background: var(--color-bg); border-radius: 14px; cursor: pointer; transition: all 0.15s; text-align: left; }
+    .photo-ai-btn:hover { background: rgba(139,92,246,0.1); }
+    .photo-ai-btn:active { transform: scale(0.98); }
+    .photo-ai-btn .icon { width: 44px; height: 44px; background: linear-gradient(135deg, #8B5CF6, #3B82F6); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+    .photo-ai-btn .info { flex: 1; }
+    .photo-ai-btn .title { font-size: 1rem; font-weight: 600; color: var(--color-text); }
+    .photo-ai-btn .desc { font-size: 0.8rem; color: var(--color-text-muted); margin-top: 2px; }
+    .photo-ai-cancel { padding: 14px; border: none; background: none; width: 100%; font-size: 0.95rem; color: var(--color-text-muted); cursor: pointer; border-top: 1px solid var(--color-border); }
+    
+    /* Photo AI Result Modal */
+    .photo-ai-result { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 260; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+    .photo-ai-result.show { opacity: 1; visibility: visible; }
+    .photo-ai-result-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 400px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; }
+    .photo-ai-result-header { padding: 16px 20px; background: linear-gradient(135deg, #8B5CF6, #3B82F6); color: white; }
+    .photo-ai-result-header h3 { font-size: 1.1rem; margin: 0; }
+    .photo-ai-result-text { flex: 1; padding: 16px 20px; overflow-y: auto; font-size: 0.95rem; line-height: 1.5; color: var(--color-text); }
+    .photo-ai-result-actions { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--color-border); }
+    .photo-ai-result-btn { padding: 14px; border: none; border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; }
+    .photo-ai-result-btn.primary { background: linear-gradient(135deg, #8B5CF6, #3B82F6); color: white; }
+    .photo-ai-result-btn.secondary { background: var(--color-bg); color: var(--color-text); }
+    .photo-ai-result-btn:active { transform: scale(0.98); }
+    
+    /* Photo Markers Modal */
+    .photo-markers-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 250; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+    .photo-markers-modal.show { opacity: 1; visibility: visible; }
+    .photo-markers-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 320px; padding: 20px; text-align: center; }
+    .photo-markers-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; }
+    .photo-markers-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 16px; }
+    .photo-marker-btn { width: 56px; height: 56px; border: 2px solid var(--color-border); background: var(--color-bg); border-radius: 14px; font-size: 1.6rem; cursor: pointer; transition: all 0.15s; }
+    .photo-marker-btn:active { transform: scale(0.9); }
+    .photo-marker-btn.active { border-color: #8B5CF6; background: rgba(139,92,246,0.15); }
+    .photo-markers-done { width: 100%; padding: 14px; border: none; background: linear-gradient(135deg, #8B5CF6, #3B82F6); color: white; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; }
     .image-viewer-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: var(--radius-full); display: none; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; z-index: 10; }
     .image-viewer-nav:active { background: rgba(255,255,255,0.3); }
     .image-viewer-nav.prev { left: 10px; }
@@ -1115,7 +1166,9 @@
   <div class="overlay" id="addCatModal"><div class="modal"><div class="modal-title">Add Category</div><div class="modal-text">Custom categories coming in a future update!</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAddCatModal()">OK</button></div></div></div>
   <div class="overlay" id="mergeModal"><div class="modal"><div class="modal-title">Merge Preview</div><div class="merge-options"><label class="merge-toggle"><input type="checkbox" id="mergeSimple" onchange="updateMergePreview()"><span>Simple merge (no headers)</span></label></div><div class="merge-preview" id="mergePreview"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeMergeModal()">Cancel</button><button class="modal-btn sec" onclick="copyMerged()">Copy</button><button class="modal-btn merge" onclick="saveMerged()">Save</button></div></div></div>
   <div class="overlay image-viewer" id="imageViewer" onclick="handleImageViewerClick(event)">
-    <div class="image-viewer-close" onclick="closeImageViewer()">X</div>
+    <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
+    <div class="image-viewer-markers" id="imageViewerMarkers" onclick="openPhotoMarkers()">🏷️</div>
+    <div class="image-viewer-ai" onclick="openPhotoAI()">✨</div>
     <div class="image-counter" id="imageCounter">1 / 1</div>
     <div class="image-viewer-nav prev" id="imgNavPrev" onclick="navigateImage(-1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg></div>
     <div class="image-viewer-nav next" id="imgNavNext" onclick="navigateImage(1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg></div>
@@ -1136,12 +1189,74 @@
         </div>
       </div>
       <div class="image-actions" id="imageActions">
-        <button class="img-act" onclick="ocrImage()">OCR</button>
-        <button class="img-act" onclick="aiDescribe()">AI</button>
         <button class="img-act" onclick="shareImage()">Share</button>
         <button class="img-act" onclick="saveImageToGallery()">Download</button>
         <button class="img-act delete" onclick="deleteFromViewer()">Delete</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Photo AI Tools Modal -->
+  <div class="photo-ai-modal" id="photoAIModal" onclick="if(event.target===this)closePhotoAI()">
+    <div class="photo-ai-content">
+      <div class="photo-ai-header">
+        <h3>✨ AI Tools</h3>
+        <p>What would you like to do?</p>
+      </div>
+      <div class="photo-ai-tools">
+        <button class="photo-ai-btn" onclick="runPhotoAI('ocr')">
+          <div class="icon">📝</div>
+          <div class="info">
+            <div class="title">Extract Text (OCR)</div>
+            <div class="desc">Read and copy text from image</div>
+          </div>
+        </button>
+        <button class="photo-ai-btn" onclick="runPhotoAI('describe')">
+          <div class="icon">🔍</div>
+          <div class="info">
+            <div class="title">Describe Image</div>
+            <div class="desc">AI generates detailed description</div>
+          </div>
+        </button>
+        <button class="photo-ai-btn" onclick="startEditCaption(); closePhotoAI();">
+          <div class="icon">✏️</div>
+          <div class="info">
+            <div class="title">Edit Caption</div>
+            <div class="desc">Add or edit photo notes</div>
+          </div>
+        </button>
+      </div>
+      <button class="photo-ai-cancel" onclick="closePhotoAI()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Photo AI Result Modal -->
+  <div class="photo-ai-result" id="photoAIResult" onclick="if(event.target===this)closePhotoAIResult()">
+    <div class="photo-ai-result-content">
+      <div class="photo-ai-result-header">
+        <h3 id="photoAIResultTitle">✨ Result</h3>
+      </div>
+      <div class="photo-ai-result-text" id="photoAIResultText"></div>
+      <div class="photo-ai-result-actions">
+        <button class="photo-ai-result-btn primary" onclick="savePhotoAIToCaption()">
+          📝 Set as Caption
+        </button>
+        <button class="photo-ai-result-btn secondary" onclick="savePhotoAIToNewDrop()">
+          💧 Create New Drop
+        </button>
+        <button class="photo-ai-result-btn secondary" onclick="copyPhotoAIResult()">
+          📋 Copy to Clipboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Photo Markers Modal -->
+  <div class="photo-markers-modal" id="photoMarkersModal" onclick="if(event.target===this)closePhotoMarkersModal()">
+    <div class="photo-markers-content">
+      <div class="photo-markers-title">🏷️ Add Markers</div>
+      <div class="photo-markers-grid" id="photoMarkersGrid"></div>
+      <button class="photo-markers-done" onclick="closePhotoMarkersModal()">Done</button>
     </div>
   </div>
 
@@ -1407,6 +1522,11 @@ function toggleMarker(id,marker,e){
   
   save();
   render();
+  
+  // Update photo markers button if in image viewer
+  if(currentImageId === id) {
+    updatePhotoMarkersButton();
+  }
 }
 
 function handleCardLongPress(id){
@@ -2138,6 +2258,7 @@ function viewImage(id,e){
   showImagePanel();
   loadCurrentImage();
   updateNavigation();
+  updatePhotoMarkersButton();
   
   document.getElementById('imageViewer').classList.add('show');
   
@@ -2245,6 +2366,7 @@ function navigateImage(direction){
     img.style.transition = 'opacity 0.15s ease-out';
     img.style.opacity = '1';
     updateNavigation();
+    updatePhotoMarkersButton();
   }, 100);
 }
 
@@ -2521,6 +2643,7 @@ function handleTouchEnd(e){
             img.style.transform = 'translateX(0)';
             img.style.opacity = '1';
             updateNavigation();
+            updatePhotoMarkersButton();
           }, 20);
         }, 150);
         return;
@@ -4041,6 +4164,255 @@ async function updateTokenBalance() {
   // } catch (e) {
   //   document.getElementById('tokenBalance').textContent = 'N/A';
   // }
+}
+
+// ============================================
+// PHOTO AI TOOLS
+// ============================================
+
+let photoAIResult = null;
+let photoAIType = null;
+
+function openPhotoAI() {
+  document.getElementById('photoAIModal').classList.add('show');
+}
+
+function closePhotoAI() {
+  document.getElementById('photoAIModal').classList.remove('show');
+}
+
+async function runPhotoAI(type) {
+  closePhotoAI();
+  photoAIType = type;
+  
+  if (type === 'ocr') {
+    await ocrImageNew();
+  } else if (type === 'describe') {
+    await aiDescribeNew();
+  }
+}
+
+async function ocrImageNew() {
+  if (aiProcessing) {
+    toast('AI is processing...', 'info');
+    return;
+  }
+  
+  const item = ideas.find(x => x.id === currentImageId);
+  if (!item || !item.image) {
+    toast('No image to process', 'error');
+    return;
+  }
+
+  aiProcessing = true;
+  showAILoading('ocr', false);
+
+  try {
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'ocr', image: item.image }),
+    });
+
+    const data = await response.json();
+    hideAILoading();
+
+    if (data.success && data.result) {
+      photoAIResult = data.result;
+      showPhotoAIResult('📝 Extracted Text', photoAIResult);
+    } else {
+      toast(data.error || 'OCR failed', 'error');
+    }
+  } catch (error) {
+    console.error('OCR error:', error);
+    hideAILoading();
+    toast('Connection error', 'error');
+  } finally {
+    aiProcessing = false;
+  }
+}
+
+async function aiDescribeNew() {
+  if (aiProcessing) {
+    toast('AI is processing...', 'info');
+    return;
+  }
+  
+  const item = ideas.find(x => x.id === currentImageId);
+  if (!item || !item.image) {
+    toast('No image to process', 'error');
+    return;
+  }
+
+  aiProcessing = true;
+  showAILoading('describe', false);
+
+  try {
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'describe', image: item.image }),
+    });
+
+    const data = await response.json();
+    hideAILoading();
+
+    if (data.success && data.result) {
+      photoAIResult = data.result;
+      showPhotoAIResult('🔍 Image Description', photoAIResult);
+    } else {
+      toast(data.error || 'Analysis failed', 'error');
+    }
+  } catch (error) {
+    console.error('AI describe error:', error);
+    hideAILoading();
+    toast('Connection error', 'error');
+  } finally {
+    aiProcessing = false;
+  }
+}
+
+function showPhotoAIResult(title, text) {
+  document.getElementById('photoAIResultTitle').textContent = title;
+  document.getElementById('photoAIResultText').textContent = text;
+  document.getElementById('photoAIResult').classList.add('show');
+}
+
+function closePhotoAIResult() {
+  document.getElementById('photoAIResult').classList.remove('show');
+  photoAIResult = null;
+  photoAIType = null;
+}
+
+function savePhotoAIToCaption() {
+  if (!photoAIResult || !currentImageId) return;
+  
+  const item = ideas.find(x => x.id === currentImageId);
+  if (item) {
+    // Truncate to 200 chars for caption
+    const MAX_CAPTION = 200;
+    if (photoAIResult.length > MAX_CAPTION) {
+      item.notes = photoAIResult.substring(0, MAX_CAPTION) + '...';
+    } else {
+      item.notes = photoAIResult;
+    }
+    save();
+    updateImageViewerCaption();
+    render();
+    toast('Caption updated! ✓', 'success');
+  }
+  closePhotoAIResult();
+}
+
+function savePhotoAIToNewDrop() {
+  if (!photoAIResult) return;
+  
+  const sourceItem = ideas.find(x => x.id === currentImageId);
+  const category = detectCat(photoAIResult);
+  
+  const idea = {
+    id: Date.now(),
+    text: photoAIResult,
+    category: category,
+    timestamp: new Date().toISOString(),
+    date: new Date().toLocaleDateString('ru-RU'),
+    time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+    aiGenerated: true,
+    sourceImageId: currentImageId
+  };
+  
+  ideas.push(idea);
+  save();
+  render();
+  counts();
+  
+  toast('New drop created! 💧', 'success');
+  closePhotoAIResult();
+}
+
+function copyPhotoAIResult() {
+  if (!photoAIResult) return;
+  
+  navigator.clipboard.writeText(photoAIResult);
+  toast('Copied! 📋', 'success');
+  closePhotoAIResult();
+}
+
+function updateImageViewerCaption() {
+  const item = ideas.find(x => x.id === currentImageId);
+  if (item) {
+    const captionDisplay = document.getElementById('imageCaptionDisplay');
+    if (captionDisplay) {
+      captionDisplay.textContent = item.notes || '';
+    }
+  }
+}
+
+// ============================================
+// PHOTO MARKERS
+// ============================================
+
+function openPhotoMarkers() {
+  if (!currentImageId) return;
+  
+  const item = ideas.find(x => x.id === currentImageId);
+  if (!item) return;
+  
+  // Build markers grid
+  const grid = document.getElementById('photoMarkersGrid');
+  grid.innerHTML = Object.keys(MARKERS).map(mk => {
+    const isActive = item.markers && item.markers.includes(mk);
+    return `<button class="photo-marker-btn${isActive ? ' active' : ''}" onclick="togglePhotoMarker('${mk}')">${MARKERS[mk]}</button>`;
+  }).join('');
+  
+  document.getElementById('photoMarkersModal').classList.add('show');
+}
+
+function closePhotoMarkersModal() {
+  document.getElementById('photoMarkersModal').classList.remove('show');
+}
+
+function togglePhotoMarker(marker) {
+  if (!currentImageId) return;
+  
+  const item = ideas.find(x => x.id === currentImageId);
+  if (!item) return;
+  
+  if (!item.markers) item.markers = [];
+  
+  const idx = item.markers.indexOf(marker);
+  if (idx === -1) {
+    item.markers.push(marker);
+  } else {
+    item.markers.splice(idx, 1);
+  }
+  
+  save();
+  render();
+  updatePhotoMarkersButton();
+  
+  // Update button state in modal
+  const btns = document.querySelectorAll('.photo-marker-btn');
+  btns.forEach(btn => {
+    const mk = Object.keys(MARKERS).find(k => MARKERS[k] === btn.textContent);
+    if (mk) {
+      btn.classList.toggle('active', item.markers.includes(mk));
+    }
+  });
+}
+
+function updatePhotoMarkersButton() {
+  const item = ideas.find(x => x.id === currentImageId);
+  const btn = document.getElementById('imageViewerMarkers');
+  if (!btn) return;
+  
+  if (item && item.markers && item.markers.length > 0) {
+    btn.innerHTML = item.markers.map(m => MARKERS[m] || '').join('');
+    btn.classList.add('has-markers');
+  } else {
+    btn.innerHTML = '🏷️';
+    btn.classList.remove('has-markers');
+  }
 }
 
 function toast(m,t='info'){
