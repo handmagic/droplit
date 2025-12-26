@@ -65,7 +65,7 @@
     .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--color-bg); position: relative; padding-top: var(--safe-top); }
 
     /* Header */
-    .header { display: flex; align-items: center; padding: 8px 14px; background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); gap: 10px; flex-shrink: 0; }
+    .header { display: flex; align-items: center; padding: 8px 14px; background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); gap: 10px; }
     .logo-btn { width: 36px; height: 36px; border: none; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(255,107,74,0.25); }
     .logo-btn:active { transform: scale(0.95); }
     .logo-btn svg { width: 18px; height: 18px; }
@@ -79,7 +79,7 @@
     .warning { padding: 8px; background: #FEF3C7; color: #92400E; font-size: 0.75rem; text-align: center; font-weight: 600; display: none; }
 
     /* Filters */
-    .filters { background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); padding: 8px 10px; flex-shrink: 0; }
+    .filters { background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
     .time-row { display: flex; justify-content: center; gap: 6px; margin-bottom: 8px; }
     .time-btn { height: 34px; padding: 0 12px; border: 2px solid transparent; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
     .time-btn:active { transform: scale(0.97); }
@@ -276,14 +276,14 @@
     .magic-voice-btn:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
     .magic-voice-btn.recording { border-color: var(--color-recording); background: rgba(239,68,68,0.1); color: var(--color-recording); animation: pulse 1s infinite; }
     .magic-styles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-    .magic-style { height: 34px; padding: 0 16px; border: 2px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-btn); font-family: var(--font-main); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; }
+    .magic-style { padding: 8px 16px; border: 2px solid var(--color-border); border-radius: 20px; background: none; font-family: var(--font-main); font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
     .magic-style:hover { border-color: #8B5CF6; }
     .magic-style.active { border-color: #8B5CF6; background: rgba(139,92,246,0.1); color: #8B5CF6; }
-    .magic-generate { height: 56px; padding: 0 32px; border: 2px solid transparent; border-radius: var(--radius-full); background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; font-family: var(--font-main); font-size: 1rem; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: all 0.15s; width: 100%; display: flex; align-items: center; justify-content: center; }
-    .magic-generate:active { transform: scale(0.98); }
+    .magic-generate { width: 100%; padding: 16px; border: none; border-radius: 12px; background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; font-family: var(--font-main); font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+    .magic-generate:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(139,92,246,0.4); }
     .magic-generate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     .magic-footer { padding: 16px 20px; border-top: 1px solid var(--color-border); }
-    .magic-cancel { height: 48px; padding: 0 24px; border: 2px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-btn); font-family: var(--font-main); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-soft); cursor: pointer; width: 100%; }
+    .magic-cancel { padding: 10px 24px; border: none; background: none; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text-soft); cursor: pointer; }
     
     /* Drops picker modal */
     .drops-picker { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 250; display: flex; align-items: flex-end; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.2s; }
@@ -348,14 +348,15 @@
     .ai-result-category-btn:hover { border-color: #8B5CF6; }
     .ai-result-category-btn.accept { border-color: #10B981; background: rgba(16,185,129,0.1); color: #059669; }
     .ai-result-actions { padding: 20px; border-top: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
-    .ai-result-action-btn { height: 48px; padding: 0 24px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; width: 100%; }
-    .ai-result-action-btn:active { transform: scale(0.98); }
-    .ai-result-action-btn.primary { background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; border-color: transparent; }
-    .ai-result-action-btn.secondary { background: var(--color-bg-btn); color: var(--color-text); border-color: var(--color-border); }
+    .ai-result-action-btn { padding: 14px; border: none; border-radius: 12px; font-family: var(--font-main); font-size: 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; }
+    .ai-result-action-btn.primary { background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; }
+    .ai-result-action-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(139,92,246,0.3); }
+    .ai-result-action-btn.secondary { background: var(--color-bg-btn); color: var(--color-text); }
+    .ai-result-action-btn.secondary:hover { background: var(--color-border); }
     .ai-result-action-row { display: flex; gap: 10px; }
     .ai-result-action-row .ai-result-action-btn { flex: 1; }
-    .ai-result-cancel { height: 48px; padding: 0 24px; border: 2px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-btn); font-family: var(--font-main); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-soft); cursor: pointer; transition: all 0.15s; width: 100%; }
-    .ai-result-cancel:active { transform: scale(0.98); }
+    .ai-result-cancel { width: 100%; padding: 14px; margin-top: 8px; border: 2px solid var(--color-border); border-radius: 12px; background: var(--color-bg); font-family: var(--font-main); font-size: 1rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; transition: all 0.15s; }
+    .ai-result-cancel:hover { border-color: var(--color-text-muted); background: var(--color-bg-soft); }
     
     /* B2 FIX: Tasks Preview List */
     .tasks-preview-list { display: flex; flex-direction: column; gap: 8px; max-height: 40vh; overflow-y: auto; }
@@ -399,13 +400,13 @@
     .main-menu-footer-btn:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
     
     /* Balance Card */
-    .balance-card { margin: 16px; padding: 16px; background: linear-gradient(135deg, #8B5CF6, #EC4899); border-radius: 16px; color: white; }
+    .balance-card { margin: 16px 16px 0 16px; padding: 16px; background: linear-gradient(135deg, #8B5CF6, #EC4899); border-radius: 16px; color: white; }
     .balance-label { font-size: 0.8rem; opacity: 0.9; margin-bottom: 4px; }
     .balance-value { font-size: 1.8rem; font-weight: 700; }
     .balance-hint { font-size: 0.75rem; opacity: 0.8; margin-top: 6px; }
     
     /* Menu Sections */
-    .menu-section { padding: 16px 20px; border-bottom: 1px solid var(--color-border); }
+    .menu-section { padding: 16px 20px 0 20px; border-bottom: 1px solid var(--color-border); }
     .menu-section:last-child { border-bottom: none; }
     .menu-section-title { font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
     
@@ -419,7 +420,7 @@
     .menu-search-btn svg { width: 22px; height: 22px; }
     
     /* Undo List */
-    .undo-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .undo-header { display: flex; align-items: center; justify-content: space-between; }
     .undo-header-left { display: flex; align-items: center; gap: 8px; }
     .undo-toggle-btn { padding: 6px 12px; border: 1px solid var(--color-border); background: var(--color-bg); border-radius: 8px; font-size: 0.8rem; color: var(--color-text-muted); cursor: pointer; }
     .undo-toggle-btn:hover { border-color: #8B5CF6; }
@@ -438,7 +439,9 @@
     .undo-empty { text-align: center; padding: 20px; color: var(--color-text-muted); font-size: 0.9rem; }
     
     /* Settings Items */
-    .settings-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--color-border); }
+    .settings-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--color-border); }
+    .section-divider + .settings-item { padding-top: 0; }
+    .settings-item:last-child { border-bottom: none; padding-bottom: 0; }
     .settings-item:last-child { border-bottom: none; }
     .settings-item-left { display: flex; align-items: center; gap: 12px; }
     .settings-item-icon { font-size: 1.2rem; }
@@ -580,8 +583,9 @@
     .scroll-fab.bottom { bottom: calc(100px + var(--safe-bottom)); }
     .editing-mode .scroll-fab, .select-mode .scroll-fab { display: none !important; }
     
-    /* Fix for keyboard appearance - keep header visible */
-    .editing-mode .header, .editing-mode .filters { position: sticky; top: 0; z-index: 10; }
+    /* B1 FIX: Keep header visible when keyboard appears */
+    .editing-mode .header, .editing-mode .filters { position: sticky; top: 0; z-index: 10; background: var(--color-bg-card); }
+    .editing-mode .ideas-wrap { padding-bottom: 350px; }
 
     /* Selection bar */
     .select-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-bg-card); border-top: 1px solid var(--color-border); padding: 12px 16px calc(12px + var(--safe-bottom)); display: none; align-items: center; justify-content: space-between; gap: 10px; z-index: 60; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); }
@@ -614,6 +618,15 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
+    /* ========== UNIFIED PILLS SYSTEM v0.8.7 ========== */
+    
+    /* Pills - Small (34px) for compact areas */
+    .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
+    .pill-s:active { transform: scale(0.97); }
+    .pill-s.sec { background: var(--color-bg-btn); color: var(--color-text); border-color: var(--color-border); }
+    .pill-s.pri { background: var(--color-primary); color: white; border-color: transparent; }
+    .pill-s.active { background: rgba(139,92,246,0.15); border-color: #8B5CF6; color: #8B5CF6; }
+
     /* Pills - Medium (40px) for TYPE-B modals */
     .pill-m { height: 40px; padding: 0 16px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
     .pill-m:active { transform: scale(0.97); }
@@ -623,6 +636,7 @@
     .pill-m.magic { background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; border-color: transparent; }
     .pill-m.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .pill-m.danger { background: var(--color-error); color: white; border-color: transparent; }
+    .pill-m.active { background: rgba(139,92,246,0.15); border-color: #8B5CF6; color: #8B5CF6; }
 
     /* Pills - Large (48px) for TYPE-A modals */
     .pill-l { height: 48px; padding: 0 24px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); width: 100%; }
@@ -634,6 +648,7 @@
     .pill-l.success { background: linear-gradient(135deg, #10B981, #3B82F6); color: white; border-color: transparent; }
     .pill-l.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .pill-l.danger { background: var(--color-error); color: white; border-color: transparent; }
+    .pill-l:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
     /* Pills - XL (56px) for main CTA */
     .pill-xl { height: 56px; padding: 0 32px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 1rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); width: 100%; }
@@ -643,12 +658,16 @@
     .pill-xl.pri { background: var(--color-primary); color: white; border-color: transparent; }
 
     /* Centered Section Divider */
-    .section-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
+    .section-divider { display: flex; align-items: center; gap: 12px; margin: 0 0 16px 0; }
     .section-divider::before, .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
     .section-divider span { font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
     /* NEW badge for fresh drops */
     .new-badge { padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.55rem; font-weight: 700; text-transform: uppercase; background: #D1FAE5; color: #065F46; margin-right: 6px; }
+
+    /* Pill row for side-by-side buttons */
+    .pill-row { display: flex; gap: 10px; width: 100%; }
+    .pill-row .pill-l, .pill-row .pill-m { flex: 1; width: auto; }
 
     .cat-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
     .modal:not(.type-b) .cat-grid { margin-bottom: 20px; }
@@ -746,10 +765,10 @@
     .photo-ai-result-header h3 { font-size: 1.1rem; margin: 0; }
     .photo-ai-result-text { flex: 1; padding: 16px 20px; overflow-y: auto; font-size: 0.95rem; line-height: 1.5; color: var(--color-text); }
     .photo-ai-result-actions { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--color-border); }
-    .photo-ai-result-btn { height: 48px; padding: 0 24px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; width: 100%; }
+    .photo-ai-result-btn { padding: 14px; border: none; border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; }
+    .photo-ai-result-btn.primary { background: linear-gradient(135deg, #8B5CF6, #3B82F6); color: white; }
+    .photo-ai-result-btn.secondary { background: var(--color-bg); color: var(--color-text); }
     .photo-ai-result-btn:active { transform: scale(0.98); }
-    .photo-ai-result-btn.primary { background: linear-gradient(135deg, #8B5CF6, #3B82F6); color: white; border-color: transparent; }
-    .photo-ai-result-btn.secondary { background: var(--color-bg-btn); color: var(--color-text); border-color: var(--color-border); }
     
     /* Photo Markers Modal */
     .photo-markers-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 250; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
@@ -847,7 +866,7 @@
       <div class="empty" id="emptyState">
         <div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div>
         <div class="empty-title">Your ideas start here</div>
-        <div class="empty-text">Tap below to create your first drop</div>
+        <div class="empty-text">SHOOT · PRESS · SPEAK</div>
       </div>
     </div>
   </div>
@@ -957,19 +976,19 @@
         <!-- Photo section -->
         <div class="magic-photo-section">
           <div style="position: relative;">
-            <button class="magic-photo-btn" id="magicPhotoBtn" onclick="togglePhotoMenu()">
-              <span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></span>
+            <button class="pill-l sec" id="magicPhotoBtn" onclick="togglePhotoMenu()">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
               <span id="magicPhotoBtnText">Add photo (optional)</span>
             </button>
             <div class="magic-photo-menu" id="magicPhotoMenu">
               <button class="magic-photo-menu-item" onclick="takeMagicPhoto()">
-                <span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></span> Take photo
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Take photo
               </button>
               <button class="magic-photo-menu-item" onclick="chooseMagicPhoto()">
-                <span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span> Choose from gallery
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg> Choose from gallery
               </button>
               <button class="magic-photo-menu-item" onclick="openDropsPicker()">
-                <span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></span> Choose from Drops
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg> Choose from Drops
               </button>
             </div>
           </div>
@@ -983,8 +1002,8 @@
         
         <label class="magic-input-label" id="magicInputLabel">Add details (optional if photo added)</label>
         <textarea class="magic-input-area" id="magicInput" placeholder="Example: Birthday greeting for mom, she loves gardening and has 2 grandkids..."></textarea>
-        <button class="magic-voice-btn" id="magicVoiceBtn" onclick="toggleMagicVoice()">
-          <span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span>
+        <button class="pill-l sec" id="magicVoiceBtn" onclick="toggleMagicVoice()">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
           <span id="magicVoiceText">Tap to speak</span>
         </button>
         <div class="magic-styles" id="magicStyles">
@@ -993,8 +1012,8 @@
           <button class="magic-style" data-style="tender">Tender</button>
           <button class="magic-style" data-style="epic">Epic</button>
         </div>
-        <button class="magic-generate" id="magicGenerate" onclick="generateMagic()">
-          Create Magic!
+        <button class="pill-xl magic" id="magicGenerate" onclick="generateMagic()">
+          Create Magic
         </button>
         </div><!-- end magic-form -->
       </div>
@@ -1117,7 +1136,7 @@
       </div>
       <div class="ai-result-actions">
         <button class="pill-l magic" onclick="replaceOriginal()">Replace original</button>
-        <div class="ai-result-action-row">
+        <div class="pill-row">
           <button class="pill-l sec" onclick="createNewDrop()">New Drop</button>
           <button class="pill-l sec" onclick="copyResult2()">Copy</button>
         </div>
@@ -1198,8 +1217,8 @@
   <div class="main-menu" id="mainMenu" onclick="if(event.target===this)closeMainMenu()">
     <div class="main-menu-content">
       <div class="main-menu-header">
-        <h2>☰ Menu</h2>
-        <button class="main-menu-close" onclick="closeMainMenu()">Close ×</button>
+        <h2><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg> Menu</h2>
+        <button class="pill-s sec" onclick="closeMainMenu()">Close</button>
       </div>
       
       <!-- Balance Card -->
@@ -1210,23 +1229,26 @@
       </div>
       
       <!-- Search Section -->
-      <div class="menu-section">
-        <div class="menu-section-title">Search</div>
-        <div class="menu-search">
-          <input type="text" class="menu-search-input" id="menuSearchInput" placeholder="Search drops..." onkeypress="if(event.key==='Enter')performSearch()">
-          <button class="menu-search-btn" onclick="startVoiceSearch()" title="Voice search">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+      <div class="menu-section" style="border-bottom: none;">
+        <div class="section-divider"><span>Search</span></div>
+        <input type="text" class="menu-search-input" id="menuSearchInput" placeholder="Search drops..." onkeypress="if(event.key==='Enter')performSearch()" style="width: 100%; margin-bottom: 16px;">
+        <div class="pill-row">
+          <button class="pill-m sec" onclick="startVoiceSearch()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+            Voice
           </button>
-          <button class="menu-search-btn" onclick="performSearch()" title="Search">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <button class="pill-m pri" onclick="performSearch()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Search
           </button>
         </div>
       </div>
       
       <!-- Undo Section -->
-      <div class="menu-section">
+      <div class="menu-section" style="border-bottom: none;">
+        <div class="section-divider"><span>Undo</span></div>
         <div class="undo-header">
-          <button class="undo-main-btn" id="undoMainBtn" onclick="undoLast()" disabled>
+          <button class="pill-l ai" id="undoMainBtn" onclick="undoLast()" disabled>
             ↶ Undo Last Action
           </button>
         </div>
@@ -1239,11 +1261,11 @@
       
       <!-- Settings Section -->
       <div class="menu-section">
-        <div class="menu-section-title">Settings</div>
+        <div class="section-divider"><span>Settings</span></div>
         
         <div class="settings-item">
           <div class="settings-item-left">
-            <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+            <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
             <span class="settings-item-label">Dark mode</span>
           </div>
           <div class="settings-toggle" id="darkModeToggle" onclick="toggleDarkMode()"></div>
@@ -1254,36 +1276,27 @@
             <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></span>
             <span class="settings-item-label">Font size</span>
           </div>
-          <div class="font-size-selector">
-            <button class="font-size-btn" data-size="small" onclick="setFontSize('small')">
-              <span class="size-label">Small</span>
-              <span class="size-preview">Aa</span>
-            </button>
-            <button class="font-size-btn active" data-size="normal" onclick="setFontSize('normal')">
-              <span class="size-label">Normal</span>
-              <span class="size-preview">Aa</span>
-            </button>
-            <button class="font-size-btn" data-size="large" onclick="setFontSize('large')">
-              <span class="size-label">Large</span>
-              <span class="size-preview">Aa</span>
-            </button>
+          <div class="pill-row" id="fontSizeSelector">
+            <button class="pill-m" data-size="small" onclick="setFontSize('small')">Small</button>
+            <button class="pill-m active" data-size="normal" onclick="setFontSize('normal')">Normal</button>
+            <button class="pill-m" data-size="large" onclick="setFontSize('large')">Large</button>
           </div>
         </div>
         
         <div class="settings-item">
           <div class="settings-item-left">
-            <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span>
+            <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3"/><path d="M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3"/><path d="M4 12h16"/><path d="m9 8-4 4 4 4"/><path d="m15 8 4 4-4 4"/></svg></span>
             <span class="settings-item-label">Export data</span>
           </div>
-          <button class="settings-btn" onclick="exportData()">Export</button>
+          <button class="pill-m sec" onclick="exportData()">Export</button>
         </div>
         
         <div class="settings-item">
           <div class="settings-item-left">
-            <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+            <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>
             <span class="settings-item-label">Import data</span>
           </div>
-          <button class="settings-btn" onclick="document.getElementById('importFileInput').click()">Import</button>
+          <button class="pill-m sec" onclick="document.getElementById('importFileInput').click()">Import</button>
           <input type="file" id="importFileInput" style="display:none" accept=".json" onchange="handleImportFile(event)">
         </div>
         
@@ -1292,7 +1305,7 @@
             <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></span>
             <span class="settings-item-label">Clear all data</span>
           </div>
-          <button class="settings-btn danger" onclick="clearAllData()">Clear</button>
+          <button class="pill-m danger" onclick="clearAllData()">Clear</button>
         </div>
       </div>
       
@@ -1309,7 +1322,7 @@
       
       <!-- Footer with Close button -->
       <div class="main-menu-footer">
-        <button class="main-menu-footer-btn" onclick="closeMainMenu()">Close Menu</button>
+        <button class="pill-l sec" onclick="closeMainMenu()">Close Menu</button>
       </div>
     </div>
   </div>
@@ -1322,7 +1335,7 @@
   <div class="overlay" id="delModal"><div class="modal"><div class="modal-title">Delete this idea?</div><div class="modal-text">This action cannot be undone.</div><div class="modal-actions"><button class="modal-btn sec" onclick="closeDelModal()">Cancel</button><button class="modal-btn danger" onclick="confirmDel()">Delete</button></div></div></div>
   <div class="overlay" id="settingsModal"><div class="modal type-b"><div class="modal-header"><h3>Settings</h3></div><div class="modal-body"><div class="modal-text" style="margin-bottom:0;">Coming soon:<br><br>- Search<br>- Themes<br>- Custom categories<br>- Cloud sync</div></div><div class="modal-actions"><button class="modal-btn sec" onclick="exportAll()">Export</button><button class="modal-btn pri" onclick="closeSettings()">Done</button></div></div></div>
   <div class="overlay" id="addCatModal"><div class="modal"><div class="modal-title">Add Category</div><div class="modal-text">Custom categories coming in a future update!</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAddCatModal()">OK</button></div></div></div>
-  <div class="overlay" id="mergeModal"><div class="modal type-b"><div class="modal-header"><h3>Merge Preview</h3></div><div class="modal-body"><div class="merge-options"><label class="merge-toggle"><input type="checkbox" id="mergeSimple" onchange="updateMergePreview()"><span>Simple merge (no headers)</span></label></div><div class="merge-preview" id="mergePreview"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeMergeModal()">Cancel</button><button class="modal-btn sec" onclick="copyMerged()">Copy</button><button class="modal-btn merge" onclick="saveMerged()">Save</button></div></div></div>
+  <div class="overlay" id="mergeModal"><div class="modal type-b"><div class="modal-header"><h3>Merge Preview</h3></div><div class="modal-body"><div class="merge-options"><label class="merge-toggle"><input type="checkbox" id="mergeSimple" onchange="updateMergePreview()"><span>Simple merge (no headers)</span></label></div><div class="merge-preview" id="mergePreview"></div></div><div class="modal-actions"><button class="pill-m sec" onclick="closeMergeModal()">Cancel</button><button class="pill-m sec" onclick="copyMerged()">Copy</button><button class="pill-m merge" onclick="saveMerged()">Save Merge</button></div></div></div>
   <div class="overlay image-viewer" id="imageViewer" onclick="handleImageViewerClick(event)">
     <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
     <div class="image-viewer-markers" id="imageViewerMarkers" onclick="openPhotoMarkers()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg></div>
@@ -1363,21 +1376,21 @@
       </div>
       <div class="photo-ai-tools">
         <button class="photo-ai-btn" onclick="runPhotoAI('ocr')">
-          <div class="icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg></div>
+          <div class="icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg></div>
           <div class="info">
             <div class="title">Extract Text (OCR)</div>
             <div class="desc">Read and copy text from image</div>
           </div>
         </button>
         <button class="photo-ai-btn" onclick="runPhotoAI('describe')">
-          <div class="icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
+          <div class="icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
           <div class="info">
             <div class="title">Describe Image</div>
             <div class="desc">AI generates detailed description</div>
           </div>
         </button>
         <button class="photo-ai-btn" onclick="startEditCaption(); closePhotoAI();">
-          <div class="icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="white" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></div>
+          <div class="icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></div>
           <div class="info">
             <div class="title">Edit Caption</div>
             <div class="desc">Add or edit photo notes</div>
@@ -2235,13 +2248,14 @@ function save(){
 }
 function smartTime(i){const td=new Date().toLocaleDateString('ru-RU'),yd=new Date(Date.now()-864e5).toLocaleDateString('ru-RU');if(i.date===td)return i.time;if(i.date===yd)return'Yesterday '+i.time;const p=i.date.split('.');return p[0]+'.'+p[1]+' '+i.time;}
 
+// NEW badge for drops < 15 minutes old
 function isNewDrop(i) {
-  const NEW_THRESHOLD = 15 * 60 * 1000;
-  const now = new Date();
-  const [day, month, year] = i.date.split('.').map(Number);
-  const [hours, minutes] = i.time.split(':').map(Number);
-  const created = new Date(year, month - 1, day, hours, minutes);
-  return (now - created) < NEW_THRESHOLD;
+  if (!i.date || !i.time) return false;
+  const [d, m, y] = i.date.split('.');
+  const [h, min] = i.time.split(':');
+  const created = new Date(+y, +m - 1, +d, +h, +min);
+  const diff = Date.now() - created.getTime();
+  return diff < 15 * 60 * 1000; // 15 minutes
 }
 function filtered(){
   let f=[...ideas].filter(x=>x&&x.date); // Filter out invalid entries
@@ -3045,7 +3059,7 @@ async function ocrImage() {
       const notesArea = document.getElementById('imgNotes');
       if (notesArea) notesArea.value = item.notes;
       
-      toast('Text extracted!', 'success');
+      toast('Text extracted! ✅', 'success');
       showAIResult('OCR Result', ocrText);
     } else {
       toast(data.error || 'OCR failed', 'error');
@@ -3104,7 +3118,7 @@ async function aiDescribe() {
       const notesArea = document.getElementById('imgNotes');
       if (notesArea) notesArea.value = item.notes;
       
-      toast('Image analyzed!', 'success');
+      toast('Image analyzed! ✅', 'success');
       showAIResult('AI Description', description);
     } else {
       toast(data.error || 'Analysis failed', 'error');
@@ -3137,7 +3151,7 @@ function showAIResult(title, text) {
         </div>
         <div class="ai-result-actions">
           <button class="pill-l magic" onclick="createDropFromResult()">Create Drop</button>
-          <div class="ai-result-action-row">
+          <div class="pill-row">
             <button class="pill-l sec" onclick="shareResult()">Share</button>
             <button class="pill-l sec" onclick="copyAIResult()">Copy</button>
           </div>
@@ -3226,7 +3240,7 @@ let magicPhotoData = null; // Store selected photo
 
 const MAGIC_CONFIG = {
   poem: {
-    title: '📜 Create Poem',
+    title: 'Create Poem',
     subtitle: 'Tell me what it should be about',
     placeholder: 'Example: Birthday greeting for mom, she loves gardening and has 2 grandkids...',
     styles: [
@@ -3756,6 +3770,9 @@ function createTaskDrops(tasks) {
 }
 
 function showTasksConfirmModal(tasks) {
+  // Close AI Tools modal first to prevent it showing after Cancel
+  closeAITools();
+  
   document.getElementById('tasksCount').textContent = tasks.length;
   document.getElementById('tasksCountBtn').textContent = tasks.length;
   
@@ -4072,13 +4089,13 @@ const MAX_UNDO_HISTORY = 10;
 let undoHistory = JSON.parse(localStorage.getItem('droplit_undo') || '[]');
 
 const UNDO_ICONS = {
-  delete: '×',
-  createTasks: '☑',
-  replace: '↺',
-  edit: '✎',
-  merge: '⊕',
-  category: '▪',
-  create: '+'
+  delete: '🗑️',
+  createTasks: '📋',
+  replace: '🔄',
+  edit: '✏️',
+  merge: '🔗',
+  category: '🏷️',
+  create: '➕'
 };
 
 const UNDO_LABELS = {
@@ -4364,8 +4381,8 @@ function setFontSize(size) {
   // Add selected
   document.body.classList.add('font-' + size);
   
-  // Update buttons
-  document.querySelectorAll('.font-size-btn').forEach(btn => {
+  // Update buttons (support both old and new selectors)
+  document.querySelectorAll('#fontSizeSelector .pill-m, .font-size-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.size === size);
   });
   
