@@ -27,7 +27,7 @@ export default async function handler(req) {
 
   try {
     const body = await req.json();
-    const { action, image, text, style, context } = body;
+    const { action, image, text, style, context, targetLang } = body;
 
     // Validate input
     if (!action) {
@@ -284,8 +284,16 @@ Return JSON format: {"expanded": "your expanded text here", "suggestedCategory":
         detailed: 'thorough with more context'
       };
       
+      // B1 FIX: Explicitly preserve original language
       systemPrompt = `You are a writing assistant. Rewrite the text in a ${styleGuides[rewriteStyle] || styleGuides.professional}.
-Keep the same meaning and language.
+
+CRITICAL RULE: You MUST respond in THE EXACT SAME LANGUAGE as the input text.
+- If the input is in Russian, respond in Russian.
+- If the input is in English, respond in English.
+- If the input is in Spanish, respond in Spanish.
+- And so on. DO NOT translate. Only rewrite in the same language.
+
+Keep the same meaning. Only change the style/tone.
 ${checkCategory ? `
 Also analyze and suggest the best category from: tasks, ideas, bugs, questions, design, handmagic, inbox.
 Return JSON format: {"rewritten": "your rewritten text here", "suggestedCategory": "category_name"}
@@ -310,6 +318,17 @@ ${checkCategory ? `
 Also analyze and suggest the best category from: tasks, ideas, bugs, questions, design, handmagic, inbox.
 Return JSON format: {"enhanced": "your enhanced text here", "suggestedCategory": "category_name"}
 ` : 'Output ONLY the enhanced text, no explanations.'}`;
+      
+      userPrompt = text;
+      messages = [{ role: 'user', content: userPrompt }];
+
+    // I1 FIX: Translate action
+    } else if (action === 'translate') {
+      const targetLang = body.targetLang || 'English';
+      
+      systemPrompt = `You are a professional translator. Translate the text accurately to ${targetLang}.
+Keep the meaning, tone, and style of the original.
+Output ONLY the translated text, no explanations or notes.`;
       
       userPrompt = text;
       messages = [{ role: 'user', content: userPrompt }];
