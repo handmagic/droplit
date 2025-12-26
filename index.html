@@ -192,12 +192,12 @@
     .select-mode .card.active .card-actions { display: none; }
     .card-edit-actions { display: none; gap: 6px; margin-top: 10px; }
     .card.editing .card-edit-actions { display: flex; }
-    .act { flex-shrink: 0; padding: 4px 10px; border: 1px solid var(--color-border); background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.6rem; font-weight: 700; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 4px; white-space: nowrap; letter-spacing: 0.02em; }
+    .act { flex-shrink: 0; height: 34px; padding: 0 12px; border: 2px solid var(--color-border); background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.65rem; font-weight: 700; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; white-space: nowrap; transition: all 0.15s; }
     .act:active { background: var(--color-bg-soft); }
-    .act.primary { background: var(--color-primary); color: white; }
+    .act.primary { background: var(--color-primary); color: white; border-color: transparent; }
     .act.ai { background: linear-gradient(135deg, #8B5CF6, #6366F1); color: white; border-color: transparent; }
-    .act.danger { background: rgba(239,68,68,0.1); color: #EF4444; border-color: rgba(239,68,68,0.3); }
-    .act.merge { background: var(--color-merge); color: white; }
+    .act.danger { background: rgba(239,68,68,0.1); color: #EF4444; border-color: rgba(239,68,68,0.5); }
+    .act.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .act.secondary { background: var(--color-bg-btn); color: var(--color-text-soft); }
 
     /* Empty state */
@@ -382,6 +382,10 @@
     .ai-loading-dots span:nth-child(5) { animation-delay: 0.8s; }
     @keyframes bounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
     .ai-loading-label { font-size: 0.9rem; color: var(--color-text-soft); }
+    .ai-loading-dots.magic span { background: linear-gradient(135deg, #8B5CF6, #EC4899); }
+    .magic-loading { display: none; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; }
+    .magic-loading.show { display: flex; }
+    .magic-form.hidden { display: none; }
     
     /* Main Menu Modal */
     .main-menu { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: flex-start; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; overflow-y: auto; }
@@ -578,7 +582,7 @@
     .select-bar.show { display: flex; }
     .select-info { font-size: 0.85rem; font-weight: 600; color: var(--color-text); }
     .select-actions { display: flex; gap: 8px; }
-    .select-btn { padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.6rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.02em; }
+    .select-btn { height: 34px; padding: 0 12px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.65rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; text-transform: uppercase; transition: all 0.15s; }
     .select-btn:active { transform: scale(0.97); }
     .select-btn.cancel { background: var(--color-bg-btn); color: var(--color-text-soft); border-color: var(--color-border); }
     .select-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
@@ -592,7 +596,7 @@
     .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; text-align: center; }
     .modal-text { font-size: 0.85rem; color: var(--color-text-soft); margin-bottom: 20px; line-height: 1.6; }
     .modal-actions { display: flex; gap: 10px; justify-content: center; }
-    .modal-btn { padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.6rem; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.02em; }
+    .modal-btn { height: 34px; padding: 0 12px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.65rem; font-weight: 700; cursor: pointer; text-transform: uppercase; transition: all 0.15s; }
     .modal-btn:active { transform: scale(0.97); }
     .modal-btn.sec { background: var(--color-bg-btn); color: var(--color-text); border-color: var(--color-border); }
     .modal-btn.pri { background: var(--color-primary); color: white; border-color: transparent; }
@@ -891,6 +895,15 @@
         <p id="magicSubtitle">Tell me what it should be about</p>
       </div>
       <div class="magic-body">
+        <!-- Loading indicator -->
+        <div class="magic-loading" id="magicLoading">
+          <div class="ai-loading-dots magic">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="ai-loading-label" id="magicLoadingLabel">Creating magic...</div>
+        </div>
+        <!-- Form -->
+        <div class="magic-form" id="magicForm">
         <!-- Photo section -->
         <div class="magic-photo-section">
           <div style="position: relative;">
@@ -933,6 +946,7 @@
         <button class="magic-generate" id="magicGenerate" onclick="generateMagic()">
           Create Magic!
         </button>
+        </div><!-- end magic-form -->
       </div>
       <div class="magic-footer">
         <button class="ai-result-cancel" onclick="closeMagic()">Cancel</button>
@@ -1601,9 +1615,21 @@ function handleCardClick(id,e){
     // For media cards - open viewer directly
     viewImage(id,e);
   } else {
-    // For text cards - toggle expand/collapse
-    activeCardId=activeCardId===id?null:id;
-    render();
+    // For text cards - toggle expand/collapse (optimized - no full render)
+    const prevId = activeCardId;
+    activeCardId = activeCardId===id ? null : id;
+    
+    // Remove active from previous card
+    if(prevId) {
+      const prevCard = document.querySelector('.card[data-id="'+prevId+'"]');
+      if(prevCard) prevCard.classList.remove('active');
+    }
+    
+    // Add active to new card (or none if deactivating)
+    if(activeCardId) {
+      const newCard = document.querySelector('.card[data-id="'+activeCardId+'"]');
+      if(newCard) newCard.classList.add('active');
+    }
   }
 }
 
@@ -1668,7 +1694,9 @@ function cardTouchEnd(){
 
 document.addEventListener('click',(e)=>{
   if(activeCardId&&!e.target.closest('.card')&&!e.target.closest('.overlay')&&!e.target.closest('.fab-record')&&!e.target.closest('.select-bar')){
-    activeCardId=null;render();
+    const prevCard = document.querySelector('.card[data-id="'+activeCardId+'"]');
+    if(prevCard) prevCard.classList.remove('active');
+    activeCardId=null;
   }
 });
 
@@ -3397,9 +3425,15 @@ async function generateMagic() {
     location: null
   };
   
-  // Close modal and show loading
-  closeMagic();
-  showAILoading(currentMagicType, false);
+  // Show loading in modal
+  const loadingLabels = {
+    poem: 'Creating your poem',
+    greeting: 'Crafting your greeting',
+    speech: 'Writing your speech'
+  };
+  document.getElementById('magicLoadingLabel').textContent = (loadingLabels[currentMagicType] || 'Creating magic') + '...';
+  document.getElementById('magicForm').classList.add('hidden');
+  document.getElementById('magicLoading').classList.add('show');
   
   try {
     const requestBody = {
@@ -3422,13 +3456,16 @@ async function generateMagic() {
     
     const data = await response.json();
     
-    hideAILoading();
+    // Hide loading and close modal
+    document.getElementById('magicLoading').classList.remove('show');
+    document.getElementById('magicForm').classList.remove('hidden');
+    closeMagic();
     
     if (data.success && data.result) {
       const titles = {
-        poem: '📜 Your Poem',
-        greeting: '💌 Your Greeting',
-        speech: '🎤 Your Speech'
+        poem: 'Your Poem',
+        greeting: 'Your Greeting',
+        speech: 'Your Speech'
       };
       
       showAIResult(titles[currentMagicType] || 'AI Result', data.result);
@@ -3437,7 +3474,8 @@ async function generateMagic() {
     }
   } catch (error) {
     console.error('Magic error:', error);
-    hideAILoading();
+    document.getElementById('magicLoading').classList.remove('show');
+    document.getElementById('magicForm').classList.remove('hidden');
     toast('Connection error', 'error');
   }
 }
