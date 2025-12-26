@@ -329,7 +329,7 @@
     .ai-result-header { padding: 20px; text-align: center; background: linear-gradient(135deg, #10B981, #3B82F6); color: white; flex-shrink: 0; }
     .ai-result-header h2 { font-size: 1.2rem; }
     .ai-result-body { padding: 20px; flex: 1; overflow-y: auto; }
-    .ai-result-text { font-size: 1rem; line-height: 1.6; color: var(--color-text); white-space: pre-wrap; }
+    .ai-result-text { font-size: max(1rem, 16px); line-height: 1.6; color: var(--color-text); white-space: pre-wrap; }
     .ai-result-category { margin-top: 20px; padding: 16px; background: var(--color-bg); border-radius: 12px; }
     .ai-result-category-title { font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
     .ai-result-category-row { display: flex; align-items: center; gap: 10px; }
@@ -348,7 +348,20 @@
     .ai-result-action-btn.secondary:hover { background: var(--color-border); }
     .ai-result-action-row { display: flex; gap: 10px; }
     .ai-result-action-row .ai-result-action-btn { flex: 1; }
-    .ai-result-close { padding: 12px; border: none; background: none; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text-soft); cursor: pointer; }
+    .ai-result-cancel { width: 100%; padding: 14px; margin-top: 8px; border: 2px solid var(--color-border); border-radius: 12px; background: var(--color-bg); font-family: var(--font-main); font-size: 1rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; transition: all 0.15s; }
+    .ai-result-cancel:hover { border-color: var(--color-text-muted); background: var(--color-bg-soft); }
+    
+    /* B2 FIX: Tasks Preview List */
+    .tasks-preview-list { display: flex; flex-direction: column; gap: 8px; max-height: 40vh; overflow-y: auto; }
+    .tasks-preview-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: var(--color-bg); border-radius: 10px; font-size: 0.9rem; line-height: 1.4; }
+    .tasks-preview-num { flex-shrink: 0; width: 24px; height: 24px; background: var(--cat-tasks-bg); color: var(--cat-tasks-text); border-radius: 50%; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .tasks-preview-text { flex: 1; color: var(--color-text); }
+    
+    /* I1 FIX: Translate Language Buttons */
+    .translate-langs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .translate-lang-btn { padding: 14px 16px; border: 2px solid var(--color-border); border-radius: 12px; background: var(--color-bg); font-family: var(--font-main); font-size: 0.95rem; font-weight: 500; color: var(--color-text); cursor: pointer; transition: all 0.15s; text-align: left; }
+    .translate-lang-btn:hover { border-color: #3B82F6; background: rgba(59, 130, 246, 0.05); }
+    .translate-lang-btn:active { transform: scale(0.98); }
     
     /* AI Loading Indicator (compact, inside modal) */
     .ai-loading-inline { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
@@ -959,12 +972,26 @@
               <div class="desc">Fix errors, punctuation, formatting</div>
             </div>
           </button>
+          <button class="ai-tool-btn" onclick="openTranslateModal()">
+            <span class="icon">🌐</span>
+            <div class="info">
+              <div class="title">Translate</div>
+              <div class="desc">Translate to another language</div>
+            </div>
+          </button>
         </div>
         <div class="ai-tools-option">
           <input type="checkbox" id="aiToolsCheckCategory" checked>
           <div class="ai-tools-option-label">
             <div class="title">Also check/update category</div>
             <div class="current">Current: <span id="aiToolsCurrentCategory">INBOX</span></div>
+          </div>
+        </div>
+        <div class="ai-tools-option">
+          <input type="checkbox" id="aiToolsRemoveLineBreaks">
+          <div class="ai-tools-option-label">
+            <div class="title">Remove extra line breaks</div>
+            <div class="current">Join paragraphs into continuous text</div>
           </div>
         </div>
       </div>
@@ -1007,7 +1034,51 @@
             📋 Copy
           </button>
         </div>
-        <button class="ai-result-close" onclick="closeAIResult2()">Close</button>
+        <button class="ai-result-cancel" onclick="closeAIResult2()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- B2 FIX: Tasks Confirmation Modal -->
+  <div class="ai-result-modal" id="tasksConfirmModal" onclick="if(event.target===this)closeTasksConfirm()">
+    <div class="ai-result-content">
+      <div class="ai-result-header" style="background: linear-gradient(135deg, #F59E0B, #EF4444);">
+        <h2>📋 Extracted Tasks</h2>
+      </div>
+      <div class="ai-result-body">
+        <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 12px;">Found <span id="tasksCount">0</span> tasks. Each will become a separate drop:</p>
+        <div class="tasks-preview-list" id="tasksPreviewList"></div>
+      </div>
+      <div class="ai-result-actions">
+        <button class="ai-result-action-btn primary" onclick="confirmCreateTasks()">
+          ✅ Create <span id="tasksCountBtn">0</span> Task Drops
+        </button>
+        <button class="ai-result-cancel" onclick="closeTasksConfirm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- I1 FIX: Translate Modal -->
+  <div class="ai-result-modal" id="translateModal" onclick="if(event.target===this)closeTranslateModal()">
+    <div class="ai-result-content" style="max-width: 360px;">
+      <div class="ai-result-header" style="background: linear-gradient(135deg, #3B82F6, #10B981);">
+        <h2>🌐 Translate</h2>
+      </div>
+      <div class="ai-result-body" style="padding: 20px;">
+        <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 16px;">Select target language:</p>
+        <div class="translate-langs">
+          <button class="translate-lang-btn" onclick="runTranslate('English')">🇬🇧 English</button>
+          <button class="translate-lang-btn" onclick="runTranslate('Russian')">🇷🇺 Русский</button>
+          <button class="translate-lang-btn" onclick="runTranslate('Spanish')">🇪🇸 Español</button>
+          <button class="translate-lang-btn" onclick="runTranslate('German')">🇩🇪 Deutsch</button>
+          <button class="translate-lang-btn" onclick="runTranslate('French')">🇫🇷 Français</button>
+          <button class="translate-lang-btn" onclick="runTranslate('Chinese')">🇨🇳 中文</button>
+          <button class="translate-lang-btn" onclick="runTranslate('Japanese')">🇯🇵 日本語</button>
+          <button class="translate-lang-btn" onclick="runTranslate('Portuguese')">🇧🇷 Português</button>
+        </div>
+      </div>
+      <div class="ai-result-actions" style="padding: 16px 20px;">
+        <button class="ai-result-cancel" onclick="closeTranslateModal()">Cancel</button>
       </div>
     </div>
   </div>
@@ -1157,7 +1228,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.2 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.3 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1510,14 +1581,12 @@ function toggleMarker(id,marker,e){
   // Initialize markers array if needed
   if(!item.markers)item.markers=[];
   
-  // Toggle marker
+  // Toggle marker (silent - no toast per B3 fix)
   const idx=item.markers.indexOf(marker);
   if(idx===-1){
     item.markers.push(marker);
-    toast(MARKERS[marker]+' added','success');
   } else {
     item.markers.splice(idx,1);
-    toast(MARKERS[marker]+' removed','info');
   }
   
   save();
@@ -1577,7 +1646,7 @@ function initSR(){
   recognition.continuous=false;
   recognition.interimResults=true;
   recognition.maxAlternatives=1;
-  recognition.onstart=()=>{isRec=true;saved=false;updateRecUI(true);};
+  recognition.onstart=async()=>{isRec=true;saved=false;updateRecUI(true);await acquireWakeLock();};
   recognition.onresult=(e)=>{
     let f='',i='';
     for(let x=0;x<e.results.length;x++){if(e.results[x].isFinal)f+=e.results[x][0].transcript;else i+=e.results[x][0].transcript;}
@@ -1587,10 +1656,22 @@ function initSR(){
   recognition.onerror=(e)=>{
     if(e.error==='no-speech')toast('No speech detected','warning');
     else if(e.error==='not-allowed')toast('Microphone access denied','error');
-    isRec=false;updateRecUI(false);
+    isRec=false;updateRecUI(false);releaseWakeLock();
   };
-  recognition.onend=()=>{isRec=false;updateRecUI(false);};
+  recognition.onend=()=>{isRec=false;updateRecUI(false);releaseWakeLock();};
   return true;
+}
+
+// B4 FIX: Wake Lock to prevent screen from turning off during recording
+let wakeLock = null;
+async function acquireWakeLock() {
+  if ('wakeLock' in navigator) {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } 
+    catch (err) { console.log('Wake Lock error:', err); }
+  }
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
 }
 
 function toggleRec(){if(isRec)recognition.stop();else{saved=false;recognition.start();}}
@@ -3339,6 +3420,7 @@ const AI_LOADING_LABELS = {
   expand: 'Expanding',
   rewrite: 'Rewriting',
   enhance: 'Enhancing',
+  translate: 'Translating',
   tasks: 'Extracting tasks',
   ocr: 'Reading text',
   describe: 'Analyzing image',
@@ -3433,6 +3515,7 @@ async function runAITool(tool) {
   }
   
   const checkCategory = document.getElementById('aiToolsCheckCategory').checked;
+  const removeLineBreaks = document.getElementById('aiToolsRemoveLineBreaks').checked;
   
   // Close tools modal and show loading overlay
   closeAITools();
@@ -3515,6 +3598,14 @@ async function runAITool(tool) {
         }
       }
       
+      // T1 FIX: Remove extra line breaks if option is checked
+      if (removeLineBreaks && tool !== 'tasks') {
+        resultText = resultText
+          .replace(/\n+/g, ' ')      // Replace newlines with space
+          .replace(/\s{2,}/g, ' ')   // Replace multiple spaces with single
+          .trim();
+      }
+      
       // Show result modal
       showAIResult2(tool, resultText, drop.category, suggestedCat);
       
@@ -3528,15 +3619,50 @@ async function runAITool(tool) {
   }
 }
 
+// B2 FIX: Store pending tasks for confirmation
+let pendingTasks = [];
+
 function createTaskDrops(tasks) {
   if (!tasks || tasks.length === 0) {
     toast('No tasks found', 'warning');
     return;
   }
   
+  // Show confirmation modal instead of creating immediately
+  pendingTasks = tasks;
+  showTasksConfirmModal(tasks);
+}
+
+function showTasksConfirmModal(tasks) {
+  document.getElementById('tasksCount').textContent = tasks.length;
+  document.getElementById('tasksCountBtn').textContent = tasks.length;
+  
+  const listEl = document.getElementById('tasksPreviewList');
+  listEl.innerHTML = tasks.map((task, i) => `
+    <div class="tasks-preview-item">
+      <span class="tasks-preview-num">${i + 1}</span>
+      <span class="tasks-preview-text">${task}</span>
+    </div>
+  `).join('');
+  
+  document.getElementById('tasksConfirmModal').classList.add('show');
+}
+
+function closeTasksConfirm() {
+  document.getElementById('tasksConfirmModal').classList.remove('show');
+  pendingTasks = [];
+  aiToolsDropId = null;
+}
+
+function confirmCreateTasks() {
+  if (!pendingTasks || pendingTasks.length === 0) {
+    closeTasksConfirm();
+    return;
+  }
+  
   const createdIds = [];
   
-  tasks.forEach(taskText => {
+  pendingTasks.forEach(taskText => {
     const id = Date.now() + Math.random();
     const idea = {
       id: id,
@@ -3552,14 +3678,64 @@ function createTaskDrops(tasks) {
     createdIds.push(id);
   });
   
-  // Save undo
   saveUndo('createTasks', { taskIds: createdIds });
   
   save();
   render();
   counts();
-  toast(`Created ${tasks.length} tasks! ✓`, 'success');
-  aiToolsDropId = null;
+  toast(`Created ${pendingTasks.length} tasks! ✓`, 'success');
+  
+  closeTasksConfirm();
+}
+
+// ============================================
+// I1 FIX: TRANSLATE FUNCTIONS
+// ============================================
+
+function openTranslateModal() {
+  closeAITools();
+  document.getElementById('translateModal').classList.add('show');
+}
+
+function closeTranslateModal() {
+  document.getElementById('translateModal').classList.remove('show');
+}
+
+async function runTranslate(targetLang) {
+  closeTranslateModal();
+  
+  const drop = ideas.find(x => x.id === aiToolsDropId);
+  if (!drop) {
+    toast('Drop not found', 'error');
+    return;
+  }
+  
+  showAILoading('translate');
+  
+  try {
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'translate',
+        text: drop.text,
+        targetLang: targetLang
+      }),
+    });
+    
+    const data = await response.json();
+    hideAILoading();
+    
+    if (data.success && data.result) {
+      showAIResult2('translate', data.result, drop.category, null);
+    } else {
+      toast(data.error || 'Translation failed', 'error');
+    }
+  } catch (error) {
+    console.error('Translate error:', error);
+    hideAILoading();
+    toast('Connection error', 'error');
+  }
 }
 
 function showAIResult2(tool, text, currentCategory, suggestedCategory) {
@@ -3570,7 +3746,8 @@ function showAIResult2(tool, text, currentCategory, suggestedCategory) {
     summarize: '📝 Summary',
     expand: '✨ Expanded',
     rewrite: '🔄 Rewritten',
-    enhance: '✏️ Enhanced'
+    enhance: '✏️ Enhanced',
+    translate: '🌐 Translated'
   };
   
   document.getElementById('aiResult2Title').textContent = titles[tool] || '✨ Result';
