@@ -129,7 +129,7 @@
     .card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px 14px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 8px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
     .card:active { transform: scale(0.995); }
     .card.active { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
-    .card.editing { box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-card); }
+    .card.editing { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
     .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
     /* Checkbox removed in v0.8.2 */
     .card-checkbox { display: none !important; }
@@ -192,7 +192,7 @@
     .select-mode .card.active .card-actions { display: none; }
     .card-edit-actions { display: none; gap: 6px; margin-top: 10px; }
     .card.editing .card-edit-actions { display: flex; }
-    .act { flex-shrink: 0; height: 40px; padding: 0 16px; border: 1.5px solid var(--color-border); background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.8rem; font-weight: 700; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; white-space: nowrap; letter-spacing: 0.02em; }
+    .act { flex-shrink: 0; padding: 4px 10px; border: 1px solid var(--color-border); background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.6rem; font-weight: 700; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 4px; white-space: nowrap; letter-spacing: 0.02em; }
     .act:active { background: var(--color-bg-soft); }
     .act.primary { background: var(--color-primary); color: white; }
     .act.ai { background: linear-gradient(135deg, #8B5CF6, #6366F1); color: white; border-color: transparent; }
@@ -230,16 +230,22 @@
     .select-mode .fab-plus, .editing-mode .fab-plus { display: none !important; }
 
     /* Plus menu */
-    .plus-menu { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--color-bg-card); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); z-index: 49; opacity: 0; visibility: hidden; transition: all 0.2s ease; min-width: 220px; overflow: hidden; }
+    .plus-menu { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--color-bg-card); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); z-index: 49; opacity: 0; visibility: hidden; transition: all 0.2s ease; min-width: 280px; overflow: hidden; padding: 12px; }
     .plus-menu.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
-    .plus-menu-item { display: flex; align-items: center; gap: 12px; padding: 14px 20px; cursor: pointer; transition: background 0.15s; border: none; background: none; width: 100%; text-align: left; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text); }
-    .plus-menu-item:hover { background: var(--color-bg-btn); }
-    .plus-menu-item:active { background: var(--color-border); }
-    .plus-menu-item span.icon { font-size: 1.3rem; width: 28px; text-align: center; }
-    .plus-menu-divider { height: 1px; background: var(--color-border); margin: 4px 0; }
-    .plus-menu-label { padding: 8px 20px 4px; font-size: 0.7rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .plus-menu-item.magic { background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(236,72,153,0.08)); }
-    .plus-menu-item.magic:hover { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.15)); }
+    .plus-menu-item { display: flex; align-items: center; gap: 12px; padding: 12px; cursor: pointer; transition: all 0.15s; border: 1.5px solid var(--color-border); border-radius: 12px; background: var(--color-bg); width: 100%; text-align: left; font-family: var(--font-main); margin-bottom: 8px; }
+    .plus-menu-item:last-child { margin-bottom: 0; }
+    .plus-menu-item:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
+    .plus-menu-item:active { transform: scale(0.98); }
+    .plus-menu-item .icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--color-bg-btn); border-radius: 10px; color: var(--color-text-muted); flex-shrink: 0; }
+    .plus-menu-item .icon svg { width: 20px; height: 20px; }
+    .plus-menu-item .info { flex: 1; }
+    .plus-menu-item .title { font-size: 0.9rem; font-weight: 600; color: var(--color-text); }
+    .plus-menu-item .desc { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px; }
+    .plus-menu-divider { height: 1px; background: var(--color-border); margin: 8px 0; }
+    .plus-menu-label { padding: 4px 4px 8px; font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .plus-menu-item.magic { border-color: rgba(139,92,246,0.3); background: linear-gradient(135deg, rgba(139,92,246,0.05), rgba(236,72,153,0.05)); }
+    .plus-menu-item.magic .icon { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.15)); color: #8B5CF6; }
+    .plus-menu-item.magic:hover { border-color: #8B5CF6; background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(236,72,153,0.1)); }
     .plus-menu-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 48; opacity: 0; visibility: hidden; transition: opacity 0.2s; }
     .plus-menu-backdrop.show { opacity: 1; visibility: visible; }
     
@@ -277,7 +283,7 @@
     .magic-generate { width: 100%; padding: 16px; border: none; border-radius: 12px; background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; font-family: var(--font-main); font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
     .magic-generate:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(139,92,246,0.4); }
     .magic-generate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-    .magic-footer { padding: 12px 20px; border-top: 1px solid var(--color-border); display: flex; justify-content: center; }
+    .magic-footer { padding: 16px 20px; border-top: 1px solid var(--color-border); }
     .magic-cancel { padding: 10px 24px; border: none; background: none; font-family: var(--font-main); font-size: 0.95rem; color: var(--color-text-soft); cursor: pointer; }
     
     /* Drops picker modal */
@@ -572,11 +578,11 @@
     .select-bar.show { display: flex; }
     .select-info { font-size: 0.85rem; font-weight: 600; color: var(--color-text); }
     .select-actions { display: flex; gap: 8px; }
-    .select-btn { height: 40px; padding: 0 20px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .select-btn { padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.6rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.02em; }
     .select-btn:active { transform: scale(0.97); }
-    .select-btn.cancel { background: var(--color-bg-btn); color: var(--color-text-soft); }
-    .select-btn.merge { background: var(--color-merge); color: white; }
-    .select-btn.delete { background: var(--color-error); color: white; }
+    .select-btn.cancel { background: var(--color-bg-btn); color: var(--color-text-soft); border-color: var(--color-border); }
+    .select-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
+    .select-btn.delete { background: var(--color-error); color: white; border-color: transparent; }
 
     /* Modals */
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; padding: 20px; z-index: 100; backdrop-filter: blur(4px); }
@@ -586,12 +592,12 @@
     .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; text-align: center; }
     .modal-text { font-size: 0.85rem; color: var(--color-text-soft); margin-bottom: 20px; line-height: 1.6; }
     .modal-actions { display: flex; gap: 10px; justify-content: center; }
-    .modal-btn { padding: 12px 24px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+    .modal-btn { padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.6rem; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.02em; }
     .modal-btn:active { transform: scale(0.97); }
-    .modal-btn.sec { background: var(--color-bg-btn); color: var(--color-text); }
-    .modal-btn.pri { background: var(--color-primary); color: white; }
-    .modal-btn.merge { background: var(--color-merge); color: white; }
-    .modal-btn.danger { background: var(--color-error); color: white; }
+    .modal-btn.sec { background: var(--color-bg-btn); color: var(--color-text); border-color: var(--color-border); }
+    .modal-btn.pri { background: var(--color-primary); color: white; border-color: transparent; }
+    .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
+    .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
     .cat-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
     .cat-opt { padding: 10px 16px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; }
@@ -810,34 +816,55 @@
   <div class="plus-menu" id="plusMenu">
     <div class="plus-menu-label">Create</div>
     <button class="plus-menu-item" onclick="openTextInput()">
-      <span class="icon">📝</span>
-      <span>Text note</span>
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>
+      <div class="info">
+        <div class="title">New Drop</div>
+        <div class="desc">Text note or idea</div>
+      </div>
     </button>
     <button class="plus-menu-item" onclick="pasteLink()">
-      <span class="icon">🔗</span>
-      <span>Paste link</span>
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
+      <div class="info">
+        <div class="title">Paste Link</div>
+        <div class="desc">Save URL from clipboard</div>
+      </div>
     </button>
     <button class="plus-menu-item" onclick="uploadImage()">
-      <span class="icon">🖼️</span>
-      <span>Upload image</span>
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span>
+      <div class="info">
+        <div class="title">Upload Image</div>
+        <div class="desc">Photo from gallery</div>
+      </div>
     </button>
     <button class="plus-menu-item" onclick="uploadFile()">
-      <span class="icon">📄</span>
-      <span>Upload file</span>
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+      <div class="info">
+        <div class="title">Upload File</div>
+        <div class="desc">Document or PDF</div>
+      </div>
     </button>
     <div class="plus-menu-divider"></div>
-    <div class="plus-menu-label"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>AI Magic</div>
+    <div class="plus-menu-label">AI Magic</div>
     <button class="plus-menu-item magic" onclick="openMagic('poem')">
-      <span class="icon">📜</span>
-      <span>Create Poem</span>
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
+      <div class="info">
+        <div class="title">Create Poem</div>
+        <div class="desc">AI-generated poetry</div>
+      </div>
     </button>
     <button class="plus-menu-item magic" onclick="openMagic('greeting')">
-      <span class="icon">💌</span>
-      <span>Create Greeting</span>
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span>
+      <div class="info">
+        <div class="title">Create Greeting</div>
+        <div class="desc">Birthday, holiday wishes</div>
+      </div>
     </button>
     <button class="plus-menu-item magic" onclick="openMagic('speech')">
-      <span class="icon">🎤</span>
-      <span>Create Speech</span>
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span>
+      <div class="info">
+        <div class="title">Create Speech</div>
+        <div class="desc">Toast or presentation</div>
+      </div>
     </button>
   </div>
 
@@ -845,7 +872,7 @@
   <div class="text-input-modal" id="textInputModal">
     <div class="text-input-content">
       <div class="text-input-header">
-        <span class="text-input-title">New text note</span>
+        <span class="text-input-title">New Drop</span>
         <button class="text-input-close" onclick="closeTextInput()">×</button>
       </div>
       <textarea class="text-input-area" id="textInputArea" placeholder="Type your idea here..."></textarea>
@@ -876,10 +903,10 @@
                 <span>📷</span> Take photo
               </button>
               <button class="magic-photo-menu-item" onclick="chooseMagicPhoto()">
-                <span>🖼️</span> Choose from gallery
+                <span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span> Choose from gallery
               </button>
               <button class="magic-photo-menu-item" onclick="openDropsPicker()">
-                <span>💧</span> Choose from Drops
+                <span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></span> Choose from Drops
               </button>
             </div>
           </div>
@@ -894,7 +921,7 @@
         <label class="magic-input-label" id="magicInputLabel">Add details (optional if photo added)</label>
         <textarea class="magic-input-area" id="magicInput" placeholder="Example: Birthday greeting for mom, she loves gardening and has 2 grandkids..."></textarea>
         <button class="magic-voice-btn" id="magicVoiceBtn" onclick="toggleMagicVoice()">
-          <span>🎤</span>
+          <span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span>
           <span id="magicVoiceText">Tap to speak</span>
         </button>
         <div class="magic-styles" id="magicStyles">
@@ -904,11 +931,11 @@
           <button class="magic-style" data-style="epic">🎺 Epic</button>
         </div>
         <button class="magic-generate" id="magicGenerate" onclick="generateMagic()">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>Create Magic!
+          Create Magic!
         </button>
       </div>
       <div class="magic-footer">
-        <button class="magic-cancel" onclick="closeMagic()">Cancel</button>
+        <button class="ai-result-cancel" onclick="closeMagic()">Cancel</button>
       </div>
     </div>
   </div>
@@ -917,7 +944,7 @@
   <div class="drops-picker" id="dropsPicker" onclick="if(event.target===this)closeDropsPicker()">
     <div class="drops-picker-content">
       <div class="drops-picker-header">
-        <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>Choose from Drops</h3>
+        <h3>Choose from Drops</h3>
         <button class="drops-picker-close" onclick="closeDropsPicker()">×</button>
       </div>
       <div class="drops-picker-grid" id="dropsPickerGrid">
@@ -930,7 +957,7 @@
   <div class="ai-tools-modal" id="aiToolsModal" onclick="if(event.target===this)closeAITools()">
     <div class="ai-tools-content">
       <div class="ai-tools-header">
-        <h2>🤖 AI Tools</h2>
+        <h2>AI Tools</h2>
         <p>What would you like to do?</p>
       </div>
       <div class="ai-tools-preview">
@@ -1048,7 +1075,7 @@
   <div class="ai-result-modal" id="tasksConfirmModal" onclick="if(event.target===this)closeTasksConfirm()">
     <div class="ai-result-content">
       <div class="ai-result-header" style="background: linear-gradient(135deg, #10B981, #3B82F6);">
-        <h2><svg style="width:20px;height:20px;vertical-align:middle;margin-right:8px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>Extracted Tasks</h2>
+        <h2>Extracted Tasks</h2>
       </div>
       <div class="ai-result-body">
         <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 12px;">Found <span id="tasksCount">0</span> tasks. Each will become a separate drop:</p>
@@ -1056,7 +1083,6 @@
       </div>
       <div class="ai-result-actions">
         <button class="ai-result-action-btn primary" onclick="confirmCreateTasks()">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           Create <span id="tasksCountBtn">0</span> Task Drops
         </button>
         <button class="ai-result-cancel" onclick="closeTasksConfirm()">Cancel</button>
@@ -1068,7 +1094,7 @@
   <div class="ai-result-modal" id="translateModal" onclick="if(event.target===this)closeTranslateModal()">
     <div class="ai-result-content" style="max-width: 360px;">
       <div class="ai-result-header" style="background: linear-gradient(135deg, #3B82F6, #10B981);">
-        <h2>🌐 Translate</h2>
+        <h2>Translate</h2>
       </div>
       <div class="ai-result-body" style="padding: 20px;">
         <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 16px;">Select target language:</p>
@@ -1222,7 +1248,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.8.2 by Syntrise</div>
+          <div class="menu-about-ver">v0.8.5 by Syntrise</div>
         </div>
       </div>
       
@@ -1234,7 +1260,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.4 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.5 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2215,15 +2241,15 @@ function render(){
       }
       h+='<div class="card-actions">';
       if(i.isMedia){
-        h+='<button class="act" onclick="viewImage('+i.id+',event)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>View</button>';
+        h+='<button class="act" onclick="viewImage('+i.id+',event)">View</button>';
       } else {
-        h+='<button class="act ai" onclick="openAITools('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>AI TOOLS</button>';
-        h+='<button class="act" onclick="startEdit('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>Edit</button>';
+        h+='<button class="act ai" onclick="openAITools('+i.id+')">AI Tools</button>';
+        h+='<button class="act" onclick="startEdit('+i.id+')">Edit</button>';
       }
-      h+='<button class="act" onclick="openSendModal('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>Share</button>';
-      h+='<button class="act" onclick="copyIdea('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copy</button>';
-      h+='<button class="act" onclick="duplicateCard('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/><path d="M12 12h4"/><path d="M14 10v4"/></svg>Dup</button>';
-      h+='<button class="act danger" onclick="reqDel('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>Del</button>';
+      h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
+      h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
+      h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
+      h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       h+='</div>';
       if(!i.isMedia){
         h+='<div class="card-edit-actions"><button class="act primary" onclick="saveEdit('+i.id+')">Save</button><button class="act secondary" onclick="cancelEdit('+i.id+')">Cancel</button></div>';
@@ -3191,7 +3217,7 @@ function openMagic(type) {
   
   // Show modal
   document.getElementById('magicModal').classList.add('show');
-  setTimeout(() => document.getElementById('magicInput').focus(), 100);
+  // Removed autofocus to prevent keyboard popup
 }
 
 function closeMagic() {
@@ -3452,7 +3478,7 @@ function showAILoading(action, useModal2 = true) {
   if (useModal2) {
     // Use AI Result Modal 2 (for AI Tools)
     currentLoadingModal = 'modal2';
-    document.getElementById('aiResult2Title').textContent = '✨ ' + label;
+    document.getElementById('aiResult2Title').textContent = label;
     document.getElementById('aiResult2Text').innerHTML = loadingHTML;
     document.querySelector('.ai-result-actions').style.display = 'none';
     document.getElementById('aiResult2Category').style.display = 'none';
@@ -3923,7 +3949,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.8.2';
+  md+='---\nExported from DropLit v0.8.5';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
