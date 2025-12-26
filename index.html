@@ -128,7 +128,7 @@
     /* Card */
     .card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px 14px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 8px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
     .card:active { transform: scale(0.995); }
-    .card.active { box-shadow: 0 0 0 2px var(--color-active), var(--shadow-card); }
+    .card.active { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
     .card.editing { box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-card); }
     .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
     /* Checkbox removed in v0.8.2 */
@@ -165,7 +165,7 @@
     .card-text { font-size: 1.05rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; }
     .card-text a { color: var(--color-primary); text-decoration: underline; word-break: break-all; }
     .card-text a:active { opacity: 0.7; }
-    .card-text.truncated { max-height: 300px; overflow: hidden; position: relative; } /* ~12 lines for text drops */
+    .card-text.truncated { max-height: 500px; overflow: hidden; position: relative; } /* ~20 lines for text drops */
     .card-text.truncated::after { content: ''; position: absolute; bottom: 0; left: 0; right: 30px; height: 40px; background: linear-gradient(transparent, var(--color-bg-card)); pointer-events: none; }
     .card-text.expanded { max-height: none !important; }
     .card-text.expanded::after { display: none; }
@@ -192,10 +192,11 @@
     .select-mode .card.active .card-actions { display: none; }
     .card-edit-actions { display: none; gap: 6px; margin-top: 10px; }
     .card.editing .card-edit-actions { display: flex; }
-    .act { flex-shrink: 0; height: 32px; padding: 0 12px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.65rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .act { flex-shrink: 0; height: 40px; padding: 0 16px; border: 1.5px solid var(--color-border); background: var(--color-bg-btn); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.8rem; font-weight: 700; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; display: flex; align-items: center; gap: 5px; white-space: nowrap; letter-spacing: 0.02em; }
     .act:active { background: var(--color-bg-soft); }
     .act.primary { background: var(--color-primary); color: white; }
-    .act.ai { background: linear-gradient(135deg, #8B5CF6, #6366F1); color: white; }
+    .act.ai { background: linear-gradient(135deg, #8B5CF6, #6366F1); color: white; border-color: transparent; }
+    .act.danger { background: rgba(239,68,68,0.1); color: #EF4444; border-color: rgba(239,68,68,0.3); }
     .act.merge { background: var(--color-merge); color: white; }
     .act.secondary { background: var(--color-bg-btn); color: var(--color-text-soft); }
 
@@ -310,7 +311,8 @@
     .ai-tool-btn { display: flex; align-items: center; gap: 14px; padding: 16px; border: 2px solid var(--color-border); border-radius: 14px; background: var(--color-bg-card); cursor: pointer; transition: all 0.15s; text-align: left; font-family: var(--font-main); }
     .ai-tool-btn:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
     .ai-tool-btn:active { transform: scale(0.98); }
-    .ai-tool-btn .icon { font-size: 1.5rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1)); border-radius: 10px; }
+    .ai-tool-btn .icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.1)); border-radius: 10px; color: #6366F1; }
+    .ai-tool-btn .icon svg { width: 22px; height: 22px; }
     .ai-tool-btn .info { flex: 1; }
     .ai-tool-btn .title { font-size: 1rem; font-weight: 600; color: var(--color-text); margin-bottom: 2px; }
     .ai-tool-btn .desc { font-size: 0.8rem; color: var(--color-text-muted); }
@@ -319,7 +321,7 @@
     .ai-tools-option-label { flex: 1; }
     .ai-tools-option-label .title { font-size: 0.9rem; font-weight: 500; color: var(--color-text); }
     .ai-tools-option-label .current { font-size: 0.8rem; color: var(--color-text-muted); }
-    .ai-tools-footer { padding: 16px 20px; border-top: 1px solid var(--color-border); text-align: center; }
+    .ai-tools-footer { padding: 16px 20px; border-top: 1px solid var(--color-border); }
     
     /* AI Result Modal (large) */
     .ai-result-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 210; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; visibility: hidden; transition: all 0.2s; }
@@ -824,7 +826,7 @@
       <span>Upload file</span>
     </button>
     <div class="plus-menu-divider"></div>
-    <div class="plus-menu-label">✨ AI Magic</div>
+    <div class="plus-menu-label"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>AI Magic</div>
     <button class="plus-menu-item magic" onclick="openMagic('poem')">
       <span class="icon">📜</span>
       <span>Create Poem</span>
@@ -858,7 +860,7 @@
   <div class="magic-modal" id="magicModal" onclick="if(event.target===this)closeMagic()">
     <div class="magic-content">
       <div class="magic-header">
-        <h2 id="magicTitle">✨ Create Poem</h2>
+        <h2 id="magicTitle">Create Poem</h2>
         <p id="magicSubtitle">Tell me what it should be about</p>
       </div>
       <div class="magic-body">
@@ -902,7 +904,7 @@
           <button class="magic-style" data-style="epic">🎺 Epic</button>
         </div>
         <button class="magic-generate" id="magicGenerate" onclick="generateMagic()">
-          ✨ Create Magic!
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>Create Magic!
         </button>
       </div>
       <div class="magic-footer">
@@ -915,7 +917,7 @@
   <div class="drops-picker" id="dropsPicker" onclick="if(event.target===this)closeDropsPicker()">
     <div class="drops-picker-content">
       <div class="drops-picker-header">
-        <h3>💧 Choose from Drops</h3>
+        <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>Choose from Drops</h3>
         <button class="drops-picker-close" onclick="closeDropsPicker()">×</button>
       </div>
       <div class="drops-picker-grid" id="dropsPickerGrid">
@@ -938,42 +940,42 @@
       <div class="ai-tools-body">
         <div class="ai-tools-grid">
           <button class="ai-tool-btn" onclick="runAITool('summarize')">
-            <span class="icon">📝</span>
+            <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg></span>
             <div class="info">
               <div class="title">Summarize</div>
               <div class="desc">Make it shorter and clearer</div>
             </div>
           </button>
           <button class="ai-tool-btn" onclick="runAITool('tasks')">
-            <span class="icon">📋</span>
+            <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg></span>
             <div class="info">
               <div class="title">Create Tasks</div>
               <div class="desc">Extract actionable to-dos</div>
             </div>
           </button>
           <button class="ai-tool-btn" onclick="runAITool('expand')">
-            <span class="icon">✨</span>
+            <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
             <div class="info">
               <div class="title">Expand</div>
               <div class="desc">Add more details and ideas</div>
             </div>
           </button>
           <button class="ai-tool-btn" onclick="runAITool('rewrite')">
-            <span class="icon">🔄</span>
+            <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></span>
             <div class="info">
               <div class="title">Rewrite</div>
               <div class="desc">Different style or tone</div>
             </div>
           </button>
           <button class="ai-tool-btn" onclick="runAITool('enhance')">
-            <span class="icon">✏️</span>
+            <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span>
             <div class="info">
               <div class="title">Enhance</div>
               <div class="desc">Fix errors, punctuation, formatting</div>
             </div>
           </button>
           <button class="ai-tool-btn" onclick="openTranslateModal()">
-            <span class="icon">🌐</span>
+            <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span>
             <div class="info">
               <div class="title">Translate</div>
               <div class="desc">Translate to another language</div>
@@ -996,7 +998,7 @@
         </div>
       </div>
       <div class="ai-tools-footer">
-        <button class="magic-cancel" onclick="closeAITools()">Cancel</button>
+        <button class="ai-result-cancel" onclick="closeAITools()">Cancel</button>
       </div>
     </div>
   </div>
@@ -1005,7 +1007,7 @@
   <div class="ai-result-modal" id="aiResultModal2" onclick="if(event.target===this)closeAIResult2()">
     <div class="ai-result-content">
       <div class="ai-result-header">
-        <h2 id="aiResult2Title">✨ Result</h2>
+        <h2 id="aiResult2Title">Result</h2>
       </div>
       <div class="ai-result-body">
         <div class="ai-result-text" id="aiResult2Text"></div>
@@ -1024,14 +1026,17 @@
       </div>
       <div class="ai-result-actions">
         <button class="ai-result-action-btn primary" onclick="replaceOriginal()">
-          🔄 Replace original
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+          Replace original
         </button>
         <div class="ai-result-action-row">
           <button class="ai-result-action-btn secondary" onclick="createNewDrop()">
-            💧 New Drop
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            New Drop
           </button>
           <button class="ai-result-action-btn secondary" onclick="copyResult2()">
-            📋 Copy
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            Copy
           </button>
         </div>
         <button class="ai-result-cancel" onclick="closeAIResult2()">Cancel</button>
@@ -1042,8 +1047,8 @@
   <!-- B2 FIX: Tasks Confirmation Modal -->
   <div class="ai-result-modal" id="tasksConfirmModal" onclick="if(event.target===this)closeTasksConfirm()">
     <div class="ai-result-content">
-      <div class="ai-result-header" style="background: linear-gradient(135deg, #F59E0B, #EF4444);">
-        <h2>📋 Extracted Tasks</h2>
+      <div class="ai-result-header" style="background: linear-gradient(135deg, #10B981, #3B82F6);">
+        <h2><svg style="width:20px;height:20px;vertical-align:middle;margin-right:8px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>Extracted Tasks</h2>
       </div>
       <div class="ai-result-body">
         <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 12px;">Found <span id="tasksCount">0</span> tasks. Each will become a separate drop:</p>
@@ -1051,7 +1056,8 @@
       </div>
       <div class="ai-result-actions">
         <button class="ai-result-action-btn primary" onclick="confirmCreateTasks()">
-          ✅ Create <span id="tasksCountBtn">0</span> Task Drops
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Create <span id="tasksCountBtn">0</span> Task Drops
         </button>
         <button class="ai-result-cancel" onclick="closeTasksConfirm()">Cancel</button>
       </div>
@@ -1228,7 +1234,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.3 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.4 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal"><div class="modal-title">Move to</div><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal"><div class="modal-title">Send</div><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal"><div class="modal-title">Export</div><div class="export-box" id="exportBox"></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1504,7 +1510,9 @@ function showMergePreview(){
   });
   if(hasMedia){toast('Cannot merge media items','warning');return;}
   
-  const mergedText = getMergedText();
+  // Get current checkbox state and update preview accordingly
+  const simple=document.getElementById('mergeSimple').checked;
+  const mergedText = getMergedText(simple);
   document.getElementById('mergePreview').textContent=mergedText;
   
   // Warning for large merge
@@ -2173,7 +2181,7 @@ function render(){
       const isEditing=editId===i.id;
       const isSelected=selectedIds.includes(i.id);
       const cc=i.isMedia?0:(i.text?.length||0);
-      const isTruncated=cc>500;
+      const isTruncated=cc>1000; /* ~20 lines */
       h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()" oncontextmenu="return false;">';
       h+='<div class="card-checkbox">'+(isSelected?'V':'')+'</div>';
       h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
@@ -2207,15 +2215,15 @@ function render(){
       }
       h+='<div class="card-actions">';
       if(i.isMedia){
-        h+='<button class="act" onclick="viewImage('+i.id+',event)">View</button>';
+        h+='<button class="act" onclick="viewImage('+i.id+',event)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>View</button>';
       } else {
-        h+='<button class="act ai" onclick="openAITools('+i.id+')">AI</button>';
-        h+='<button class="act" onclick="startEdit('+i.id+')">Edit</button>';
+        h+='<button class="act ai" onclick="openAITools('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>AI TOOLS</button>';
+        h+='<button class="act" onclick="startEdit('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>Edit</button>';
       }
-      h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
-      h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
-      h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
-      h+='<button class="act" onclick="reqDel('+i.id+')">Del</button>';
+      h+='<button class="act" onclick="openSendModal('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>Share</button>';
+      h+='<button class="act" onclick="copyIdea('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copy</button>';
+      h+='<button class="act" onclick="duplicateCard('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/><path d="M12 12h4"/><path d="M14 10v4"/></svg>Dup</button>';
+      h+='<button class="act danger" onclick="reqDel('+i.id+')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>Del</button>';
       h+='</div>';
       if(!i.isMedia){
         h+='<div class="card-edit-actions"><button class="act primary" onclick="saveEdit('+i.id+')">Save</button><button class="act secondary" onclick="cancelEdit('+i.id+')">Cancel</button></div>';
@@ -3743,14 +3751,14 @@ function showAIResult2(tool, text, currentCategory, suggestedCategory) {
   aiToolsSuggestedCategory = suggestedCategory;
   
   const titles = {
-    summarize: '📝 Summary',
-    expand: '✨ Expanded',
-    rewrite: '🔄 Rewritten',
-    enhance: '✏️ Enhanced',
-    translate: '🌐 Translated'
+    summarize: 'Summary',
+    expand: 'Expanded',
+    rewrite: 'Rewritten',
+    enhance: 'Enhanced',
+    translate: 'Translated'
   };
   
-  document.getElementById('aiResult2Title').textContent = titles[tool] || '✨ Result';
+  document.getElementById('aiResult2Title').textContent = titles[tool] || 'Result';
   document.getElementById('aiResult2Text').textContent = text;
   
   // Show action buttons (may have been hidden during loading)
