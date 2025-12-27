@@ -2094,6 +2094,9 @@ function openAskAI() {
   document.body.classList.add('chat-open');
   // No auto-focus - voice-first approach, keyboard won't popup
   
+  // Keep screen on while chat is open (like TikTok)
+  acquireWakeLock();
+  
   // Reset voice mode locks and start listening
   if (isVoiceModeEnabled()) {
     voiceModeLocked = false;
@@ -2112,6 +2115,9 @@ function closeAskAI() {
   stopVoiceModeListening();
   askiStopSpeaking();
   updateVoiceModeIndicator('');
+  
+  // Allow screen to sleep when chat is closed
+  releaseWakeLock();
 }
 
 function setAskAIPrompt(text) {
@@ -2381,12 +2387,13 @@ function startVoiceModeListening() {
   voiceModeRecognition.onend = () => {
     document.getElementById('askAIVoiceBtn')?.classList.remove('recording');
     
-    // Only restart if not locked and chat is still open
+    // Only restart if not locked, chat is open, and page is visible
     if (!voiceModeLocked && isVoiceModeEnabled() && 
-        document.getElementById('askAIPanel')?.classList.contains('show')) {
+        document.getElementById('askAIPanel')?.classList.contains('show') &&
+        !document.hidden) {
       updateVoiceModeIndicator('waiting');
       setTimeout(() => {
-        if (!voiceModeLocked && !askiIsSpeaking && !askiIsProcessing) {
+        if (!voiceModeLocked && !askiIsSpeaking && !askiIsProcessing && !document.hidden) {
           startVoiceModeListening();
         }
       }, 300);
@@ -2402,11 +2409,12 @@ function startVoiceModeListening() {
       console.error('Voice mode error:', e.error);
     }
     
-    // Only restart if not locked
+    // Only restart if not locked and page is visible
     if (!voiceModeLocked && isVoiceModeEnabled() && 
-        document.getElementById('askAIPanel')?.classList.contains('show')) {
+        document.getElementById('askAIPanel')?.classList.contains('show') &&
+        !document.hidden) {
       setTimeout(() => {
-        if (!voiceModeLocked && !askiIsSpeaking && !askiIsProcessing) {
+        if (!voiceModeLocked && !askiIsSpeaking && !askiIsProcessing && !document.hidden) {
           startVoiceModeListening();
         }
       }, 500);
@@ -5704,6 +5712,25 @@ function toast(m,t='info'){
 function updateNet(){document.getElementById('netBanner').classList.toggle('show',!navigator.onLine);}
 window.addEventListener('online',updateNet);
 window.addEventListener('offline',updateNet);
+
+// Handle page visibility changes (screen lock, tab switch)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // Page is hidden - stop voice mode listening to prevent loops
+    if (voiceModeRecognition) {
+      stopVoiceModeListening();
+      console.log('Voice mode paused (page hidden)');
+    }
+  } else {
+    // Page is visible again - resume voice mode if enabled and chat is open
+    if (isVoiceModeEnabled() && 
+        document.getElementById('askAIPanel')?.classList.contains('show') &&
+        !voiceModeLocked && !askiIsSpeaking && !askiIsProcessing) {
+      setTimeout(startVoiceModeListening, 500);
+      console.log('Voice mode resumed (page visible)');
+    }
+  }
+});
 
 document.addEventListener('DOMContentLoaded',()=>{
   initSR();render();counts();updateNet();initFiltersState();
