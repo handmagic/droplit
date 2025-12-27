@@ -27,7 +27,7 @@ export default async function handler(req) {
 
   try {
     const body = await req.json();
-    const { action, image, text, style, context, targetLang } = body;
+    const { action, image, text, style, context, targetLang, history } = body;
 
     // Validate input
     if (!action) {
@@ -51,8 +51,39 @@ export default async function handler(req) {
     let userPrompt = '';
     let messages = [];
 
+    // === CHAT ACTION (Ask AI / Aski) ===
+    if (action === 'chat') {
+      systemPrompt = `You are a helpful, friendly AI assistant in DropLit — a voice-first idea capture app.
+
+Your personality:
+- Warm, concise, and genuinely helpful
+- You give practical advice and creative ideas
+- You use emojis sparingly but appropriately 
+- You're great at brainstorming, planning, and problem-solving
+
+Rules:
+- ALWAYS respond in the SAME language as the user's message
+- Keep responses concise (2-4 paragraphs max unless asked for more)
+- Be direct and actionable
+- If asked about yourself, you're "Aski" — the AI assistant in DropLit`;
+
+      // Build messages with history for context
+      if (history && Array.isArray(history) && history.length > 0) {
+        // Convert history to Claude format
+        messages = history
+          .filter(msg => msg.text && msg.text.trim())
+          .map(msg => ({
+            role: msg.isUser ? 'user' : 'assistant',
+            content: msg.text
+          }));
+        // Add current message
+        messages.push({ role: 'user', content: text });
+      } else {
+        messages = [{ role: 'user', content: text }];
+      }
+
     // === IMAGE ACTIONS ===
-    if (action === 'ocr') {
+    } else if (action === 'ocr') {
       systemPrompt = 'You are an OCR assistant. Extract all visible text from the image exactly as it appears. Preserve formatting where possible (line breaks, lists). If no text is found, say "No text detected."';
       userPrompt = 'Extract all text from this image.';
       
