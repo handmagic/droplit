@@ -254,6 +254,9 @@
     .ask-ai-avatar { width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
     .ask-ai-title { font-size: 1.15rem; font-weight: 600; }
     .ask-ai-subtitle { font-size: 0.8rem; opacity: 0.85; }
+    .speaking-indicator { margin-left: 10px; font-size: 1.2rem; opacity: 0.5; cursor: pointer; transition: all 0.2s; }
+    .speaking-indicator.active { opacity: 1; animation: speakPulse 1s infinite; }
+    @keyframes speakPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
     .ask-ai-close { width: 36px; height: 36px; border: none; background: rgba(255,255,255,0.2); border-radius: 50%; color: white; font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
     .ask-ai-close:hover { background: rgba(255,255,255,0.3); }
     .ask-ai-messages { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; background: var(--color-bg); }
@@ -269,6 +272,8 @@
     .ask-ai-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
     .ask-ai-action-btn { height: 34px; padding: 0 16px; border: 2px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-card); font-family: var(--font-main); font-size: 0.75rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
     .ask-ai-action-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .ask-ai-action-btn.speak-btn { border-color: #06B6D4; color: #06B6D4; }
+    .ask-ai-action-btn.speak-btn:hover { background: #06B6D4; color: white; }
     .ask-ai-action-btn.primary { background: linear-gradient(135deg, #8B5CF6, #7C3AED); border-color: transparent; color: white; }
     .ask-ai-action-btn.primary:hover { transform: scale(1.03); }
     .ask-ai-typing { display: flex; align-items: center; gap: 5px; padding: 14px 18px; background: var(--color-bg-card); box-shadow: 0 1px 2px rgba(0,0,0,0.1); border-radius: 18px; border-bottom-left-radius: 4px; width: fit-content; }
@@ -689,7 +694,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.8.8 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.8.9 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1381,6 +1386,14 @@
         
         <div class="settings-item">
           <div class="settings-item-left">
+            <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></span>
+            <span class="settings-item-label">Aski auto-speak</span>
+          </div>
+          <div class="settings-toggle" id="autoSpeakToggle" onclick="toggleAutoSpeak()"></div>
+        </div>
+        
+        <div class="settings-item">
+          <div class="settings-item-left">
             <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
             <span class="settings-item-label">Dark mode</span>
           </div>
@@ -1432,7 +1445,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.8.8 by Syntrise</div>
+          <div class="menu-about-ver">v0.8.9 by Syntrise</div>
         </div>
       </div>
       
@@ -1444,7 +1457,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.8 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.9 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2057,6 +2070,173 @@ function updateAskAICharCount() {
   document.getElementById('askAISendBtn').disabled = count === 0;
 }
 
+// ============================================
+// ASKI VOICE (Text-to-Speech)
+// ============================================
+
+let askiIsSpeaking = false;
+let askiCurrentUtterance = null;
+
+// Detect language from text
+function detectLanguage(text) {
+  // Simple detection based on character ranges
+  const japaneseRegex = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/;
+  const chineseRegex = /[\u4E00-\u9FFF]/;
+  const koreanRegex = /[\uAC00-\uD7AF\u1100-\u11FF]/;
+  const cyrillicRegex = /[\u0400-\u04FF]/;
+  const arabicRegex = /[\u0600-\u06FF]/;
+  const hebrewRegex = /[\u0590-\u05FF]/;
+  
+  if (japaneseRegex.test(text) && !chineseRegex.test(text.replace(/[\u4E00-\u9FAF]/g, ''))) {
+    return 'ja-JP';
+  }
+  if (chineseRegex.test(text)) {
+    return 'zh-CN';
+  }
+  if (koreanRegex.test(text)) {
+    return 'ko-KR';
+  }
+  if (cyrillicRegex.test(text)) {
+    return 'ru-RU';
+  }
+  if (arabicRegex.test(text)) {
+    return 'ar-SA';
+  }
+  if (hebrewRegex.test(text)) {
+    return 'he-IL';
+  }
+  
+  // Default to English
+  return 'en-US';
+}
+
+// Get best available voice for language
+function getVoiceForLang(lang) {
+  const voices = speechSynthesis.getVoices();
+  
+  // Try exact match first
+  let voice = voices.find(v => v.lang === lang);
+  
+  // Try language prefix match
+  if (!voice) {
+    const langPrefix = lang.split('-')[0];
+    voice = voices.find(v => v.lang.startsWith(langPrefix));
+  }
+  
+  // Fallback to default
+  return voice || voices[0];
+}
+
+// Speak text with Aski's voice
+function askiSpeak(text, lang = null) {
+  // Stop any current speech
+  if (askiIsSpeaking) {
+    askiStopSpeaking();
+  }
+  
+  if (!('speechSynthesis' in window)) {
+    showToast('Voice not supported in this browser');
+    return;
+  }
+  
+  // Auto-detect language if not specified
+  const detectedLang = lang || detectLanguage(text);
+  
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = detectedLang;
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  
+  // Get best voice
+  const voice = getVoiceForLang(detectedLang);
+  if (voice) {
+    utterance.voice = voice;
+  }
+  
+  // Events
+  utterance.onstart = () => {
+    askiIsSpeaking = true;
+    updateSpeakingIndicator(true);
+  };
+  
+  utterance.onend = () => {
+    askiIsSpeaking = false;
+    askiCurrentUtterance = null;
+    updateSpeakingIndicator(false);
+  };
+  
+  utterance.onerror = (e) => {
+    console.error('Speech error:', e);
+    askiIsSpeaking = false;
+    askiCurrentUtterance = null;
+    updateSpeakingIndicator(false);
+  };
+  
+  askiCurrentUtterance = utterance;
+  speechSynthesis.speak(utterance);
+}
+
+// Stop speaking
+function askiStopSpeaking() {
+  if (speechSynthesis.speaking) {
+    speechSynthesis.cancel();
+  }
+  askiIsSpeaking = false;
+  askiCurrentUtterance = null;
+  updateSpeakingIndicator(false);
+}
+
+// Toggle speak for a message
+function toggleAskiSpeak(btn) {
+  if (askiIsSpeaking) {
+    askiStopSpeaking();
+    return;
+  }
+  
+  const bubble = btn.closest('.ask-ai-message').querySelector('.ask-ai-bubble');
+  const text = bubble.textContent;
+  askiSpeak(text);
+}
+
+// Update speaking indicator in header
+function updateSpeakingIndicator(isSpeaking) {
+  const header = document.querySelector('.ask-ai-header');
+  if (!header) return;
+  
+  let indicator = header.querySelector('.speaking-indicator');
+  
+  if (isSpeaking) {
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.className = 'speaking-indicator';
+      indicator.innerHTML = '🔊';
+      indicator.onclick = askiStopSpeaking;
+      header.querySelector('.ask-ai-header-left').appendChild(indicator);
+    }
+    indicator.classList.add('active');
+  } else {
+    if (indicator) {
+      indicator.classList.remove('active');
+    }
+  }
+}
+
+// Auto-speak setting
+function isAutoSpeakEnabled() {
+  return localStorage.getItem('aski_auto_speak') === 'true';
+}
+
+function setAutoSpeak(enabled) {
+  localStorage.setItem('aski_auto_speak', enabled ? 'true' : 'false');
+  showToast(enabled ? 'Auto-speak enabled' : 'Auto-speak disabled');
+}
+
+// Load voices (some browsers need this)
+if ('speechSynthesis' in window) {
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+}
+
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
@@ -2083,6 +2263,10 @@ function addAskAIMessage(text, isUser = true) {
     msgDiv.innerHTML = `
       <div class="ask-ai-bubble">${text}</div>
       <div class="ask-ai-actions">
+        <button class="ask-ai-action-btn speak-btn" onclick="toggleAskiSpeak(this)" title="Speak">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          Speak
+        </button>
         <button class="ask-ai-action-btn primary" onclick="createDropFromAI(this)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
           Create Drop
@@ -2091,6 +2275,11 @@ function addAskAIMessage(text, isUser = true) {
       </div>
       <div class="ask-ai-time">${time}</div>
     `;
+    
+    // Auto-speak if enabled
+    if (isAutoSpeakEnabled()) {
+      setTimeout(() => askiSpeak(text), 300);
+    }
   }
   
   messagesDiv.appendChild(msgDiv);
@@ -4425,7 +4614,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.8.8';
+  md+='---\nExported from DropLit v0.8.9';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -4738,6 +4927,24 @@ function startVoiceSearch() {
 // ============================================
 // SETTINGS FUNCTIONS
 // ============================================
+
+function toggleAutoSpeak() {
+  const toggle = document.getElementById('autoSpeakToggle');
+  const isEnabled = toggle.classList.toggle('active');
+  setAutoSpeak(isEnabled);
+  
+  // Battery warning
+  if (isEnabled) {
+    showToast('🔋 Voice mode uses more battery. Consider charging for long conversations.');
+  }
+}
+
+function initAutoSpeakToggle() {
+  const toggle = document.getElementById('autoSpeakToggle');
+  if (toggle && isAutoSpeakEnabled()) {
+    toggle.classList.add('active');
+  }
+}
 
 function toggleDarkMode() {
   const toggle = document.getElementById('darkModeToggle');
@@ -5123,6 +5330,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   if (localStorage.getItem('droplit_darkmode') === 'true') {
     document.getElementById('darkModeToggle')?.classList.add('active');
     document.body.classList.add('dark-mode');
+  }
+  
+  // Initialize auto-speak
+  if (localStorage.getItem('aski_auto_speak') === 'true') {
+    document.getElementById('autoSpeakToggle')?.classList.add('active');
   }
   
   // Initialize font size
