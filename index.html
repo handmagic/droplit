@@ -71,10 +71,11 @@
     .logo-btn svg { width: 18px; height: 18px; }
     .header-title { font-size: 0.9rem; font-weight: 700; color: var(--color-text); }
     .header-title span { color: var(--color-primary); }
-    .header-add-btn { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; background: linear-gradient(135deg, #8B5CF6, #7C3AED); border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s; box-shadow: 0 2px 8px rgba(139,92,246,0.3); }
+    .header-add-btn { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; background: linear-gradient(135deg, #8B5CF6, #7C3AED); border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.8rem; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s; box-shadow: 0 2px 8px rgba(139,92,246,0.3); }
     .header-add-btn:hover { transform: translateX(-50%) scale(1.03); box-shadow: 0 4px 12px rgba(139,92,246,0.4); }
     .header-add-btn:active { transform: translateX(-50%) scale(0.97); }
     .header-add-btn svg { width: 12px; height: 12px; }
+    body.chat-open .header-add-btn { display: none; }
     .btn-icon { width: 36px; height: 36px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); flex-shrink: 0; }
     .btn-icon:active { background: var(--color-bg-soft); }
 
