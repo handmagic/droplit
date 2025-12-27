@@ -71,6 +71,9 @@
     .logo-btn svg { width: 18px; height: 18px; }
     .header-title { flex: 1; font-size: 0.9rem; font-weight: 700; color: var(--color-text); }
     .header-title span { color: var(--color-primary); }
+    .header-add-btn { display: flex; align-items: center; gap: 5px; padding: 7px 12px; background: var(--color-bg); border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.75rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; transition: all 0.15s; }
+    .header-add-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .header-add-btn svg { width: 14px; height: 14px; }
     .btn-icon { width: 36px; height: 36px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); flex-shrink: 0; }
     .btn-icon:active { background: var(--color-bg-soft); }
 
@@ -207,26 +210,83 @@
     .empty-text { font-size: 0.85rem; color: var(--color-text-muted); }
 
     /* FAB - Record button */
-    .fab-record { position: fixed; bottom: calc(24px + var(--safe-bottom)); right: 20px; width: 68px; height: 68px; border: none; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-fab); z-index: 50; transition: all 0.2s; }
+    .fab-record { position: fixed; bottom: calc(24px + var(--safe-bottom)); right: 20px; width: 56px; height: 56px; border: none; background: #06B6D4; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(6,182,212,0.4); z-index: 50; transition: all 0.2s; }
     .fab-record:active { transform: scale(0.95); }
     .fab-record.recording { background: var(--color-recording); animation: pulse 1.5s ease infinite; box-shadow: 0 4px 14px rgba(239,68,68,0.4); }
-    .fab-record svg { width: 30px; height: 30px; color: white; }
+    .fab-record svg { width: 24px; height: 24px; color: white; }
     .select-mode .fab-record, .editing-mode .fab-record { display: none; }
     @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 12px rgba(239,68,68,0)} }
 
     /* FAB - Camera button */
-    .fab-camera { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 20px; width: 68px; height: 68px; border: none; background: linear-gradient(135deg, #6366F1, #8B5CF6); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(99,102,241,0.4); z-index: 50; transition: all 0.2s; }
+    .fab-camera { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 20px; width: 56px; height: 56px; border: none; background: #FF6B4A; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(255,107,74,0.4); z-index: 50; transition: all 0.2s; }
     .fab-camera:active { transform: scale(0.95); }
-    .fab-camera svg { width: 28px; height: 28px; color: white; }
+    .fab-camera svg { width: 24px; height: 24px; color: white; }
     .select-mode .fab-camera, .editing-mode .fab-camera { display: none !important; }
     .camera-input { display: none; }
 
     /* FAB - Plus button (center) */
-    .fab-plus { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); width: 68px; height: 68px; border: none; background: linear-gradient(135deg, #10B981, #059669); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(16,185,129,0.4); z-index: 50; transition: all 0.2s; }
-    .fab-plus:active { transform: translateX(-50%) scale(0.95); }
-    .fab-plus.open { transform: translateX(-50%) rotate(45deg); }
-    .fab-plus svg { width: 28px; height: 28px; color: white; transition: transform 0.2s; }
-    .select-mode .fab-plus, .editing-mode .fab-plus { display: none !important; }
+    .fab-askai { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); height: 52px; padding: 0 24px; border: none; background: linear-gradient(135deg, #FF6B4A, #06B6D4); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 50; transition: all 0.2s; animation: askaiGlow 2.5s ease-in-out infinite; font-family: var(--font-main); font-size: 0.95rem; font-weight: 700; color: white; letter-spacing: 0.3px; }
+    @keyframes askaiGlow { 0%, 100% { box-shadow: 0 4px 20px rgba(255,107,74,0.3), 0 4px 20px rgba(6,182,212,0.3); } 50% { box-shadow: 0 4px 35px rgba(255,107,74,0.5), 0 4px 35px rgba(6,182,212,0.5), 0 0 50px rgba(255,107,74,0.2), 0 0 50px rgba(6,182,212,0.2); } }
+    .fab-askai:hover { animation: none; box-shadow: 0 6px 30px rgba(255,107,74,0.5), 0 6px 30px rgba(6,182,212,0.5); }
+    .fab-askai:active { transform: translateX(-50%) scale(0.97); }
+    .fab-askai .sparkle { font-size: 1.1rem; animation: sparkle 1.5s ease-in-out infinite; }
+    @keyframes sparkle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.15); } }
+    .select-mode .fab-askai, .editing-mode .fab-askai { display: none !important; }
+
+    /* Ask AI Panel - Full Screen Slide Up */
+    .ask-ai-panel { position: fixed; inset: 0; top: 50px; background: var(--color-bg-card); border-radius: 24px 24px 0 0; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0,0,0,0.15); }
+    .ask-ai-panel.show { transform: translateY(0); }
+    .ask-ai-handle { padding: 12px 0 8px; display: flex; justify-content: center; cursor: grab; }
+    .ask-ai-handle-bar { width: 40px; height: 5px; background: var(--color-border); border-radius: 3px; }
+    .ask-ai-header { background: linear-gradient(135deg, #FF6B4A, #06B6D4); color: white; padding: 12px 20px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .ask-ai-header-left { display: flex; align-items: center; gap: 12px; }
+    .ask-ai-avatar { width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+    .ask-ai-title { font-size: 1.15rem; font-weight: 600; }
+    .ask-ai-subtitle { font-size: 0.8rem; opacity: 0.85; }
+    .ask-ai-close { width: 36px; height: 36px; border: none; background: rgba(255,255,255,0.2); border-radius: 50%; color: white; font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .ask-ai-close:hover { background: rgba(255,255,255,0.3); }
+    .ask-ai-messages { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; background: var(--color-bg); }
+    .ask-ai-message { display: flex; flex-direction: column; max-width: 85%; animation: msgFadeIn 0.3s ease; }
+    @keyframes msgFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .ask-ai-message.user { align-self: flex-end; }
+    .ask-ai-message.ai { align-self: flex-start; }
+    .ask-ai-bubble { padding: 14px 18px; border-radius: 20px; font-size: 0.95rem; line-height: 1.55; }
+    .ask-ai-message.user .ask-ai-bubble { background: linear-gradient(135deg, #3B82F6, #6366F1); color: white; border-bottom-right-radius: 6px; }
+    .ask-ai-message.ai .ask-ai-bubble { background: var(--color-bg-card); color: var(--color-text); border: 1px solid var(--color-border); border-bottom-left-radius: 6px; }
+    .ask-ai-time { font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px; padding: 0 6px; }
+    .ask-ai-message.user .ask-ai-time { text-align: right; }
+    .ask-ai-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .ask-ai-action-btn { height: 34px; padding: 0 16px; border: 2px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-card); font-family: var(--font-main); font-size: 0.75rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+    .ask-ai-action-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .ask-ai-action-btn.primary { background: linear-gradient(135deg, #FF6B4A, #06B6D4); border-color: transparent; color: white; }
+    .ask-ai-action-btn.primary:hover { transform: scale(1.03); }
+    .ask-ai-typing { display: flex; align-items: center; gap: 5px; padding: 14px 18px; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 20px; border-bottom-left-radius: 6px; width: fit-content; }
+    .ask-ai-typing-dot { width: 8px; height: 8px; background: var(--color-primary); border-radius: 50%; animation: typingPulse 1.4s infinite; }
+    .ask-ai-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .ask-ai-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingPulse { 0%, 60%, 100% { opacity: 0.3; transform: scale(1); } 30% { opacity: 1; transform: scale(1.2); } }
+    .ask-ai-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; text-align: center; }
+    .ask-ai-empty-icon { font-size: 4rem; margin-bottom: 20px; }
+    .ask-ai-empty-title { font-size: 1.2rem; font-weight: 600; color: var(--color-text); margin-bottom: 8px; }
+    .ask-ai-empty-text { font-size: 0.95rem; color: var(--color-text-muted); line-height: 1.5; max-width: 280px; }
+    .ask-ai-prompts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; justify-content: center; }
+    .ask-ai-prompt { padding: 10px 16px; background: var(--color-bg-card); border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; color: var(--color-text-soft); cursor: pointer; transition: all 0.15s; }
+    .ask-ai-prompt:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .ask-ai-input-area { padding: 12px 16px 24px; background: var(--color-bg-card); border-top: 1px solid var(--color-border); }
+    .ask-ai-input-row { display: flex; align-items: center; gap: 10px; }
+    .ask-ai-input { flex: 1; padding: 14px 18px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 1rem; background: var(--color-bg); color: var(--color-text); outline: none; transition: border-color 0.15s; }
+    .ask-ai-input:focus { border-color: var(--color-primary); }
+    .ask-ai-input::placeholder { color: var(--color-text-muted); }
+    .ask-ai-btn { width: 48px; height: 48px; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .ask-ai-btn-voice { background: var(--color-bg); border: 2px solid var(--color-border); color: var(--color-text-soft); }
+    .ask-ai-btn-voice:hover { border-color: #FF6B4A; color: #FF6B4A; }
+    .ask-ai-btn-voice.recording { background: #FF6B4A; border-color: #FF6B4A; color: white; animation: pulse 1s infinite; }
+    .ask-ai-btn-send { background: linear-gradient(135deg, #FF6B4A, #06B6D4); color: white; }
+    .ask-ai-btn-send:hover { transform: scale(1.05); }
+    .ask-ai-btn-send:disabled { background: var(--color-border); cursor: not-allowed; transform: none; }
+    .ask-ai-char-count { text-align: right; font-size: 0.7rem; color: var(--color-text-muted); margin-top: 8px; padding-right: 4px; }
+    .ask-ai-char-count.warning { color: #FF6B4A; }
+    body.chat-open .fab-camera, body.chat-open .fab-askai, body.chat-open .fab-record { opacity: 0; pointer-events: none; }
 
     /* Plus menu */
     .plus-menu { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--color-bg-card); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); z-index: 49; opacity: 0; visibility: hidden; transition: all 0.2s ease; min-width: 280px; overflow: hidden; padding: 12px; }
@@ -618,7 +678,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.8.7 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.8.8 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -832,6 +892,10 @@
         <svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
       </button>
       <div class="header-title"><span>Drop</span>Lit</div>
+      <button class="header-add-btn" onclick="togglePlusMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Add
+      </button>
       <button class="btn-icon" onclick="openMainMenu()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     </header>
     <div class="network-banner" id="netBanner">No internet</div>
@@ -878,9 +942,9 @@
   <input type="file" id="imageUpload" class="camera-input" accept="image/*" onchange="handleUploadedImage(event)">
   <input type="file" id="fileUpload" style="display:none" accept=".txt,.md,.csv,.json" onchange="handleUploadedFile(event)">
 
-  <!-- FAB Plus button -->
-  <button class="fab-plus" id="fabPlus" onclick="togglePlusMenu()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  <!-- FAB Ask AI button -->
+  <button class="fab-askai" id="fabAskAI" onclick="openAskAI()">
+    <span class="sparkle">✨</span> Ask AI
   </button>
 
   <!-- Plus menu backdrop -->
@@ -1201,6 +1265,47 @@
   <button class="scroll-fab top" id="scrollTop" onclick="scrollToTop()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg></button>
   <button class="scroll-fab bottom" id="scrollBottom" onclick="scrollToBottom()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></button>
 
+  <!-- Ask AI Panel -->
+  <div class="ask-ai-panel" id="askAIPanel">
+    <div class="ask-ai-handle" onclick="closeAskAI()">
+      <div class="ask-ai-handle-bar"></div>
+    </div>
+    <div class="ask-ai-header">
+      <div class="ask-ai-header-left">
+        <div class="ask-ai-avatar">✨</div>
+        <div>
+          <div class="ask-ai-title">Ask AI</div>
+          <div class="ask-ai-subtitle">Your personal assistant</div>
+        </div>
+      </div>
+      <button class="ask-ai-close" onclick="closeAskAI()">×</button>
+    </div>
+    <div class="ask-ai-messages" id="askAIMessages">
+      <div class="ask-ai-empty" id="askAIEmpty">
+        <div class="ask-ai-empty-icon">✨</div>
+        <div class="ask-ai-empty-title">Ask me anything</div>
+        <div class="ask-ai-empty-text">I'm here to help — answer questions, give ideas, or just chat.</div>
+        <div class="ask-ai-prompts">
+          <button class="ask-ai-prompt" onclick="setAskAIPrompt('Что приготовить на ужин?')">🍳 Что приготовить?</button>
+          <button class="ask-ai-prompt" onclick="setAskAIPrompt('Напиши поздравление')">🎂 Поздравление</button>
+          <button class="ask-ai-prompt" onclick="setAskAIPrompt('Как организовать день?')">📅 План дня</button>
+        </div>
+      </div>
+    </div>
+    <div class="ask-ai-input-area">
+      <div class="ask-ai-input-row">
+        <button class="ask-ai-btn ask-ai-btn-voice" id="askAIVoiceBtn" onclick="toggleAskAIVoice()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        </button>
+        <input type="text" class="ask-ai-input" id="askAIInput" placeholder="Ask anything..." maxlength="500">
+        <button class="ask-ai-btn ask-ai-btn-send" id="askAISendBtn" onclick="sendAskAIMessage()" disabled>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9 22 2Z"/></svg>
+        </button>
+      </div>
+      <div class="ask-ai-char-count" id="askAICharCount">0 / 500</div>
+    </div>
+  </div>
+
   <!-- Selection bar for merge -->
   <div class="select-bar" id="selectBar">
     <div class="select-info"><span id="selectCount">0</span> selected</div>
@@ -1316,7 +1421,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.8.7 by Syntrise</div>
+          <div class="menu-about-ver">v0.8.8 by Syntrise</div>
         </div>
       </div>
       
@@ -1328,7 +1433,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.7 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.8 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1908,27 +2013,237 @@ function savePhoto(dataUrl,geo){
 }
 
 // ============================================
+// ASK AI CHAT FUNCTIONS
+// ============================================
+
+let askAIMessages = [];
+let askAIVoiceRecognition = null;
+
+function openAskAI() {
+  document.getElementById('askAIPanel').classList.add('show');
+  document.body.classList.add('chat-open');
+  document.getElementById('askAIInput').focus();
+}
+
+function closeAskAI() {
+  document.getElementById('askAIPanel').classList.remove('show');
+  document.body.classList.remove('chat-open');
+}
+
+function setAskAIPrompt(text) {
+  const input = document.getElementById('askAIInput');
+  input.value = text;
+  updateAskAICharCount();
+  input.focus();
+}
+
+function updateAskAICharCount() {
+  const input = document.getElementById('askAIInput');
+  const count = input.value.length;
+  const counter = document.getElementById('askAICharCount');
+  counter.textContent = `${count} / 500`;
+  counter.classList.toggle('warning', count > 450);
+  document.getElementById('askAISendBtn').disabled = count === 0;
+}
+
+function addAskAIMessage(text, isUser = true) {
+  const messagesDiv = document.getElementById('askAIMessages');
+  const emptyState = document.getElementById('askAIEmpty');
+  
+  if (emptyState) emptyState.style.display = 'none';
+  
+  const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `ask-ai-message ${isUser ? 'user' : 'ai'}`;
+  
+  if (isUser) {
+    msgDiv.innerHTML = `
+      <div class="ask-ai-bubble">${escapeHtml(text)}</div>
+      <div class="ask-ai-time">${time}</div>
+    `;
+  } else {
+    msgDiv.innerHTML = `
+      <div class="ask-ai-bubble">${text}</div>
+      <div class="ask-ai-actions">
+        <button class="ask-ai-action-btn primary" onclick="createDropFromAI(this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Create Drop
+        </button>
+        <button class="ask-ai-action-btn" onclick="copyAIResponse(this)">Copy</button>
+      </div>
+      <div class="ask-ai-time">${time}</div>
+    `;
+  }
+  
+  messagesDiv.appendChild(msgDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  
+  askAIMessages.push({ text, isUser, time });
+}
+
+function showAskAITyping() {
+  const messagesDiv = document.getElementById('askAIMessages');
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'ask-ai-message ai';
+  typingDiv.id = 'askAITyping';
+  typingDiv.innerHTML = `
+    <div class="ask-ai-typing">
+      <div class="ask-ai-typing-dot"></div>
+      <div class="ask-ai-typing-dot"></div>
+      <div class="ask-ai-typing-dot"></div>
+    </div>
+  `;
+  messagesDiv.appendChild(typingDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function hideAskAITyping() {
+  const typing = document.getElementById('askAITyping');
+  if (typing) typing.remove();
+}
+
+async function sendAskAIMessage() {
+  const input = document.getElementById('askAIInput');
+  const text = input.value.trim();
+  if (!text) return;
+  
+  addAskAIMessage(text, true);
+  input.value = '';
+  updateAskAICharCount();
+  
+  showAskAITyping();
+  
+  try {
+    const response = await callClaudeAPI([
+      { role: 'user', content: text }
+    ], 'You are a helpful, friendly assistant in DropLit app. Keep responses concise and helpful. Answer in the same language as the user question.');
+    
+    hideAskAITyping();
+    addAskAIMessage(response, false);
+  } catch (error) {
+    hideAskAITyping();
+    addAskAIMessage('Sorry, I could not process your request. Please try again.', false);
+    console.error('Ask AI error:', error);
+  }
+}
+
+function createDropFromAI(btn) {
+  const bubble = btn.closest('.ask-ai-message').querySelector('.ask-ai-bubble');
+  const text = bubble.textContent;
+  
+  const drop = {
+    id: Date.now(),
+    text: text,
+    timestamp: new Date().toISOString(),
+    type: 'text',
+    category: 'ai'
+  };
+  
+  drops.unshift(drop);
+  saveDrops();
+  render();
+  
+  showToast('Drop created from AI response');
+}
+
+function copyAIResponse(btn) {
+  const bubble = btn.closest('.ask-ai-message').querySelector('.ask-ai-bubble');
+  const text = bubble.textContent;
+  
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Copied to clipboard');
+  }).catch(() => {
+    showToast('Failed to copy');
+  });
+}
+
+function toggleAskAIVoice() {
+  const btn = document.getElementById('askAIVoiceBtn');
+  
+  if (btn.classList.contains('recording')) {
+    if (askAIVoiceRecognition) {
+      askAIVoiceRecognition.stop();
+    }
+    btn.classList.remove('recording');
+  } else {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      showToast('Voice not supported in this browser');
+      return;
+    }
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    askAIVoiceRecognition = new SpeechRecognition();
+    askAIVoiceRecognition.continuous = false;
+    askAIVoiceRecognition.interimResults = false;
+    askAIVoiceRecognition.lang = navigator.language || 'en-US';
+    
+    askAIVoiceRecognition.onstart = () => {
+      btn.classList.add('recording');
+    };
+    
+    askAIVoiceRecognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      document.getElementById('askAIInput').value = transcript;
+      updateAskAICharCount();
+    };
+    
+    askAIVoiceRecognition.onend = () => {
+      btn.classList.remove('recording');
+    };
+    
+    askAIVoiceRecognition.onerror = () => {
+      btn.classList.remove('recording');
+      showToast('Voice recognition error');
+    };
+    
+    askAIVoiceRecognition.start();
+  }
+}
+
+// Ask AI input event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  const askAIInput = document.getElementById('askAIInput');
+  if (askAIInput) {
+    askAIInput.addEventListener('input', updateAskAICharCount);
+    askAIInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !document.getElementById('askAISendBtn').disabled) {
+        sendAskAIMessage();
+      }
+    });
+  }
+  
+  // Swipe down to close Ask AI
+  const askAIPanel = document.getElementById('askAIPanel');
+  let startY = 0;
+  askAIPanel.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+  });
+  askAIPanel.addEventListener('touchend', (e) => {
+    const endY = e.changedTouches[0].clientY;
+    if (endY - startY > 100) closeAskAI();
+  });
+});
+
+// ============================================
 // PLUS MENU FUNCTIONS
 // ============================================
 
 function togglePlusMenu(){
   const menu=document.getElementById('plusMenu');
   const backdrop=document.getElementById('plusBackdrop');
-  const btn=document.getElementById('fabPlus');
   
   if(menu.classList.contains('show')){
     closePlusMenu();
   } else {
     menu.classList.add('show');
     backdrop.classList.add('show');
-    btn.classList.add('open');
   }
 }
 
 function closePlusMenu(){
   document.getElementById('plusMenu').classList.remove('show');
   document.getElementById('plusBackdrop').classList.remove('show');
-  document.getElementById('fabPlus').classList.remove('open');
 }
 
 // TEXT NOTE
@@ -4054,7 +4369,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.8.7';
+  md+='---\nExported from DropLit v0.8.8';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
