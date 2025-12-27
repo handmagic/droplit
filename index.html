@@ -5786,7 +5786,7 @@ async function getSyntriseContext(query) {
         user_id: SYNTRISE_CONFIG.USER_ID,
         query: query,
         limit: 5,
-        threshold: 0.6
+        threshold: 0.1
       })
     });
     const data = await response.json();
