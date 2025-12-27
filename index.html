@@ -310,6 +310,32 @@
     .ask-ai-btn-send:disabled { background: var(--color-border); cursor: not-allowed; transform: none; }
     .ask-ai-char-count { text-align: right; font-size: 0.7rem; color: var(--color-text-muted); margin-top: 8px; padding-right: 4px; }
     .ask-ai-char-count.warning { color: #FF6B4A; }
+    
+    /* Voice Mode: Large mic button */
+    .ask-ai-voice-large { display: none; width: 100%; padding: 18px 24px; border: 2px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg); color: var(--color-text); font-family: var(--font-main); font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s; align-items: center; justify-content: center; gap: 12px; }
+    .ask-ai-voice-large:hover { border-color: #10B981; background: rgba(16, 185, 129, 0.05); }
+    .ask-ai-voice-large.listening { border-color: #10B981; background: rgba(16, 185, 129, 0.1); color: #10B981; animation: pulse 1.5s infinite; }
+    .ask-ai-voice-large svg { flex-shrink: 0; }
+    
+    /* Voice Mode: Header buttons */
+    .ask-ai-header-btn { padding: 8px 16px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .ask-ai-btn-done { background: rgba(255,255,255,0.2); color: white; }
+    .ask-ai-btn-done:hover { background: rgba(255,255,255,0.3); }
+    .ask-ai-btn-stop { background: #EF4444; color: white; display: none; }
+    .ask-ai-btn-stop:hover { background: #DC2626; }
+    
+    /* Voice Mode active: show large button, hide input row */
+    .ask-ai-panel.voice-mode-active .ask-ai-input-row { display: none; }
+    .ask-ai-panel.voice-mode-active .ask-ai-char-count { display: none; }
+    .ask-ai-panel.voice-mode-active .ask-ai-voice-large { display: flex; }
+    .ask-ai-panel.voice-mode-active .ask-ai-close { display: none; }
+    .ask-ai-panel.voice-mode-active .ask-ai-btn-done { display: block; }
+    
+    /* Stop button visible when processing/speaking */
+    .ask-ai-panel.aski-busy .ask-ai-btn-stop { display: block; }
+    .ask-ai-panel.aski-busy .ask-ai-btn-done { display: none; }
+    .ask-ai-panel.aski-busy .ask-ai-close { display: none; }
+    
     body.chat-open .fab-camera, body.chat-open .fab-askai, body.chat-open .fab-record { opacity: 0; pointer-events: none; }
 
     /* Plus menu */
@@ -1306,6 +1332,8 @@
           <div class="ask-ai-subtitle">AI Chat</div>
         </div>
       </div>
+      <button class="ask-ai-header-btn ask-ai-btn-stop" id="askiStopBtn" onclick="stopAskiResponse()">Stop</button>
+      <button class="ask-ai-header-btn ask-ai-btn-done" onclick="closeAskAI()">Done</button>
       <button class="ask-ai-close" onclick="closeAskAI()">×</button>
     </div>
     <div class="ask-ai-messages" id="askAIMessages">
@@ -1330,6 +1358,10 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9 22 2Z"/></svg>
         </button>
       </div>
+      <button class="ask-ai-voice-large" id="askAIVoiceLarge" onclick="toggleAskAIVoice()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        <span id="voiceLargeText">Tap to talk</span>
+      </button>
       <div class="ask-ai-char-count" id="askAICharCount">0 / 500</div>
     </div>
   </div>
@@ -2103,25 +2135,29 @@ let askAIMessages = [];
 let askAIVoiceRecognition = null;
 
 function openAskAI() {
-  document.getElementById('askAIPanel').classList.add('show');
+  const panel = document.getElementById('askAIPanel');
+  panel.classList.add('show');
   document.body.classList.add('chat-open');
   // No auto-focus - voice-first approach, keyboard won't popup
   
   // Keep screen on while chat is open (like TikTok)
   acquireWakeLock();
   
+  // Update UI based on Voice Mode
+  updateVoiceModeUI();
+  
   // Voice Mode: start in sleep mode, user taps mic to activate
   if (isVoiceModeEnabled()) {
     voiceModeLocked = false;
     voiceModeSleeping = true; // Start sleeping - wait for user tap
-    
     askiIsProcessing = false;
     updateVoiceModeIndicator('sleeping');
   }
 }
 
 function closeAskAI() {
-  document.getElementById('askAIPanel').classList.remove('show');
+  const panel = document.getElementById('askAIPanel');
+  panel.classList.remove('show', 'voice-mode-active', 'aski-busy');
   document.body.classList.remove('chat-open');
   
   // Stop everything and reset all voice states
@@ -2135,6 +2171,42 @@ function closeAskAI() {
   
   // Allow screen to sleep when chat is closed
   releaseWakeLock();
+}
+
+// Update UI based on Voice Mode setting
+function updateVoiceModeUI() {
+  const panel = document.getElementById('askAIPanel');
+  if (isVoiceModeEnabled()) {
+    panel.classList.add('voice-mode-active');
+  } else {
+    panel.classList.remove('voice-mode-active');
+  }
+}
+
+// Set Aski busy state (processing or speaking)
+function setAskiBusy(busy) {
+  const panel = document.getElementById('askAIPanel');
+  if (busy) {
+    panel.classList.add('aski-busy');
+  } else {
+    panel.classList.remove('aski-busy');
+  }
+}
+
+// Stop Aski response (speaking or waiting for API)
+function stopAskiResponse() {
+  console.log('Stopping Aski response');
+  askiStopSpeaking();
+  askiIsProcessing = false;
+  voiceModeLocked = false;
+  setAskiBusy(false);
+  
+  // Go to sleep mode
+  if (isVoiceModeEnabled()) {
+    voiceModeSleeping = true;
+    updateVoiceModeIndicator('sleeping');
+  }
+  showToast('Stopped');
 }
 
 function setAskAIPrompt(text) {
@@ -2546,36 +2618,73 @@ function unlockVoiceMode() {
 
 function updateVoiceModeIndicator(state) {
   const subtitle = document.querySelector('.ask-ai-subtitle');
+  const largeBtn = document.getElementById('askAIVoiceLarge');
+  const largeBtnText = document.getElementById('voiceLargeText');
+  
   if (!subtitle) return;
   
+  // Update subtitle
   switch(state) {
     case 'listening':
       subtitle.textContent = '🎤 Listening...';
-      subtitle.style.color = '#10B981'; // Green
+      subtitle.style.color = '#10B981';
+      if (largeBtn) {
+        largeBtn.classList.add('listening');
+        largeBtnText.textContent = 'Listening...';
+      }
       break;
     case 'processing':
       subtitle.textContent = '🤔 Thinking...';
-      subtitle.style.color = '#F59E0B'; // Orange
+      subtitle.style.color = '#F59E0B';
+      setAskiBusy(true);
+      if (largeBtn) {
+        largeBtn.classList.remove('listening');
+        largeBtnText.textContent = 'Thinking...';
+      }
       break;
     case 'speaking':
       subtitle.textContent = '🔊 Speaking...';
-      subtitle.style.color = '#06B6D4'; // Cyan
+      subtitle.style.color = '#06B6D4';
+      setAskiBusy(true);
+      if (largeBtn) {
+        largeBtn.classList.remove('listening');
+        largeBtnText.textContent = 'Speaking...';
+      }
       break;
     case 'locked':
       subtitle.textContent = '⏳ Please wait...';
-      subtitle.style.color = '#8B5CF6'; // Purple
+      subtitle.style.color = '#8B5CF6';
+      if (largeBtn) {
+        largeBtn.classList.remove('listening');
+        largeBtnText.textContent = 'Please wait...';
+      }
       break;
     case 'waiting':
       subtitle.textContent = '🎤 Ready';
-      subtitle.style.color = '#10B981'; // Green
+      subtitle.style.color = '#10B981';
+      setAskiBusy(false);
+      if (largeBtn) {
+        largeBtn.classList.remove('listening');
+        largeBtnText.textContent = 'Tap to talk';
+      }
       break;
     case 'sleeping':
       subtitle.textContent = '💤 Tap mic to talk';
-      subtitle.style.color = '#6B7280'; // Gray
+      subtitle.style.color = '#6B7280';
+      setAskiBusy(false);
+      if (largeBtn) {
+        largeBtn.classList.remove('listening');
+        largeBtnText.textContent = 'Tap to talk';
+      }
       break;
     default:
       subtitle.textContent = 'AI Chat';
       subtitle.style.color = '';
+      setAskiBusy(false);
+      if (largeBtn) {
+        largeBtn.classList.remove('listening');
+        largeBtnText.textContent = 'Tap to talk';
+      }
   }
 }
 
@@ -5435,6 +5544,9 @@ function toggleVoiceMode() {
   const isEnabled = toggle.classList.toggle('active');
   setVoiceMode(isEnabled);
   
+  // Update chat UI
+  updateVoiceModeUI();
+  
   if (isEnabled) {
     showToast('🎤 Voice Mode ON — tap mic to talk');
     acquireWakeLock(); // Keep screen on
@@ -5447,6 +5559,7 @@ function toggleVoiceMode() {
     stopVoiceModeListening();
     releaseWakeLock(); // Allow screen to sleep
     showToast('Voice Mode OFF');
+    updateVoiceModeIndicator('');
   }
 }
 
