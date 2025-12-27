@@ -2318,6 +2318,36 @@ let askiIsProcessing = false; // True when waiting for API response
 let voiceModeLocked = false;  // Prevents mic when Aski is speaking/processing
 let voiceModeSleeping = false; // Sleep mode - waiting for user tap
 let voiceModeTimeout = null;  // Timer (kept for potential future use)
+let voiceModeCyclesLeft = 0;  // How many listening cycles before sleep
+
+// Audio feedback for voice mode
+function playVoiceBeep(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    if (type === 'start') {
+      // Rising tone - mic ON
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(900, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    } else {
+      // Falling tone - mic OFF / sleep
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(400, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    }
+    
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch(e) {
+    // Audio not available
+  }
+}
 
 function isVoiceModeEnabled() {
   return localStorage.getItem('aski_voice_mode') === 'true';
@@ -2404,9 +2434,16 @@ function startVoiceModeListening() {
   voiceModeRecognition.onend = () => {
     document.getElementById('askAIVoiceBtn')?.classList.remove('recording');
     
-    // After recognition ends without result - go to sleep
-    // (successful result is handled in onresult which locks voice mode)
-    if (!voiceModeLocked) {
+    // If locked (sending message) - don't do anything
+    if (voiceModeLocked) return;
+    
+    // Check if we have cycles left
+    if (voiceModeCyclesLeft > 0) {
+      voiceModeCyclesLeft--;
+      console.log('Cycles left:', voiceModeCyclesLeft);
+      updateVoiceModeIndicator('waiting');
+      setTimeout(startVoiceModeListening, 300);
+    } else {
       enterVoiceModeSleep();
     }
   };
@@ -2415,11 +2452,19 @@ function startVoiceModeListening() {
     document.getElementById('askAIVoiceBtn')?.classList.remove('recording');
     
     if (e.error !== 'aborted') {
-      console.log('Voice mode ended:', e.error);
+      console.log('Voice mode:', e.error);
     }
     
-    // Any error (including no-speech) - go to sleep
-    if (!voiceModeLocked) {
+    // If locked - don't do anything
+    if (voiceModeLocked) return;
+    
+    // Check if we have cycles left
+    if (voiceModeCyclesLeft > 0) {
+      voiceModeCyclesLeft--;
+      console.log('Cycles left:', voiceModeCyclesLeft);
+      updateVoiceModeIndicator('waiting');
+      setTimeout(startVoiceModeListening, 500);
+    } else {
       enterVoiceModeSleep();
     }
   };
@@ -2431,8 +2476,7 @@ function startVoiceModeListening() {
   }
 }
 
-// Reset the sleep timeout (call when starting to listen)
-// Clear any pending timeout (kept for compatibility)
+// Clear any pending timeout
 function clearVoiceModeTimeout() {
   if (voiceModeTimeout) {
     clearTimeout(voiceModeTimeout);
@@ -2444,17 +2488,20 @@ function clearVoiceModeTimeout() {
 function enterVoiceModeSleep() {
   console.log('Voice mode entering sleep');
   voiceModeSleeping = true;
+  voiceModeCyclesLeft = 0;
   stopVoiceModeListening();
   clearVoiceModeTimeout();
+  playVoiceBeep('stop');
   updateVoiceModeIndicator('sleeping');
 }
 
 // Wake up from sleep mode (user tapped mic button)
 function wakeVoiceMode() {
-  console.log('Voice mode waking up');
+  console.log('Voice mode waking up (manual tap)');
   voiceModeSleeping = false;
   voiceModeLocked = false;
-   // Reset silent counter
+  voiceModeCyclesLeft = 1; // Manual tap = 1 cycle only
+  playVoiceBeep('start');
   updateVoiceModeIndicator('waiting');
   setTimeout(startVoiceModeListening, 300);
 }
@@ -2474,10 +2521,11 @@ function unlockVoiceMode() {
   voiceModeLocked = false;
   askiIsProcessing = false;
   
-  
   // After Aski finishes speaking - auto-start listening for conversation flow
   if (isVoiceModeEnabled() && document.getElementById('askAIPanel')?.classList.contains('show')) {
     voiceModeSleeping = false;
+    voiceModeCyclesLeft = 3; // After Aski = 3 cycles (~15-20 sec to think)
+    playVoiceBeep('start');
     updateVoiceModeIndicator('waiting');
     setTimeout(startVoiceModeListening, 500);
   }
