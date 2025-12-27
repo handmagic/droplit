@@ -5797,43 +5797,72 @@ async function getSyntriseContext(query) {
   }
 }
 
-// Sync all existing drops (run once)
+// Sync all existing drops in batches (to avoid timeout)
 async function syncAllDropsToCore() {
   if (!SYNTRISE_CONFIG.ENABLED) {
     console.log('Syntrise sync disabled');
     return { synced: 0, error: 'disabled' };
   }
-  if (!ideas || !ideas.length) {
+  
+  // Filter text drops only
+  const textDrops = ideas.filter(drop => drop.text && !drop.isMedia);
+  
+  if (!textDrops.length) {
     console.log('No drops to sync');
     return { synced: 0, error: 'no_drops' };
   }
-  console.log('🔄 Syncing', ideas.length, 'drops to Syntrise CORE...');
-  try {
-    const response = await fetch(`${SYNTRISE_CONFIG.API_URL}/drops/sync`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: SYNTRISE_CONFIG.USER_ID,
-        drops: ideas.filter(drop => drop.text && !drop.isMedia).map(drop => ({
-          id: String(drop.id),
-          content: drop.text,
-          category: drop.category || 'uncategorized',
-          created_at: drop.timestamp || new Date().toISOString()
-        }))
-      })
-    });
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Sync API error:', response.status, errText);
-      return { synced: 0, error: errText };
+  
+  console.log('🔄 Syncing', textDrops.length, 'drops in batches...');
+  
+  const BATCH_SIZE = 5;
+  let totalSynced = 0;
+  let errors = [];
+  
+  // Split into batches
+  for (let i = 0; i < textDrops.length; i += BATCH_SIZE) {
+    const batch = textDrops.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+    const totalBatches = Math.ceil(textDrops.length / BATCH_SIZE);
+    
+    console.log(`Batch ${batchNum}/${totalBatches}...`);
+    
+    try {
+      const response = await fetch(`${SYNTRISE_CONFIG.API_URL}/drops/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: SYNTRISE_CONFIG.USER_ID,
+          drops: batch.map(drop => ({
+            id: String(drop.id),
+            content: drop.text,
+            category: drop.category || 'uncategorized',
+            created_at: drop.timestamp || new Date().toISOString()
+          }))
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        totalSynced += data.synced || 0;
+      } else {
+        errors.push(`Batch ${batchNum} failed`);
+      }
+    } catch (e) {
+      errors.push(`Batch ${batchNum}: ${e.message}`);
     }
-    const data = await response.json();
-    console.log(`✅ Synced ${data.synced}/${ideas.length} drops`);
-    return data;
-  } catch (e) {
-    console.error('❌ Bulk sync failed:', e);
-    return { synced: 0, error: e.message };
+    
+    // Small delay between batches
+    if (i + BATCH_SIZE < textDrops.length) {
+      await new Promise(r => setTimeout(r, 500));
+    }
   }
+  
+  console.log(`✅ Synced ${totalSynced}/${textDrops.length} drops`);
+  
+  if (errors.length) {
+    return { synced: totalSynced, error: errors.join(', ') };
+  }
+  return { synced: totalSynced };
 }
 
 // Expose for console access
@@ -5846,14 +5875,20 @@ window.SyntriseCore = {
 
 // Sync to Cloud button handler
 async function syncToCloud() {
-  toast('Syncing to cloud...', 'info');
+  const textDrops = ideas.filter(drop => drop.text && !drop.isMedia);
+  if (!textDrops.length) {
+    toast('No text drops to sync', 'info');
+    return;
+  }
+  
+  const batches = Math.ceil(textDrops.length / 5);
+  toast(`Syncing ${textDrops.length} drops (${batches} batches)...`, 'info');
+  
   try {
     const result = await syncAllDropsToCore();
-    if (result.error === 'no_drops') {
-      toast('No text drops to sync', 'info');
-    } else if (result.error === 'disabled') {
+    if (result.error === 'disabled') {
       toast('Cloud sync is disabled', 'info');
-    } else if (result.error) {
+    } else if (result.error && result.synced === 0) {
       toast('Sync failed: ' + result.error, 'error');
     } else if (result.synced > 0) {
       toast('Synced ' + result.synced + ' drops!', 'success');
