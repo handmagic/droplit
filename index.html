@@ -2057,6 +2057,12 @@ function updateAskAICharCount() {
   document.getElementById('askAISendBtn').disabled = count === 0;
 }
 
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 function addAskAIMessage(text, isUser = true) {
   const messagesDiv = document.getElementById('askAIMessages');
   const emptyState = document.getElementById('askAIEmpty');
