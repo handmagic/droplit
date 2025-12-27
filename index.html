@@ -296,12 +296,12 @@
     .ask-ai-prompts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; justify-content: center; }
     .ask-ai-prompt { padding: 10px 16px; background: var(--color-bg-card); border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; color: var(--color-text-soft); cursor: pointer; transition: all 0.15s; }
     .ask-ai-prompt:hover { border-color: var(--color-primary); color: var(--color-primary); }
-    .ask-ai-input-area { padding: 12px 16px 24px; background: var(--color-bg-card); border-top: 1px solid var(--color-border); }
+    .ask-ai-input-area { padding: 12px 16px; padding-bottom: max(24px, env(safe-area-inset-bottom)); background: var(--color-bg-card); border-top: 1px solid var(--color-border); flex-shrink: 0; }
     .ask-ai-input-row { display: flex; align-items: center; gap: 10px; }
     .ask-ai-input { flex: 1; padding: 14px 18px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 1rem; background: var(--color-bg); color: var(--color-text); outline: none; transition: border-color 0.15s; }
     .ask-ai-input:focus { border-color: var(--color-primary); }
     .ask-ai-input::placeholder { color: var(--color-text-muted); }
-    .ask-ai-btn { width: 48px; height: 48px; min-width: 48px; min-height: 48px; flex-shrink: 0; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .ask-ai-btn { width: 48px; height: 48px; min-width: 48px; min-height: 48px; max-width: 48px; max-height: 48px; flex: 0 0 48px; align-self: center; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
     .ask-ai-btn-voice { background: var(--color-bg); border: 2px solid var(--color-border); color: var(--color-text-soft); }
     .ask-ai-btn-voice:hover { border-color: #FF6B4A; color: #FF6B4A; }
     .ask-ai-btn-voice.recording { background: #FF6B4A; border-color: #FF6B4A; color: white; animation: pulse 1s infinite; }
@@ -702,7 +702,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.7 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.8 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1490,7 +1490,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.7 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.8 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1503,7 +1503,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.7 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.8 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2391,7 +2391,7 @@ function startVoiceModeListening() {
   voiceModeRecognition.onresult = (event) => {
     const transcript = event.results[0][0].transcript;
     if (transcript.trim()) {
-      // User spoke - reset silent counter
+      // User spoke real words - reset silent counter
       voiceModeSilentCycles = 0;
       clearVoiceModeTimeout();
       
@@ -2402,6 +2402,13 @@ function startVoiceModeListening() {
       // Send the message
       document.getElementById('askAIInput').value = transcript;
       sendAskAIMessage();
+    } else {
+      // Empty result = noise without words = count as silence
+      voiceModeSilentCycles++;
+      console.log('Empty transcript, silent cycle:', voiceModeSilentCycles);
+      if (voiceModeSilentCycles >= VOICE_MODE_MAX_SILENT_CYCLES) {
+        enterVoiceModeSleep();
+      }
     }
   };
   
@@ -2482,8 +2489,9 @@ function clearVoiceModeTimeout() {
 
 // Enter sleep mode after timeout
 function enterVoiceModeSleep() {
-  console.log('Voice mode entering sleep (30s timeout)');
+  console.log('Voice mode entering sleep (no words detected)');
   voiceModeSleeping = true;
+  voiceModeSilentCycles = 0; // Reset counter
   stopVoiceModeListening();
   clearVoiceModeTimeout();
   updateVoiceModeIndicator('sleeping');
@@ -2760,12 +2768,32 @@ function copyAIResponse(btn) {
 function toggleAskAIVoice() {
   const btn = document.getElementById('askAIVoiceBtn');
   
-  // If Voice Mode is sleeping, wake it up
-  if (isVoiceModeEnabled() && voiceModeSleeping) {
+  // === VOICE MODE ENABLED ===
+  if (isVoiceModeEnabled()) {
+    // If sleeping - wake up
+    if (voiceModeSleeping) {
+      wakeVoiceMode();
+      return;
+    }
+    
+    // If listening/active - go to sleep (user wants to stop)
+    if (voiceModeRecognition || btn.classList.contains('recording')) {
+      enterVoiceModeSleep();
+      return;
+    }
+    
+    // If locked (Aski speaking/processing) - just show message
+    if (voiceModeLocked || askiIsProcessing || askiIsSpeaking) {
+      showToast('Wait for Aski to finish');
+      return;
+    }
+    
+    // Otherwise start listening
     wakeVoiceMode();
     return;
   }
   
+  // === VOICE MODE DISABLED (manual mode) ===
   if (btn.classList.contains('recording')) {
     if (askAIVoiceRecognition) {
       askAIVoiceRecognition.stop();
@@ -5012,7 +5040,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.7';
+  md+='---\nExported from DropLit v0.9.8';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
