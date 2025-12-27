@@ -2100,6 +2100,7 @@ function openAskAI() {
   // Reset voice mode locks and start listening
   if (isVoiceModeEnabled()) {
     voiceModeLocked = false;
+    voiceModeSleeping = false;
     askiIsProcessing = false;
     updateVoiceModeIndicator('waiting');
     setTimeout(startVoiceModeListening, 500);
@@ -2110,8 +2111,10 @@ function closeAskAI() {
   document.getElementById('askAIPanel').classList.remove('show');
   document.body.classList.remove('chat-open');
   
-  // Stop everything
+  // Stop everything and reset all voice states
   voiceModeLocked = true;
+  voiceModeSleeping = false;
+  clearVoiceModeTimeout();
   stopVoiceModeListening();
   askiStopSpeaking();
   updateVoiceModeIndicator('');
@@ -2312,6 +2315,9 @@ let voiceModeEnabled = false;
 let voiceModeRecognition = null;
 let askiIsProcessing = false; // True when waiting for API response
 let voiceModeLocked = false;  // Prevents mic when Aski is speaking/processing
+let voiceModeSleeping = false; // Sleep mode after timeout
+let voiceModeTimeout = null;  // Timer for sleep mode
+const VOICE_MODE_TIMEOUT_MS = 30000; // 30 seconds of silence before sleep
 
 function isVoiceModeEnabled() {
   return localStorage.getItem('aski_voice_mode') === 'true';
@@ -2345,6 +2351,10 @@ function startVoiceModeListening() {
     console.log('Voice mode locked, skipping');
     return;
   }
+  if (voiceModeSleeping) {
+    console.log('Voice mode sleeping, tap to wake');
+    return;
+  }
   if (askiIsSpeaking || askiIsProcessing) {
     console.log('Aski is busy, skipping mic start');
     return;
@@ -2360,6 +2370,9 @@ function startVoiceModeListening() {
     voiceModeRecognition = null;
   }
   
+  // Start/reset the sleep timeout
+  resetVoiceModeTimeout();
+  
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   voiceModeRecognition = new SpeechRecognition();
   voiceModeRecognition.continuous = false;
@@ -2374,6 +2387,9 @@ function startVoiceModeListening() {
   voiceModeRecognition.onresult = (event) => {
     const transcript = event.results[0][0].transcript;
     if (transcript.trim()) {
+      // Clear timeout - user is active
+      clearVoiceModeTimeout();
+      
       // LOCK voice mode before sending
       voiceModeLocked = true;
       stopVoiceModeListening();
@@ -2387,18 +2403,20 @@ function startVoiceModeListening() {
   voiceModeRecognition.onend = () => {
     document.getElementById('askAIVoiceBtn')?.classList.remove('recording');
     
-    // Only restart if not locked, chat is open, and page is visible
-    if (!voiceModeLocked && isVoiceModeEnabled() && 
-        document.getElementById('askAIPanel')?.classList.contains('show') &&
-        !document.hidden) {
+    // Don't restart if sleeping, locked, or page hidden
+    if (voiceModeSleeping || voiceModeLocked || document.hidden) {
+      return;
+    }
+    
+    // Only restart if conditions met
+    if (isVoiceModeEnabled() && 
+        document.getElementById('askAIPanel')?.classList.contains('show')) {
       updateVoiceModeIndicator('waiting');
       setTimeout(() => {
-        if (!voiceModeLocked && !askiIsSpeaking && !askiIsProcessing && !document.hidden) {
+        if (!voiceModeLocked && !voiceModeSleeping && !askiIsSpeaking && !askiIsProcessing && !document.hidden) {
           startVoiceModeListening();
         }
       }, 300);
-    } else {
-      updateVoiceModeIndicator('locked');
     }
   };
   
@@ -2409,12 +2427,15 @@ function startVoiceModeListening() {
       console.error('Voice mode error:', e.error);
     }
     
-    // Only restart if not locked and page is visible
-    if (!voiceModeLocked && isVoiceModeEnabled() && 
-        document.getElementById('askAIPanel')?.classList.contains('show') &&
-        !document.hidden) {
+    // Don't restart if sleeping or locked
+    if (voiceModeSleeping || voiceModeLocked || document.hidden) {
+      return;
+    }
+    
+    if (isVoiceModeEnabled() && 
+        document.getElementById('askAIPanel')?.classList.contains('show')) {
       setTimeout(() => {
-        if (!voiceModeLocked && !askiIsSpeaking && !askiIsProcessing && !document.hidden) {
+        if (!voiceModeLocked && !voiceModeSleeping && !askiIsSpeaking && !askiIsProcessing && !document.hidden) {
           startVoiceModeListening();
         }
       }, 500);
@@ -2426,6 +2447,40 @@ function startVoiceModeListening() {
   } catch (e) {
     console.error('Could not start voice mode:', e);
   }
+}
+
+// Reset the sleep timeout (call when starting to listen)
+function resetVoiceModeTimeout() {
+  clearVoiceModeTimeout();
+  voiceModeTimeout = setTimeout(() => {
+    enterVoiceModeSleep();
+  }, VOICE_MODE_TIMEOUT_MS);
+}
+
+// Clear the sleep timeout
+function clearVoiceModeTimeout() {
+  if (voiceModeTimeout) {
+    clearTimeout(voiceModeTimeout);
+    voiceModeTimeout = null;
+  }
+}
+
+// Enter sleep mode after timeout
+function enterVoiceModeSleep() {
+  console.log('Voice mode entering sleep (30s timeout)');
+  voiceModeSleeping = true;
+  stopVoiceModeListening();
+  clearVoiceModeTimeout();
+  updateVoiceModeIndicator('sleeping');
+}
+
+// Wake up from sleep mode (user tapped mic button)
+function wakeVoiceMode() {
+  console.log('Voice mode waking up');
+  voiceModeSleeping = false;
+  voiceModeLocked = false;
+  updateVoiceModeIndicator('waiting');
+  setTimeout(startVoiceModeListening, 300);
 }
 
 function stopVoiceModeListening() {
@@ -2442,6 +2497,7 @@ function stopVoiceModeListening() {
 function unlockVoiceMode() {
   voiceModeLocked = false;
   askiIsProcessing = false;
+  voiceModeSleeping = false; // Wake up if was sleeping
   
   if (isVoiceModeEnabled() && document.getElementById('askAIPanel')?.classList.contains('show')) {
     updateVoiceModeIndicator('waiting');
@@ -2473,6 +2529,10 @@ function updateVoiceModeIndicator(state) {
     case 'waiting':
       subtitle.textContent = '🎤 Ready';
       subtitle.style.color = '#10B981'; // Green
+      break;
+    case 'sleeping':
+      subtitle.textContent = '💤 Tap mic to talk';
+      subtitle.style.color = '#6B7280'; // Gray
       break;
     default:
       subtitle.textContent = 'AI Chat';
@@ -2682,6 +2742,12 @@ function copyAIResponse(btn) {
 
 function toggleAskAIVoice() {
   const btn = document.getElementById('askAIVoiceBtn');
+  
+  // If Voice Mode is sleeping, wake it up
+  if (isVoiceModeEnabled() && voiceModeSleeping) {
+    wakeVoiceMode();
+    return;
+  }
   
   if (btn.classList.contains('recording')) {
     if (askAIVoiceRecognition) {
