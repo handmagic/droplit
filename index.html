@@ -85,6 +85,7 @@
     .btn-icon { width: 52px; height: 52px; border: none; background: var(--color-bg); border: 2px solid var(--color-border); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); flex-shrink: 0; transition: all 0.15s; }
     .btn-icon:hover { border-color: var(--color-primary); color: var(--color-primary); }
     .btn-icon:active { transform: scale(0.95); }
+    .btn-icon.active { background: linear-gradient(135deg, #8B5CF6, #7C3AED); border-color: transparent; color: white; }
 
     .network-banner { display: none; padding: 6px; background: var(--color-error); color: white; font-size: 0.7rem; font-weight: 600; text-align: center; }
     .network-banner.show { display: block; }
@@ -470,17 +471,13 @@
     .magic-form.hidden { display: none; }
     
     /* Main Menu Modal */
-    .main-menu { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: flex-start; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; overflow-y: auto; }
+    .main-menu { position: fixed; top: calc(72px + env(safe-area-inset-top, 0px)); left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 150; opacity: 0; visibility: hidden; transition: all 0.25s; }
     .main-menu.show { opacity: 1; visibility: visible; }
-    .main-menu-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 420px; margin: auto; transform: translateY(-20px); transition: transform 0.25s; }
+    .main-menu-content { background: var(--color-bg-card); width: 100%; height: 100%; overflow-y: auto; transform: translateY(-20px); transition: transform 0.25s; padding-bottom: 100px; }
     .main-menu.show .main-menu-content { transform: translateY(0); }
-    .main-menu-header { padding: 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
-    .main-menu-header h2 { font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
-    .main-menu-close { padding: 8px 16px; border: none; background: rgba(255,255,255,0.1); border-radius: 20px; color: white; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
-    .main-menu-close:hover { background: rgba(255,255,255,0.2); }
-    .main-menu-footer { padding: 16px 20px 24px; }
-    .main-menu-footer-btn { width: 100%; padding: 14px; border: 2px solid var(--color-border); background: var(--color-bg); border-radius: 12px; font-family: var(--font-main); font-size: 1rem; font-weight: 600; color: var(--color-text); cursor: pointer; transition: all 0.15s; }
-    .main-menu-footer-btn:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
+    .main-menu-header { display: none; }
+    .main-menu-close { display: none; }
+    .main-menu-footer { padding: 16px 20px 24px; display: none; }
     
     /* Balance Card */
     .balance-card { margin: 16px 16px 0 16px; padding: 16px; background: linear-gradient(135deg, #8B5CF6, #EC4899); border-radius: 16px; color: white; }
@@ -702,7 +699,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.0 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.1 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -920,7 +917,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
         Create Drop
       </button>
-      <button class="btn-icon" onclick="openMainMenu()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+      <button class="btn-icon" id="menuToggleBtn" onclick="toggleMainMenu()">
+        <svg class="menu-icon-open" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <svg class="menu-icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </header>
     <div class="network-banner" id="netBanner">No internet</div>
     <div class="warning" id="warning">Speech recognition not supported. Use Chrome.</div>
@@ -1475,7 +1475,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.0 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.1 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1488,7 +1488,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.0 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.1 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2079,8 +2079,11 @@ function openAskAI() {
   document.body.classList.add('chat-open');
   // No auto-focus - voice-first approach, keyboard won't popup
   
-  // Start Voice Mode listening if enabled
+  // Reset voice mode locks and start listening
   if (isVoiceModeEnabled()) {
+    voiceModeLocked = false;
+    askiIsProcessing = false;
+    updateVoiceModeIndicator('waiting');
     setTimeout(startVoiceModeListening, 500);
   }
 }
@@ -2089,9 +2092,11 @@ function closeAskAI() {
   document.getElementById('askAIPanel').classList.remove('show');
   document.body.classList.remove('chat-open');
   
-  // Stop Voice Mode listening
+  // Stop everything
+  voiceModeLocked = true;
   stopVoiceModeListening();
   askiStopSpeaking();
+  updateVoiceModeIndicator('');
 }
 
 function setAskAIPrompt(text) {
@@ -2183,19 +2188,23 @@ function askiSpeak(text, lang = null, onEnd = null) {
   
   if (!('speechSynthesis' in window)) {
     showToast('Voice not supported in this browser');
+    if (onEnd) onEnd();
     return;
   }
   
   // Remove emojis before speaking
   const cleanText = removeEmojis(text);
-  if (!cleanText) return;
+  if (!cleanText) {
+    if (onEnd) onEnd();
+    return;
+  }
   
   const detectedLang = lang || detectLanguage(cleanText);
   
   const utterance = new SpeechSynthesisUtterance(cleanText);
   utterance.lang = detectedLang;
   utterance.rate = 0.95; // Slightly slower for clarity
-  utterance.pitch = askiVoiceGender === 'female' ? 1.1 : 0.9; // Higher pitch for female
+  utterance.pitch = askiVoiceGender === 'female' ? 1.1 : 0.9;
   utterance.volume = 1.0;
   
   // Get best voice
@@ -2207,6 +2216,7 @@ function askiSpeak(text, lang = null, onEnd = null) {
   utterance.onstart = () => {
     askiIsSpeaking = true;
     updateSpeakingIndicator(true);
+    updateVoiceModeIndicator('speaking');
   };
   
   utterance.onend = () => {
@@ -2221,6 +2231,7 @@ function askiSpeak(text, lang = null, onEnd = null) {
     askiIsSpeaking = false;
     askiCurrentUtterance = null;
     updateSpeakingIndicator(false);
+    if (onEnd) onEnd(); // Call onEnd even on error
   };
   
   askiCurrentUtterance = utterance;
@@ -2278,6 +2289,8 @@ function updateSpeakingIndicator(isSpeaking) {
 
 let voiceModeEnabled = false;
 let voiceModeRecognition = null;
+let askiIsProcessing = false; // True when waiting for API response
+let voiceModeLocked = false;  // Prevents mic when Aski is speaking/processing
 
 function isVoiceModeEnabled() {
   return localStorage.getItem('aski_voice_mode') === 'true';
@@ -2303,17 +2316,27 @@ function setAutoSpeak(enabled) {
   showToast(enabled ? 'Auto-speak enabled' : 'Auto-speak disabled');
 }
 
-// Voice Mode: Continuous listening and auto-send
+// Voice Mode: Start listening (only when NOT locked)
 function startVoiceModeListening() {
+  // Check all conditions
   if (!isVoiceModeEnabled()) return;
+  if (voiceModeLocked) {
+    console.log('Voice mode locked, skipping');
+    return;
+  }
+  if (askiIsSpeaking || askiIsProcessing) {
+    console.log('Aski is busy, skipping mic start');
+    return;
+  }
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     showToast('Voice not supported in this browser');
     return;
   }
   
-  // Wait if Aski is speaking
-  if (askiIsSpeaking) {
-    return;
+  // Stop any existing recognition first
+  if (voiceModeRecognition) {
+    try { voiceModeRecognition.abort(); } catch(e) {}
+    voiceModeRecognition = null;
   }
   
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2324,13 +2347,17 @@ function startVoiceModeListening() {
   
   voiceModeRecognition.onstart = () => {
     document.getElementById('askAIVoiceBtn')?.classList.add('recording');
-    updateVoiceModeIndicator(true);
+    updateVoiceModeIndicator('listening');
   };
   
   voiceModeRecognition.onresult = (event) => {
     const transcript = event.results[0][0].transcript;
     if (transcript.trim()) {
-      // Auto-send the message
+      // LOCK voice mode before sending
+      voiceModeLocked = true;
+      stopVoiceModeListening();
+      
+      // Send the message
       document.getElementById('askAIInput').value = transcript;
       sendAskAIMessage();
     }
@@ -2338,35 +2365,36 @@ function startVoiceModeListening() {
   
   voiceModeRecognition.onend = () => {
     document.getElementById('askAIVoiceBtn')?.classList.remove('recording');
-    updateVoiceModeIndicator(false);
     
-    // Restart listening if voice mode still enabled and chat is open
-    if (isVoiceModeEnabled() && document.getElementById('askAIPanel')?.classList.contains('show')) {
-      // Small delay before restarting
+    // Only restart if not locked and chat is still open
+    if (!voiceModeLocked && isVoiceModeEnabled() && 
+        document.getElementById('askAIPanel')?.classList.contains('show')) {
+      updateVoiceModeIndicator('waiting');
       setTimeout(() => {
-        if (!askiIsSpeaking && isVoiceModeEnabled()) {
+        if (!voiceModeLocked && !askiIsSpeaking && !askiIsProcessing) {
           startVoiceModeListening();
         }
-      }, 500);
+      }, 300);
+    } else {
+      updateVoiceModeIndicator('locked');
     }
   };
   
   voiceModeRecognition.onerror = (e) => {
     document.getElementById('askAIVoiceBtn')?.classList.remove('recording');
-    updateVoiceModeIndicator(false);
     
-    // Don't show error for no-speech, just restart
     if (e.error !== 'no-speech' && e.error !== 'aborted') {
       console.error('Voice mode error:', e.error);
     }
     
-    // Restart after error
-    if (isVoiceModeEnabled() && document.getElementById('askAIPanel')?.classList.contains('show')) {
+    // Only restart if not locked
+    if (!voiceModeLocked && isVoiceModeEnabled() && 
+        document.getElementById('askAIPanel')?.classList.contains('show')) {
       setTimeout(() => {
-        if (!askiIsSpeaking && isVoiceModeEnabled()) {
+        if (!voiceModeLocked && !askiIsSpeaking && !askiIsProcessing) {
           startVoiceModeListening();
         }
-      }, 1000);
+      }, 500);
     }
   };
   
@@ -2385,22 +2413,47 @@ function stopVoiceModeListening() {
     voiceModeRecognition = null;
   }
   document.getElementById('askAIVoiceBtn')?.classList.remove('recording');
-  updateVoiceModeIndicator(false);
 }
 
-function updateVoiceModeIndicator(isListening) {
+// Unlock and restart listening (called after Aski finishes speaking)
+function unlockVoiceMode() {
+  voiceModeLocked = false;
+  askiIsProcessing = false;
+  
+  if (isVoiceModeEnabled() && document.getElementById('askAIPanel')?.classList.contains('show')) {
+    updateVoiceModeIndicator('waiting');
+    setTimeout(startVoiceModeListening, 500);
+  }
+}
+
+function updateVoiceModeIndicator(state) {
   const subtitle = document.querySelector('.ask-ai-subtitle');
-  if (subtitle) {
-    if (isListening) {
+  if (!subtitle) return;
+  
+  switch(state) {
+    case 'listening':
       subtitle.textContent = '🎤 Listening...';
-      subtitle.style.color = '#FF6B4A';
-    } else if (askiIsSpeaking) {
+      subtitle.style.color = '#10B981'; // Green
+      break;
+    case 'processing':
+      subtitle.textContent = '🤔 Thinking...';
+      subtitle.style.color = '#F59E0B'; // Orange
+      break;
+    case 'speaking':
       subtitle.textContent = '🔊 Speaking...';
-      subtitle.style.color = '#06B6D4';
-    } else {
+      subtitle.style.color = '#06B6D4'; // Cyan
+      break;
+    case 'locked':
+      subtitle.textContent = '⏳ Please wait...';
+      subtitle.style.color = '#8B5CF6'; // Purple
+      break;
+    case 'waiting':
+      subtitle.textContent = '🎤 Ready';
+      subtitle.style.color = '#10B981'; // Green
+      break;
+    default:
       subtitle.textContent = 'AI Chat';
       subtitle.style.color = '';
-    }
   }
 }
 
@@ -2456,16 +2509,18 @@ function addAskAIMessage(text, isUser = true) {
       <div class="ask-ai-time">${time}</div>
     `;
     
-    // Auto-speak if enabled, then restart voice mode listening
+    // Auto-speak if enabled
     if (isAutoSpeakEnabled()) {
+      updateVoiceModeIndicator('speaking');
       setTimeout(() => {
         askiSpeak(text, null, () => {
-          // After speaking, restart voice mode listening
-          if (isVoiceModeEnabled()) {
-            setTimeout(startVoiceModeListening, 500);
-          }
+          // After speaking, UNLOCK voice mode (this will restart listening)
+          unlockVoiceMode();
         });
       }, 300);
+    } else {
+      // No auto-speak, unlock immediately
+      unlockVoiceMode();
     }
   }
   
@@ -2506,6 +2561,12 @@ async function sendAskAIMessage() {
     return;
   }
   
+  // LOCK voice mode while processing
+  voiceModeLocked = true;
+  askiIsProcessing = true;
+  stopVoiceModeListening();
+  updateVoiceModeIndicator('processing');
+  
   addAskAIMessage(text, true);
   input.value = '';
   updateAskAICharCount();
@@ -2536,11 +2597,17 @@ async function sendAskAIMessage() {
     } else {
       console.log('Error in response:', data);
       addAskAIMessage('Sorry, I could not process your request. ' + (data.error || ''), false);
+      // Unlock on error if no auto-speak
+      if (!isAutoSpeakEnabled()) {
+        unlockVoiceMode();
+      }
     }
   } catch (error) {
     hideAskAITyping();
     console.error('Ask AI error:', error);
-    addAskAIMessage('❌ Connection error. Please check your internet connection.', false);
+    addAskAIMessage('Connection error. Please check your internet connection.', false);
+    // Unlock on error
+    unlockVoiceMode();
   }
 }
 
@@ -4819,7 +4886,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.0';
+  md+='---\nExported from DropLit v0.9.1';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -4835,15 +4902,44 @@ function closeSettings(){document.getElementById('settingsModal').classList.remo
 // MAIN MENU
 // ============================================
 
+function toggleMainMenu() {
+  const menu = document.getElementById('mainMenu');
+  const isOpen = menu.classList.contains('show');
+  
+  if (isOpen) {
+    closeMainMenu();
+  } else {
+    openMainMenu();
+  }
+}
+
 function openMainMenu() {
   document.getElementById('mainMenu').classList.add('show');
+  updateMenuIcon(true);
   updateUndoList();
   updateTokenBalance();
-  initFontSize(); // Update font size buttons state
+  initFontSize();
 }
 
 function closeMainMenu() {
   document.getElementById('mainMenu').classList.remove('show');
+  updateMenuIcon(false);
+}
+
+function updateMenuIcon(isOpen) {
+  const btn = document.getElementById('menuToggleBtn');
+  if (!btn) return;
+  
+  const openIcon = btn.querySelector('.menu-icon-open');
+  const closeIcon = btn.querySelector('.menu-icon-close');
+  
+  if (openIcon && closeIcon) {
+    openIcon.style.display = isOpen ? 'none' : 'block';
+    closeIcon.style.display = isOpen ? 'block' : 'none';
+  }
+  
+  // Change button style when menu is open
+  btn.classList.toggle('active', isOpen);
 }
 
 // ============================================
