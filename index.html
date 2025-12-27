@@ -65,15 +65,16 @@
     .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--color-bg); position: relative; padding-top: var(--safe-top); }
 
     /* Header */
-    .header { display: flex; align-items: center; padding: 8px 14px; background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); gap: 10px; }
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); position: relative; }
     .logo-btn { width: 36px; height: 36px; border: none; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(255,107,74,0.25); }
     .logo-btn:active { transform: scale(0.95); }
     .logo-btn svg { width: 18px; height: 18px; }
-    .header-title { flex: 1; font-size: 0.9rem; font-weight: 700; color: var(--color-text); }
+    .header-title { font-size: 0.9rem; font-weight: 700; color: var(--color-text); }
     .header-title span { color: var(--color-primary); }
-    .header-add-btn { display: flex; align-items: center; gap: 5px; padding: 7px 12px; background: var(--color-bg); border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.75rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; transition: all 0.15s; }
-    .header-add-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
-    .header-add-btn svg { width: 14px; height: 14px; }
+    .header-add-btn { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; background: linear-gradient(135deg, #8B5CF6, #7C3AED); border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s; box-shadow: 0 2px 8px rgba(139,92,246,0.3); }
+    .header-add-btn:hover { transform: translateX(-50%) scale(1.03); box-shadow: 0 4px 12px rgba(139,92,246,0.4); }
+    .header-add-btn:active { transform: translateX(-50%) scale(0.97); }
+    .header-add-btn svg { width: 12px; height: 12px; }
     .btn-icon { width: 36px; height: 36px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); flex-shrink: 0; }
     .btn-icon:active { background: var(--color-bg-soft); }
 
@@ -225,9 +226,18 @@
     .camera-input { display: none; }
 
     /* FAB - Plus button (center) */
-    .fab-askai { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); height: 52px; padding: 0 24px; border: none; background: linear-gradient(135deg, #FF6B4A, #06B6D4); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 50; transition: all 0.2s; animation: askaiGlow 2.5s ease-in-out infinite; font-family: var(--font-main); font-size: 0.95rem; font-weight: 700; color: white; letter-spacing: 0.3px; }
-    @keyframes askaiGlow { 0%, 100% { box-shadow: 0 4px 20px rgba(255,107,74,0.3), 0 4px 20px rgba(6,182,212,0.3); } 50% { box-shadow: 0 4px 35px rgba(255,107,74,0.5), 0 4px 35px rgba(6,182,212,0.5), 0 0 50px rgba(255,107,74,0.2), 0 0 50px rgba(6,182,212,0.2); } }
-    .fab-askai:hover { animation: none; box-shadow: 0 6px 30px rgba(255,107,74,0.5), 0 6px 30px rgba(6,182,212,0.5); }
+    .fab-askai { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); height: 52px; padding: 0 24px; border: none; background: linear-gradient(135deg, #FF6B4A, #06B6D4); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 50; transition: all 0.2s; animation: askaiPulse 2.5s ease-in-out infinite; font-family: var(--font-main); font-size: 0.95rem; font-weight: 700; color: white; letter-spacing: 0.3px; }
+    @keyframes askaiPulse { 
+      0%, 100% { 
+        transform: translateX(-50%) scale(1); 
+        box-shadow: 0 0 20px rgba(255,107,74,0.6), 0 0 20px rgba(6,182,212,0.6), 0 0 40px rgba(255,107,74,0.3), 0 0 40px rgba(6,182,212,0.3); 
+      } 
+      50% { 
+        transform: translateX(-50%) scale(1.05); 
+        box-shadow: 0 0 30px rgba(255,107,74,0.8), 0 0 30px rgba(6,182,212,0.8), 0 0 60px rgba(255,107,74,0.5), 0 0 60px rgba(6,182,212,0.5); 
+      } 
+    }
+    .fab-askai:hover { animation: none; transform: translateX(-50%) scale(1.05); box-shadow: 0 0 35px rgba(255,107,74,0.8), 0 0 35px rgba(6,182,212,0.8); }
     .fab-askai:active { transform: translateX(-50%) scale(0.97); }
     .fab-askai .sparkle { font-size: 1.1rem; animation: sparkle 1.5s ease-in-out infinite; }
     @keyframes sparkle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.15); } }
@@ -238,7 +248,7 @@
     .ask-ai-panel.show { transform: translateY(0); }
     .ask-ai-handle { padding: 12px 0 8px; display: flex; justify-content: center; cursor: grab; }
     .ask-ai-handle-bar { width: 40px; height: 5px; background: var(--color-border); border-radius: 3px; }
-    .ask-ai-header { background: linear-gradient(135deg, #FF6B4A, #06B6D4); color: white; padding: 12px 20px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .ask-ai-header { background: linear-gradient(135deg, #8B5CF6, #7C3AED); color: white; padding: 12px 20px 16px; display: flex; align-items: center; justify-content: space-between; }
     .ask-ai-header-left { display: flex; align-items: center; gap: 12px; }
     .ask-ai-avatar { width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
     .ask-ai-title { font-size: 1.15rem; font-weight: 600; }
@@ -250,18 +260,18 @@
     @keyframes msgFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .ask-ai-message.user { align-self: flex-end; }
     .ask-ai-message.ai { align-self: flex-start; }
-    .ask-ai-bubble { padding: 14px 18px; border-radius: 20px; font-size: 0.95rem; line-height: 1.55; }
-    .ask-ai-message.user .ask-ai-bubble { background: linear-gradient(135deg, #3B82F6, #6366F1); color: white; border-bottom-right-radius: 6px; }
-    .ask-ai-message.ai .ask-ai-bubble { background: var(--color-bg-card); color: var(--color-text); border: 1px solid var(--color-border); border-bottom-left-radius: 6px; }
+    .ask-ai-bubble { padding: 12px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.5; }
+    .ask-ai-message.user .ask-ai-bubble { background: linear-gradient(135deg, #8B5CF6, #7C3AED); color: white; border-bottom-right-radius: 4px; }
+    .ask-ai-message.ai .ask-ai-bubble { background: var(--color-bg-card); color: var(--color-text); border: none; box-shadow: 0 1px 2px rgba(0,0,0,0.1); border-bottom-left-radius: 4px; }
     .ask-ai-time { font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px; padding: 0 6px; }
     .ask-ai-message.user .ask-ai-time { text-align: right; }
     .ask-ai-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
     .ask-ai-action-btn { height: 34px; padding: 0 16px; border: 2px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-card); font-family: var(--font-main); font-size: 0.75rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
     .ask-ai-action-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
-    .ask-ai-action-btn.primary { background: linear-gradient(135deg, #FF6B4A, #06B6D4); border-color: transparent; color: white; }
+    .ask-ai-action-btn.primary { background: linear-gradient(135deg, #8B5CF6, #7C3AED); border-color: transparent; color: white; }
     .ask-ai-action-btn.primary:hover { transform: scale(1.03); }
-    .ask-ai-typing { display: flex; align-items: center; gap: 5px; padding: 14px 18px; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 20px; border-bottom-left-radius: 6px; width: fit-content; }
-    .ask-ai-typing-dot { width: 8px; height: 8px; background: var(--color-primary); border-radius: 50%; animation: typingPulse 1.4s infinite; }
+    .ask-ai-typing { display: flex; align-items: center; gap: 5px; padding: 14px 18px; background: var(--color-bg-card); box-shadow: 0 1px 2px rgba(0,0,0,0.1); border-radius: 18px; border-bottom-left-radius: 4px; width: fit-content; }
+    .ask-ai-typing-dot { width: 8px; height: 8px; background: #8B5CF6; border-radius: 50%; animation: typingPulse 1.4s infinite; }
     .ask-ai-typing-dot:nth-child(2) { animation-delay: 0.2s; }
     .ask-ai-typing-dot:nth-child(3) { animation-delay: 0.4s; }
     @keyframes typingPulse { 0%, 60%, 100% { opacity: 0.3; transform: scale(1); } 30% { opacity: 1; transform: scale(1.2); } }
@@ -281,7 +291,7 @@
     .ask-ai-btn-voice { background: var(--color-bg); border: 2px solid var(--color-border); color: var(--color-text-soft); }
     .ask-ai-btn-voice:hover { border-color: #FF6B4A; color: #FF6B4A; }
     .ask-ai-btn-voice.recording { background: #FF6B4A; border-color: #FF6B4A; color: white; animation: pulse 1s infinite; }
-    .ask-ai-btn-send { background: linear-gradient(135deg, #FF6B4A, #06B6D4); color: white; }
+    .ask-ai-btn-send { background: linear-gradient(135deg, #8B5CF6, #7C3AED); color: white; }
     .ask-ai-btn-send:hover { transform: scale(1.05); }
     .ask-ai-btn-send:disabled { background: var(--color-border); cursor: not-allowed; transform: none; }
     .ask-ai-char-count { text-align: right; font-size: 0.7rem; color: var(--color-text-muted); margin-top: 8px; padding-right: 4px; }
@@ -893,8 +903,8 @@
       </button>
       <div class="header-title"><span>Drop</span>Lit</div>
       <button class="header-add-btn" onclick="togglePlusMenu()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-        Add
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+        Create Drop
       </button>
       <button class="btn-icon" onclick="openMainMenu()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     </header>
@@ -2115,16 +2125,29 @@ async function sendAskAIMessage() {
   showAskAITyping();
   
   try {
-    const response = await callClaudeAPI([
-      { role: 'user', content: text }
-    ], 'You are a helpful, friendly assistant in DropLit app. Keep responses concise and helpful. Answer in the same language as the user question.');
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'chat',
+        text: text,
+        history: askAIMessages.slice(-10) // Last 10 messages for context
+      })
+    });
+    
+    const data = await response.json();
     
     hideAskAITyping();
-    addAskAIMessage(response, false);
+    
+    if (data.success && data.result) {
+      addAskAIMessage(data.result, false);
+    } else {
+      addAskAIMessage('Sorry, I could not process your request. Please try again.', false);
+    }
   } catch (error) {
     hideAskAITyping();
-    addAskAIMessage('Sorry, I could not process your request. Please try again.', false);
     console.error('Ask AI error:', error);
+    addAskAIMessage('❌ Connection error. Please check your internet connection.', false);
   }
 }
 
@@ -2213,6 +2236,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
+  // Load API key
+  // (API key is stored on server, not needed here)
+  
   // Swipe down to close Ask AI
   const askAIPanel = document.getElementById('askAIPanel');
   let startY = 0;
@@ -2222,6 +2248,19 @@ document.addEventListener('DOMContentLoaded', () => {
   askAIPanel.addEventListener('touchend', (e) => {
     const endY = e.changedTouches[0].clientY;
     if (endY - startY > 100) closeAskAI();
+  });
+  
+  // Swipe UP on Ask AI FAB button to open chat
+  const fabAskAI = document.getElementById('fabAskAI');
+  let fabStartY = 0;
+  fabAskAI.addEventListener('touchstart', (e) => {
+    fabStartY = e.touches[0].clientY;
+  });
+  fabAskAI.addEventListener('touchend', (e) => {
+    const fabEndY = e.changedTouches[0].clientY;
+    if (fabStartY - fabEndY > 30) { // Swipe up threshold
+      openAskAI();
+    }
   });
 });
 
