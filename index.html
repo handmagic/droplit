@@ -278,10 +278,13 @@
     .ask-ai-time { font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px; padding: 0 6px; }
     .ask-ai-message.user .ask-ai-time { text-align: right; }
     .ask-ai-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .ask-ai-message.user .ask-ai-actions { justify-content: flex-end; }
     .ask-ai-action-btn { height: 34px; padding: 0 16px; border: 2px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-card); font-family: var(--font-main); font-size: 0.75rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
     .ask-ai-action-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
     .ask-ai-action-btn.speak-btn { border-color: #06B6D4; color: #06B6D4; }
     .ask-ai-action-btn.speak-btn:hover { background: #06B6D4; color: white; }
+    .ask-ai-action-btn.created { border-color: #10B981; color: #10B981; cursor: default; }
+    .ask-ai-action-btn.created:hover { border-color: #10B981; color: #10B981; }
     .ask-ai-action-btn.primary { background: linear-gradient(135deg, #8B5CF6, #7C3AED); border-color: transparent; color: white; }
     .ask-ai-action-btn.primary:hover { transform: scale(1.03); }
     .ask-ai-typing { display: flex; align-items: center; gap: 5px; padding: 14px 18px; background: var(--color-bg-card); box-shadow: 0 1px 2px rgba(0,0,0,0.1); border-radius: 18px; border-bottom-left-radius: 4px; width: fit-content; }
@@ -587,6 +590,11 @@
     body.font-small .card-text { font-size: 0.95rem; }
     body.font-normal .card-text { font-size: 1.05rem; }
     body.font-large .card-text { font-size: 1.2rem; }
+    
+    /* Chat messages */
+    body.font-small .ask-ai-bubble { font-size: 0.9rem; }
+    body.font-normal .ask-ai-bubble { font-size: 1rem; }
+    body.font-large .ask-ai-bubble { font-size: 1.15rem; }
     
     /* Card notes/caption */
     body.font-small .card-notes { font-size: 0.8rem; }
@@ -2741,6 +2749,13 @@ function addAskAIMessage(text, isUser = true) {
   if (isUser) {
     msgDiv.innerHTML = `
       <div class="ask-ai-bubble">${escapeHtml(text)}</div>
+      <div class="ask-ai-actions">
+        <button class="ask-ai-action-btn" onclick="createDropFromAI(this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Create Drop
+        </button>
+        <button class="ask-ai-action-btn" onclick="copyAIResponse(this)">Copy</button>
+      </div>
       <div class="ask-ai-time">${time}</div>
     `;
   } else {
@@ -2875,22 +2890,42 @@ async function sendAskAIMessage() {
 }
 
 function createDropFromAI(btn) {
-  const bubble = btn.closest('.ask-ai-message').querySelector('.ask-ai-bubble');
+  // Check if already created
+  if (btn.classList.contains('created')) {
+    showToast('Drop already created');
+    return;
+  }
+  
+  const msgDiv = btn.closest('.ask-ai-message');
+  const bubble = msgDiv.querySelector('.ask-ai-bubble');
   const text = bubble.textContent;
+  const isUserMessage = msgDiv.classList.contains('user');
   
   const drop = {
     id: Date.now(),
     text: text,
     timestamp: new Date().toISOString(),
     type: 'text',
-    category: 'ai'
+    category: isUserMessage ? 'idea' : 'ai'
   };
   
   drops.unshift(drop);
   saveDrops();
   render();
   
-  showToast('Drop created from AI response');
+  // Update button to show "created" state
+  btn.classList.add('created');
+  btn.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+    Drop created
+  `;
+  
+  // Sync with Syntrise if enabled
+  if (typeof syncDropToSyntrise === 'function') {
+    syncDropToSyntrise(drop);
+  }
+  
+  showToast('✓ Drop created');
 }
 
 function copyAIResponse(btn) {
@@ -2898,7 +2933,8 @@ function copyAIResponse(btn) {
   const text = bubble.textContent;
   
   navigator.clipboard.writeText(text).then(() => {
-    showToast('Copied to clipboard');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
   }).catch(() => {
     showToast('Failed to copy');
   });
