@@ -65,19 +65,26 @@
     .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--color-bg); position: relative; padding-top: var(--safe-top); }
 
     /* Header */
-    .header { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); position: relative; }
-    .logo-btn { width: 36px; height: 36px; border: none; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(255,107,74,0.25); }
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--color-bg-card); border-bottom: 1px solid var(--color-border); position: relative; padding-top: max(10px, env(safe-area-inset-top)); }
+    .logo-btn { width: 52px; height: 52px; border: none; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 3px 12px rgba(255,107,74,0.3); transition: all 0.2s; }
     .logo-btn:active { transform: scale(0.95); }
-    .logo-btn svg { width: 18px; height: 18px; }
-    .header-title { font-size: 0.9rem; font-weight: 700; color: var(--color-text); }
+    .logo-btn svg { width: 22px; height: 22px; }
+    .logo-btn.filters-open { transform: rotate(180deg); }
+    
+    /* Filters toggle - hidden by default */
+    .filters { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.3s ease, opacity 0.2s ease; }
+    body.filters-visible .filters { max-height: 200px; opacity: 1; }
+    body.filters-visible .logo-btn { background: linear-gradient(135deg, #8B5CF6, #7C3AED); }
+    .header-title { font-size: 0.9rem; font-weight: 700; color: var(--color-text); display: none; }
     .header-title span { color: var(--color-primary); }
-    .header-add-btn { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; background: linear-gradient(135deg, #8B5CF6, #7C3AED); border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.8rem; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s; box-shadow: 0 2px 8px rgba(139,92,246,0.3); }
-    .header-add-btn:hover { transform: translateX(-50%) scale(1.03); box-shadow: 0 4px 12px rgba(139,92,246,0.4); }
+    .header-add-btn { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 6px; height: 48px; padding: 0 20px; background: linear-gradient(135deg, #8B5CF6, #7C3AED); border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.8rem; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s; box-shadow: 0 3px 12px rgba(139,92,246,0.3); }
+    .header-add-btn:hover { transform: translateX(-50%) scale(1.03); box-shadow: 0 4px 14px rgba(139,92,246,0.4); }
     .header-add-btn:active { transform: translateX(-50%) scale(0.97); }
     .header-add-btn svg { width: 12px; height: 12px; }
     body.chat-open .header-add-btn { display: none; }
-    .btn-icon { width: 36px; height: 36px; border: none; background: var(--color-bg-btn); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); flex-shrink: 0; }
-    .btn-icon:active { background: var(--color-bg-soft); }
+    .btn-icon { width: 52px; height: 52px; border: none; background: var(--color-bg); border: 2px solid var(--color-border); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); flex-shrink: 0; transition: all 0.15s; }
+    .btn-icon:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .btn-icon:active { transform: scale(0.95); }
 
     .network-banner { display: none; padding: 6px; background: var(--color-error); color: white; font-size: 0.7rem; font-weight: 600; text-align: center; }
     .network-banner.show { display: block; }
@@ -245,11 +252,11 @@
     .select-mode .fab-askai, .editing-mode .fab-askai { display: none !important; }
 
     /* Ask AI Panel - Full Screen Slide Up */
-    .ask-ai-panel { position: fixed; inset: 0; top: 50px; background: var(--color-bg-card); border-radius: 24px 24px 0 0; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0,0,0,0.15); }
+    .ask-ai-panel { position: fixed; inset: 0; top: 0; background: var(--color-bg-card); border-radius: 0; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0,0,0,0.15); }
     .ask-ai-panel.show { transform: translateY(0); }
-    .ask-ai-handle { padding: 12px 0 8px; display: flex; justify-content: center; cursor: grab; }
-    .ask-ai-handle-bar { width: 40px; height: 5px; background: var(--color-border); border-radius: 3px; }
-    .ask-ai-header { background: linear-gradient(135deg, #8B5CF6, #7C3AED); color: white; padding: 12px 20px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .ask-ai-handle { padding: 8px 0 4px; display: flex; justify-content: center; cursor: grab; background: linear-gradient(135deg, #8B5CF6, #7C3AED); padding-top: max(8px, env(safe-area-inset-top)); }
+    .ask-ai-handle-bar { width: 40px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 3px; }
+    .ask-ai-header { background: linear-gradient(135deg, #8B5CF6, #7C3AED); color: white; padding: 8px 20px 14px; display: flex; align-items: center; justify-content: space-between; }
     .ask-ai-header-left { display: flex; align-items: center; gap: 12px; }
     .ask-ai-avatar { width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
     .ask-ai-title { font-size: 1.15rem; font-weight: 600; }
@@ -694,7 +701,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.8.9 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.0 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -904,7 +911,7 @@
 <body>
   <div class="app" id="app">
     <header class="header">
-      <button class="logo-btn" onclick="openAbout()">
+      <button class="logo-btn" id="logoBtn" onclick="toggleFilters()" title="Toggle filters">
         <svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
       </button>
       <div class="header-title"><span>Drop</span>Lit</div>
@@ -1290,8 +1297,8 @@
       <div class="ask-ai-header-left">
         <div class="ask-ai-avatar">✨</div>
         <div>
-          <div class="ask-ai-title">Ask AI</div>
-          <div class="ask-ai-subtitle">Your personal assistant</div>
+          <div class="ask-ai-title">Aski</div>
+          <div class="ask-ai-subtitle">AI Chat</div>
         </div>
       </div>
       <button class="ask-ai-close" onclick="closeAskAI()">×</button>
@@ -1440,12 +1447,13 @@
       
       <!-- About Section -->
       <div class="menu-section">
-        <div class="menu-about">
+        <div class="menu-about" onclick="closeMainMenu(); openAbout();" style="cursor: pointer;">
           <div class="menu-about-logo">
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.8.9 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.0 by Syntrise</div>
+          <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
       
@@ -1457,7 +1465,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.8.9 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.0 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2445,16 +2453,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load API key
   // (API key is stored on server, not needed here)
   
-  // Swipe down to close Ask AI
-  const askAIPanel = document.getElementById('askAIPanel');
-  let startY = 0;
-  askAIPanel.addEventListener('touchstart', (e) => {
-    startY = e.touches[0].clientY;
-  });
-  askAIPanel.addEventListener('touchend', (e) => {
-    const endY = e.changedTouches[0].clientY;
-    if (endY - startY > 100) closeAskAI();
-  });
+  // Swipe down to close Ask AI - ONLY on handle and header (not message area)
+  // This prevents conflict with system notification panel and allows normal scroll
+  const askAIHandle = document.querySelector('.ask-ai-handle');
+  const askAIHeader = document.querySelector('.ask-ai-header');
+  let swipeStartY = 0;
+  
+  function handleSwipeStart(e) {
+    swipeStartY = e.touches[0].clientY;
+  }
+  
+  function handleSwipeEnd(e) {
+    const swipeEndY = e.changedTouches[0].clientY;
+    if (swipeEndY - swipeStartY > 50) { // Reduced threshold for header area
+      closeAskAI();
+    }
+  }
+  
+  // Attach to handle bar
+  if (askAIHandle) {
+    askAIHandle.addEventListener('touchstart', handleSwipeStart);
+    askAIHandle.addEventListener('touchend', handleSwipeEnd);
+  }
+  
+  // Attach to header
+  if (askAIHeader) {
+    askAIHeader.addEventListener('touchstart', handleSwipeStart);
+    askAIHeader.addEventListener('touchend', handleSwipeEnd);
+  }
   
   // Swipe UP on Ask AI FAB button to open chat
   const fabAskAI = document.getElementById('fabAskAI');
@@ -4614,7 +4640,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.8.9';
+  md+='---\nExported from DropLit v0.9.0';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -4922,6 +4948,23 @@ function startVoiceSearch() {
   
   voiceSearchRecognition.start();
   toast('Listening...', 'info');
+}
+
+// ============================================
+// FILTERS TOGGLE (Clean Screen)
+// ============================================
+
+function toggleFilters() {
+  const isVisible = document.body.classList.toggle('filters-visible');
+  localStorage.setItem('droplit_filters_visible', isVisible);
+}
+
+function initFiltersState() {
+  // Default to hidden (clean screen)
+  const savedState = localStorage.getItem('droplit_filters_visible');
+  if (savedState === 'true') {
+    document.body.classList.add('filters-visible');
+  }
 }
 
 // ============================================
@@ -5323,7 +5366,7 @@ window.addEventListener('online',updateNet);
 window.addEventListener('offline',updateNet);
 
 document.addEventListener('DOMContentLoaded',()=>{
-  initSR();render();counts();updateNet();
+  initSR();render();counts();updateNet();initFiltersState();
   setTimeout(scrollToBottomInstant,50);
   
   // Initialize dark mode
