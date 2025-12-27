@@ -5799,27 +5799,40 @@ async function getSyntriseContext(query) {
 
 // Sync all existing drops (run once)
 async function syncAllDropsToCore() {
-  if (!SYNTRISE_CONFIG.ENABLED || !ideas.length) return;
-  console.log('🔄 Syncing all drops to Syntrise CORE...');
+  if (!SYNTRISE_CONFIG.ENABLED) {
+    console.log('Syntrise sync disabled');
+    return { synced: 0, error: 'disabled' };
+  }
+  if (!ideas || !ideas.length) {
+    console.log('No drops to sync');
+    return { synced: 0, error: 'no_drops' };
+  }
+  console.log('🔄 Syncing', ideas.length, 'drops to Syntrise CORE...');
   try {
     const response = await fetch(`${SYNTRISE_CONFIG.API_URL}/drops/sync`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         user_id: SYNTRISE_CONFIG.USER_ID,
-        drops: ideas.map(drop => ({
+        drops: ideas.filter(drop => drop.text && !drop.isMedia).map(drop => ({
           id: String(drop.id),
           content: drop.text,
           category: drop.category || 'uncategorized',
-          created_at: drop.created || new Date().toISOString()
+          created_at: drop.timestamp || new Date().toISOString()
         }))
       })
     });
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Sync API error:', response.status, errText);
+      return { synced: 0, error: errText };
+    }
     const data = await response.json();
     console.log(`✅ Synced ${data.synced}/${ideas.length} drops`);
     return data;
   } catch (e) {
     console.error('❌ Bulk sync failed:', e);
+    return { synced: 0, error: e.message };
   }
 }
 
@@ -5836,12 +5849,16 @@ async function syncToCloud() {
   toast('Syncing to cloud...', 'info');
   try {
     const result = await syncAllDropsToCore();
-    if (result && result.synced > 0) {
-      toast('Synced ' + result.synced + ' drops to cloud!', 'success');
-    } else if (result && result.synced === 0) {
-      toast('No new drops to sync', 'info');
+    if (result.error === 'no_drops') {
+      toast('No text drops to sync', 'info');
+    } else if (result.error === 'disabled') {
+      toast('Cloud sync is disabled', 'info');
+    } else if (result.error) {
+      toast('Sync failed: ' + result.error, 'error');
+    } else if (result.synced > 0) {
+      toast('Synced ' + result.synced + ' drops!', 'success');
     } else {
-      toast('Sync failed. Check connection.', 'error');
+      toast('All drops already synced', 'success');
     }
   } catch (e) {
     toast('Sync error: ' + e.message, 'error');
