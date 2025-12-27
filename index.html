@@ -699,7 +699,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.1 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.2 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1475,7 +1475,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.1 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.2 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1488,7 +1488,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.1 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.2 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1966,7 +1966,7 @@ function detectCat(t){
 function saveIdea(t){
   const c=detectCat(t);
   const idea={id:Date.now(),text:t,category:c,timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMedia:false};
-  ideas.push(idea);save();
+  ideas.push(idea);save(idea);
   resetToShowAll();
   toast('Saved to '+CATS[c].name,'success');
 }
@@ -2573,6 +2573,17 @@ async function sendAskAIMessage() {
   
   showAskAITyping();
   
+  // Get context from Syntrise CORE
+  let syntriseContext = [];
+  if (window.SyntriseCore) {
+    try {
+      syntriseContext = await getSyntriseContext(text);
+      console.log('Syntrise context:', syntriseContext?.length || 0, 'drops found');
+    } catch (e) {
+      console.warn('Context fetch skipped');
+    }
+  }
+  
   console.log('Sending to:', AI_API_URL);
   
   try {
@@ -2582,7 +2593,8 @@ async function sendAskAIMessage() {
       body: JSON.stringify({
         action: 'chat',
         text: text,
-        history: askAIMessages.slice(-10) // Last 10 messages for context
+        history: askAIMessages.slice(-10), // Last 10 messages for context
+        syntriseContext: syntriseContext // RAG context from Syntrise CORE
       })
     });
     
@@ -3068,10 +3080,14 @@ function duplicateCard(id){
     if(card)card.scrollIntoView({behavior:'smooth',block:'center'});
   },100);
 }
-function save(){
+function save(newDrop){
   try{
     const data=JSON.stringify(ideas);
     localStorage.setItem('droplit_ideas',data);
+    // Sync to Syntrise CORE
+    if (newDrop && window.SyntriseCore) {
+      syncDropToCore(newDrop);
+    }
   }catch(err){
     // Storage full - usually QuotaExceededError
     const sizeMB=(JSON.stringify(ideas).length/1024/1024).toFixed(1);
@@ -4886,7 +4902,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.1';
+  md+='---\nExported from DropLit v0.9.2';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -5698,6 +5714,103 @@ document.addEventListener('DOMContentLoaded',()=>{
   const savedFontSize = localStorage.getItem('droplit_fontsize') || 'normal';
   document.body.classList.add('font-' + savedFontSize);
 });
+
+// ============================================
+// SYNTRISE CORE INTEGRATION v0.1
+// ============================================
+
+const SYNTRISE_CONFIG = {
+  API_URL: 'https://syntrise-core.vercel.app/api',
+  USER_ID: 'c95e2b0c-1182-424d-ac0a-0f0566cf09fa',
+  ENABLED: true
+};
+
+let syntriseSyncQueue = [];
+
+// Sync single drop to Syntrise CORE
+async function syncDropToCore(drop) {
+  if (!SYNTRISE_CONFIG.ENABLED) return;
+  try {
+    const response = await fetch(`${SYNTRISE_CONFIG.API_URL}/drops/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: SYNTRISE_CONFIG.USER_ID,
+        drops: [{
+          id: String(drop.id),
+          content: drop.text,
+          category: drop.category || 'uncategorized',
+          tags: drop.tags || [],
+          created_at: drop.created || new Date().toISOString()
+        }]
+      })
+    });
+    if (response.ok) {
+      console.log('✅ Synced to Syntrise CORE:', drop.id);
+    }
+  } catch (e) {
+    console.warn('⚠️ Syntrise sync queued:', e.message);
+    syntriseSyncQueue.push(drop);
+  }
+}
+
+// Get context for Aski from Syntrise CORE
+async function getSyntriseContext(query) {
+  if (!SYNTRISE_CONFIG.ENABLED) return null;
+  try {
+    const response = await fetch(`${SYNTRISE_CONFIG.API_URL}/drops/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: SYNTRISE_CONFIG.USER_ID,
+        query: query,
+        limit: 5,
+        threshold: 0.6
+      })
+    });
+    const data = await response.json();
+    return data.results || [];
+  } catch (e) {
+    console.warn('Syntrise context error:', e.message);
+    return [];
+  }
+}
+
+// Sync all existing drops (run once)
+async function syncAllDropsToCore() {
+  if (!SYNTRISE_CONFIG.ENABLED || !ideas.length) return;
+  console.log('🔄 Syncing all drops to Syntrise CORE...');
+  try {
+    const response = await fetch(`${SYNTRISE_CONFIG.API_URL}/drops/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: SYNTRISE_CONFIG.USER_ID,
+        drops: ideas.map(drop => ({
+          id: String(drop.id),
+          content: drop.text,
+          category: drop.category || 'uncategorized',
+          created_at: drop.created || new Date().toISOString()
+        }))
+      })
+    });
+    const data = await response.json();
+    console.log(`✅ Synced ${data.synced}/${ideas.length} drops`);
+    return data;
+  } catch (e) {
+    console.error('❌ Bulk sync failed:', e);
+  }
+}
+
+// Expose for console access
+window.SyntriseCore = {
+  sync: syncDropToCore,
+  syncAll: syncAllDropsToCore,
+  getContext: getSyntriseContext,
+  config: SYNTRISE_CONFIG
+};
+
+console.log('🧠 Syntrise CORE integration loaded');
 </script>
 </body>
 </html>
