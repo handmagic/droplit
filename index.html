@@ -284,7 +284,8 @@
     .ask-ai-action-btn.speak-btn { border-color: #06B6D4; color: #06B6D4; }
     .ask-ai-action-btn.speak-btn:hover { background: #06B6D4; color: white; }
     .ask-ai-action-btn.created { border-color: #10B981; color: #10B981; cursor: default; }
-    .ask-ai-action-btn.created:hover { border-color: #10B981; color: #10B981; }
+    .ask-ai-action-btn.created:hover, .ask-ai-action-btn.created:focus, .ask-ai-action-btn.created:active { border-color: #10B981; color: #10B981; outline: none; background: var(--color-bg-card); }
+    .ask-ai-action-btn:focus { outline: none; }
     .ask-ai-action-btn.primary { background: linear-gradient(135deg, #8B5CF6, #7C3AED); border-color: transparent; color: white; }
     .ask-ai-action-btn.primary:hover { transform: scale(1.03); }
     .ask-ai-typing { display: flex; align-items: center; gap: 5px; padding: 14px 18px; background: var(--color-bg-card); box-shadow: 0 1px 2px rgba(0,0,0,0.1); border-radius: 18px; border-bottom-left-radius: 4px; width: fit-content; }
@@ -2004,12 +2005,24 @@ function initSR(){
 let wakeLock = null;
 async function acquireWakeLock() {
   if ('wakeLock' in navigator) {
-    try { wakeLock = await navigator.wakeLock.request('screen'); } 
+    try { 
+      wakeLock = await navigator.wakeLock.request('screen');
+      console.log('Wake Lock acquired');
+      // Re-acquire if released (e.g., when tab becomes visible again)
+      wakeLock.addEventListener('release', () => {
+        console.log('Wake Lock released');
+        wakeLock = null;
+      });
+    } 
     catch (err) { console.log('Wake Lock error:', err); }
   }
 }
 function releaseWakeLock() {
-  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+  if (wakeLock) { 
+    wakeLock.release(); 
+    wakeLock = null; 
+    console.log('Wake Lock released manually');
+  }
 }
 
 function toggleRec(){if(isRec)recognition.stop();else{saved=false;recognition.start();}}
@@ -2890,6 +2903,8 @@ async function sendAskAIMessage() {
 }
 
 function createDropFromAI(btn) {
+  console.log('createDropFromAI called');
+  
   // Check if already created
   if (btn.classList.contains('created')) {
     showToast('Drop already created');
@@ -2897,9 +2912,21 @@ function createDropFromAI(btn) {
   }
   
   const msgDiv = btn.closest('.ask-ai-message');
+  if (!msgDiv) {
+    console.error('Could not find message div');
+    return;
+  }
+  
   const bubble = msgDiv.querySelector('.ask-ai-bubble');
+  if (!bubble) {
+    console.error('Could not find bubble');
+    return;
+  }
+  
   const text = bubble.textContent;
   const isUserMessage = msgDiv.classList.contains('user');
+  
+  console.log('Creating drop:', text.substring(0, 50) + '...');
   
   const drop = {
     id: Date.now(),
@@ -2909,9 +2936,10 @@ function createDropFromAI(btn) {
     category: isUserMessage ? 'idea' : 'ai'
   };
   
-  drops.unshift(drop);
-  saveDrops();
+  ideas.unshift(drop);
+  save();
   render();
+  counts();
   
   // Update button to show "created" state
   btn.classList.add('created');
@@ -2919,6 +2947,9 @@ function createDropFromAI(btn) {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
     Drop created
   `;
+  btn.blur(); // Remove focus to prevent red outline
+  
+  console.log('Drop created successfully');
   
   // Sync with Syntrise if enabled
   if (typeof syncDropToSyntrise === 'function') {
@@ -6020,8 +6051,13 @@ document.addEventListener('visibilitychange', () => {
       updateVoiceModeIndicator('sleeping');
       console.log('Voice mode paused (page hidden)');
     }
+  } else {
+    // Page is visible again - re-acquire Wake Lock if chat is open
+    if (document.getElementById('askAIPanel')?.classList.contains('show')) {
+      acquireWakeLock();
+      console.log('Wake Lock re-acquired (page visible)');
+    }
   }
-  // When page becomes visible - stay in sleep, user will tap to activate
 });
 
 document.addEventListener('DOMContentLoaded',()=>{
