@@ -301,7 +301,7 @@
     .ask-ai-input { flex: 1; padding: 14px 18px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 1rem; background: var(--color-bg); color: var(--color-text); outline: none; transition: border-color 0.15s; }
     .ask-ai-input:focus { border-color: var(--color-primary); }
     .ask-ai-input::placeholder { color: var(--color-text-muted); }
-    .ask-ai-btn { width: 48px; height: 48px; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .ask-ai-btn { width: 48px; height: 48px; min-width: 48px; min-height: 48px; flex-shrink: 0; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
     .ask-ai-btn-voice { background: var(--color-bg); border: 2px solid var(--color-border); color: var(--color-text-soft); }
     .ask-ai-btn-voice:hover { border-color: #FF6B4A; color: #FF6B4A; }
     .ask-ai-btn-voice.recording { background: #FF6B4A; border-color: #FF6B4A; color: white; animation: pulse 1s infinite; }
@@ -2101,6 +2101,7 @@ function openAskAI() {
   if (isVoiceModeEnabled()) {
     voiceModeLocked = false;
     voiceModeSleeping = false;
+    voiceModeSilentCycles = 0; // Reset silent counter
     askiIsProcessing = false;
     updateVoiceModeIndicator('waiting');
     setTimeout(startVoiceModeListening, 500);
@@ -2114,6 +2115,7 @@ function closeAskAI() {
   // Stop everything and reset all voice states
   voiceModeLocked = true;
   voiceModeSleeping = false;
+  voiceModeSilentCycles = 0;
   clearVoiceModeTimeout();
   stopVoiceModeListening();
   askiStopSpeaking();
@@ -2317,7 +2319,9 @@ let askiIsProcessing = false; // True when waiting for API response
 let voiceModeLocked = false;  // Prevents mic when Aski is speaking/processing
 let voiceModeSleeping = false; // Sleep mode after timeout
 let voiceModeTimeout = null;  // Timer for sleep mode
+let voiceModeSilentCycles = 0; // Count silent "no-speech" cycles
 const VOICE_MODE_TIMEOUT_MS = 30000; // 30 seconds of silence before sleep
+const VOICE_MODE_MAX_SILENT_CYCLES = 5; // Go to sleep after 5 silent cycles (~15-25 sec)
 
 function isVoiceModeEnabled() {
   return localStorage.getItem('aski_voice_mode') === 'true';
@@ -2387,7 +2391,8 @@ function startVoiceModeListening() {
   voiceModeRecognition.onresult = (event) => {
     const transcript = event.results[0][0].transcript;
     if (transcript.trim()) {
-      // Clear timeout - user is active
+      // User spoke - reset silent counter
+      voiceModeSilentCycles = 0;
       clearVoiceModeTimeout();
       
       // LOCK voice mode before sending
@@ -2408,7 +2413,7 @@ function startVoiceModeListening() {
       return;
     }
     
-    // Only restart if conditions met
+    // This fires after successful recognition - restart normally
     if (isVoiceModeEnabled() && 
         document.getElementById('askAIPanel')?.classList.contains('show')) {
       updateVoiceModeIndicator('waiting');
@@ -2423,7 +2428,17 @@ function startVoiceModeListening() {
   voiceModeRecognition.onerror = (e) => {
     document.getElementById('askAIVoiceBtn')?.classList.remove('recording');
     
-    if (e.error !== 'no-speech' && e.error !== 'aborted') {
+    // Count silent cycles (no-speech errors)
+    if (e.error === 'no-speech') {
+      voiceModeSilentCycles++;
+      console.log('Silent cycle:', voiceModeSilentCycles, '/', VOICE_MODE_MAX_SILENT_CYCLES);
+      
+      // After N silent cycles, go to sleep
+      if (voiceModeSilentCycles >= VOICE_MODE_MAX_SILENT_CYCLES) {
+        enterVoiceModeSleep();
+        return;
+      }
+    } else if (e.error !== 'aborted') {
       console.error('Voice mode error:', e.error);
     }
     
@@ -2479,6 +2494,7 @@ function wakeVoiceMode() {
   console.log('Voice mode waking up');
   voiceModeSleeping = false;
   voiceModeLocked = false;
+  voiceModeSilentCycles = 0; // Reset silent counter
   updateVoiceModeIndicator('waiting');
   setTimeout(startVoiceModeListening, 300);
 }
@@ -2498,6 +2514,7 @@ function unlockVoiceMode() {
   voiceModeLocked = false;
   askiIsProcessing = false;
   voiceModeSleeping = false; // Wake up if was sleeping
+  voiceModeSilentCycles = 0; // Reset silent counter
   
   if (isVoiceModeEnabled() && document.getElementById('askAIPanel')?.classList.contains('show')) {
     updateVoiceModeIndicator('waiting');
