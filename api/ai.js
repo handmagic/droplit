@@ -27,7 +27,7 @@ export default async function handler(req) {
 
   try {
     const body = await req.json();
-    const { action, image, text, style, context, targetLang, history } = body;
+    const { action, image, text, style, context, targetLang, history, syntriseContext } = body;
 
     // Validate input
     if (!action) {
@@ -89,6 +89,20 @@ IDENTITY:
 - You're "Aski" — the AI voice assistant in DropLit
 - You can speak and understand many languages
 - You help people communicate across language barriers`;
+
+      // Add Syntrise CORE context (RAG)
+      if (syntriseContext && Array.isArray(syntriseContext) && syntriseContext.length > 0) {
+        const contextText = syntriseContext
+          .map((drop, i) => `[${i + 1}] (${drop.category || 'uncategorized'}): "${drop.content}"`)
+          .join('\n');
+        systemPrompt += `
+
+RELEVANT USER IDEAS (from their personal notes):
+${contextText}
+
+Use this context naturally when relevant. Reference their ideas when helpful.
+If you notice connections between their ideas, mention it.`;
+      }
 
       // Build messages with history for context
       if (history && Array.isArray(history) && history.length > 0) {
