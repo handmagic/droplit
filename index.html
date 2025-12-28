@@ -3035,6 +3035,17 @@ function openAudioRecorder() {
   recorderState = 'ready';
   recorderBlob = null;
   updateRecorderUI();
+  
+  // Reset CREATE DROP button
+  const createBtn = document.querySelector('.act-btn.create');
+  if (createBtn) {
+    createBtn.disabled = false;
+    createBtn.textContent = 'CREATE DROP';
+    createBtn.style.opacity = '1';
+    createBtn.style.background = '#D1FAE5';
+    createBtn.style.color = '#065F46';
+  }
+  
   document.getElementById('audioRecorderModal').classList.add('show');
   acquireWakeLock(); // Keep screen awake
 }
@@ -3099,6 +3110,16 @@ async function startRecorderRecording() {
     
     // Start timer
     recorderTimerInterval = setInterval(updateRecorderTime, 100);
+    
+    // Reset CREATE DROP button to active state when new recording starts
+    const createBtn = document.querySelector('.act-btn.create');
+    if (createBtn) {
+      createBtn.disabled = false;
+      createBtn.textContent = 'CREATE DROP';
+      createBtn.style.opacity = '1';
+      createBtn.style.background = '#D1FAE5';
+      createBtn.style.color = '#065F46';
+    }
     
     updateRecorderUI();
     
@@ -3246,10 +3267,36 @@ async function recorderCreateDrop() {
     return;
   }
   
-  stopRecorderRecording();
-  showToast('Saving audio...');
-  await saveAudioDrop(recorderBlob);
-  closeAudioRecorder();
+  const createBtn = document.querySelector('.act-btn.create');
+  if (createBtn.disabled) return; // Already saving
+  
+  createBtn.disabled = true;
+  createBtn.textContent = 'SAVING...';
+  createBtn.style.opacity = '0.6';
+  
+  try {
+    stopRecorderRecording();
+    await saveAudioDrop(recorderBlob);
+    
+    // Show DROP CREATED state
+    createBtn.textContent = 'DROP CREATED';
+    createBtn.style.background = '#10B981';
+    createBtn.style.color = 'white';
+    
+    // Reset recorder for next recording (but keep modal open)
+    recorderBlob = null;
+    recorderState = 'ready';
+    document.getElementById('recorderTime').textContent = '0:00';
+    updateRecorderUI();
+    
+    // Button stays as DROP CREATED until next recording starts
+    
+  } catch (error) {
+    createBtn.disabled = false;
+    createBtn.textContent = 'CREATE DROP';
+    createBtn.style.opacity = '1';
+    showToast('Error creating drop');
+  }
 }
 
 async function recorderShare() {
@@ -3258,15 +3305,40 @@ async function recorderShare() {
     return;
   }
   
+  // Try Web Share API with file
   if (navigator.share) {
     try {
-      const file = new File([recorderBlob], 'recording.webm', { type: recorderBlob.type });
-      await navigator.share({ files: [file], title: 'Audio Recording' });
+      const file = new File([recorderBlob], 'droplit-audio.webm', { type: recorderBlob.type });
+      
+      // Check if can share files
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ 
+          files: [file], 
+          title: 'DropLit Audio',
+          text: 'Audio recording from DropLit'
+        });
+        showToast('Shared!');
+        return;
+      }
     } catch (e) {
-      if (e.name !== 'AbortError') showToast('Share failed');
+      if (e.name === 'AbortError') return; // User cancelled
+      console.log('File share failed:', e);
     }
-  } else {
-    showToast('Share not supported');
+  }
+  
+  // Fallback: download file
+  try {
+    const url = URL.createObjectURL(recorderBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'droplit-audio-' + Date.now() + '.webm';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Downloaded!');
+  } catch (e) {
+    showToast('Share not available');
   }
 }
 
@@ -3314,51 +3386,57 @@ async function generateWaveform(blob, numBars = 40) {
 
 // Save audio drop
 async function saveAudioDrop(blob) {
-  try {
-    // Generate waveform
-    const waveform = await generateWaveform(blob);
-    
-    // Get duration
-    const ctx = getAudioContext();
-    const arrayBuffer = await blob.arrayBuffer();
-    const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0)); // Clone buffer
-    const duration = audioBuffer.duration;
-    
-    // Convert blob to base64 for storage
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Data = reader.result;
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Generate waveform
+      const waveform = await generateWaveform(blob);
       
-      const drop = {
-        id: Date.now(),
-        text: '',
-        category: 'audio',
-        timestamp: new Date().toISOString(),
-        date: new Date().toLocaleDateString('ru-RU'),
-        time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
-        isMedia: true,
-        audioData: base64Data,
-        audioFormat: blob.type.split('/')[1] || 'webm',
-        audioSize: blob.size,
-        audioBitrate: Math.round((blob.size * 8) / duration),
-        duration: duration,
-        waveform: waveform,
-        notes: ''
+      // Get duration
+      const ctx = getAudioContext();
+      const arrayBuffer = await blob.arrayBuffer();
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0)); // Clone buffer
+      const duration = audioBuffer.duration;
+      
+      // Convert blob to base64 for storage
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Data = reader.result;
+        
+        const now = new Date();
+        const drop = {
+          id: Date.now(),
+          text: '',
+          category: 'audio',
+          timestamp: now.toISOString(),
+          date: now.toLocaleDateString('ru-RU'),
+          time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
+          isMedia: true,
+          audioData: base64Data,
+          audioFormat: blob.type.split('/')[1] || 'webm',
+          audioSize: blob.size,
+          audioBitrate: Math.round((blob.size * 8) / duration),
+          duration: duration,
+          waveform: waveform,
+          notes: ''
+        };
+        
+        ideas.unshift(drop);
+        save(drop);
+        render();
+        counts();
+        
+        showToast('Audio saved! ' + formatDuration(duration));
+        resolve(drop);
       };
+      reader.onerror = () => reject(new Error('Failed to read audio'));
+      reader.readAsDataURL(blob);
       
-      ideas.unshift(drop);
-      save(drop);
-      render();
-      counts();
-      
-      showToast('🎵 Audio saved! ' + formatDuration(duration));
-    };
-    reader.readAsDataURL(blob);
-    
-  } catch (error) {
-    console.error('Save audio error:', error);
-    showToast('Error saving audio');
-  }
+    } catch (error) {
+      console.error('Save audio error:', error);
+      showToast('Error saving audio');
+      reject(error);
+    }
+  });
 }
 
 // Play audio drop
