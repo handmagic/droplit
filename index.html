@@ -3305,40 +3305,27 @@ async function recorderShare() {
     return;
   }
   
-  // Try Web Share API with file
-  if (navigator.share) {
-    try {
-      const file = new File([recorderBlob], 'droplit-audio.webm', { type: recorderBlob.type });
-      
-      // Check if can share files
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ 
-          files: [file], 
-          title: 'DropLit Audio',
-          text: 'Audio recording from DropLit'
-        });
-        showToast('Shared!');
-        return;
-      }
-    } catch (e) {
-      if (e.name === 'AbortError') return; // User cancelled
-      console.log('File share failed:', e);
-    }
-  }
-  
-  // Fallback: download file
   try {
-    const url = URL.createObjectURL(recorderBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'droplit-audio-' + Date.now() + '.webm';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast('Downloaded!');
+    const file = new File([recorderBlob], 'droplit-audio.webm', { type: recorderBlob.type });
+    
+    await navigator.share({ 
+      files: [file], 
+      title: 'DropLit Audio',
+      text: 'Audio recording from DropLit'
+    });
+    
   } catch (e) {
-    showToast('Share not available');
+    if (e.name === 'AbortError') return; // User cancelled
+    
+    // If share with files not supported, try without files
+    try {
+      await navigator.share({
+        title: 'DropLit Audio',
+        text: 'Audio recording from DropLit'
+      });
+    } catch (e2) {
+      showToast('Share not available');
+    }
   }
 }
 
@@ -3386,57 +3373,52 @@ async function generateWaveform(blob, numBars = 40) {
 
 // Save audio drop
 async function saveAudioDrop(blob) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      // Generate waveform
-      const waveform = await generateWaveform(blob);
-      
-      // Get duration
-      const ctx = getAudioContext();
-      const arrayBuffer = await blob.arrayBuffer();
-      const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0)); // Clone buffer
-      const duration = audioBuffer.duration;
-      
-      // Convert blob to base64 for storage
+  try {
+    // Get duration first
+    const ctx = getAudioContext();
+    const arrayBuffer = await blob.arrayBuffer();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    const duration = audioBuffer.duration;
+    
+    // Convert blob to base64
+    const base64Data = await new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64Data = reader.result;
-        
-        const now = new Date();
-        const drop = {
-          id: Date.now(),
-          text: '',
-          category: 'audio',
-          timestamp: now.toISOString(),
-          date: now.toLocaleDateString('ru-RU'),
-          time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
-          isMedia: true,
-          audioData: base64Data,
-          audioFormat: blob.type.split('/')[1] || 'webm',
-          audioSize: blob.size,
-          audioBitrate: Math.round((blob.size * 8) / duration),
-          duration: duration,
-          waveform: waveform,
-          notes: ''
-        };
-        
-        ideas.unshift(drop);
-        save(drop);
-        render();
-        counts();
-        
-        showToast('Audio saved! ' + formatDuration(duration));
-        resolve(drop);
-      };
+      reader.onloadend = () => resolve(reader.result);
       reader.onerror = () => reject(new Error('Failed to read audio'));
       reader.readAsDataURL(blob);
-      
-    } catch (error) {
-      console.error('Save audio error:', error);
-      showToast('Error saving audio');
-      reject(error);
-    }
-  });
+    });
+    
+    const now = new Date();
+    const drop = {
+      id: Date.now(),
+      text: '',
+      category: 'audio',
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('ru-RU'),
+      time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
+      isMedia: true,
+      audioData: base64Data,
+      audioFormat: blob.type.split('/')[1] || 'webm',
+      audioSize: blob.size,
+      audioBitrate: Math.round((blob.size * 8) / duration),
+      duration: duration,
+      waveform: [],
+      notes: ''
+    };
+    
+    ideas.unshift(drop);
+    save(drop);
+    render();
+    counts();
+    
+    showToast('Audio saved! ' + formatDuration(duration));
+    return drop;
+    
+  } catch (error) {
+    console.error('Save audio error:', error);
+    showToast('Error saving audio');
+    throw error;
+  }
 }
 
 // Play audio drop
