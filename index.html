@@ -3034,20 +3034,26 @@ function openAudioRecorder() {
   closePlusMenu();
   recorderState = 'ready';
   recorderBlob = null;
+  document.getElementById('recorderTime').textContent = '0:00';
   updateRecorderUI();
-  
-  // Reset CREATE DROP button - disabled until recording exists
-  const createBtn = document.querySelector('.act-btn.create');
-  if (createBtn) {
-    createBtn.disabled = true;
-    createBtn.textContent = 'CREATE DROP';
-    createBtn.style.opacity = '0.4';
-    createBtn.style.background = '#D1FAE5';
-    createBtn.style.color = '#065F46';
-  }
+  updateRecorderButtons(false); // All buttons disabled
   
   document.getElementById('audioRecorderModal').classList.add('show');
-  acquireWakeLock(); // Keep screen awake
+  acquireWakeLock();
+}
+
+// Enable/disable all action buttons based on recording availability
+function updateRecorderButtons(hasRecording) {
+  const deleteBtn = document.querySelector('.act-btn.delete');
+  const createBtn = document.querySelector('.act-btn.create');
+  const shareBtn = document.querySelector('.act-btn.share');
+  
+  [deleteBtn, createBtn, shareBtn].forEach(btn => {
+    if (btn) {
+      btn.disabled = !hasRecording;
+      btn.style.opacity = hasRecording ? '1' : '0.4';
+    }
+  });
 }
 
 function closeAudioRecorder() {
@@ -3102,16 +3108,7 @@ async function startRecorderRecording() {
       audioRecordingStream.getTracks().forEach(track => track.stop());
       recorderState = 'stopped';
       updateRecorderUI();
-      
-      // Enable CREATE DROP button - recording is ready
-      const createBtn = document.querySelector('.act-btn.create');
-      if (createBtn) {
-        createBtn.disabled = false;
-        createBtn.textContent = 'CREATE DROP';
-        createBtn.style.opacity = '1';
-        createBtn.style.background = '#D1FAE5';
-        createBtn.style.color = '#065F46';
-      }
+      updateRecorderButtons(true); // All buttons enabled
     };
     
     audioRecorder.start(100);
@@ -3121,13 +3118,8 @@ async function startRecorderRecording() {
     // Start timer
     recorderTimerInterval = setInterval(updateRecorderTime, 100);
     
-    // Keep CREATE DROP button disabled during recording
-    const createBtn = document.querySelector('.act-btn.create');
-    if (createBtn) {
-      createBtn.disabled = true;
-      createBtn.textContent = 'CREATE DROP';
-      createBtn.style.opacity = '0.4';
-    }
+    // Buttons disabled during recording
+    updateRecorderButtons(false);
     
     updateRecorderUI();
     
@@ -3265,44 +3257,49 @@ function recorderDelete() {
   }
   recorderBlob = null;
   recorderState = 'ready';
+  document.getElementById('recorderTime').textContent = '0:00';
   updateRecorderUI();
+  updateRecorderButtons(false); // All buttons disabled
   showToast('Recording deleted');
 }
 
 async function recorderCreateDrop() {
   if (!recorderBlob) {
-    showToast('No recording to save');
-    return;
+    return; // No recording - button should be disabled anyway
   }
   
   const createBtn = document.querySelector('.act-btn.create');
-  if (createBtn.disabled) return; // Already saving
+  if (createBtn.disabled) return;
   
-  createBtn.disabled = true;
+  // Show saving state
+  updateRecorderButtons(false);
   createBtn.textContent = 'SAVING...';
-  createBtn.style.opacity = '0.6';
   
   try {
     stopRecorderRecording();
     await saveAudioDrop(recorderBlob);
     
-    // Show DROP CREATED state
+    // Show success briefly
     createBtn.textContent = 'DROP CREATED';
     createBtn.style.background = '#10B981';
     createBtn.style.color = 'white';
     
-    // Reset recorder for next recording (but keep modal open)
+    // Reset recorder for next recording
     recorderBlob = null;
     recorderState = 'ready';
     document.getElementById('recorderTime').textContent = '0:00';
     updateRecorderUI();
     
-    // Button stays as DROP CREATED until next recording starts
+    // Reset button text after 1 sec
+    setTimeout(() => {
+      createBtn.textContent = 'CREATE DROP';
+      createBtn.style.background = '#D1FAE5';
+      createBtn.style.color = '#065F46';
+    }, 1000);
     
   } catch (error) {
-    createBtn.disabled = false;
     createBtn.textContent = 'CREATE DROP';
-    createBtn.style.opacity = '1';
+    updateRecorderButtons(!!recorderBlob);
     showToast('Error creating drop');
   }
 }
