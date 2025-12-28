@@ -748,7 +748,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.12 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.13 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1474,7 +1474,7 @@
             <span class="settings-item-label">TTS Provider</span>
           </div>
           <div class="pill-row" id="ttsProviderSelector">
-            <button class="pill-m active" data-provider="openai" onclick="setTTSProvider('openai')">OpenAI</button>
+            <button class="pill-m" data-provider="openai" onclick="setTTSProvider('openai')">OpenAI</button>
             <button class="pill-m" data-provider="elevenlabs" onclick="setTTSProvider('elevenlabs')">ElevenLabs</button>
             <button class="pill-m" data-provider="browser" onclick="setTTSProvider('browser')">Browser</button>
           </div>
@@ -1488,7 +1488,7 @@
               <span class="settings-item-label">OpenAI Voice</span>
             </div>
             <div class="pill-row" id="voiceSelector" style="flex-wrap: wrap;">
-              <button class="pill-m active" data-voice="nova" onclick="setAskiVoice('nova')">Nova</button>
+              <button class="pill-m" data-voice="nova" onclick="setAskiVoice('nova')">Nova</button>
               <button class="pill-m" data-voice="shimmer" onclick="setAskiVoice('shimmer')">Shimmer</button>
               <button class="pill-m" data-voice="alloy" onclick="setAskiVoice('alloy')">Alloy</button>
               <button class="pill-m" data-voice="onyx" onclick="setAskiVoice('onyx')">Onyx</button>
@@ -1519,7 +1519,7 @@
               <span class="settings-item-label">ElevenLabs Voice (Russian)</span>
             </div>
             <div class="pill-row" id="elevenlabsVoiceSelector" style="flex-wrap: wrap;">
-              <button class="pill-m active" data-voice="Nadia" data-voiceid="gedzfqL7OGdPbwm0ynTP" onclick="selectElevenLabsVoice('Nadia','gedzfqL7OGdPbwm0ynTP')">Nadia ♀</button>
+              <button class="pill-m" data-voice="Nadia" data-voiceid="gedzfqL7OGdPbwm0ynTP" onclick="selectElevenLabsVoice('Nadia','gedzfqL7OGdPbwm0ynTP')">Nadia ♀</button>
               <button class="pill-m" data-voice="Larisa" data-voiceid="AB9XsbSA4eLG12t2myjN" onclick="selectElevenLabsVoice('Larisa','AB9XsbSA4eLG12t2myjN')">Larisa ♀</button>
               <button class="pill-m" data-voice="Kate" data-voiceid="tOo2BJ74frmnPadsDNIi" onclick="selectElevenLabsVoice('Kate','tOo2BJ74frmnPadsDNIi')">Kate ♀</button>
               <button class="pill-m" data-voice="Viktoriia" data-voiceid="8M81RK3MD7u4DOJpu2G5" onclick="selectElevenLabsVoice('Viktoriia','8M81RK3MD7u4DOJpu2G5')">Viktoriia ♀</button>
@@ -1637,7 +1637,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.12 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.13 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1650,7 +1650,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.12 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.13 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -5875,7 +5875,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.12';
+  md+='---\nExported from DropLit v0.9.13';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -5884,7 +5884,11 @@ function closeExportModal(){document.getElementById('exportModal').classList.rem
 function copyExport(){navigator.clipboard.writeText(document.getElementById('exportBox').textContent);toast('Copied!','success');closeExportModal();}
 function openAbout(){document.getElementById('aboutModal').classList.add('show');}
 function closeAbout(){document.getElementById('aboutModal').classList.remove('show');}
-function openSettings(){document.getElementById('settingsModal').classList.add('show');}
+function openSettings(){
+  document.getElementById('settingsModal').classList.add('show');
+  // Initialize voice settings UI with saved values
+  initVoiceSettings();
+}
 function closeSettings(){document.getElementById('settingsModal').classList.remove('show');}
 
 // ============================================
