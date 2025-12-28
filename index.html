@@ -184,10 +184,14 @@
     
     /* Audio Player in Card */
     .card-audio-player {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      background: linear-gradient(135deg, #FEF9C3 0%, #FDE68A 100%);
       border-radius: var(--radius-md);
       padding: 16px;
       margin: 8px 0;
+      border: 2px solid transparent;
+    }
+    .card.active .card-audio-player {
+      border-color: #8B5CF6;
     }
     .audio-waveform {
       height: 48px;
@@ -199,7 +203,7 @@
     }
     .audio-waveform-bar {
       width: 3px;
-      background: rgba(255,255,255,0.3);
+      background: rgba(133,77,14,0.3);
       border-radius: 2px;
       transition: background 0.1s;
     }
@@ -207,31 +211,34 @@
       background: var(--color-primary);
     }
     .audio-controls {
+      display: none;
+    }
+    .card.active .audio-controls {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 8px;
     }
     .audio-btn {
-      width: 44px;
-      height: 44px;
+      padding: 8px 16px;
       border: none;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.1);
-      color: white;
+      border-radius: var(--radius-full);
+      background: rgba(133,77,14,0.15);
+      color: #854D0E;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
       transition: all 0.15s;
     }
     .audio-btn:active {
       transform: scale(0.95);
     }
     .audio-btn.play {
-      width: 56px;
-      height: 56px;
+      padding: 12px 24px;
       background: var(--color-primary);
+      color: white;
+      font-size: 0.85rem;
     }
     .audio-btn.play:active {
       background: var(--color-primary-dark);
@@ -239,22 +246,18 @@
     .audio-time {
       display: flex;
       justify-content: space-between;
-      color: rgba(255,255,255,0.6);
+      color: #854D0E;
       font-size: 0.75rem;
       margin-top: 8px;
+      opacity: 0.7;
     }
-    .audio-meta {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-      flex-wrap: wrap;
-    }
-    .audio-meta-tag {
+    .audio-format {
+      text-align: center;
       font-size: 0.65rem;
-      padding: 2px 6px;
-      background: rgba(255,255,255,0.1);
-      color: rgba(255,255,255,0.7);
-      border-radius: 4px;
+      color: #854D0E;
+      opacity: 0.5;
+      margin-top: 4px;
+      text-transform: uppercase;
     }
     
     .card-text { font-size: 1.05rem; line-height: 1.5; color: var(--color-text); padding-right: 30px; }
@@ -455,6 +458,39 @@
     .magic-modal.show { opacity: 1; visibility: visible; }
     .magic-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; transform: translateY(20px); transition: transform 0.2s; }
     .magic-modal.show .magic-content { transform: translateY(0); }
+    
+    /* Audio Recorder Modal */
+    .audio-recorder-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+    .audio-recorder-modal.show { opacity: 1; visibility: visible; }
+    .audio-recorder-content { background: var(--color-bg-card); border-radius: var(--radius-lg); width: 100%; max-width: 400px; overflow: hidden; transform: translateY(20px); transition: transform 0.2s; }
+    .audio-recorder-modal.show .audio-recorder-content { transform: translateY(0); }
+    .audio-recorder-header { background: linear-gradient(135deg, #F59E0B, #D97706); padding: 20px; text-align: center; }
+    .audio-recorder-header h2 { color: white; font-size: 1.2rem; font-weight: 700; margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .audio-recorder-body { padding: 24px; }
+    .audio-recorder-waveform { height: 80px; background: var(--color-bg); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: 3px; margin-bottom: 20px; overflow: hidden; }
+    .audio-recorder-waveform .bar { width: 4px; background: var(--color-border); border-radius: 2px; transition: all 0.1s; }
+    .audio-recorder-waveform.recording .bar { background: var(--color-primary); animation: waveBar 0.5s ease-in-out infinite alternate; }
+    @keyframes waveBar { from { transform: scaleY(0.3); } to { transform: scaleY(1); } }
+    .audio-recorder-time { text-align: center; font-size: 2rem; font-weight: 700; color: var(--color-text); margin-bottom: 20px; font-variant-numeric: tabular-nums; }
+    .audio-recorder-controls { display: flex; justify-content: center; gap: 12px; margin-bottom: 20px; }
+    .audio-recorder-controls .ctrl-btn { padding: 12px 20px; border: none; border-radius: var(--radius-full); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; text-transform: uppercase; }
+    .audio-recorder-controls .ctrl-btn:active { transform: scale(0.95); }
+    .audio-recorder-controls .ctrl-btn.rewind { background: var(--color-bg-btn); color: var(--color-text-soft); }
+    .audio-recorder-controls .ctrl-btn.play { background: var(--color-bg-btn); color: var(--color-text-soft); }
+    .audio-recorder-controls .ctrl-btn.forward { background: var(--color-bg-btn); color: var(--color-text-soft); }
+    .audio-recorder-main-btn { width: 100%; padding: 20px; border: none; border-radius: var(--radius-md); font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.15s; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
+    .audio-recorder-main-btn.ready { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; }
+    .audio-recorder-main-btn.recording { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; animation: pulse 1s infinite; }
+    .audio-recorder-main-btn.paused { background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; }
+    .audio-recorder-main-btn:active { transform: scale(0.98); }
+    .audio-recorder-actions { display: flex; gap: 8px; margin-bottom: 16px; }
+    .audio-recorder-actions .act-btn { flex: 1; padding: 12px; border: none; border-radius: var(--radius-md); font-size: 0.8rem; font-weight: 600; cursor: pointer; text-transform: uppercase; transition: all 0.15s; }
+    .audio-recorder-actions .act-btn:active { transform: scale(0.95); }
+    .audio-recorder-actions .act-btn.delete { background: #FEE2E2; color: #991B1B; }
+    .audio-recorder-actions .act-btn.create { background: #D1FAE5; color: #065F46; }
+    .audio-recorder-actions .act-btn.share { background: #E0E7FF; color: #3730A3; }
+    .audio-recorder-cancel { width: 100%; padding: 16px; border: 2px solid var(--color-border); border-radius: var(--radius-md); background: transparent; font-size: 0.9rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; transition: all 0.15s; }
+    .audio-recorder-cancel:active { background: var(--color-bg-btn); }
     .magic-header { padding: 20px; text-align: center; background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; }
     .magic-header h2 { font-size: 1.3rem; margin-bottom: 4px; }
     .magic-header p { font-size: 0.85rem; opacity: 0.9; }
@@ -825,7 +861,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.30 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.31 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1071,6 +1107,7 @@
         <button class="cat" data-category="bugs">Bugs <span class="cnt" id="cntBugs">0</span></button>
         <button class="cat" data-category="questions">Questions <span class="cnt" id="cntQuestions">0</span></button>
         <button class="cat" data-category="inbox">Inbox <span class="cnt" id="cntInbox">0</span></button>
+        <button class="cat" data-category="audio">Audio <span class="cnt" id="cntAudio">0</span></button>
         <button class="cat" data-category="photo">Photo <span class="cnt" id="cntPhoto">0</span></button>
         <button class="cat" data-category="sketch">Sketch <span class="cnt" id="cntSketch">0</span></button>
         <button class="cat" data-category="scan">Scan <span class="cnt" id="cntScan">0</span></button>
@@ -1132,6 +1169,13 @@
       <div class="info">
         <div class="title">Upload File</div>
         <div class="desc">Document or PDF</div>
+      </div>
+    </button>
+    <button class="plus-menu-item" onclick="openAudioRecorder()" style="border-color: #F59E0B;">
+      <span class="icon" style="background: linear-gradient(135deg, #FEF3C7, #FDE68A); color: #92400E;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span>
+      <div class="info">
+        <div class="title">Record Audio</div>
+        <div class="desc">Voice memo or sound</div>
       </div>
     </button>
     <div class="section-divider"><span>AI Magic</span></div>
@@ -1249,6 +1293,54 @@
       </div>
       <div class="drops-picker-grid" id="dropsPickerGrid">
         <!-- Filled dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Recorder Modal -->
+  <div class="audio-recorder-modal" id="audioRecorderModal" onclick="if(event.target===this)closeAudioRecorder()">
+    <div class="audio-recorder-content">
+      <div class="audio-recorder-header">
+        <h2>AUDIO RECORDER</h2>
+      </div>
+      <div class="audio-recorder-body">
+        <div class="audio-recorder-waveform" id="recorderWaveform">
+          <div class="bar" style="height:20px"></div>
+          <div class="bar" style="height:35px"></div>
+          <div class="bar" style="height:50px"></div>
+          <div class="bar" style="height:40px"></div>
+          <div class="bar" style="height:60px"></div>
+          <div class="bar" style="height:45px"></div>
+          <div class="bar" style="height:30px"></div>
+          <div class="bar" style="height:55px"></div>
+          <div class="bar" style="height:70px"></div>
+          <div class="bar" style="height:50px"></div>
+          <div class="bar" style="height:35px"></div>
+          <div class="bar" style="height:60px"></div>
+          <div class="bar" style="height:45px"></div>
+          <div class="bar" style="height:25px"></div>
+          <div class="bar" style="height:40px"></div>
+          <div class="bar" style="height:55px"></div>
+          <div class="bar" style="height:35px"></div>
+          <div class="bar" style="height:50px"></div>
+          <div class="bar" style="height:65px"></div>
+          <div class="bar" style="height:40px"></div>
+        </div>
+        <div class="audio-recorder-time" id="recorderTime">0:00</div>
+        <div class="audio-recorder-controls">
+          <button class="ctrl-btn rewind" onclick="recorderRewind()">&lt;&lt;</button>
+          <button class="ctrl-btn play" id="recorderPlayBtn" onclick="recorderPlayPause()">PLAY</button>
+          <button class="ctrl-btn forward" onclick="recorderForward()">&gt;&gt;</button>
+        </div>
+        <button class="audio-recorder-main-btn ready" id="recorderMainBtn" onclick="recorderToggleRecord()">
+          <span id="recorderMainText">TAP TO RECORD</span>
+        </button>
+        <div class="audio-recorder-actions">
+          <button class="act-btn delete" onclick="recorderDelete()">DELETE</button>
+          <button class="act-btn create" onclick="recorderCreateDrop()">CREATE DROP</button>
+          <button class="act-btn share" onclick="recorderShare()">SHARE</button>
+        </div>
+        <button class="audio-recorder-cancel" onclick="closeAudioRecorder()">CANCEL</button>
       </div>
     </div>
   </div>
@@ -1406,7 +1498,7 @@
     </div>
   </div>
 
-  <button class="fab-record" id="fabRecord" onclick="toggleRec()">
+  <button class="fab-record" id="fabRecord" onclick="handleFabClick(event)" ontouchstart="fabTouchStart()" ontouchend="fabTouchEnd()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
   </button>
 
@@ -1506,18 +1598,6 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             Search
           </button>
-        </div>
-      </div>
-      
-      <!-- Audio Recording Section -->
-      <div class="menu-section" style="border-bottom: none;">
-        <div class="section-divider"><span>🎵 Audio Drop</span></div>
-        <button class="pill-l" id="audioRecordBtn" onclick="toggleAudioRecording()" style="width: 100%; background: linear-gradient(135deg, #F59E0B, #D97706); color: white;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-          <span id="audioRecordBtnText">Record Audio Drop</span>
-        </button>
-        <div style="text-align: center; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 8px;">
-          Record voice memos, sounds, or music
         </div>
       </div>
       
@@ -1723,7 +1803,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.30 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.31 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1736,7 +1816,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.30 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.31 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2202,6 +2282,41 @@ function releaseWakeLock() {
     wakeLock.release(); 
     wakeLock = null; 
     console.log('Wake Lock released manually');
+  }
+}
+
+// ===== FAB DOUBLE-TAP & LONG-PRESS =====
+let fabLastTap = 0;
+let fabLongPressTimer = null;
+
+function handleFabClick(event) {
+  const now = Date.now();
+  const timeDiff = now - fabLastTap;
+  fabLastTap = now;
+  
+  // Double-tap detection (within 300ms)
+  if (timeDiff < 300 && timeDiff > 0) {
+    event.preventDefault();
+    openAudioRecorder();
+    return;
+  }
+  
+  // Single tap - normal voice recognition
+  toggleRec();
+}
+
+function fabTouchStart() {
+  // Long press detection (500ms)
+  fabLongPressTimer = setTimeout(() => {
+    openAudioRecorder();
+    fabLongPressTimer = null;
+  }, 500);
+}
+
+function fabTouchEnd() {
+  if (fabLongPressTimer) {
+    clearTimeout(fabLongPressTimer);
+    fabLongPressTimer = null;
   }
 }
 
@@ -2902,19 +3017,229 @@ async function startAudioRecording() {
 
 // Update audio record button UI
 function updateAudioRecordButton(isRecording) {
-  const btn = document.getElementById('audioRecordBtn');
-  const btnText = document.getElementById('audioRecordBtnText');
-  
-  if (btn && btnText) {
-    if (isRecording) {
-      btn.style.background = 'linear-gradient(135deg, #EF4444, #DC2626)';
-      btn.style.animation = 'pulse 1s infinite';
-      btnText.textContent = '⏹ Stop Recording';
-    } else {
-      btn.style.background = 'linear-gradient(135deg, #F59E0B, #D97706)';
-      btn.style.animation = 'none';
-      btnText.textContent = 'Record Audio Drop';
+  // Removed - now using modal
+}
+
+// ===== AUDIO RECORDER MODAL =====
+let recorderState = 'ready'; // ready, recording, paused, stopped
+let recorderStartTime = null;
+let recorderTimerInterval = null;
+let recorderBlob = null;
+
+function openAudioRecorder() {
+  closePlusMenu();
+  recorderState = 'ready';
+  recorderBlob = null;
+  updateRecorderUI();
+  document.getElementById('audioRecorderModal').classList.add('show');
+}
+
+function closeAudioRecorder() {
+  // Stop recording if active
+  if (audioRecorder && audioRecorder.state === 'recording') {
+    audioRecorder.stop();
+  }
+  if (recorderTimerInterval) {
+    clearInterval(recorderTimerInterval);
+    recorderTimerInterval = null;
+  }
+  // Stop playback
+  if (currentAudioElement) {
+    currentAudioElement.pause();
+    currentAudioElement = null;
+  }
+  document.getElementById('audioRecorderModal').classList.remove('show');
+}
+
+function recorderToggleRecord() {
+  if (recorderState === 'ready') {
+    startRecorderRecording();
+  } else if (recorderState === 'recording') {
+    pauseRecorderRecording();
+  } else if (recorderState === 'paused') {
+    resumeRecorderRecording();
+  } else if (recorderState === 'stopped') {
+    // Re-record
+    recorderBlob = null;
+    startRecorderRecording();
+  }
+}
+
+async function startRecorderRecording() {
+  try {
+    audioRecordingStream = await navigator.mediaDevices.getUserMedia({ 
+      audio: { echoCancellation: true, noiseSuppression: true }
+    });
+    
+    audioRecordingChunks = [];
+    audioRecorder = new MediaRecorder(audioRecordingStream, {
+      mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+    });
+    
+    audioRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioRecordingChunks.push(e.data);
+    };
+    
+    audioRecorder.onstop = () => {
+      recorderBlob = new Blob(audioRecordingChunks, { type: audioRecorder.mimeType });
+      audioRecordingStream.getTracks().forEach(track => track.stop());
+      recorderState = 'stopped';
+      updateRecorderUI();
+    };
+    
+    audioRecorder.start(100);
+    recorderState = 'recording';
+    recorderStartTime = Date.now();
+    
+    // Start timer
+    recorderTimerInterval = setInterval(updateRecorderTime, 100);
+    
+    updateRecorderUI();
+    
+  } catch (error) {
+    showToast('Microphone access denied');
+  }
+}
+
+function pauseRecorderRecording() {
+  if (audioRecorder && audioRecorder.state === 'recording') {
+    audioRecorder.pause();
+    recorderState = 'paused';
+    if (recorderTimerInterval) {
+      clearInterval(recorderTimerInterval);
+      recorderTimerInterval = null;
     }
+    updateRecorderUI();
+  }
+}
+
+function resumeRecorderRecording() {
+  if (audioRecorder && audioRecorder.state === 'paused') {
+    audioRecorder.resume();
+    recorderState = 'recording';
+    recorderTimerInterval = setInterval(updateRecorderTime, 100);
+    updateRecorderUI();
+  }
+}
+
+function stopRecorderRecording() {
+  if (audioRecorder && (audioRecorder.state === 'recording' || audioRecorder.state === 'paused')) {
+    audioRecorder.stop();
+    if (recorderTimerInterval) {
+      clearInterval(recorderTimerInterval);
+      recorderTimerInterval = null;
+    }
+  }
+}
+
+function updateRecorderTime() {
+  const elapsed = Date.now() - recorderStartTime;
+  const secs = Math.floor(elapsed / 1000);
+  const mins = Math.floor(secs / 60);
+  const display = mins + ':' + (secs % 60).toString().padStart(2, '0');
+  document.getElementById('recorderTime').textContent = display;
+}
+
+function updateRecorderUI() {
+  const mainBtn = document.getElementById('recorderMainBtn');
+  const mainText = document.getElementById('recorderMainText');
+  const waveform = document.getElementById('recorderWaveform');
+  
+  mainBtn.className = 'audio-recorder-main-btn ' + recorderState;
+  waveform.className = 'audio-recorder-waveform' + (recorderState === 'recording' ? ' recording' : '');
+  
+  switch(recorderState) {
+    case 'ready':
+      mainText.textContent = 'TAP TO RECORD';
+      document.getElementById('recorderTime').textContent = '0:00';
+      break;
+    case 'recording':
+      mainText.textContent = 'TAP TO PAUSE';
+      break;
+    case 'paused':
+      mainText.textContent = 'TAP TO RESUME';
+      break;
+    case 'stopped':
+      mainText.textContent = 'TAP TO RE-RECORD';
+      break;
+  }
+}
+
+function recorderPlayPause() {
+  if (!recorderBlob) {
+    showToast('No recording yet');
+    return;
+  }
+  
+  if (currentAudioElement) {
+    currentAudioElement.pause();
+    currentAudioElement = null;
+    document.getElementById('recorderPlayBtn').textContent = 'PLAY';
+    return;
+  }
+  
+  const url = URL.createObjectURL(recorderBlob);
+  currentAudioElement = new Audio(url);
+  currentAudioElement.onended = () => {
+    currentAudioElement = null;
+    document.getElementById('recorderPlayBtn').textContent = 'PLAY';
+    URL.revokeObjectURL(url);
+  };
+  currentAudioElement.play();
+  document.getElementById('recorderPlayBtn').textContent = 'STOP';
+}
+
+function recorderRewind() {
+  if (currentAudioElement) {
+    currentAudioElement.currentTime = Math.max(0, currentAudioElement.currentTime - 10);
+  }
+}
+
+function recorderForward() {
+  if (currentAudioElement) {
+    currentAudioElement.currentTime = Math.min(currentAudioElement.duration, currentAudioElement.currentTime + 10);
+  }
+}
+
+function recorderDelete() {
+  stopRecorderRecording();
+  if (currentAudioElement) {
+    currentAudioElement.pause();
+    currentAudioElement = null;
+  }
+  recorderBlob = null;
+  recorderState = 'ready';
+  updateRecorderUI();
+  showToast('Recording deleted');
+}
+
+async function recorderCreateDrop() {
+  if (!recorderBlob) {
+    showToast('No recording to save');
+    return;
+  }
+  
+  stopRecorderRecording();
+  showToast('Saving audio...');
+  await saveAudioDrop(recorderBlob);
+  closeAudioRecorder();
+}
+
+async function recorderShare() {
+  if (!recorderBlob) {
+    showToast('No recording to share');
+    return;
+  }
+  
+  if (navigator.share) {
+    try {
+      const file = new File([recorderBlob], 'recording.webm', { type: recorderBlob.type });
+      await navigator.share({ files: [file], title: 'Audio Recording' });
+    } catch (e) {
+      if (e.name !== 'AbortError') showToast('Share failed');
+    }
+  } else {
+    showToast('Share not supported');
   }
 }
 
@@ -4590,9 +4915,16 @@ function render(){
       if(i.markers&&i.markers.length){
         h+='<span class="card-marker">'+i.markers.map(m=>MARKERS[m]||'').join('')+'</span>';
       }
-      if(i.isMedia)h+='<span class="card-chars">IMG</span>';
-      else if(i.category==='audio')h+='<span class="card-chars">🎵</span>';
-      else h+='<span class="card-chars">'+cc+'</span>';
+      // Counter: text=chars, audio=duration, image=dimensions
+      if(i.category==='audio'){
+        h+='<span class="card-chars">'+formatDuration(i.duration||0)+'</span>';
+      } else if(i.isMedia&&i.imageDimensions){
+        h+='<span class="card-chars">'+i.imageDimensions+'</span>';
+      } else if(i.isMedia){
+        h+='<span class="card-chars">IMG</span>';
+      } else {
+        h+='<span class="card-chars">'+cc+'</span>';
+      }
       if(isNewDrop(i))h+='<span class="new-badge">NEW</span>';
       h+='<span class="card-time">'+smartTime(i)+'</span>';
       h+='</div>';
@@ -4600,18 +4932,18 @@ function render(){
       if(i.category==='audio'&&i.audioData){
         h+='<div class="card-audio-player" data-audio-id="'+i.id+'">';
         h+='<div class="audio-waveform" id="waveform-'+i.id+'">';
-        // Static waveform bars (simplified)
         for(let bi=0;bi<30;bi++){
           const bh=8+Math.random()*32;
           h+='<div class="audio-waveform-bar" style="height:'+bh+'px"></div>';
         }
         h+='</div>';
         h+='<div class="audio-controls">';
-        h+='<button class="audio-btn" onclick="seekAudio('+i.id+',-10,event)">◀◀</button>';
-        h+='<button class="audio-btn play" onclick="togglePlayAudio('+i.id+',event)" id="playbtn-'+i.id+'">▶</button>';
-        h+='<button class="audio-btn" onclick="seekAudio('+i.id+',10,event)">▶▶</button>';
+        h+='<button class="audio-btn" onclick="seekAudio('+i.id+',-10,event)">&lt;&lt;</button>';
+        h+='<button class="audio-btn play" onclick="togglePlayAudio('+i.id+',event)" id="playbtn-'+i.id+'">PLAY</button>';
+        h+='<button class="audio-btn" onclick="seekAudio('+i.id+',10,event)">&gt;&gt;</button>';
         h+='</div>';
         h+='<div class="audio-time"><span id="audiotime-'+i.id+'">0:00</span><span>'+formatDuration(i.duration||0)+'</span></div>';
+        if(i.audioFormat)h+='<div class="audio-format">'+i.audioFormat.toUpperCase()+'</div>';
         h+='</div>';
       } else if(i.isMedia&&i.image){
         h+='<img class="card-image" src="'+i.image+'" alt="Photo" loading="lazy">';
@@ -4635,8 +4967,11 @@ function render(){
       }
       h+='<div class="card-actions">';
       if(i.category==='audio'){
-        h+='<button class="act" onclick="playAudioDrop('+i.id+',event)">Play</button>';
         h+='<button class="act ai" onclick="transcribeAudio('+i.id+')">Transcribe</button>';
+        h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
+        h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
+        h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
+        h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       } else if(i.isMedia){
         h+='<button class="act" onclick="viewImage('+i.id+',event)">View</button>';
       } else {
@@ -6364,7 +6699,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.30';
+  md+='---\nExported from DropLit v0.9.31';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
