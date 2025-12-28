@@ -3144,9 +3144,12 @@ function setTTSProvider(provider) {
   ttsProvider = provider;
   localStorage.setItem('tts_provider', provider);
   
-  // Update UI
+  // Update UI - remove active from all, add to selected
   document.querySelectorAll('#ttsProviderSelector .pill-m').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.provider === provider);
+    btn.classList.remove('active');
+    if (btn.dataset.provider === provider) {
+      btn.classList.add('active');
+    }
   });
   
   // Show/hide provider-specific settings
@@ -3158,17 +3161,16 @@ function setTTSProvider(provider) {
     elevenlabsSettings.style.display = provider === 'elevenlabs' ? 'block' : 'none';
     // Load ElevenLabs key into input when switching to ElevenLabs
     if (provider === 'elevenlabs') {
-      setTimeout(() => {
-        const input = document.getElementById('elevenlabsApiKeyInput');
-        if (input && elevenlabsApiKey) {
-          input.value = elevenlabsApiKey;
-          const status = document.getElementById('elevenlabsApiKeyStatus');
-          if (status) {
-            status.textContent = 'Key loaded';
-            status.style.color = '#10B981';
-          }
+      elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
+      const input = document.getElementById('elevenlabsApiKeyInput');
+      if (input) {
+        input.value = elevenlabsApiKey;
+        const status = document.getElementById('elevenlabsApiKeyStatus');
+        if (status && elevenlabsApiKey) {
+          status.textContent = 'Key loaded';
+          status.style.color = '#10B981';
         }
-      }, 50);
+      }
     }
   }
   
@@ -3294,40 +3296,49 @@ function loadElevenLabsKey() {
 
 // Initialize TTS provider UI
 function initTTSProviderUI() {
-  console.log('initTTSProviderUI called, provider:', ttsProvider);
+  // ВАЖНО: Загружаем актуальные значения из localStorage
+  ttsProvider = localStorage.getItem('tts_provider') || 'openai';
+  elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
+  elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Nadia';
+  elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
   
-  // Set provider selector
+  // Set provider selector - убираем active со всех, потом добавляем нужному
   document.querySelectorAll('#ttsProviderSelector .pill-m').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.provider === ttsProvider);
+    btn.classList.remove('active');
+    if (btn.dataset.provider === ttsProvider) {
+      btn.classList.add('active');
+    }
   });
   
   // Show/hide provider-specific settings
   const openaiSettings = document.getElementById('openaiVoiceSettings');
   const elevenlabsSettings = document.getElementById('elevenlabsVoiceSettings');
   
-  if (openaiSettings) openaiSettings.style.display = ttsProvider === 'openai' ? 'block' : 'none';
+  if (openaiSettings) {
+    openaiSettings.style.display = ttsProvider === 'openai' ? 'block' : 'none';
+  }
   if (elevenlabsSettings) {
     elevenlabsSettings.style.display = ttsProvider === 'elevenlabs' ? 'block' : 'none';
   }
   
   // Set ElevenLabs voice selector by voice ID
   document.querySelectorAll('#elevenlabsVoiceSelector .pill-m').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.voiceid === elevenlabsVoiceId);
+    btn.classList.remove('active');
+    if (btn.dataset.voiceid === elevenlabsVoiceId) {
+      btn.classList.add('active');
+    }
   });
   
-  // Load ElevenLabs key after a short delay to ensure DOM is ready
-  setTimeout(() => {
-    const input = document.getElementById('elevenlabsApiKeyInput');
-    console.log('Delayed load - input found:', !!input, 'key:', !!elevenlabsApiKey);
-    if (input && elevenlabsApiKey) {
-      input.value = elevenlabsApiKey;
-      const status = document.getElementById('elevenlabsApiKeyStatus');
-      if (status) {
-        status.textContent = 'Key loaded';
-        status.style.color = '#10B981';
-      }
+  // Load ElevenLabs key into input field
+  const elInput = document.getElementById('elevenlabsApiKeyInput');
+  if (elInput && elevenlabsApiKey) {
+    elInput.value = elevenlabsApiKey;
+    const status = document.getElementById('elevenlabsApiKeyStatus');
+    if (status) {
+      status.textContent = 'Key loaded';
+      status.style.color = '#10B981';
     }
-  }, 100);
+  }
 }
 
 // Get listen cycles setting (stored as seconds, convert to cycles)
@@ -6370,37 +6381,57 @@ function getNextMessageIndex() {
 }
 
 function initVoiceSettings() {
+  // Загружаем OpenAI настройки из localStorage
+  askiVoice = localStorage.getItem('aski_voice') || 'nova';
+  askiApiKey = localStorage.getItem('openai_tts_key') || '';
+  
   // Voice Mode
-  if (isVoiceModeEnabled()) {
-    document.getElementById('voiceModeToggle')?.classList.add('active');
+  const voiceModeToggle = document.getElementById('voiceModeToggle');
+  if (voiceModeToggle) {
+    voiceModeToggle.classList.toggle('active', isVoiceModeEnabled());
   }
   
   // Auto-speak
-  if (isAutoSpeakEnabled()) {
-    document.getElementById('autoSpeakToggle')?.classList.add('active');
+  const autoSpeakToggle = document.getElementById('autoSpeakToggle');
+  if (autoSpeakToggle) {
+    autoSpeakToggle.classList.toggle('active', isAutoSpeakEnabled());
   }
   
   // AutoDrop
-  if (isAutoDropEnabled()) {
-    document.getElementById('autoDropToggle')?.classList.add('active');
+  const autoDropToggle = document.getElementById('autoDropToggle');
+  if (autoDropToggle) {
+    autoDropToggle.classList.toggle('active', isAutoDropEnabled());
   }
   
   // TTS Provider UI (OpenAI / ElevenLabs / Browser)
   initTTSProviderUI();
   
   // Voice selector (OpenAI TTS)
-  const savedVoice = localStorage.getItem('aski_voice') || 'nova';
   document.querySelectorAll('#voiceSelector .pill-m').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.voice === savedVoice);
+    btn.classList.remove('active');
+    if (btn.dataset.voice === askiVoice) {
+      btn.classList.add('active');
+    }
   });
   
-  // Load OpenAI API key
-  loadOpenAIKey();
+  // Load OpenAI API key into input
+  const openaiInput = document.getElementById('openaiApiKeyInput');
+  if (openaiInput) {
+    openaiInput.value = askiApiKey || '';
+    const status = document.getElementById('apiKeyStatus');
+    if (status && askiApiKey) {
+      status.textContent = 'Key loaded';
+      status.style.color = '#10B981';
+    }
+  }
   
   // Listen time (in seconds)
   const savedSeconds = localStorage.getItem('aski_listen_seconds') || '15';
   document.querySelectorAll('#listenCyclesSelector .pill-m').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.cycles === savedSeconds);
+    btn.classList.remove('active');
+    if (btn.dataset.cycles === savedSeconds) {
+      btn.classList.add('active');
+    }
   });
 }
 
