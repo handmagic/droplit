@@ -3220,36 +3220,38 @@ async function recorderCreateDrop() {
   if (!recorderBlob) return;
   
   const createBtn = document.querySelector('.act-btn.create');
+  
+  // Disable immediately
+  createBtn.disabled = true;
   createBtn.textContent = 'SAVING...';
+  createBtn.style.opacity = '0.5';
+  
+  // Calculate duration from timer
+  const timeText = document.getElementById('recorderTime').textContent;
+  const parts = timeText.split(':');
+  const duration = parseInt(parts[0]) * 60 + parseInt(parts[1]);
   
   try {
-    await saveAudioDrop(recorderBlob);
+    await saveAudioDrop(recorderBlob, duration);
     
-    // SUCCESS - reset everything
-    createBtn.textContent = 'DROP CREATED';
+    // Success
+    createBtn.textContent = 'SAVED!';
     
-    // Clear recording
+    // Reset
     recorderBlob = null;
     recorderState = 'ready';
     document.getElementById('recorderTime').textContent = '0:00';
-    
-    // Disable all buttons
     updateRecorderButtons(false);
     updateRecorderUI();
     
-    // Reset button text after delay
     setTimeout(() => {
       createBtn.textContent = 'CREATE DROP';
-      createBtn.style.background = '#D1FAE5';
-      createBtn.style.color = '#065F46';
-    }, 1500);
-    
-  } catch (error) {
-    createBtn.textContent = 'ERROR';
-    setTimeout(() => {
-      createBtn.textContent = 'CREATE DROP';
-      updateRecorderButtons(!!recorderBlob);
     }, 1000);
+    
+  } catch (e) {
+    createBtn.textContent = 'ERROR';
+    createBtn.disabled = false;
+    createBtn.style.opacity = '1';
   }
 }
 
@@ -3259,32 +3261,14 @@ async function recorderShare() {
     return;
   }
   
-  showToast('Preparing to share...');
-  
-  try {
-    const file = new File([recorderBlob], 'droplit-audio.webm', { type: recorderBlob.type || 'audio/webm' });
-    
-    if (navigator.share) {
-      await navigator.share({ 
-        files: [file], 
-        title: 'DropLit Audio'
-      });
-      showToast('Shared!');
-    } else {
-      // Fallback: download
-      const url = URL.createObjectURL(recorderBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'droplit-audio.webm';
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('Downloaded');
-    }
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      showToast('Share error: ' + e.message);
-    }
-  }
+  // Download file (works everywhere)
+  const url = URL.createObjectURL(recorderBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'audio-' + Date.now() + '.webm';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Downloaded!');
 }
 
 // Generate simple waveform from audio buffer
@@ -3313,53 +3297,38 @@ async function generateWaveform(blob, numBars = 40) {
 }
 
 // Save audio drop
-async function saveAudioDrop(blob) {
-  try {
-    // Get duration first
-    const ctx = getAudioContext();
-    const arrayBuffer = await blob.arrayBuffer();
-    const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
-    const duration = audioBuffer.duration;
-    
-    // Convert blob to base64
-    const base64Data = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error('Failed to read audio'));
-      reader.readAsDataURL(blob);
-    });
-    
-    const now = new Date();
-    const drop = {
-      id: Date.now(),
-      text: '',
-      category: 'audio',
-      timestamp: now.toISOString(),
-      date: now.toLocaleDateString('ru-RU'),
-      time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
-      isMedia: true,
-      audioData: base64Data,
-      audioFormat: blob.type.split('/')[1] || 'webm',
-      audioSize: blob.size,
-      audioBitrate: Math.round((blob.size * 8) / duration),
-      duration: duration,
-      waveform: [],
-      notes: ''
-    };
-    
-    ideas.unshift(drop);
-    save(drop);
-    render();
-    counts();
-    
-    showToast('Audio saved! ' + formatDuration(duration));
-    return drop;
-    
-  } catch (error) {
-    console.error('Save audio error:', error);
-    showToast('Error saving audio');
-    throw error;
-  }
+async function saveAudioDrop(blob, duration) {
+  // Convert blob to base64
+  const base64Data = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Read error'));
+    reader.readAsDataURL(blob);
+  });
+  
+  const now = new Date();
+  const drop = {
+    id: Date.now(),
+    text: '',
+    category: 'audio',
+    timestamp: now.toISOString(),
+    date: now.toLocaleDateString('ru-RU'),
+    time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
+    isMedia: true,
+    audioData: base64Data,
+    audioFormat: blob.type.split('/')[1] || 'webm',
+    audioSize: blob.size,
+    duration: duration || 0,
+    waveform: [],
+    notes: ''
+  };
+  
+  ideas.unshift(drop);
+  save(drop);
+  render();
+  counts();
+  showToast('Audio saved!');
+  return drop;
 }
 
 // Play audio drop
