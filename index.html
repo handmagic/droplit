@@ -3481,10 +3481,10 @@ function render(){
   for(const d of dates){
     let lbl=d;if(d===td)lbl='Today';else if(d===yd)lbl='Yesterday';
     h+='<div class="date-sep">'+lbl+'</div>';
-    // Sort within day by time (newest first for sortAsc=true, oldest first for sortAsc=false)
+    // Sort within day by time (oldest first at top, newest at bottom)
     let dayIdeas=grp[d].slice().sort((a,b)=>{
       const timeA=a.time||'00:00';const timeB=b.time||'00:00';
-      return sortAsc?timeB.localeCompare(timeA):timeA.localeCompare(timeB);
+      return sortAsc?timeA.localeCompare(timeB):timeB.localeCompare(timeA);
     });
     for(const i of dayIdeas){
       const isActive=activeCardId===i.id;
