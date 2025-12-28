@@ -1329,7 +1329,7 @@
         <div class="audio-recorder-time" id="recorderTime">0:00</div>
         <div class="audio-recorder-controls">
           <button class="ctrl-btn rewind" onclick="recorderRewind()">&lt;&lt;</button>
-          <button class="ctrl-btn stop" id="recorderStopBtn" onclick="recorderStop()" style="display:none; background:#EF4444; color:white;">STOP</button>
+          <button class="ctrl-btn" id="recorderStopBtn" onclick="recorderStop()" style="background:#EF4444; color:white; font-weight:700;">STOP</button>
           <button class="ctrl-btn play" id="recorderPlayBtn" onclick="recorderPlayPause()">PLAY</button>
           <button class="ctrl-btn forward" onclick="recorderForward()">&gt;&gt;</button>
         </div>
@@ -2141,8 +2141,8 @@ function handleCardClick(id,e){
   // Ignore clicks on category badge, action buttons, textarea, checkbox, markers
   if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox')||e.target.closest('.card-markers'))return;
   
-  // Ignore clicks on audio controls
-  if(e.target.closest('.audio-btn')||e.target.closest('.audio-controls'))return;
+  // Ignore clicks on audio player buttons only
+  if(e.target.closest('.audio-btn'))return;
   
   const item=ideas.find(x=>x.id===id);
   
