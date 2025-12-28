@@ -290,8 +290,8 @@
     .ask-ai-action-btn.speak-btn:hover { background: #06B6D4; color: white; }
     .ask-ai-action-btn.created { border-color: #10B981; color: #10B981; cursor: default; }
     .ask-ai-action-btn.created:hover, .ask-ai-action-btn.created:focus, .ask-ai-action-btn.created:active { border-color: #10B981; color: #10B981; outline: none; background: var(--color-bg-card); }
-    .ask-ai-action-btn.autodrop-saved { background: #10B981; border-color: #10B981; color: white; cursor: default; }
-    .ask-ai-action-btn.autodrop-saved:hover, .ask-ai-action-btn.autodrop-saved:focus { background: #10B981; border-color: #10B981; color: white; outline: none; }
+    .ask-ai-action-btn.autodrop-saved { border-color: #10B981; color: #10B981; cursor: default; background: transparent; }
+    .ask-ai-action-btn.autodrop-saved:hover, .ask-ai-action-btn.autodrop-saved:focus { border-color: #10B981; color: #10B981; outline: none; background: transparent; }
     .ask-ai-action-btn:focus { outline: none; }
     .ask-ai-action-btn.primary { background: linear-gradient(135deg, #8B5CF6, #7C3AED); border-color: transparent; color: white; }
     .ask-ai-action-btn.primary:hover { transform: scale(1.03); }
@@ -334,9 +334,10 @@
     .ask-ai-btn-done:hover { background: rgba(255,255,255,0.3); }
     .ask-ai-btn-stop { background: #EF4444; color: white; display: none; }
     .ask-ai-btn-stop:hover { background: #DC2626; }
-    .ask-ai-btn-autodrop { background: #10B981; color: white; padding: 0 14px; height: 32px; font-size: 0.65rem; }
+    .ask-ai-btn-autodrop { background: #10B981; color: white; }
     .ask-ai-btn-autodrop:hover { background: #059669; }
     .ask-ai-btn-autodrop.off { background: rgba(255,255,255,0.2); }
+    .ask-ai-btn-autodrop.off:hover { background: rgba(255,255,255,0.3); }
     
     /* Voice Mode active: show large button, hide input row */
     .ask-ai-panel.voice-mode-active .ask-ai-input-row { display: none; }
@@ -3653,10 +3654,12 @@ function render(){
   for(const d of dates){
     let lbl=d;if(d===td)lbl='Today';else if(d===yd)lbl='Yesterday';
     h+='<div class="date-sep">'+lbl+'</div>';
-    // Sort within day by time (oldest first at top, newest at bottom)
+    // Sort within day by timestamp (precise to millisecond)
     let dayIdeas=grp[d].slice().sort((a,b)=>{
-      const timeA=a.time||'00:00';const timeB=b.time||'00:00';
-      return sortAsc?timeA.localeCompare(timeB):timeB.localeCompare(timeA);
+      // Use timestamp for precise sorting (includes seconds/ms)
+      const tsA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const tsB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return sortAsc ? tsA - tsB : tsB - tsA;
     });
     for(const i of dayIdeas){
       const isActive=activeCardId===i.id;
