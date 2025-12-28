@@ -3278,32 +3278,81 @@ async function recorderCreateDrop() {
 }
 
 function recorderShare() {
+  // Guard: no recording
   if (!recorderBlob) {
-    showToast('No recording');
+    showToast('No recording', 'error');
     return;
   }
   
-  const file = new File([recorderBlob], 'droplit-audio.webm', { type: recorderBlob.type || 'audio/webm' });
+  // Try different file formats - some devices don't support webm
+  const mimeType = recorderBlob.type || 'audio/webm';
+  const extension = mimeType.includes('mp4') ? 'm4a' : 'webm';
+  const fileName = 'droplit-audio.' + extension;
   
-  // Debug: check what's available
-  const hasShare = !!navigator.share;
-  const hasCanShare = !!navigator.canShare;
-  const canShareFile = hasCanShare && navigator.canShare({ files: [file] });
+  // Create file
+  const file = new File([recorderBlob], fileName, { type: mimeType });
   
-  if (hasShare && canShareFile) {
+  // Check Web Share API support
+  const hasShare = typeof navigator.share === 'function';
+  const hasCanShare = typeof navigator.canShare === 'function';
+  
+  if (!hasShare) {
+    // No share API at all - download
+    downloadAudioFile();
+    showToast('Share not supported - downloaded', 'info');
+    return;
+  }
+  
+  if (!hasCanShare) {
+    // Has share but no canShare - try share anyway
     navigator.share({
       files: [file],
-      title: 'DropLit Audio',
-      text: 'Audio recording from DropLit'
-    }).catch(() => {});
+      title: 'DropLit Audio'
+    }).then(() => {
+      showToast('Shared!', 'success');
+    }).catch((err) => {
+      if (err.name !== 'AbortError') {
+        downloadAudioFile();
+        showToast('Share failed - downloaded', 'info');
+      }
+    });
+    return;
+  }
+  
+  // Has both share and canShare
+  const canShareFiles = navigator.canShare({ files: [file] });
+  
+  if (canShareFiles) {
+    navigator.share({
+      files: [file],
+      title: 'DropLit Audio'
+    }).then(() => {
+      showToast('Shared!', 'success');
+    }).catch((err) => {
+      if (err.name !== 'AbortError') {
+        showToast('Share cancelled', 'info');
+      }
+    });
   } else {
-    // Show what failed for debugging
-    showToast(`share:${hasShare} canShare:${hasCanShare} file:${canShareFile}`, 'info');
-    // Fallback: download
+    // canShare returns false for audio - try without file
+    navigator.share({
+      title: 'DropLit Audio',
+      text: 'Audio recording (' + document.getElementById('recorderTime').textContent + ')'
+    }).then(() => {
+      showToast('Shared text only (audio not supported)', 'info');
+    }).catch((err) => {
+      if (err.name !== 'AbortError') {
+        downloadAudioFile();
+        showToast('Downloaded', 'info');
+      }
+    });
+  }
+  
+  function downloadAudioFile() {
     const url = URL.createObjectURL(recorderBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'droplit-audio.webm';
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
   }
