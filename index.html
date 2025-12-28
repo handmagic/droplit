@@ -322,7 +322,7 @@
     .ask-ai-voice-large svg { flex-shrink: 0; }
     
     /* Voice Mode: Header buttons */
-    .ask-ai-header-btn { padding: 8px 16px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .ask-ai-header-btn { height: 44px; padding: 0 20px; border: none; border-radius: 22px; font-family: var(--font-main); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; transition: all 0.15s; }
     .ask-ai-btn-done { background: rgba(255,255,255,0.2); color: white; }
     .ask-ai-btn-done:hover { background: rgba(255,255,255,0.3); }
     .ask-ai-btn-stop { background: #EF4444; color: white; display: none; }
@@ -1341,8 +1341,8 @@
           <div class="ask-ai-subtitle">AI Chat</div>
         </div>
       </div>
-      <button class="ask-ai-header-btn ask-ai-btn-stop" id="askiStopBtn" onclick="stopAskiResponse()">Stop</button>
-      <button class="ask-ai-header-btn ask-ai-btn-done" onclick="closeAskAI()">Done</button>
+      <button class="ask-ai-header-btn ask-ai-btn-stop" id="askiStopBtn" onclick="stopAskiResponse()">STOP</button>
+      <button class="ask-ai-header-btn ask-ai-btn-done" onclick="closeAskAI()">HIDE</button>
       <button class="ask-ai-close" onclick="closeAskAI()">×</button>
     </div>
     <div class="ask-ai-messages" id="askAIMessages">
@@ -2931,13 +2931,15 @@ function createDropFromAI(btn) {
   const drop = {
     id: Date.now(),
     text: text,
+    category: isUserMessage ? 'idea' : 'ai',
     timestamp: new Date().toISOString(),
-    type: 'text',
-    category: isUserMessage ? 'idea' : 'ai'
+    date: new Date().toLocaleDateString('ru-RU'),
+    time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+    isMedia: false
   };
   
   ideas.unshift(drop);
-  save();
+  save(drop);
   render();
   counts();
   
