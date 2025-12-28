@@ -2402,7 +2402,7 @@ function updateSpeakingIndicator(isSpeaking) {
     if (!indicator) {
       indicator = document.createElement('div');
       indicator.className = 'speaking-indicator';
-      indicator.innerHTML = '🔊';
+      indicator.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
       indicator.onclick = askiStopSpeaking;
       header.querySelector('.ask-ai-header-left').appendChild(indicator);
     }
@@ -2647,7 +2647,7 @@ function updateVoiceModeIndicator(state) {
   // Update subtitle
   switch(state) {
     case 'listening':
-      subtitle.textContent = '🎤 Listening...';
+      subtitle.textContent = 'Listening...';
       subtitle.style.color = '#10B981';
       if (largeBtn) {
         largeBtn.classList.add('listening');
@@ -2655,7 +2655,7 @@ function updateVoiceModeIndicator(state) {
       }
       break;
     case 'processing':
-      subtitle.textContent = '🤔 Thinking...';
+      subtitle.textContent = 'Thinking...';
       subtitle.style.color = '#F59E0B';
       setAskiBusy(true);
       if (largeBtn) {
@@ -2664,7 +2664,7 @@ function updateVoiceModeIndicator(state) {
       }
       break;
     case 'speaking':
-      subtitle.textContent = '🔊 Speaking...';
+      subtitle.textContent = 'Speaking...';
       subtitle.style.color = '#06B6D4';
       setAskiBusy(true);
       if (largeBtn) {
@@ -2673,7 +2673,7 @@ function updateVoiceModeIndicator(state) {
       }
       break;
     case 'locked':
-      subtitle.textContent = '⏳ Please wait...';
+      subtitle.textContent = 'Please wait...';
       subtitle.style.color = '#8B5CF6';
       if (largeBtn) {
         largeBtn.classList.remove('listening');
@@ -2681,7 +2681,7 @@ function updateVoiceModeIndicator(state) {
       }
       break;
     case 'waiting':
-      subtitle.textContent = '🎤 Ready';
+      subtitle.textContent = 'Ready';
       subtitle.style.color = '#10B981';
       setAskiBusy(false);
       if (largeBtn) {
@@ -2690,7 +2690,7 @@ function updateVoiceModeIndicator(state) {
       }
       break;
     case 'sleeping':
-      subtitle.textContent = '💤 Tap mic to talk';
+      subtitle.textContent = 'Tap to talk';
       subtitle.style.color = '#6B7280';
       setAskiBusy(false);
       if (largeBtn) {
@@ -2958,7 +2958,7 @@ function createDropFromAI(btn) {
     syncDropToSyntrise(drop);
   }
   
-  showToast('✓ Drop created');
+  showToast('Drop created');
 }
 
 function copyAIResponse(btn) {
@@ -5621,7 +5621,7 @@ function toggleVoiceMode() {
   updateVoiceModeUI();
   
   if (isEnabled) {
-    showToast('🎤 Voice Mode ON — tap mic to talk');
+    showToast('Voice Mode ON');
     acquireWakeLock(); // Keep screen on
     // Start in sleep mode - wait for user tap
     if (document.getElementById('askAIPanel')?.classList.contains('show')) {
