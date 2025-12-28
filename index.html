@@ -861,7 +861,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.31 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.33 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1329,6 +1329,7 @@
         <div class="audio-recorder-time" id="recorderTime">0:00</div>
         <div class="audio-recorder-controls">
           <button class="ctrl-btn rewind" onclick="recorderRewind()">&lt;&lt;</button>
+          <button class="ctrl-btn" id="recorderStopBtn" onclick="recorderStop()" style="background:#EF4444; color:white; font-weight:700;">STOP</button>
           <button class="ctrl-btn play" id="recorderPlayBtn" onclick="recorderPlayPause()">PLAY</button>
           <button class="ctrl-btn forward" onclick="recorderForward()">&gt;&gt;</button>
         </div>
@@ -1803,7 +1804,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.31 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.33 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1816,7 +1817,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.31 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.33 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2140,6 +2141,9 @@ function handleCardClick(id,e){
   // Ignore clicks on category badge, action buttons, textarea, checkbox, markers
   if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox')||e.target.closest('.card-markers'))return;
   
+  // Ignore clicks on audio player buttons only
+  if(e.target.closest('.audio-btn'))return;
+  
   const item=ideas.find(x=>x.id===id);
   
   if(selectMode){
@@ -2148,11 +2152,11 @@ function handleCardClick(id,e){
   } else if(editId && editId !== id) {
     // If editing another card, don't activate this one
     return;
-  } else if(item && item.isMedia) {
-    // For media cards - open viewer directly
+  } else if(item && item.isMedia && item.category !== 'audio') {
+    // For image/photo cards - open viewer directly (NOT for audio)
     viewImage(id,e);
   } else {
-    // For text cards - toggle expand/collapse (optimized - no full render)
+    // For text cards AND audio cards - toggle expand/collapse
     const prevId = activeCardId;
     activeCardId = activeCardId===id ? null : id;
     
@@ -3032,6 +3036,7 @@ function openAudioRecorder() {
   recorderBlob = null;
   updateRecorderUI();
   document.getElementById('audioRecorderModal').classList.add('show');
+  acquireWakeLock(); // Keep screen awake
 }
 
 function closeAudioRecorder() {
@@ -3049,6 +3054,7 @@ function closeAudioRecorder() {
     currentAudioElement = null;
   }
   document.getElementById('audioRecorderModal').classList.remove('show');
+  releaseWakeLock(); // Allow screen to sleep
 }
 
 function recorderToggleRecord() {
@@ -3144,9 +3150,20 @@ function updateRecorderUI() {
   const mainBtn = document.getElementById('recorderMainBtn');
   const mainText = document.getElementById('recorderMainText');
   const waveform = document.getElementById('recorderWaveform');
+  const playBtn = document.getElementById('recorderPlayBtn');
+  const stopBtn = document.getElementById('recorderStopBtn');
   
   mainBtn.className = 'audio-recorder-main-btn ' + recorderState;
   waveform.className = 'audio-recorder-waveform' + (recorderState === 'recording' ? ' recording' : '');
+  
+  // Show STOP button during recording/paused, PLAY button when stopped
+  if (recorderState === 'recording' || recorderState === 'paused') {
+    stopBtn.style.display = 'block';
+    playBtn.style.display = 'none';
+  } else {
+    stopBtn.style.display = 'none';
+    playBtn.style.display = 'block';
+  }
   
   switch(recorderState) {
     case 'ready':
@@ -3165,7 +3182,17 @@ function updateRecorderUI() {
   }
 }
 
+// Separate STOP function
+function recorderStop() {
+  stopRecorderRecording();
+}
+
 function recorderPlayPause() {
+  // Only for playback when stopped
+  if (recorderState !== 'stopped') {
+    return;
+  }
+  
   if (!recorderBlob) {
     showToast('No recording yet');
     return;
@@ -3186,7 +3213,7 @@ function recorderPlayPause() {
     URL.revokeObjectURL(url);
   };
   currentAudioElement.play();
-  document.getElementById('recorderPlayBtn').textContent = 'STOP';
+  document.getElementById('recorderPlayBtn').textContent = 'PAUSE';
 }
 
 function recorderRewind() {
@@ -6699,7 +6726,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.31';
+  md+='---\nExported from DropLit v0.9.33';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
