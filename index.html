@@ -262,8 +262,7 @@
     .ask-ai-avatar { width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
     .ask-ai-title { font-size: 1.15rem; font-weight: 600; }
     .ask-ai-subtitle { font-size: 0.8rem; opacity: 0.85; }
-    .speaking-indicator { margin-left: 10px; font-size: 1.2rem; opacity: 0.5; cursor: pointer; transition: all 0.2s; }
-    .speaking-indicator.active { opacity: 1; animation: speakPulse 1s infinite; }
+    /* Speaking indicator removed - status shown in subtitle */
     @keyframes speakPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
     .ask-ai-close { width: 36px; height: 36px; border: none; background: rgba(255,255,255,0.2); border-radius: 50%; color: white; font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
     .ask-ai-close:hover { background: rgba(255,255,255,0.3); }
@@ -2393,25 +2392,7 @@ function toggleAskiSpeak(btn) {
 
 // Update speaking indicator in header
 function updateSpeakingIndicator(isSpeaking) {
-  const header = document.querySelector('.ask-ai-header');
-  if (!header) return;
-  
-  let indicator = header.querySelector('.speaking-indicator');
-  
-  if (isSpeaking) {
-    if (!indicator) {
-      indicator = document.createElement('div');
-      indicator.className = 'speaking-indicator';
-      indicator.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
-      indicator.onclick = askiStopSpeaking;
-      header.querySelector('.ask-ai-header-left').appendChild(indicator);
-    }
-    indicator.classList.add('active');
-  } else {
-    if (indicator) {
-      indicator.classList.remove('active');
-    }
-  }
+  // Removed - status shown in subtitle instead
 }
 
 // ============================================
@@ -2638,25 +2619,18 @@ function unlockVoiceMode() {
 }
 
 function updateVoiceModeIndicator(state) {
-  const subtitle = document.querySelector('.ask-ai-subtitle');
   const largeBtn = document.getElementById('askAIVoiceLarge');
   const largeBtnText = document.getElementById('voiceLargeText');
   
-  if (!subtitle) return;
-  
-  // Update subtitle
+  // Update only the large button at bottom
   switch(state) {
     case 'listening':
-      subtitle.textContent = 'Listening...';
-      subtitle.style.color = '#10B981';
       if (largeBtn) {
         largeBtn.classList.add('listening');
         largeBtnText.textContent = 'Listening...';
       }
       break;
     case 'processing':
-      subtitle.textContent = 'Thinking...';
-      subtitle.style.color = '#F59E0B';
       setAskiBusy(true);
       if (largeBtn) {
         largeBtn.classList.remove('listening');
@@ -2664,8 +2638,6 @@ function updateVoiceModeIndicator(state) {
       }
       break;
     case 'speaking':
-      subtitle.textContent = 'Speaking...';
-      subtitle.style.color = '#06B6D4';
       setAskiBusy(true);
       if (largeBtn) {
         largeBtn.classList.remove('listening');
@@ -2673,16 +2645,12 @@ function updateVoiceModeIndicator(state) {
       }
       break;
     case 'locked':
-      subtitle.textContent = 'Please wait...';
-      subtitle.style.color = '#8B5CF6';
       if (largeBtn) {
         largeBtn.classList.remove('listening');
         largeBtnText.textContent = 'Please wait...';
       }
       break;
     case 'waiting':
-      subtitle.textContent = 'Ready';
-      subtitle.style.color = '#10B981';
       setAskiBusy(false);
       if (largeBtn) {
         largeBtn.classList.remove('listening');
@@ -2690,8 +2658,6 @@ function updateVoiceModeIndicator(state) {
       }
       break;
     case 'sleeping':
-      subtitle.textContent = 'Tap to talk';
-      subtitle.style.color = '#6B7280';
       setAskiBusy(false);
       if (largeBtn) {
         largeBtn.classList.remove('listening');
@@ -2699,8 +2665,6 @@ function updateVoiceModeIndicator(state) {
       }
       break;
     default:
-      subtitle.textContent = 'AI Chat';
-      subtitle.style.color = '';
       setAskiBusy(false);
       if (largeBtn) {
         largeBtn.classList.remove('listening');
