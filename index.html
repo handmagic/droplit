@@ -66,14 +66,16 @@
 
     /* Header */
     .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--color-bg-card); position: relative; padding-top: max(10px, env(safe-area-inset-top)); z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    /* When filters visible - shadow moves to filters */
+    body.filters-visible .header { box-shadow: none; }
     .logo-btn { width: 52px; height: 52px; border: none; background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 3px 12px rgba(255,107,74,0.3); transition: all 0.2s; }
     .logo-btn:active { transform: scale(0.95); }
     .logo-btn svg { width: 22px; height: 22px; }
     .logo-btn.filters-open { transform: rotate(180deg); }
     
     /* Filters toggle - hidden by default */
-    .filters { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease; border-bottom: none; padding: 0 10px; background: var(--color-bg-card); }
-    body.filters-visible .filters { max-height: 200px; opacity: 1; border-bottom: 1px solid var(--color-border); padding: 8px 10px; }
+    .filters { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease; padding: 0; background: transparent; }
+    body.filters-visible .filters { max-height: 200px; opacity: 1; padding: 8px 10px; background: var(--color-bg-card); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     body.filters-visible .logo-btn { background: linear-gradient(135deg, #8B5CF6, #7C3AED); }
     .header-title { font-size: 0.9rem; font-weight: 700; color: var(--color-text); display: none; }
     .header-title span { color: var(--color-primary); }
