@@ -76,8 +76,8 @@
     .logo-btn.filters-open { transform: rotate(180deg); }
     
     /* Filters toggle - hidden by default */
-    .filters-wrap { position: relative; }
-    .filters-wrap::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 8px; background: linear-gradient(to bottom, rgba(0,0,0,0.06), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; transform: translateY(100%); }
+    .filters-wrap { position: relative; z-index: 99; }
+    .filters-wrap::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 10px; background: linear-gradient(to bottom, rgba(0,0,0,0.08), transparent); pointer-events: none; opacity: 0; transition: opacity 0.3s; }
     body.filters-visible .filters-wrap::after { opacity: 1; }
     .filters { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease; padding: 0; background: var(--color-bg-card); }
     body.filters-visible .filters { max-height: 200px; opacity: 1; padding: 8px 10px; }
