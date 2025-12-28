@@ -3231,6 +3231,13 @@ async function recorderCreateDrop() {
   if (!recorderBlob) return;
   
   const createBtn = document.querySelector('.act-btn.create');
+  const deleteBtn = document.querySelector('.act-btn.delete');
+  const shareBtn = document.querySelector('.act-btn.share');
+  
+  // IMMEDIATELY disable all buttons to prevent double-tap
+  createBtn.disabled = true;
+  deleteBtn.disabled = true;
+  shareBtn.disabled = true;
   createBtn.textContent = 'SAVING...';
   
   try {
@@ -3238,13 +3245,15 @@ async function recorderCreateDrop() {
     
     // SUCCESS - reset everything
     createBtn.textContent = 'DROP CREATED';
+    createBtn.style.background = '#10B981';
+    createBtn.style.color = 'white';
     
     // Clear recording
     recorderBlob = null;
     recorderState = 'ready';
     document.getElementById('recorderTime').textContent = '0:00';
     
-    // Disable all buttons
+    // Update UI
     updateRecorderButtons(false);
     updateRecorderUI();
     
@@ -3257,8 +3266,12 @@ async function recorderCreateDrop() {
     
   } catch (error) {
     createBtn.textContent = 'ERROR';
+    createBtn.style.background = '#FEE2E2';
+    createBtn.style.color = '#991B1B';
     setTimeout(() => {
       createBtn.textContent = 'CREATE DROP';
+      createBtn.style.background = '#D1FAE5';
+      createBtn.style.color = '#065F46';
       updateRecorderButtons(!!recorderBlob);
     }, 1000);
   }
@@ -3270,19 +3283,43 @@ async function recorderShare() {
     return;
   }
   
-  showToast('Preparing to share...');
-  
   try {
     const file = new File([recorderBlob], 'droplit-audio.webm', { type: recorderBlob.type || 'audio/webm' });
     
-    if (navigator.share) {
+    // Check if Web Share API supports files
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ 
         files: [file], 
         title: 'DropLit Audio'
       });
       showToast('Shared!');
+    } else if (navigator.share) {
+      // Fallback: share without file (just text/url)
+      // Create temporary blob URL
+      const url = URL.createObjectURL(recorderBlob);
+      await navigator.share({
+        title: 'DropLit Audio',
+        text: 'Audio recording from DropLit'
+      });
+      URL.revokeObjectURL(url);
+      showToast('Shared!');
     } else {
-      // Fallback: download
+      // Final fallback: download
+      const url = URL.createObjectURL(recorderBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'droplit-audio.webm';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Downloaded (share not supported)');
+    }
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      // User cancelled - do nothing
+      return;
+    }
+    // Fallback to download on any error
+    try {
       const url = URL.createObjectURL(recorderBlob);
       const a = document.createElement('a');
       a.href = url;
@@ -3290,10 +3327,8 @@ async function recorderShare() {
       a.click();
       URL.revokeObjectURL(url);
       showToast('Downloaded');
-    }
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      showToast('Share error: ' + e.message);
+    } catch (downloadError) {
+      showToast('Share failed');
     }
   }
 }
