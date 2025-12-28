@@ -235,7 +235,7 @@
     .camera-input { display: none; }
 
     /* FAB - Plus button (center) */
-    .fab-askai { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); height: 52px; padding: 0 24px; border: none; background: linear-gradient(135deg, #FF6B4A, #06B6D4); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 50; transition: all 0.2s; animation: askaiPulse 2.5s ease-in-out infinite; font-family: var(--font-main); font-size: 0.95rem; font-weight: 700; color: white; letter-spacing: 0.3px; }
+    .fab-askai { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); height: 52px; padding: 0 24px; border: none; background: linear-gradient(135deg, #FF6B4A, #06B6D4); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 50; transition: all 0.2s; animation: askaiPulse 2.5s ease-in-out infinite; font-family: var(--font-main); font-size: 0.85rem; font-weight: 700; color: white; letter-spacing: 1px; text-transform: uppercase; }
     @keyframes askaiPulse { 
       0%, 100% { 
         transform: translateX(-50%) scale(1); 
@@ -1007,7 +1007,7 @@
 
   <!-- FAB Ask AI button -->
   <button class="fab-askai" id="fabAskAI" onclick="openAskAI()">
-    <span class="sparkle">✨</span> Ask AI
+    ASK AI
   </button>
 
   <!-- Plus menu backdrop -->
@@ -1335,7 +1335,7 @@
     </div>
     <div class="ask-ai-header">
       <div class="ask-ai-header-left">
-        <div class="ask-ai-avatar">✨</div>
+        <div class="ask-ai-avatar">A</div>
         <div>
           <div class="ask-ai-title">Aski</div>
           <div class="ask-ai-subtitle">AI Chat</div>
@@ -1347,13 +1347,13 @@
     </div>
     <div class="ask-ai-messages" id="askAIMessages">
       <div class="ask-ai-empty" id="askAIEmpty">
-        <div class="ask-ai-empty-icon">✨</div>
+        <div class="ask-ai-empty-icon"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
         <div class="ask-ai-empty-title">Ask me anything</div>
         <div class="ask-ai-empty-text">I'm here to help — answer questions, give ideas, or just chat.</div>
         <div class="ask-ai-prompts">
-          <button class="ask-ai-prompt" onclick="setAskAIPrompt('Что приготовить на ужин?')">🍳 Что приготовить?</button>
-          <button class="ask-ai-prompt" onclick="setAskAIPrompt('Напиши поздравление')">🎂 Поздравление</button>
-          <button class="ask-ai-prompt" onclick="setAskAIPrompt('Как организовать день?')">📅 План дня</button>
+          <button class="ask-ai-prompt" onclick="setAskAIPrompt('Что приготовить на ужин?')">Что приготовить?</button>
+          <button class="ask-ai-prompt" onclick="setAskAIPrompt('Напиши поздравление')">Поздравление</button>
+          <button class="ask-ai-prompt" onclick="setAskAIPrompt('Как организовать день?')">План дня</button>
         </div>
       </div>
     </div>
@@ -3481,7 +3481,11 @@ function render(){
   for(const d of dates){
     let lbl=d;if(d===td)lbl='Today';else if(d===yd)lbl='Yesterday';
     h+='<div class="date-sep">'+lbl+'</div>';
-    let dayIdeas=grp[d];if(!sortAsc)dayIdeas=dayIdeas.slice().reverse();
+    // Sort within day by time (newest first for sortAsc=true, oldest first for sortAsc=false)
+    let dayIdeas=grp[d].slice().sort((a,b)=>{
+      const timeA=a.time||'00:00';const timeB=b.time||'00:00';
+      return sortAsc?timeB.localeCompare(timeA):timeA.localeCompare(timeB);
+    });
     for(const i of dayIdeas){
       const isActive=activeCardId===i.id;
       const isEditing=editId===i.id;
