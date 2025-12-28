@@ -1329,6 +1329,7 @@
         <div class="audio-recorder-time" id="recorderTime">0:00</div>
         <div class="audio-recorder-controls">
           <button class="ctrl-btn rewind" onclick="recorderRewind()">&lt;&lt;</button>
+          <button class="ctrl-btn stop" id="recorderStopBtn" onclick="recorderStop()" style="display:none; background:#EF4444; color:white;">STOP</button>
           <button class="ctrl-btn play" id="recorderPlayBtn" onclick="recorderPlayPause()">PLAY</button>
           <button class="ctrl-btn forward" onclick="recorderForward()">&gt;&gt;</button>
         </div>
@@ -2140,6 +2141,9 @@ function handleCardClick(id,e){
   // Ignore clicks on category badge, action buttons, textarea, checkbox, markers
   if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox')||e.target.closest('.card-markers'))return;
   
+  // Ignore clicks on audio controls
+  if(e.target.closest('.audio-btn')||e.target.closest('.audio-controls'))return;
+  
   const item=ideas.find(x=>x.id===id);
   
   if(selectMode){
@@ -2148,11 +2152,11 @@ function handleCardClick(id,e){
   } else if(editId && editId !== id) {
     // If editing another card, don't activate this one
     return;
-  } else if(item && item.isMedia) {
-    // For media cards - open viewer directly
+  } else if(item && item.isMedia && item.category !== 'audio') {
+    // For image/photo cards - open viewer directly (NOT for audio)
     viewImage(id,e);
   } else {
-    // For text cards - toggle expand/collapse (optimized - no full render)
+    // For text cards AND audio cards - toggle expand/collapse
     const prevId = activeCardId;
     activeCardId = activeCardId===id ? null : id;
     
@@ -3032,6 +3036,7 @@ function openAudioRecorder() {
   recorderBlob = null;
   updateRecorderUI();
   document.getElementById('audioRecorderModal').classList.add('show');
+  acquireWakeLock(); // Keep screen awake
 }
 
 function closeAudioRecorder() {
@@ -3049,6 +3054,7 @@ function closeAudioRecorder() {
     currentAudioElement = null;
   }
   document.getElementById('audioRecorderModal').classList.remove('show');
+  releaseWakeLock(); // Allow screen to sleep
 }
 
 function recorderToggleRecord() {
@@ -3145,15 +3151,18 @@ function updateRecorderUI() {
   const mainText = document.getElementById('recorderMainText');
   const waveform = document.getElementById('recorderWaveform');
   const playBtn = document.getElementById('recorderPlayBtn');
+  const stopBtn = document.getElementById('recorderStopBtn');
   
   mainBtn.className = 'audio-recorder-main-btn ' + recorderState;
   waveform.className = 'audio-recorder-waveform' + (recorderState === 'recording' ? ' recording' : '');
   
-  // Update PLAY/STOP button text
+  // Show STOP button during recording/paused, PLAY button when stopped
   if (recorderState === 'recording' || recorderState === 'paused') {
-    playBtn.textContent = 'STOP';
+    stopBtn.style.display = 'block';
+    playBtn.style.display = 'none';
   } else {
-    playBtn.textContent = 'PLAY';
+    stopBtn.style.display = 'none';
+    playBtn.style.display = 'block';
   }
   
   switch(recorderState) {
@@ -3173,14 +3182,17 @@ function updateRecorderUI() {
   }
 }
 
+// Separate STOP function
+function recorderStop() {
+  stopRecorderRecording();
+}
+
 function recorderPlayPause() {
-  // If recording or paused - STOP the recording
-  if (recorderState === 'recording' || recorderState === 'paused') {
-    stopRecorderRecording();
+  // Only for playback when stopped
+  if (recorderState !== 'stopped') {
     return;
   }
   
-  // If stopped - play the recording
   if (!recorderBlob) {
     showToast('No recording yet');
     return;
@@ -3201,7 +3213,7 @@ function recorderPlayPause() {
     URL.revokeObjectURL(url);
   };
   currentAudioElement.play();
-  document.getElementById('recorderPlayBtn').textContent = 'STOP';
+  document.getElementById('recorderPlayBtn').textContent = 'PAUSE';
 }
 
 function recorderRewind() {
