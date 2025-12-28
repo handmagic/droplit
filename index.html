@@ -748,7 +748,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.13 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.15 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1637,7 +1637,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.13 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.15 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1650,7 +1650,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.13 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.15 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2455,10 +2455,14 @@ function selectElevenLabsVoice(name, voiceId) {
   localStorage.setItem('elevenlabs_voice', name);
   localStorage.setItem('elevenlabs_voice_id', voiceId);
   
-  // Update UI
+  // Update UI - remove active from all, add to selected
   document.querySelectorAll('#elevenlabsVoiceSelector .pill-m').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.voiceid === voiceId);
+    btn.classList.remove('active');
   });
+  const selectedBtn = document.querySelector(`#elevenlabsVoiceSelector .pill-m[data-voiceid="${voiceId}"]`);
+  if (selectedBtn) {
+    selectedBtn.classList.add('active');
+  }
   
   // Preview
   previewElevenLabsVoice(name);
@@ -3067,10 +3071,14 @@ function updateVoiceModeIndicator(state) {
 function setAskiVoice(voice) {
   askiVoice = voice;
   localStorage.setItem('aski_voice', voice);
-  // Update UI
+  // Update UI - remove active from all, add to selected
   document.querySelectorAll('#voiceSelector .pill-m').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.voice === voice);
+    btn.classList.remove('active');
   });
+  const selectedBtn = document.querySelector(`#voiceSelector .pill-m[data-voice="${voice}"]`);
+  if (selectedBtn) {
+    selectedBtn.classList.add('active');
+  }
   // Preview voice
   previewVoice(voice);
 }
@@ -3147,21 +3155,26 @@ function setTTSProvider(provider) {
   // Update UI - remove active from all, add to selected
   document.querySelectorAll('#ttsProviderSelector .pill-m').forEach(btn => {
     btn.classList.remove('active');
-    if (btn.dataset.provider === provider) {
-      btn.classList.add('active');
-    }
   });
+  const selectedBtn = document.querySelector(`#ttsProviderSelector .pill-m[data-provider="${provider}"]`);
+  if (selectedBtn) {
+    selectedBtn.classList.add('active');
+  }
   
   // Show/hide provider-specific settings
   const openaiSettings = document.getElementById('openaiVoiceSettings');
   const elevenlabsSettings = document.getElementById('elevenlabsVoiceSettings');
   
-  if (openaiSettings) openaiSettings.style.display = provider === 'openai' ? 'block' : 'none';
+  if (openaiSettings) {
+    openaiSettings.style.display = (provider === 'openai') ? 'block' : 'none';
+  }
   if (elevenlabsSettings) {
-    elevenlabsSettings.style.display = provider === 'elevenlabs' ? 'block' : 'none';
+    elevenlabsSettings.style.display = (provider === 'elevenlabs') ? 'block' : 'none';
     // Load ElevenLabs key into input when switching to ElevenLabs
     if (provider === 'elevenlabs') {
       elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
+      elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
+      
       const input = document.getElementById('elevenlabsApiKeyInput');
       if (input) {
         input.value = elevenlabsApiKey;
@@ -3170,6 +3183,15 @@ function setTTSProvider(provider) {
           status.textContent = 'Key loaded';
           status.style.color = '#10B981';
         }
+      }
+      
+      // Update voice selector
+      document.querySelectorAll('#elevenlabsVoiceSelector .pill-m').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      const voiceBtn = document.querySelector(`#elevenlabsVoiceSelector .pill-m[data-voiceid="${elevenlabsVoiceId}"]`);
+      if (voiceBtn) {
+        voiceBtn.classList.add('active');
       }
     }
   }
@@ -3294,51 +3316,9 @@ function loadElevenLabsKey() {
   }
 }
 
-// Initialize TTS provider UI
+// Initialize TTS provider UI - теперь вся логика в initVoiceSettings()
 function initTTSProviderUI() {
-  // ВАЖНО: Загружаем актуальные значения из localStorage
-  ttsProvider = localStorage.getItem('tts_provider') || 'openai';
-  elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
-  elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Nadia';
-  elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
-  
-  // Set provider selector - убираем active со всех, потом добавляем нужному
-  document.querySelectorAll('#ttsProviderSelector .pill-m').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.dataset.provider === ttsProvider) {
-      btn.classList.add('active');
-    }
-  });
-  
-  // Show/hide provider-specific settings
-  const openaiSettings = document.getElementById('openaiVoiceSettings');
-  const elevenlabsSettings = document.getElementById('elevenlabsVoiceSettings');
-  
-  if (openaiSettings) {
-    openaiSettings.style.display = ttsProvider === 'openai' ? 'block' : 'none';
-  }
-  if (elevenlabsSettings) {
-    elevenlabsSettings.style.display = ttsProvider === 'elevenlabs' ? 'block' : 'none';
-  }
-  
-  // Set ElevenLabs voice selector by voice ID
-  document.querySelectorAll('#elevenlabsVoiceSelector .pill-m').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.dataset.voiceid === elevenlabsVoiceId) {
-      btn.classList.add('active');
-    }
-  });
-  
-  // Load ElevenLabs key into input field
-  const elInput = document.getElementById('elevenlabsApiKeyInput');
-  if (elInput && elevenlabsApiKey) {
-    elInput.value = elevenlabsApiKey;
-    const status = document.getElementById('elevenlabsApiKeyStatus');
-    if (status) {
-      status.textContent = 'Key loaded';
-      status.style.color = '#10B981';
-    }
-  }
+  // Deprecated - use initVoiceSettings() instead
 }
 
 // Get listen cycles setting (stored as seconds, convert to cycles)
@@ -5886,7 +5866,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.13';
+  md+='---\nExported from DropLit v0.9.15';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -6381,57 +6361,111 @@ function getNextMessageIndex() {
 }
 
 function initVoiceSettings() {
-  // Загружаем OpenAI настройки из localStorage
+  // === ПЕРЕЧИТЫВАЕМ ВСЕ НАСТРОЙКИ ИЗ LOCALSTORAGE ===
+  
+  // TTS Provider
+  ttsProvider = localStorage.getItem('tts_provider') || 'openai';
+  
+  // OpenAI настройки
   askiVoice = localStorage.getItem('aski_voice') || 'nova';
   askiApiKey = localStorage.getItem('openai_tts_key') || '';
   
-  // Voice Mode
+  // ElevenLabs настройки
+  elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
+  elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Nadia';
+  elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
+  
+  // === UI: TTS PROVIDER SELECTOR ===
+  // Сначала убираем active со всех кнопок
+  document.querySelectorAll('#ttsProviderSelector .pill-m').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  // Потом добавляем active к нужной
+  const providerBtn = document.querySelector(`#ttsProviderSelector .pill-m[data-provider="${ttsProvider}"]`);
+  if (providerBtn) {
+    providerBtn.classList.add('active');
+  }
+  
+  // === UI: ПОКАЗАТЬ/СКРЫТЬ БЛОКИ ГОЛОСОВ ===
+  const openaiSettings = document.getElementById('openaiVoiceSettings');
+  const elevenlabsSettings = document.getElementById('elevenlabsVoiceSettings');
+  
+  if (openaiSettings) {
+    openaiSettings.style.display = (ttsProvider === 'openai') ? 'block' : 'none';
+  }
+  if (elevenlabsSettings) {
+    elevenlabsSettings.style.display = (ttsProvider === 'elevenlabs') ? 'block' : 'none';
+  }
+  
+  // === UI: OPENAI VOICE SELECTOR ===
+  document.querySelectorAll('#voiceSelector .pill-m').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  const openaiVoiceBtn = document.querySelector(`#voiceSelector .pill-m[data-voice="${askiVoice}"]`);
+  if (openaiVoiceBtn) {
+    openaiVoiceBtn.classList.add('active');
+  }
+  
+  // === UI: OPENAI API KEY ===
+  const openaiInput = document.getElementById('openaiApiKeyInput');
+  if (openaiInput) {
+    openaiInput.value = askiApiKey;
+    const status = document.getElementById('apiKeyStatus');
+    if (status) {
+      if (askiApiKey) {
+        status.textContent = 'Key loaded';
+        status.style.color = '#10B981';
+      } else {
+        status.textContent = 'Using browser voice';
+        status.style.color = 'var(--color-text-muted)';
+      }
+    }
+  }
+  
+  // === UI: ELEVENLABS VOICE SELECTOR ===
+  document.querySelectorAll('#elevenlabsVoiceSelector .pill-m').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  const elVoiceBtn = document.querySelector(`#elevenlabsVoiceSelector .pill-m[data-voiceid="${elevenlabsVoiceId}"]`);
+  if (elVoiceBtn) {
+    elVoiceBtn.classList.add('active');
+  }
+  
+  // === UI: ELEVENLABS API KEY ===
+  const elevenlabsInput = document.getElementById('elevenlabsApiKeyInput');
+  if (elevenlabsInput) {
+    elevenlabsInput.value = elevenlabsApiKey;
+    const status = document.getElementById('elevenlabsApiKeyStatus');
+    if (status) {
+      if (elevenlabsApiKey) {
+        status.textContent = 'Key loaded';
+        status.style.color = '#10B981';
+      } else {
+        status.textContent = '';
+      }
+    }
+  }
+  
+  // === UI: TOGGLES ===
   const voiceModeToggle = document.getElementById('voiceModeToggle');
   if (voiceModeToggle) {
     voiceModeToggle.classList.toggle('active', isVoiceModeEnabled());
   }
   
-  // Auto-speak
   const autoSpeakToggle = document.getElementById('autoSpeakToggle');
   if (autoSpeakToggle) {
     autoSpeakToggle.classList.toggle('active', isAutoSpeakEnabled());
   }
   
-  // AutoDrop
   const autoDropToggle = document.getElementById('autoDropToggle');
   if (autoDropToggle) {
     autoDropToggle.classList.toggle('active', isAutoDropEnabled());
   }
   
-  // TTS Provider UI (OpenAI / ElevenLabs / Browser)
-  initTTSProviderUI();
-  
-  // Voice selector (OpenAI TTS)
-  document.querySelectorAll('#voiceSelector .pill-m').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.dataset.voice === askiVoice) {
-      btn.classList.add('active');
-    }
-  });
-  
-  // Load OpenAI API key into input
-  const openaiInput = document.getElementById('openaiApiKeyInput');
-  if (openaiInput) {
-    openaiInput.value = askiApiKey || '';
-    const status = document.getElementById('apiKeyStatus');
-    if (status && askiApiKey) {
-      status.textContent = 'Key loaded';
-      status.style.color = '#10B981';
-    }
-  }
-  
-  // Listen time (in seconds)
+  // === UI: LISTEN TIME ===
   const savedSeconds = localStorage.getItem('aski_listen_seconds') || '15';
   document.querySelectorAll('#listenCyclesSelector .pill-m').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.dataset.cycles === savedSeconds) {
-      btn.classList.add('active');
-    }
+    btn.classList.toggle('active', btn.dataset.cycles === savedSeconds);
   });
 }
 
