@@ -748,7 +748,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.10 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.11 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1516,17 +1516,19 @@
           <div class="settings-item no-border" style="flex-direction: column; align-items: flex-start; gap: 12px;">
             <div class="settings-item-left">
               <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></span>
-              <span class="settings-item-label">ElevenLabs Voice</span>
+              <span class="settings-item-label">ElevenLabs Voice (Russian)</span>
             </div>
             <div class="pill-row" id="elevenlabsVoiceSelector" style="flex-wrap: wrap;">
-              <button class="pill-m active" data-voice="Rachel" onclick="setElevenLabsVoice('Rachel')">Rachel</button>
-              <button class="pill-m" data-voice="Domi" onclick="setElevenLabsVoice('Domi')">Domi</button>
-              <button class="pill-m" data-voice="Bella" onclick="setElevenLabsVoice('Bella')">Bella</button>
-              <button class="pill-m" data-voice="Antoni" onclick="setElevenLabsVoice('Antoni')">Antoni</button>
-              <button class="pill-m" data-voice="Elli" onclick="setElevenLabsVoice('Elli')">Elli</button>
-              <button class="pill-m" data-voice="Josh" onclick="setElevenLabsVoice('Josh')">Josh</button>
+              <button class="pill-m active" data-voice="Nadia" data-voiceid="gedzfqL7OGdPbwm0ynTP" onclick="selectElevenLabsVoice('Nadia','gedzfqL7OGdPbwm0ynTP')">Nadia ♀</button>
+              <button class="pill-m" data-voice="Larisa" data-voiceid="AB9XsbSA4eLG12t2myjN" onclick="selectElevenLabsVoice('Larisa','AB9XsbSA4eLG12t2myjN')">Larisa ♀</button>
+              <button class="pill-m" data-voice="Kate" data-voiceid="tOo2BJ74frmnPadsDNIi" onclick="selectElevenLabsVoice('Kate','tOo2BJ74frmnPadsDNIi')">Kate ♀</button>
+              <button class="pill-m" data-voice="Viktoriia" data-voiceid="8M81RK3MD7u4DOJpu2G5" onclick="selectElevenLabsVoice('Viktoriia','8M81RK3MD7u4DOJpu2G5')">Viktoriia ♀</button>
+              <button class="pill-m" data-voice="Dmitry" data-voiceid="kwajW3Xh5svCeKU5ky2S" onclick="selectElevenLabsVoice('Dmitry','kwajW3Xh5svCeKU5ky2S')">Dmitry ♂</button>
+              <button class="pill-m" data-voice="Ivan" data-voiceid="1qd9R09Ljlx9V1Ok0t5S" onclick="selectElevenLabsVoice('Ivan','1qd9R09Ljlx9V1Ok0t5S')">Ivan ♂</button>
+              <button class="pill-m" data-voice="Denis" data-voiceid="0BcDz9UPwL3MpsnTeUlO" onclick="selectElevenLabsVoice('Denis','0BcDz9UPwL3MpsnTeUlO')">Denis ♂</button>
+              <button class="pill-m" data-voice="Oleg" data-voiceid="MWyJiWDobXN8FX3CJTdE" onclick="selectElevenLabsVoice('Oleg','MWyJiWDobXN8FX3CJTdE')">Oleg ♂</button>
             </div>
-            <div class="voice-preview-hint" style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">Tap voice to preview (requires API key)</div>
+            <div class="voice-preview-hint" style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">Tap voice to preview • Native Russian speakers</div>
           </div>
           
           <div class="settings-item no-border" style="flex-direction: column; align-items: flex-start; gap: 12px;">
@@ -1635,7 +1637,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.10 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.11 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1648,7 +1650,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.10 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.11 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2352,17 +2354,115 @@ let askiApiKey = localStorage.getItem('openai_tts_key') || '';
 // TTS Provider settings
 let ttsProvider = localStorage.getItem('tts_provider') || 'openai'; // openai, elevenlabs, browser
 let elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
-let elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Rachel';
+let elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Nadia';
+let elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
 
-// ElevenLabs voice IDs (default voices)
+// ElevenLabs voices - Russian native speakers
 const ELEVENLABS_VOICES = {
-  'Rachel': '21m00Tcm4TlvDq8ikWAM',
-  'Domi': 'AZnzlk1XvdvUeBnXmlld',
-  'Bella': 'EXAVITQu4vr4xnSDxMaL',
-  'Antoni': 'ErXwobaYiN019PkySvjV',
-  'Elli': 'MF3mGyEYCl7XYWbV9V6O',
-  'Josh': 'TxGEqnHWrfWFTfGW9XjX'
+  // Russian Female (best for Aski)
+  'Nadia': 'gedzfqL7OGdPbwm0ynTP',           // Young Native Russian female - RECOMMENDED
+  'Larisa': 'AB9XsbSA4eLG12t2myjN',          // Young Russian female, gentle voice
+  'Kate': 'tOo2BJ74frmnPadsDNIi',            // Young Russian female, calm & friendly
+  'Viktoriia': '8M81RK3MD7u4DOJpu2G5',       // Clear, resonant young female
+  'Mariia': 'EDpEYNf6XIeKYRzYcx4I',          // 30yo woman, soft pleasant voice
+  'Elena': '8oyYKsAD3g8uVOXOQB4Z',           // Middle age Russian female
+  // Russian Male
+  'Dmitry': 'kwajW3Xh5svCeKU5ky2S',          // Cheerful young male
+  'Ivan': '1qd9R09Ljlx9V1Ok0t5S',            // Deep, velvety male
+  'Denis': '0BcDz9UPwL3MpsnTeUlO',           // Pleasant young male
+  'Oleg': 'MWyJiWDobXN8FX3CJTdE',            // Pleasant young male
+  'Marat': 'vQxSi2EuaRWwBw3nn6dK',           // Middle-aged male, audiobooks
+  'Alexander': 'bqbHGIIO5oETYIqhWmfk'        // Middle-aged, pleasant
 };
+
+// Loaded voices from API (will be populated dynamically)
+let elevenlabsLoadedVoices = [];
+
+// Load voices from ElevenLabs API
+async function loadElevenLabsVoices() {
+  if (!elevenlabsApiKey) {
+    showToast('Enter ElevenLabs API key first');
+    return;
+  }
+  
+  showToast('Loading voices...');
+  
+  try {
+    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+      method: 'GET',
+      headers: {
+        'xi-api-key': elevenlabsApiKey
+      }
+    });
+    
+    if (!response.ok) {
+      showToast('Failed to load voices');
+      return;
+    }
+    
+    const data = await response.json();
+    elevenlabsLoadedVoices = data.voices || [];
+    
+    console.log('Loaded voices:', elevenlabsLoadedVoices.length);
+    
+    // Update voice selector with loaded voices
+    updateElevenLabsVoiceSelector();
+    
+    showToast(`Loaded ${elevenlabsLoadedVoices.length} voices`);
+    
+  } catch (error) {
+    console.error('Error loading voices:', error);
+    showToast('Error loading voices');
+  }
+}
+
+// Update ElevenLabs voice selector with loaded voices
+function updateElevenLabsVoiceSelector() {
+  const selector = document.getElementById('elevenlabsVoiceSelector');
+  if (!selector) return;
+  
+  // If we have loaded voices, show them
+  if (elevenlabsLoadedVoices.length > 0) {
+    let html = '';
+    
+    // Group by category: default voices first, then others
+    const defaultVoices = elevenlabsLoadedVoices.filter(v => v.category === 'premade' || v.category === 'default');
+    const otherVoices = elevenlabsLoadedVoices.filter(v => v.category !== 'premade' && v.category !== 'default');
+    
+    // Show default voices
+    defaultVoices.slice(0, 12).forEach(voice => {
+      const isActive = elevenlabsVoiceId === voice.voice_id;
+      html += `<button class="pill-m ${isActive ? 'active' : ''}" data-voice="${voice.name}" data-voiceid="${voice.voice_id}" onclick="selectElevenLabsVoice('${voice.name}', '${voice.voice_id}')">${voice.name}</button>`;
+    });
+    
+    // Add separator if there are other voices
+    if (otherVoices.length > 0) {
+      html += `<div style="width: 100%; font-size: 0.7rem; color: var(--color-text-muted); margin: 8px 0 4px;">Library voices:</div>`;
+      otherVoices.slice(0, 12).forEach(voice => {
+        const isActive = elevenlabsVoiceId === voice.voice_id;
+        html += `<button class="pill-m ${isActive ? 'active' : ''}" data-voice="${voice.name}" data-voiceid="${voice.voice_id}" onclick="selectElevenLabsVoice('${voice.name}', '${voice.voice_id}')">${voice.name}</button>`;
+      });
+    }
+    
+    selector.innerHTML = html;
+  }
+}
+
+// Select ElevenLabs voice
+function selectElevenLabsVoice(name, voiceId) {
+  elevenlabsVoice = name;
+  elevenlabsVoiceId = voiceId;
+  localStorage.setItem('elevenlabs_voice', name);
+  localStorage.setItem('elevenlabs_voice_id', voiceId);
+  
+  // Update UI
+  document.querySelectorAll('#elevenlabsVoiceSelector .pill-m').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.voiceid === voiceId);
+  });
+  
+  // Preview
+  previewElevenLabsVoice(name);
+}
 
 // Remove emojis from text before speaking
 function removeEmojis(text) {
@@ -2524,11 +2624,13 @@ async function askiSpeakOpenAI(text, onEnd = null) {
 async function askiSpeakElevenLabs(text, onEnd = null) {
   try {
     console.log('Calling ElevenLabs TTS API...');
+    console.log('Voice:', elevenlabsVoice, 'ID:', elevenlabsVoiceId);
     askiIsSpeaking = true;
     updateSpeakingIndicator(true);
     updateVoiceModeIndicator('speaking');
     
-    const voiceId = ELEVENLABS_VOICES[elevenlabsVoice] || ELEVENLABS_VOICES['Rachel'];
+    // Use stored voice ID directly, fallback to Nadia (Russian) if not set
+    const voiceId = elevenlabsVoiceId || ELEVENLABS_VOICES[elevenlabsVoice] || 'gedzfqL7OGdPbwm0ynTP';
     
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -3041,42 +3143,43 @@ function setTTSProvider(provider) {
   showToast(`TTS: ${provider === 'openai' ? 'OpenAI' : provider === 'elevenlabs' ? 'ElevenLabs' : 'Browser'}`);
 }
 
-// ElevenLabs voice selection
+// ElevenLabs voice selection (legacy, kept for compatibility)
 function setElevenLabsVoice(voice) {
-  elevenlabsVoice = voice;
-  localStorage.setItem('elevenlabs_voice', voice);
-  
-  // Update UI
-  document.querySelectorAll('#elevenlabsVoiceSelector .pill-m').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.voice === voice);
-  });
-  
-  // Preview voice
-  previewElevenLabsVoice(voice);
+  const voiceId = ELEVENLABS_VOICES[voice];
+  if (voiceId) {
+    selectElevenLabsVoice(voice, voiceId);
+  }
 }
 
-// Preview ElevenLabs voice
+// Preview ElevenLabs voice - Russian samples
 async function previewElevenLabsVoice(voice) {
   if (!elevenlabsApiKey) {
     showToast('Enter ElevenLabs API key to preview');
     return;
   }
   
+  // Russian samples for preview
   const samples = {
-    'Rachel': 'Hi! I\'m Rachel, warm and friendly.',
-    'Domi': 'Hello, I\'m Domi, confident and clear.',
-    'Bella': 'Hey there, I\'m Bella, soft and gentle.',
-    'Antoni': 'Hello, I\'m Antoni, calm and professional.',
-    'Elli': 'Hi, I\'m Elli, young and energetic.',
-    'Josh': 'Hello! I\'m Josh, deep and expressive.'
+    'Nadia': 'Привет! Я Надя, молодой и дружелюбный голос.',
+    'Larisa': 'Здравствуйте, я Лариса, нежный и приятный голос.',
+    'Kate': 'Привет! Я Катя, спокойный и дружелюбный голос.',
+    'Viktoriia': 'Здравствуйте! Я Виктория, чистый и энергичный голос.',
+    'Mariia': 'Привет, я Мария, мягкий и приятный голос.',
+    'Elena': 'Здравствуйте, я Елена, зрелый женский голос.',
+    'Dmitry': 'Привет! Я Дмитрий, весёлый молодой голос.',
+    'Ivan': 'Здравствуйте, я Иван, глубокий и спокойный голос.',
+    'Denis': 'Привет! Я Денис, приятный молодой голос.',
+    'Oleg': 'Здравствуйте, я Олег, приятный мужской голос.',
+    'Marat': 'Привет, я Марат, зрелый мужской голос.',
+    'Alexander': 'Здравствуйте! Я Александр, приятный голос.'
   };
   
-  const text = samples[voice] || `This is ${voice} voice.`;
+  const text = samples[voice] || `Это голос ${voice}.`;
   
   // Temporarily switch to elevenlabs for preview
   const originalProvider = ttsProvider;
   ttsProvider = 'elevenlabs';
-  await askiSpeak(text, 'en', null);
+  await askiSpeak(text, 'ru', null);
   ttsProvider = originalProvider;
 }
 
@@ -3144,9 +3247,9 @@ function initTTSProviderUI() {
   if (openaiSettings) openaiSettings.style.display = ttsProvider === 'openai' ? 'block' : 'none';
   if (elevenlabsSettings) elevenlabsSettings.style.display = ttsProvider === 'elevenlabs' ? 'block' : 'none';
   
-  // Set ElevenLabs voice selector
+  // Set ElevenLabs voice selector by voice ID
   document.querySelectorAll('#elevenlabsVoiceSelector .pill-m').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.voice === elevenlabsVoice);
+    btn.classList.toggle('active', btn.dataset.voiceid === elevenlabsVoiceId);
   });
   
   // Load keys
@@ -5698,7 +5801,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.10';
+  md+='---\nExported from DropLit v0.9.11';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
