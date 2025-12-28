@@ -76,8 +76,11 @@
     .logo-btn.filters-open { transform: rotate(180deg); }
     
     /* Filters toggle - hidden by default */
-    .filters { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease; padding: 0; background: var(--color-bg-card); position: relative; }
-    body.filters-visible .filters { max-height: 200px; opacity: 1; padding: 8px 10px; box-shadow: 0 4px 6px -2px rgba(0,0,0,0.08); }
+    .filters-wrap { position: relative; }
+    .filters-wrap::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 8px; background: linear-gradient(to bottom, rgba(0,0,0,0.06), transparent); pointer-events: none; opacity: 0; transition: opacity 0.2s; transform: translateY(100%); }
+    body.filters-visible .filters-wrap::after { opacity: 1; }
+    .filters { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease; padding: 0; background: var(--color-bg-card); }
+    body.filters-visible .filters { max-height: 200px; opacity: 1; padding: 8px 10px; }
     body.filters-visible .logo-btn { background: linear-gradient(135deg, #8B5CF6, #7C3AED); }
     .header-title { font-size: 0.9rem; font-weight: 700; color: var(--color-text); display: none; }
     .header-title span { color: var(--color-primary); }
@@ -969,6 +972,7 @@
       <span class="search-indicator-text">Searching: <span id="searchQueryDisplay"></span></span>
       <button class="search-indicator-clear" onclick="clearSearch()">✕ Clear</button>
     </div>
+    <div class="filters-wrap">
     <div class="filters">
       <div class="time-row" id="timeRow">
         <button class="time-btn" data-time="all">All <span class="cnt" id="cntAll">0</span></button>
@@ -989,6 +993,7 @@
         <button class="cat" data-category="scan">Scan <span class="cnt" id="cntScan">0</span></button>
         <button class="cat-add" onclick="addCatPrompt()">+</button>
       </div>
+    </div>
     </div>
     <div class="ideas-wrap" id="ideasWrap">
       <div class="ideas" id="ideasList"></div>
