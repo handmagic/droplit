@@ -3036,12 +3036,12 @@ function openAudioRecorder() {
   recorderBlob = null;
   updateRecorderUI();
   
-  // Reset CREATE DROP button
+  // Reset CREATE DROP button - disabled until recording exists
   const createBtn = document.querySelector('.act-btn.create');
   if (createBtn) {
-    createBtn.disabled = false;
+    createBtn.disabled = true;
     createBtn.textContent = 'CREATE DROP';
-    createBtn.style.opacity = '1';
+    createBtn.style.opacity = '0.4';
     createBtn.style.background = '#D1FAE5';
     createBtn.style.color = '#065F46';
   }
@@ -3102,6 +3102,16 @@ async function startRecorderRecording() {
       audioRecordingStream.getTracks().forEach(track => track.stop());
       recorderState = 'stopped';
       updateRecorderUI();
+      
+      // Enable CREATE DROP button - recording is ready
+      const createBtn = document.querySelector('.act-btn.create');
+      if (createBtn) {
+        createBtn.disabled = false;
+        createBtn.textContent = 'CREATE DROP';
+        createBtn.style.opacity = '1';
+        createBtn.style.background = '#D1FAE5';
+        createBtn.style.color = '#065F46';
+      }
     };
     
     audioRecorder.start(100);
@@ -3111,14 +3121,12 @@ async function startRecorderRecording() {
     // Start timer
     recorderTimerInterval = setInterval(updateRecorderTime, 100);
     
-    // Reset CREATE DROP button to active state when new recording starts
+    // Keep CREATE DROP button disabled during recording
     const createBtn = document.querySelector('.act-btn.create');
     if (createBtn) {
-      createBtn.disabled = false;
+      createBtn.disabled = true;
       createBtn.textContent = 'CREATE DROP';
-      createBtn.style.opacity = '1';
-      createBtn.style.background = '#D1FAE5';
-      createBtn.style.color = '#065F46';
+      createBtn.style.opacity = '0.4';
     }
     
     updateRecorderUI();
@@ -3305,27 +3313,42 @@ async function recorderShare() {
     return;
   }
   
+  // Check if Web Share API is available
+  if (!navigator.share) {
+    // Fallback: download file
+    const url = URL.createObjectURL(recorderBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'droplit-audio-' + Date.now() + '.webm';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Downloaded (share not available)');
+    return;
+  }
+  
   try {
     const file = new File([recorderBlob], 'droplit-audio.webm', { type: recorderBlob.type });
     
-    await navigator.share({ 
-      files: [file], 
-      title: 'DropLit Audio',
-      text: 'Audio recording from DropLit'
-    });
-    
-  } catch (e) {
-    if (e.name === 'AbortError') return; // User cancelled
-    
-    // If share with files not supported, try without files
-    try {
+    // Check if can share files
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ 
+        files: [file], 
+        title: 'DropLit Audio',
+        text: 'Audio recording from DropLit'
+      });
+    } else {
+      // Share without file
       await navigator.share({
         title: 'DropLit Audio',
         text: 'Audio recording from DropLit'
       });
-    } catch (e2) {
-      showToast('Share not available');
     }
+    
+  } catch (e) {
+    if (e.name === 'AbortError') return; // User cancelled
+    showToast('Share failed');
   }
 }
 
@@ -5061,14 +5084,18 @@ function render(){
         h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       } else if(i.isMedia){
         h+='<button class="act" onclick="viewImage('+i.id+',event)">View</button>';
+        h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
+        h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
+        h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
+        h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       } else {
         h+='<button class="act ai" onclick="openAITools('+i.id+')">AI Tools</button>';
         h+='<button class="act" onclick="startEdit('+i.id+')">Edit</button>';
+        h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
+        h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
+        h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
+        h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       }
-      h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
-      h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
-      h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
-      h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       h+='</div>';
       if(!i.isMedia){
         h+='<div class="card-edit-actions"><button class="act primary" onclick="saveEdit('+i.id+')">Save</button><button class="act secondary" onclick="cancelEdit('+i.id+')">Cancel</button></div>';
