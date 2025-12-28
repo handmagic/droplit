@@ -482,6 +482,7 @@
     .audio-recorder-main-btn.ready { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; }
     .audio-recorder-main-btn.recording { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; animation: pulse 1s infinite; }
     .audio-recorder-main-btn.paused { background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; }
+    .audio-recorder-main-btn.stopped { background: linear-gradient(135deg, #10B981, #059669); color: white; }
     .audio-recorder-main-btn:active { transform: scale(0.98); }
     .audio-recorder-actions { display: flex; gap: 8px; margin-bottom: 16px; }
     .audio-recorder-actions .act-btn { flex: 1; padding: 12px; border: none; border-radius: var(--radius-md); font-size: 0.8rem; font-weight: 600; cursor: pointer; text-transform: uppercase; transition: all 0.15s; }
@@ -489,6 +490,8 @@
     .audio-recorder-actions .act-btn.delete { background: #FEE2E2; color: #991B1B; }
     .audio-recorder-actions .act-btn.create { background: #D1FAE5; color: #065F46; }
     .audio-recorder-actions .act-btn.share { background: #E0E7FF; color: #3730A3; }
+    .audio-recorder-actions .act-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+    .audio-recorder-controls .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
     .audio-recorder-cancel { width: 100%; padding: 16px; border: 2px solid var(--color-border); border-radius: var(--radius-md); background: transparent; font-size: 0.9rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; transition: all 0.15s; }
     .audio-recorder-cancel:active { background: var(--color-bg-btn); }
     .magic-header { padding: 20px; text-align: center; background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; }
@@ -861,7 +864,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.33 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.40 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1547,7 +1550,7 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
         </button>
         <input type="text" class="ask-ai-input" id="askAIInput" placeholder="Ask anything..." maxlength="500" oninput="updateAskAICharCount()" onkeypress="if(event.key==='Enter' && this.value.trim()) sendAskAIMessage()">
-        <button class="ask-ai-btn ask-ai-btn-send" id="askAISendBtn" onclick="console.log('Send clicked'); sendAskAIMessage()">
+        <button class="ask-ai-btn ask-ai-btn-send" id="askAISendBtn" onclick="sendAskAIMessage()">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9 22 2Z"/></svg>
         </button>
       </div>
@@ -1804,7 +1807,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.33 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.40 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1817,7 +1820,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.33 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.40 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -3126,6 +3129,8 @@ function updateRecorderUI() {
   const waveform = document.getElementById('recorderWaveform');
   const playBtn = document.getElementById('recorderPlayBtn');
   const stopBtn = document.getElementById('recorderStopBtn');
+  const rewindBtn = document.querySelector('.ctrl-btn.rewind');
+  const forwardBtn = document.querySelector('.ctrl-btn.forward');
   
   mainBtn.className = 'audio-recorder-main-btn ' + recorderState;
   waveform.className = 'audio-recorder-waveform' + (recorderState === 'recording' ? ' recording' : '');
@@ -3138,6 +3143,12 @@ function updateRecorderUI() {
     stopBtn.style.display = 'none';
     playBtn.style.display = 'block';
   }
+  
+  // Enable/disable controls based on state
+  const hasRecording = recorderState === 'stopped' && recorderBlob;
+  if (playBtn) playBtn.disabled = !hasRecording;
+  if (rewindBtn) rewindBtn.disabled = !hasRecording;
+  if (forwardBtn) forwardBtn.disabled = !hasRecording;
   
   switch(recorderState) {
     case 'ready':
@@ -3220,38 +3231,36 @@ async function recorderCreateDrop() {
   if (!recorderBlob) return;
   
   const createBtn = document.querySelector('.act-btn.create');
-  
-  // Disable immediately
-  createBtn.disabled = true;
   createBtn.textContent = 'SAVING...';
-  createBtn.style.opacity = '0.5';
-  
-  // Calculate duration from timer
-  const timeText = document.getElementById('recorderTime').textContent;
-  const parts = timeText.split(':');
-  const duration = parseInt(parts[0]) * 60 + parseInt(parts[1]);
   
   try {
-    await saveAudioDrop(recorderBlob, duration);
+    await saveAudioDrop(recorderBlob);
     
-    // Success
-    createBtn.textContent = 'SAVED!';
+    // SUCCESS - reset everything
+    createBtn.textContent = 'DROP CREATED';
     
-    // Reset
+    // Clear recording
     recorderBlob = null;
     recorderState = 'ready';
     document.getElementById('recorderTime').textContent = '0:00';
+    
+    // Disable all buttons
     updateRecorderButtons(false);
     updateRecorderUI();
     
+    // Reset button text after delay
     setTimeout(() => {
       createBtn.textContent = 'CREATE DROP';
-    }, 1000);
+      createBtn.style.background = '#D1FAE5';
+      createBtn.style.color = '#065F46';
+    }, 1500);
     
-  } catch (e) {
+  } catch (error) {
     createBtn.textContent = 'ERROR';
-    createBtn.disabled = false;
-    createBtn.style.opacity = '1';
+    setTimeout(() => {
+      createBtn.textContent = 'CREATE DROP';
+      updateRecorderButtons(!!recorderBlob);
+    }, 1000);
   }
 }
 
@@ -3261,14 +3270,32 @@ async function recorderShare() {
     return;
   }
   
-  // Download file (works everywhere)
-  const url = URL.createObjectURL(recorderBlob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'audio-' + Date.now() + '.webm';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Downloaded!');
+  showToast('Preparing to share...');
+  
+  try {
+    const file = new File([recorderBlob], 'droplit-audio.webm', { type: recorderBlob.type || 'audio/webm' });
+    
+    if (navigator.share) {
+      await navigator.share({ 
+        files: [file], 
+        title: 'DropLit Audio'
+      });
+      showToast('Shared!');
+    } else {
+      // Fallback: download
+      const url = URL.createObjectURL(recorderBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'droplit-audio.webm';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Downloaded');
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      showToast('Share error: ' + e.message);
+    }
+  }
 }
 
 // Generate simple waveform from audio buffer
@@ -3297,38 +3324,53 @@ async function generateWaveform(blob, numBars = 40) {
 }
 
 // Save audio drop
-async function saveAudioDrop(blob, duration) {
-  // Convert blob to base64
-  const base64Data = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Read error'));
-    reader.readAsDataURL(blob);
-  });
-  
-  const now = new Date();
-  const drop = {
-    id: Date.now(),
-    text: '',
-    category: 'audio',
-    timestamp: now.toISOString(),
-    date: now.toLocaleDateString('ru-RU'),
-    time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
-    isMedia: true,
-    audioData: base64Data,
-    audioFormat: blob.type.split('/')[1] || 'webm',
-    audioSize: blob.size,
-    duration: duration || 0,
-    waveform: [],
-    notes: ''
-  };
-  
-  ideas.unshift(drop);
-  save(drop);
-  render();
-  counts();
-  showToast('Audio saved!');
-  return drop;
+async function saveAudioDrop(blob) {
+  try {
+    // Get duration first
+    const ctx = getAudioContext();
+    const arrayBuffer = await blob.arrayBuffer();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    const duration = audioBuffer.duration;
+    
+    // Convert blob to base64
+    const base64Data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Failed to read audio'));
+      reader.readAsDataURL(blob);
+    });
+    
+    const now = new Date();
+    const drop = {
+      id: Date.now(),
+      text: '',
+      category: 'audio',
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('ru-RU'),
+      time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
+      isMedia: true,
+      audioData: base64Data,
+      audioFormat: blob.type.split('/')[1] || 'webm',
+      audioSize: blob.size,
+      audioBitrate: Math.round((blob.size * 8) / duration),
+      duration: duration,
+      waveform: [],
+      notes: ''
+    };
+    
+    ideas.unshift(drop);
+    save(drop);
+    render();
+    counts();
+    
+    showToast('Audio saved! ' + formatDuration(duration));
+    return drop;
+    
+  } catch (error) {
+    console.error('Save audio error:', error);
+    showToast('Error saving audio');
+    throw error;
+  }
 }
 
 // Play audio drop
@@ -6700,7 +6742,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.33';
+  md+='---\nExported from DropLit v0.9.40';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
