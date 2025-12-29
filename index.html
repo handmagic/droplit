@@ -869,7 +869,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.48 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.50 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1820,7 +1820,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.48 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.50 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1834,7 +1834,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.48 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.50 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1936,7 +1936,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 
 // ============================================
-// AUTO-FIX: Repair string IDs (v0.9.48)
+// AUTO-FIX: Repair string IDs (v0.9.50)
 // ============================================
 (function autoFixIds() {
   let fixed = 0;
@@ -1954,7 +1954,7 @@ let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 })();
 
 // ============================================
-// SUPABASE SYNC (v0.9.48)
+// SUPABASE SYNC (v0.9.50)
 // ============================================
 const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE';
@@ -2334,7 +2334,7 @@ const MARKERS={
 const ENABLED_MARKERS=['heart'];
 
 // ============================================
-// ID GENERATOR (v0.9.48)
+// ID GENERATOR (v0.9.50)
 // Base62: 16 random characters, no timestamp
 // ============================================
 const BASE62_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -2345,7 +2345,7 @@ function generateId(length = 16) {
 }
 
 // ============================================
-// DROP SOUND (v0.9.48)
+// DROP SOUND (v0.9.50)
 // Signature sound when creating a drop
 // ============================================
 let dropSoundCtx = null;
@@ -2384,7 +2384,7 @@ function playDropSound() {
 }
 
 // ============================================
-// TTS - TEXT TO SPEECH (v0.9.48)
+// TTS - TEXT TO SPEECH (v0.9.50)
 // Read drop content aloud
 // ============================================
 let currentTTSUtterance = null;
@@ -2861,7 +2861,7 @@ function detectCat(t){
 }
 function saveIdea(t){
   // ============================================
-  // SLASH COMMANDS (v0.9.48)
+  // SLASH COMMANDS (v0.9.50)
   // ============================================
   if (t.startsWith('/')) {
     const cmd = t.toLowerCase().trim();
@@ -2895,7 +2895,7 @@ function saveIdea(t){
       const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
       const deviceId = DEVICE_ID || 'Not set';
       const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
-      alert(`DropLit Debug v0.9.48\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      alert(`DropLit Debug v0.9.50\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
@@ -4903,18 +4903,50 @@ async function sendAskAIMessage() {
   
   showAskAITyping();
   
-  // Get context from Syntrise CORE
+  // Get context from Supabase (v0.9.50 - Dynamic Context)
+  let contextForAI = null;
+  try {
+    const supabaseContext = await getSupabaseContext(text, {
+      limit: 20,
+      recentHours: 24,
+      searchEnabled: true
+    });
+    contextForAI = formatContextForAI(supabaseContext);
+    if (contextForAI) {
+      console.log('📚 Context loaded for ASKI');
+    }
+  } catch (e) {
+    console.warn('Context fetch skipped:', e.message);
+  }
+  
+  // Legacy: Also try Syntrise CORE if enabled
   let syntriseContext = [];
-  if (window.SyntriseCore) {
+  if (window.SyntriseCore && SYNTRISE_CONFIG?.ENABLED) {
     try {
       syntriseContext = await getSyntriseContext(text);
       console.log('Syntrise context:', syntriseContext?.length || 0, 'drops found');
     } catch (e) {
-      console.warn('Context fetch skipped');
+      console.warn('Syntrise context fetch skipped');
     }
   }
   
   console.log('Sending to:', AI_API_URL);
+  
+  // v2 API: Send structured context, server handles formatting
+  const INJECT_CONTEXT_INTO_MESSAGE = false; // v2: Server handles context
+  
+  // Prepare context object for server
+  let contextObject = null;
+  try {
+    if (supabaseContext?.recent?.length || supabaseContext?.relevant?.length) {
+      contextObject = {
+        recent: supabaseContext.recent || [],
+        relevant: supabaseContext.relevant || []
+      };
+    }
+  } catch (e) {
+    console.warn('Context preparation error:', e);
+  }
   
   try {
     const response = await fetch(AI_API_URL, {
@@ -4922,9 +4954,11 @@ async function sendAskAIMessage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'chat',
-        text: text,
-        history: askAIMessages.slice(-10), // Last 10 messages for context
-        syntriseContext: syntriseContext // RAG context from Syntrise CORE
+        text: text,  // Clean text, no injection
+        history: askAIMessages.slice(-10),
+        syntriseContext: syntriseContext, // Legacy
+        dropContext: contextObject, // v2: Structured context for server
+        enableTools: true // v2: Enable Tool Calling
       })
     });
     
@@ -4932,10 +4966,41 @@ async function sendAskAIMessage() {
     const data = await response.json();
     console.log('Response data:', data);
     
+    // Log tools used (v2)
+    if (data.toolsUsed?.length) {
+      console.log('🔧 AI used tools:', data.toolsUsed.join(', '));
+    }
+    
     hideAskAITyping();
     
     if (data.success && data.result) {
       addAskAIMessage(data.result, false);
+      
+      // Handle AI-initiated drop creation (v2 Tool Calling)
+      if (data.createDrop?.action === 'create_drop') {
+        const dropText = data.createDrop.text;
+        const dropCategory = data.createDrop.category || 'inbox';
+        
+        // Create the drop
+        const now = new Date();
+        const newIdea = {
+          id: Date.now(),
+          text: dropText,
+          category: dropCategory,
+          date: now.toLocaleDateString('ru-RU'),
+          time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: now.toISOString(),
+          aiGenerated: true
+        };
+        
+        ideas.unshift(newIdea);
+        save(newIdea);
+        render();
+        counts();
+        
+        console.log('✅ AI created drop:', dropText.substring(0, 50) + '...');
+        toast(`Aski created: ${dropCategory}`, 'success');
+      }
     } else {
       console.log('Error in response:', data);
       addAskAIMessage('Sorry, I could not process your request. ' + (data.error || ''), false);
@@ -5438,7 +5503,7 @@ function confirmDel(){
     const delItem=ideas.find(x=>x.id===delId);
     if(delItem) {
       saveUndo('delete',{...delItem});
-      // Sync delete to Supabase (v0.9.48)
+      // Sync delete to Supabase (v0.9.50)
       if (syncEnabled && currentUser) {
         deleteDropFromServer(delId);
       }
@@ -5464,7 +5529,7 @@ function saveEdit(id){
         i.text=t;
         i.category=detectCat(t);
         save();
-        // Sync update to Supabase (v0.9.48)
+        // Sync update to Supabase (v0.9.50)
         if (syncEnabled && currentUser) {
           syncDropToServer(i, 'update');
         }
@@ -5527,7 +5592,7 @@ function save(newDrop){
     const data=JSON.stringify(ideas);
     localStorage.setItem('droplit_ideas',data);
     
-    // Sync to Supabase (v0.9.48)
+    // Sync to Supabase (v0.9.50)
     if (newDrop && syncEnabled && currentUser) {
       syncDropToServer(newDrop, 'create');
     }
@@ -7394,7 +7459,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.48';
+  md+='---\nExported from DropLit v0.9.50';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -7440,7 +7505,7 @@ function closeMainMenu() {
   updateMenuIcon(false);
 }
 
-// Debug info (v0.9.48)
+// Debug info (v0.9.50)
 function showDebugInfo() {
   closeMainMenu();
   const total = ideas.length;
@@ -7455,7 +7520,7 @@ function showDebugInfo() {
   const lastSync = lastSyncTime ? lastSyncTime.toLocaleTimeString() : 'Never';
   
   alert(
-    `DropLit Debug v0.9.48\n\n` +
+    `DropLit Debug v0.9.50\n\n` +
     `=== DROPS ===\n` +
     `Total: ${total}\n` +
     `Text: ${textDrops}\n` +
@@ -8513,6 +8578,7 @@ async function syncDropToCore(drop) {
 
 // Get context for Aski from Syntrise CORE
 async function getSyntriseContext(query) {
+  // LEGACY: Old API - now using Supabase
   if (!SYNTRISE_CONFIG.ENABLED) return null;
   try {
     const response = await fetch(`${SYNTRISE_CONFIG.API_URL}/drops/search`, {
@@ -8531,6 +8597,115 @@ async function getSyntriseContext(query) {
     console.warn('Syntrise context error:', e.message);
     return [];
   }
+}
+
+// ============================================
+// DYNAMIC CONTEXT FROM SUPABASE (v0.9.50)
+// ============================================
+
+// Get fresh drops for ASKI context
+async function getSupabaseContext(query, options = {}) {
+  const {
+    limit = 20,           // Max drops to return
+    recentHours = 24,     // Include drops from last N hours
+    searchEnabled = true  // Enable text search
+  } = options;
+  
+  if (!supabaseClient || !currentUser) {
+    console.log('⚠️ Supabase not ready for context');
+    return { recent: [], relevant: [] };
+  }
+  
+  try {
+    const context = { recent: [], relevant: [] };
+    
+    // 1. Get RECENT drops (last N hours)
+    const recentSince = new Date(Date.now() - recentHours * 60 * 60 * 1000).toISOString();
+    
+    const { data: recentDrops, error: recentError } = await supabaseClient
+      .from('drops')
+      .select('content, category, created_at, metadata')
+      .eq('user_id', currentUser.id)
+      .gte('created_at', recentSince)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    
+    if (!recentError && recentDrops) {
+      context.recent = recentDrops.map(d => ({
+        text: d.content,
+        category: d.category,
+        time: d.metadata?.time || '',
+        date: d.metadata?.date || ''
+      }));
+      console.log(`📥 Context: ${recentDrops.length} recent drops`);
+    }
+    
+    // 2. SEARCH relevant drops by keywords (if query provided)
+    if (searchEnabled && query && query.length > 2) {
+      // Extract keywords (simple: split and filter)
+      const keywords = query.toLowerCase()
+        .split(/\s+/)
+        .filter(w => w.length > 3)
+        .slice(0, 3); // Max 3 keywords
+      
+      if (keywords.length > 0) {
+        // Search using ilike for each keyword
+        const searchPattern = `%${keywords[0]}%`;
+        
+        const { data: relevantDrops, error: searchError } = await supabaseClient
+          .from('drops')
+          .select('content, category, created_at, metadata')
+          .eq('user_id', currentUser.id)
+          .ilike('content', searchPattern)
+          .order('created_at', { ascending: false })
+          .limit(5);
+        
+        if (!searchError && relevantDrops) {
+          context.relevant = relevantDrops.map(d => ({
+            text: d.content,
+            category: d.category,
+            time: d.metadata?.time || '',
+            date: d.metadata?.date || ''
+          }));
+          console.log(`🔍 Context: ${relevantDrops.length} relevant drops for "${keywords[0]}"`);
+        }
+      }
+    }
+    
+    return context;
+    
+  } catch (error) {
+    console.error('❌ Supabase context error:', error);
+    return { recent: [], relevant: [] };
+  }
+}
+
+// Format context for AI prompt
+function formatContextForAI(context) {
+  if (!context || (!context.recent?.length && !context.relevant?.length)) {
+    return null;
+  }
+  
+  let formatted = [];
+  
+  // Add relevant drops first (if any)
+  if (context.relevant?.length) {
+    formatted.push('=== RELEVANT NOTES ===');
+    context.relevant.forEach(d => {
+      formatted.push(`[${d.category}] ${d.text}`);
+    });
+  }
+  
+  // Add recent drops
+  if (context.recent?.length) {
+    formatted.push('=== RECENT NOTES (last 24h) ===');
+    context.recent.slice(0, 10).forEach(d => {
+      const timeStr = d.time ? ` (${d.time})` : '';
+      formatted.push(`[${d.category}]${timeStr} ${d.text}`);
+    });
+  }
+  
+  return formatted.join('\n');
 }
 
 // Sync all existing drops in batches (to avoid timeout)
