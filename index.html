@@ -3156,7 +3156,14 @@ function recorderDelete() {
 }
 
 async function recorderCreateDrop() {
-  if (!recorderBlob) return;
+  showToast('CREATE DROP clicked');
+  
+  if (!recorderBlob) {
+    showToast('ERROR: No recording!');
+    return;
+  }
+  
+  showToast('Blob: ' + recorderBlob.size + ' bytes');
   
   const createBtn = document.querySelector('#audioRecorderModal .act-btn.create');
   const deleteBtn = document.querySelector('#audioRecorderModal .act-btn.delete');
@@ -3169,14 +3176,22 @@ async function recorderCreateDrop() {
   createBtn.textContent = 'SAVING...';
   
   try {
+    showToast('Starting base64...');
     console.log('recorderCreateDrop: starting base64 conversion');
     // Convert to base64
     const base64Data = await new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error('FileReader failed'));
+      reader.onloadend = () => {
+        console.log('FileReader onloadend');
+        resolve(reader.result);
+      };
+      reader.onerror = () => {
+        console.log('FileReader onerror');
+        reject(new Error('FileReader failed'));
+      };
       reader.readAsDataURL(recorderBlob);
     });
+    showToast('Base64 OK: ' + base64Data.length);
     console.log('recorderCreateDrop: base64 done, length=' + base64Data.length);
     
     // Get duration from timer
