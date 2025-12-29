@@ -639,7 +639,7 @@ async function recorderCreateDrop() {
 }
 
 // ===== SHARE =====
-async function recorderShare() {
+function recorderShare() {
   log('recorderShare()');
   
   if (!recorderBlob) {
@@ -654,67 +654,29 @@ async function recorderShare() {
   const file = new File([recorderBlob], fileName, { type: recorderBlob.type });
   log('File created: ' + fileName);
   
-  // Check APIs
-  const hasShare = typeof navigator.share === 'function';
-  const hasCanShare = typeof navigator.canShare === 'function';
-  log('navigator.share: ' + hasShare);
-  log('navigator.canShare: ' + hasCanShare);
-  
-  if (hasCanShare) {
-    try {
-      const canShareFile = navigator.canShare({ files: [file] });
-      log('canShare({files}): ' + canShareFile);
-    } catch (e) {
-      log('canShare error: ' + e.message);
+  // Direct share - no async/await to preserve user gesture
+  navigator.share({
+    files: [file],
+    title: 'Audio Recording'
+  }).then(() => {
+    log('Share SUCCESS');
+  }).catch(err => {
+    log('Share error: ' + err.name + ' - ' + err.message);
+    
+    if (err.name !== 'AbortError') {
+      // Fallback: download
+      log('Downloading...');
+      const url = URL.createObjectURL(recorderBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      log('Downloaded');
     }
-  }
-  
-  // Try to share
-  if (hasShare) {
-    try {
-      log('Calling navigator.share...');
-      await navigator.share({
-        files: [file],
-        title: 'Audio Recording'
-      });
-      log('Share SUCCESS');
-    } catch (err) {
-      log('Share error: ' + err.name + ' - ' + err.message);
-      
-      if (err.name === 'AbortError') {
-        log('User cancelled');
-      } else {
-        // Try without files
-        try {
-          log('Trying share without files...');
-          await navigator.share({
-            title: 'Audio Recording',
-            text: 'Audio ' + document.getElementById('recorderTime').textContent
-          });
-          log('Text share SUCCESS');
-        } catch (err2) {
-          log('Text share error: ' + err2.message);
-          downloadFile();
-        }
-      }
-    }
-  } else {
-    log('No share API, downloading...');
-    downloadFile();
-  }
-  
-  function downloadFile() {
-    log('Downloading file...');
-    const url = URL.createObjectURL(recorderBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    log('Download triggered');
-  }
+  });
 }
 
 // ===== INIT =====
