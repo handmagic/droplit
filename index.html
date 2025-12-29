@@ -1978,6 +1978,8 @@ const DEVICE_ID = localStorage.getItem('droplit_device_id') || (() => {
   return id;
 })();
 
+console.log('📱 Device ID:', DEVICE_ID);
+
 // Initialize Supabase
 async function initSupabase() {
   try {
@@ -2171,6 +2173,8 @@ async function syncDropToServer(idea, action = 'create') {
       local_id: String(idea.id),
       device_id: DEVICE_ID
     };
+    
+    console.log('📤 Syncing drop:', dropData.id, 'device_id:', dropData.device_id);
     
     const { error } = await supabaseClient
       .from('drops')
@@ -2863,7 +2867,10 @@ function saveIdea(t){
       const stringIds = ideas.filter(i => typeof i.id === 'string').length;
       const merged = ideas.filter(i => i.isMerged).length;
       const audio = ideas.filter(i => i.category === 'audio').length;
-      alert(`DropLit Debug\n\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
+      const deviceId = DEVICE_ID || 'Not set';
+      const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
+      alert(`DropLit Debug v0.9.47\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
