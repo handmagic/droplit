@@ -2067,21 +2067,28 @@ async function migrateLocalData() {
     const textDrops = ideas.filter(i => !i.isMedia && !i.image && !i.audioData);
     
     const dropsToInsert = textDrops.map(idea => ({
-      id: String(idea.id),
       user_id: currentUser.id,
-      text: idea.text || '',
+      external_id: String(idea.id),
+      content: idea.text || '',
       category: idea.category || 'inbox',
+      tags: idea.tags || [],
+      markers: idea.markers || [],
+      source: 'droplit',
+      language: 'ru',
       is_media: false,
       has_local_media: !!(idea.image || idea.audioData),
-      markers: idea.markers || [],
       is_merged: idea.isMerged || false,
       ai_generated: idea.aiGenerated || false,
       transcription: idea.transcription || null,
       original_text: idea.originalText || null,
       notes: idea.notes || null,
-      created_at: idea.timestamp || new Date().toISOString(),
       local_id: String(idea.id),
-      device_id: DEVICE_ID
+      device_id: DEVICE_ID,
+      metadata: {
+        date: idea.date,
+        time: idea.time,
+        timestamp: idea.timestamp
+      }
     }));
     
     if (dropsToInsert.length > 0) {
@@ -2090,7 +2097,7 @@ async function migrateLocalData() {
         const batch = dropsToInsert.slice(i, i + 50);
         const { error } = await supabaseClient
           .from('drops')
-          .upsert(batch, { onConflict: 'id' });
+          .upsert(batch, { onConflict: 'external_id', ignoreDuplicates: false });
         
         if (error) {
           console.error('Migration batch error:', error);
@@ -2162,31 +2169,41 @@ async function syncDropToServer(idea, action = 'create') {
     updateSyncUI('syncing', 'Saving...');
     
     const dropData = {
-      id: String(idea.id),
       user_id: currentUser.id,
-      text: idea.text || '',
+      external_id: String(idea.id),
+      content: idea.text || '',
       category: idea.category || 'inbox',
-      is_media: false,
-      has_local_media: false,
+      tags: idea.tags || [],
       markers: idea.markers || [],
+      source: 'droplit',
+      language: 'ru',
+      is_media: !!(idea.isMedia || idea.image || idea.audioData),
+      has_local_media: !!(idea.image || idea.audioData),
       is_merged: idea.isMerged || false,
       ai_generated: idea.aiGenerated || false,
       transcription: idea.transcription || null,
       original_text: idea.originalText || null,
       notes: idea.notes || null,
-      created_at: idea.timestamp || new Date().toISOString(),
-      updated_at: new Date().toISOString(),
       local_id: String(idea.id),
-      device_id: DEVICE_ID
+      device_id: DEVICE_ID,
+      metadata: {
+        date: idea.date,
+        time: idea.time,
+        timestamp: idea.timestamp
+      }
     };
     
     // DEBUG: показываем что отправляем
-    console.log('📤 Syncing drop:', dropData.id, 'device_id:', dropData.device_id);
+    console.log('📤 Syncing drop:', dropData.external_id, 'device_id:', dropData.device_id);
     toast(`Sync: ${dropData.device_id}`, 'info');
     
+    // Upsert by external_id
     const { error, data } = await supabaseClient
       .from('drops')
-      .upsert(dropData, { onConflict: 'id' })
+      .upsert(dropData, { 
+        onConflict: 'external_id',
+        ignoreDuplicates: false 
+      })
       .select();
     
     if (error) {
@@ -2222,13 +2239,13 @@ async function deleteDropFromServer(ideaId) {
     
     const { error } = await supabaseClient
       .from('drops')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', String(ideaId))
+      .delete()
+      .eq('external_id', String(ideaId))
       .eq('user_id', currentUser.id);
     
     if (error) throw error;
     
-    console.log(`🗑️ Soft-deleted drop ${String(ideaId).substring(0, 8)}...`);
+    console.log(`🗑️ Deleted drop ${String(ideaId).substring(0, 8)}...`);
     updateSyncUI('synced', 'Synced');
     
     return true;
