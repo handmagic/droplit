@@ -111,7 +111,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">TEST: RECORDER + PLAY</div>
+    <div class="header">TEST: RECORDER + PLAY + RW/FF</div>
     <div class="body">
       <div class="time" id="time">0:00</div>
       
@@ -123,9 +123,11 @@
         STOP RECORDING
       </button>
       
-      <button class="stop-btn" id="playBtn" onclick="playAudio()" style="background:#3B82F6; display:none;">
-        PLAY
-      </button>
+      <div style="display:flex; gap:10px; margin-bottom:20px;">
+        <button class="stop-btn" id="rewindBtn" onclick="rewindAudio()" style="background:#6B7280; flex:1; display:none;">&lt;&lt; 10s</button>
+        <button class="stop-btn" id="playBtn" onclick="playAudio()" style="background:#3B82F6; flex:2; display:none;">PLAY</button>
+        <button class="stop-btn" id="forwardBtn" onclick="forwardAudio()" style="background:#6B7280; flex:1; display:none;">10s &gt;&gt;</button>
+      </div>
       
       <div class="actions">
         <button class="act-btn delete" id="deleteBtn" onclick="deleteRecording()" disabled>DELETE</button>
@@ -162,6 +164,8 @@ function updateUI() {
   const mainBtn = document.getElementById('mainBtn');
   const stopBtn = document.getElementById('stopBtn');
   const playBtn = document.getElementById('playBtn');
+  const rewindBtn = document.getElementById('rewindBtn');
+  const forwardBtn = document.getElementById('forwardBtn');
   const deleteBtn = document.getElementById('deleteBtn');
   const createBtn = document.getElementById('createBtn');
   const shareBtn = document.getElementById('shareBtn');
@@ -179,9 +183,11 @@ function updateUI() {
   // Stop button - show during recording
   stopBtn.style.display = (state === 'recording') ? 'block' : 'none';
   
-  // Play button - show when stopped with recording
+  // Play/rewind/forward buttons - show when stopped with recording
   const hasRecording = state === 'stopped' && audioBlob !== null;
   playBtn.style.display = hasRecording ? 'block' : 'none';
+  rewindBtn.style.display = hasRecording ? 'block' : 'none';
+  forwardBtn.style.display = hasRecording ? 'block' : 'none';
   
   // Action buttons - only enabled when stopped with recording
   deleteBtn.disabled = !hasRecording;
@@ -480,6 +486,20 @@ function playAudio() {
   currentAudio.play();
   playBtn.textContent = 'PAUSE';
   log('Playing...');
+}
+
+function rewindAudio() {
+  log('rewindAudio');
+  if (currentAudio) {
+    currentAudio.currentTime = Math.max(0, currentAudio.currentTime - 10);
+  }
+}
+
+function forwardAudio() {
+  log('forwardAudio');
+  if (currentAudio) {
+    currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + 10);
+  }
 }
 
 // ===== INIT =====
