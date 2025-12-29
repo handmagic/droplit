@@ -3,199 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Audio Recorder + Player TEST</title>
+  <title>Recorder + Player (NO MODAL)</title>
   <style>
-    :root {
-      --color-primary: #FF6B4A;
-      --color-bg: #F5F5F4;
-      --color-bg-card: #FFFFFF;
-      --color-bg-btn: #E7E5E4;
-      --color-text: #1C1917;
-      --color-text-soft: #57534E;
-      --color-border: #D6D3D1;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --radius-full: 9999px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html, body { height: 100%; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
       font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-      background: var(--color-bg); 
+      background: #F5F5F4; 
       padding: 20px;
+      min-height: 100vh;
     }
-    
-    .open-btn {
-      width: 100%;
+    .container {
       max-width: 400px;
-      margin: 20px auto;
-      display: block;
-      padding: 20px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .header {
       background: linear-gradient(135deg, #F59E0B, #D97706);
+      padding: 20px;
+      text-align: center;
       color: white;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+    .body { padding: 24px; }
+    .time {
+      text-align: center;
+      font-size: 3rem;
+      font-weight: 700;
+      margin: 20px 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .main-btn {
+      width: 100%;
+      padding: 20px;
       border: none;
-      border-radius: var(--radius-md);
+      border-radius: 12px;
       font-size: 1.1rem;
       font-weight: 700;
       cursor: pointer;
       text-transform: uppercase;
+      margin-bottom: 20px;
+      transition: all 0.15s;
     }
-    .open-btn:active { transform: scale(0.98); }
-
-    /* ===== EXACT COPY FROM DROPLIT ===== */
-    .audio-recorder-modal { 
-      position: fixed; 
-      inset: 0; 
-      background: rgba(0,0,0,0.6); 
-      z-index: 200; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      padding: 20px; 
-      opacity: 0; 
-      visibility: hidden; 
-      transition: all 0.2s; 
-    }
-    .audio-recorder-modal.show { opacity: 1; visibility: visible; }
-    .audio-recorder-content { 
-      background: var(--color-bg-card); 
-      border-radius: var(--radius-lg); 
-      width: 100%; 
-      max-width: 400px; 
-      overflow: hidden; 
-      transform: translateY(20px); 
-      transition: transform 0.2s; 
-    }
-    .audio-recorder-modal.show .audio-recorder-content { transform: translateY(0); }
-    .audio-recorder-header { 
-      background: linear-gradient(135deg, #F59E0B, #D97706); 
-      padding: 20px; 
-      text-align: center; 
-    }
-    .audio-recorder-header h2 { 
-      color: white; 
-      font-size: 1.2rem; 
-      font-weight: 700; 
-      margin: 0; 
-    }
-    .audio-recorder-body { padding: 24px; }
-    .audio-recorder-waveform { 
-      height: 80px; 
-      background: var(--color-bg); 
-      border-radius: var(--radius-md); 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      gap: 3px; 
-      margin-bottom: 20px; 
-      overflow: hidden; 
-    }
-    .audio-recorder-waveform .bar { 
-      width: 4px; 
-      background: var(--color-border); 
-      border-radius: 2px; 
-      transition: all 0.1s; 
-    }
-    .audio-recorder-waveform.recording .bar { 
-      background: var(--color-primary); 
-      animation: waveBar 0.5s ease-in-out infinite alternate; 
-    }
-    @keyframes waveBar { from { transform: scaleY(0.3); } to { transform: scaleY(1); } }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    .main-btn.ready { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; }
+    .main-btn.recording { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; }
+    .main-btn.paused { background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; }
+    .main-btn.stopped { background: linear-gradient(135deg, #10B981, #059669); color: white; }
+    .main-btn:active { transform: scale(0.98); }
     
-    .audio-recorder-time { 
-      text-align: center; 
-      font-size: 2rem; 
-      font-weight: 700; 
-      color: var(--color-text); 
-      margin-bottom: 20px; 
-      font-variant-numeric: tabular-nums; 
+    /* Player controls */
+    .player-controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 20px;
     }
-    .audio-recorder-controls { 
-      display: flex; 
-      justify-content: center; 
-      gap: 12px; 
-      margin-bottom: 20px; 
+    .ctrl-btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 20px;
+      background: #E7E5E4;
+      color: #57534E;
+      font-weight: 600;
+      cursor: pointer;
     }
-    .audio-recorder-controls .ctrl-btn { 
-      padding: 12px 20px; 
-      border: none; 
-      border-radius: var(--radius-full); 
-      font-size: 0.85rem; 
-      font-weight: 600; 
-      cursor: pointer; 
-      transition: all 0.15s; 
+    .ctrl-btn:disabled { opacity: 0.4; }
+    .ctrl-btn.stop-rec { background: #EF4444; color: white; }
+    
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .act-btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
       text-transform: uppercase;
-      background: var(--color-bg-btn); 
-      color: var(--color-text-soft);
+      transition: all 0.15s;
     }
-    .audio-recorder-controls .ctrl-btn:active { transform: scale(0.95); }
-    .audio-recorder-controls .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .act-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .act-btn:active:not(:disabled) { transform: scale(0.95); }
+    .act-btn.delete { background: #FEE2E2; color: #991B1B; }
+    .act-btn.create { background: #D1FAE5; color: #065F46; }
+    .act-btn.share { background: #E0E7FF; color: #3730A3; }
     
-    .audio-recorder-main-btn { 
-      width: 100%; 
-      padding: 20px; 
-      border: none; 
-      border-radius: var(--radius-md); 
-      font-size: 1.1rem; 
-      font-weight: 700; 
-      cursor: pointer; 
-      transition: all 0.15s; 
-      text-transform: uppercase; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      gap: 10px; 
-      margin-bottom: 20px; 
-    }
-    .audio-recorder-main-btn.ready { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; }
-    .audio-recorder-main-btn.recording { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; animation: pulse 1s infinite; }
-    .audio-recorder-main-btn.paused { background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; }
-    .audio-recorder-main-btn.stopped { background: linear-gradient(135deg, #10B981, #059669); color: white; }
-    .audio-recorder-main-btn:active { transform: scale(0.98); }
-    
-    .audio-recorder-actions { 
-      display: flex; 
-      gap: 8px; 
-      margin-bottom: 16px; 
-    }
-    .audio-recorder-actions .act-btn { 
-      flex: 1; 
-      padding: 12px; 
-      border: none; 
-      border-radius: var(--radius-md); 
-      font-size: 0.8rem; 
-      font-weight: 600; 
-      cursor: pointer; 
-      text-transform: uppercase; 
-      transition: all 0.15s; 
-    }
-    .audio-recorder-actions .act-btn:active:not(:disabled) { transform: scale(0.95); }
-    .audio-recorder-actions .act-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .audio-recorder-actions .act-btn.delete { background: #FEE2E2; color: #991B1B; }
-    .audio-recorder-actions .act-btn.create { background: #D1FAE5; color: #065F46; }
-    .audio-recorder-actions .act-btn.share { background: #E0E7FF; color: #3730A3; }
-    
-    .audio-recorder-cancel { 
-      width: 100%; 
-      padding: 16px; 
-      border: 2px solid var(--color-border); 
-      border-radius: var(--radius-md); 
-      background: transparent; 
-      font-size: 0.9rem; 
-      font-weight: 600; 
-      color: var(--color-text-soft); 
-      cursor: pointer; 
-      text-transform: uppercase; 
-      transition: all 0.15s; 
-    }
-    .audio-recorder-cancel:active { background: var(--color-bg-btn); }
-    
-    /* Log panel */
     .log {
-      max-width: 400px;
-      margin: 20px auto;
+      margin-top: 20px;
       padding: 12px;
       background: #1a1a1a;
       border-radius: 8px;
@@ -205,485 +106,229 @@
       max-height: 150px;
       overflow-y: auto;
       white-space: pre-wrap;
-      word-break: break-all;
     }
   </style>
 </head>
 <body>
-
-  <button class="open-btn" onclick="openAudioRecorder()">OPEN AUDIO RECORDER</button>
-  
-  <div class="log" id="log">Log:</div>
-
-  <!-- ===== EXACT HTML FROM DROPLIT ===== -->
-  <div class="audio-recorder-modal" id="audioRecorderModal">
-    <div class="audio-recorder-content">
-      <div class="audio-recorder-header">
-        <h2>AUDIO RECORDER</h2>
+  <!-- NO MODAL - DIRECT ON PAGE -->
+  <div class="container">
+    <div class="header">RECORDER + PLAYER (NO MODAL)</div>
+    <div class="body">
+      <div class="time" id="time">0:00</div>
+      
+      <div class="player-controls">
+        <button class="ctrl-btn" id="rewindBtn" onclick="rewind()" disabled>&lt;&lt;</button>
+        <button class="ctrl-btn stop-rec" id="stopBtn" onclick="stopRec()" style="display:none;">STOP</button>
+        <button class="ctrl-btn" id="playBtn" onclick="playPause()" disabled>PLAY</button>
+        <button class="ctrl-btn" id="forwardBtn" onclick="forward()" disabled>&gt;&gt;</button>
       </div>
-      <div class="audio-recorder-body">
-        <div class="audio-recorder-waveform" id="recorderWaveform">
-          <div class="bar" style="height:20px"></div>
-          <div class="bar" style="height:35px"></div>
-          <div class="bar" style="height:50px"></div>
-          <div class="bar" style="height:40px"></div>
-          <div class="bar" style="height:60px"></div>
-          <div class="bar" style="height:45px"></div>
-          <div class="bar" style="height:30px"></div>
-          <div class="bar" style="height:55px"></div>
-          <div class="bar" style="height:70px"></div>
-          <div class="bar" style="height:50px"></div>
-          <div class="bar" style="height:35px"></div>
-          <div class="bar" style="height:60px"></div>
-          <div class="bar" style="height:45px"></div>
-          <div class="bar" style="height:25px"></div>
-          <div class="bar" style="height:40px"></div>
-          <div class="bar" style="height:55px"></div>
-          <div class="bar" style="height:35px"></div>
-          <div class="bar" style="height:50px"></div>
-          <div class="bar" style="height:65px"></div>
-          <div class="bar" style="height:40px"></div>
-        </div>
-        <div class="audio-recorder-time" id="recorderTime">0:00</div>
-        <div class="audio-recorder-controls">
-          <button class="ctrl-btn rewind" onclick="recorderRewind()">&lt;&lt;</button>
-          <button class="ctrl-btn" id="recorderStopBtn" onclick="recorderStop()" style="background:#EF4444; color:white; font-weight:700;">STOP</button>
-          <button class="ctrl-btn play" id="recorderPlayBtn" onclick="recorderPlayPause()">PLAY</button>
-          <button class="ctrl-btn forward" onclick="recorderForward()">&gt;&gt;</button>
-        </div>
-        <button class="audio-recorder-main-btn ready" id="recorderMainBtn" onclick="recorderToggleRecord()">
-          <span id="recorderMainText">TAP TO RECORD</span>
-        </button>
-        <div class="audio-recorder-actions">
-          <button class="act-btn delete" onclick="event.stopPropagation(); recorderDelete()" disabled>DELETE</button>
-          <button class="act-btn create" onclick="event.stopPropagation(); recorderCreateDrop()" disabled>CREATE DROP</button>
-          <button class="act-btn share" onclick="event.stopPropagation(); recorderShare()" disabled>SHARE</button>
-        </div>
-        <button class="audio-recorder-cancel" onclick="closeAudioRecorder()">CANCEL</button>
+      
+      <button class="main-btn ready" id="mainBtn" onclick="toggleRecord()">
+        TAP TO RECORD
+      </button>
+      
+      <div class="actions">
+        <button class="act-btn delete" id="deleteBtn" onclick="deleteRec()" disabled>DELETE</button>
+        <button class="act-btn create" id="createBtn" onclick="createDrop()" disabled>CREATE</button>
+        <button class="act-btn share" id="shareBtn" onclick="shareRec()" disabled>SHARE</button>
       </div>
     </div>
   </div>
+  
+  <div class="log" id="log">Log:</div>
 
 <script>
-// ===== LOGGING =====
 function log(msg) {
-  const logEl = document.getElementById('log');
-  const time = new Date().toLocaleTimeString();
-  logEl.textContent += '\n[' + time + '] ' + msg;
-  logEl.scrollTop = logEl.scrollHeight;
-  console.log(msg);
+  const el = document.getElementById('log');
+  el.textContent += '\n' + msg;
+  el.scrollTop = el.scrollHeight;
 }
 
-// ===== STATE =====
-let recorderState = 'ready'; // ready, recording, paused, stopped
-let recorderStartTime = null;
-let recorderTimerInterval = null;
-let recorderBlob = null;
+// State
+let state = 'ready';
+let blob = null;
+let recorder = null;
+let chunks = [];
+let stream = null;
+let startTime = null;
+let timerInt = null;
+let audioEl = null;
 
-let audioRecorder = null;
-let audioRecordingChunks = [];
-let audioRecordingStream = null;
-let currentAudioElement = null;
+// UI refs
+const mainBtn = document.getElementById('mainBtn');
+const stopBtn = document.getElementById('stopBtn');
+const playBtn = document.getElementById('playBtn');
+const rewindBtn = document.getElementById('rewindBtn');
+const forwardBtn = document.getElementById('forwardBtn');
+const deleteBtn = document.getElementById('deleteBtn');
+const createBtn = document.getElementById('createBtn');
+const shareBtn = document.getElementById('shareBtn');
+const timeEl = document.getElementById('time');
 
-// ===== OPEN / CLOSE =====
-function openAudioRecorder() {
-  log('openAudioRecorder()');
+function updateUI() {
+  mainBtn.className = 'main-btn ' + state;
   
-  recorderState = 'ready';
-  recorderBlob = null;
-  audioRecordingChunks = [];
-  document.getElementById('recorderTime').textContent = '0:00';
+  if (state === 'ready') mainBtn.textContent = 'TAP TO RECORD';
+  else if (state === 'recording') mainBtn.textContent = 'TAP TO PAUSE';
+  else if (state === 'paused') mainBtn.textContent = 'TAP TO RESUME';
+  else if (state === 'stopped') mainBtn.textContent = 'TAP TO RE-RECORD';
   
-  updateRecorderUI();
-  updateRecorderButtons(false);
+  stopBtn.style.display = (state === 'recording' || state === 'paused') ? 'block' : 'none';
+  playBtn.style.display = (state === 'recording' || state === 'paused') ? 'none' : 'block';
   
-  document.getElementById('audioRecorderModal').classList.add('show');
+  const hasRec = state === 'stopped' && blob;
+  playBtn.disabled = !hasRec;
+  rewindBtn.disabled = !hasRec;
+  forwardBtn.disabled = !hasRec;
+  deleteBtn.disabled = !hasRec;
+  createBtn.disabled = !hasRec;
+  shareBtn.disabled = !hasRec;
 }
 
-function closeAudioRecorder() {
-  log('closeAudioRecorder()');
-  
-  if (audioRecorder && audioRecorder.state === 'recording') {
-    audioRecorder.stop();
-  }
-  if (recorderTimerInterval) {
-    clearInterval(recorderTimerInterval);
-    recorderTimerInterval = null;
-  }
-  if (currentAudioElement) {
-    currentAudioElement.pause();
-    currentAudioElement = null;
-  }
-  
-  document.getElementById('audioRecorderModal').classList.remove('show');
+function updateTime() {
+  const s = Math.floor((Date.now() - startTime) / 1000);
+  timeEl.textContent = Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0');
 }
 
-// ===== UPDATE BUTTONS =====
-function updateRecorderButtons(hasRecording) {
-  log('updateRecorderButtons(' + hasRecording + ')');
-  
-  const deleteBtn = document.querySelector('#audioRecorderModal .act-btn.delete');
-  const createBtn = document.querySelector('#audioRecorderModal .act-btn.create');
-  const shareBtn = document.querySelector('#audioRecorderModal .act-btn.share');
-  
-  [deleteBtn, createBtn, shareBtn].forEach(btn => {
-    if (btn) {
-      btn.disabled = !hasRecording;
-      btn.style.opacity = hasRecording ? '1' : '0.4';
-    }
-  });
+function toggleRecord() {
+  if (state === 'ready' || state === 'stopped') startRec();
+  else if (state === 'recording') pauseRec();
+  else if (state === 'paused') resumeRec();
 }
 
-// ===== UPDATE UI =====
-function updateRecorderUI() {
-  log('updateRecorderUI() state=' + recorderState);
+async function startRec() {
+  log('startRec');
+  chunks = [];
+  blob = null;
   
-  const mainBtn = document.getElementById('recorderMainBtn');
-  const mainText = document.getElementById('recorderMainText');
-  const waveform = document.getElementById('recorderWaveform');
-  const playBtn = document.getElementById('recorderPlayBtn');
-  const stopBtn = document.getElementById('recorderStopBtn');
+  stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+  recorder = new MediaRecorder(stream, {mimeType: mime});
   
-  // Main button class
-  mainBtn.className = 'audio-recorder-main-btn ' + recorderState;
-  
-  // Waveform
-  waveform.className = 'audio-recorder-waveform' + (recorderState === 'recording' ? ' recording' : '');
-  
-  // STOP / PLAY visibility
-  if (recorderState === 'recording' || recorderState === 'paused') {
-    stopBtn.style.display = 'block';
-    playBtn.style.display = 'none';
-  } else {
-    stopBtn.style.display = 'none';
-    playBtn.style.display = 'block';
-  }
-  
-  // Main button text
-  switch(recorderState) {
-    case 'ready':
-      mainText.textContent = 'TAP TO RECORD';
-      break;
-    case 'recording':
-      mainText.textContent = 'TAP TO PAUSE';
-      break;
-    case 'paused':
-      mainText.textContent = 'TAP TO RESUME';
-      break;
-    case 'stopped':
-      mainText.textContent = 'TAP TO RE-RECORD';
-      break;
-  }
-}
-
-// ===== TIMER =====
-function updateRecorderTime() {
-  const elapsed = Date.now() - recorderStartTime;
-  const secs = Math.floor(elapsed / 1000);
-  const mins = Math.floor(secs / 60);
-  document.getElementById('recorderTime').textContent = mins + ':' + (secs % 60).toString().padStart(2, '0');
-}
-
-// ===== MAIN BUTTON =====
-function recorderToggleRecord() {
-  log('recorderToggleRecord() state=' + recorderState);
-  
-  if (recorderState === 'ready') {
-    startRecorderRecording();
-  } else if (recorderState === 'recording') {
-    pauseRecorderRecording();
-  } else if (recorderState === 'paused') {
-    resumeRecorderRecording();
-  } else if (recorderState === 'stopped') {
-    recorderBlob = null;
-    startRecorderRecording();
-  }
-}
-
-// ===== START RECORDING =====
-async function startRecorderRecording() {
-  log('startRecorderRecording()');
-  
-  try {
-    audioRecordingChunks = [];
-    recorderBlob = null;
-    
-    log('Requesting microphone...');
-    audioRecordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    log('Microphone granted');
-    
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-    log('mimeType: ' + mimeType);
-    
-    audioRecorder = new MediaRecorder(audioRecordingStream, { mimeType: mimeType });
-    
-    audioRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) {
-        audioRecordingChunks.push(e.data);
-        log('Chunk: ' + e.data.size + ' bytes');
-      }
-    };
-    
-    audioRecorder.onstop = () => {
-      log('MediaRecorder.onstop');
-      recorderBlob = new Blob(audioRecordingChunks, { type: audioRecorder.mimeType });
-      log('Blob: ' + recorderBlob.size + ' bytes');
-      audioRecordingStream.getTracks().forEach(t => t.stop());
-      recorderState = 'stopped';
-      updateRecorderUI();
-      updateRecorderButtons(true);
-    };
-    
-    audioRecorder.start(100);
-    recorderState = 'recording';
-    recorderStartTime = Date.now();
-    recorderTimerInterval = setInterval(updateRecorderTime, 100);
-    
-    updateRecorderButtons(false);
-    updateRecorderUI();
-    log('Recording started');
-    
-  } catch (err) {
-    log('ERROR: ' + err.message);
-    alert('Microphone error: ' + err.message);
-  }
-}
-
-// ===== PAUSE =====
-function pauseRecorderRecording() {
-  log('pauseRecorderRecording()');
-  if (audioRecorder && audioRecorder.state === 'recording') {
-    audioRecorder.pause();
-    recorderState = 'paused';
-    if (recorderTimerInterval) {
-      clearInterval(recorderTimerInterval);
-      recorderTimerInterval = null;
-    }
-    updateRecorderUI();
-  }
-}
-
-// ===== RESUME =====
-function resumeRecorderRecording() {
-  log('resumeRecorderRecording()');
-  if (audioRecorder && audioRecorder.state === 'paused') {
-    audioRecorder.resume();
-    recorderState = 'recording';
-    recorderTimerInterval = setInterval(updateRecorderTime, 100);
-    updateRecorderUI();
-  }
-}
-
-// ===== STOP BUTTON =====
-function recorderStop() {
-  log('recorderStop()');
-  if (audioRecorder && (audioRecorder.state === 'recording' || audioRecorder.state === 'paused')) {
-    audioRecorder.stop();
-    if (recorderTimerInterval) {
-      clearInterval(recorderTimerInterval);
-      recorderTimerInterval = null;
-    }
-  }
-}
-
-// ===== PLAY / PAUSE PLAYBACK =====
-function recorderPlayPause() {
-  log('recorderPlayPause() state=' + recorderState);
-  
-  if (recorderState !== 'stopped' || !recorderBlob) {
-    log('No recording to play');
-    return;
-  }
-  
-  if (currentAudioElement) {
-    currentAudioElement.pause();
-    currentAudioElement = null;
-    document.getElementById('recorderPlayBtn').textContent = 'PLAY';
-    log('Playback stopped');
-    return;
-  }
-  
-  log('Starting playback...');
-  const url = URL.createObjectURL(recorderBlob);
-  currentAudioElement = new Audio(url);
-  currentAudioElement.onended = () => {
-    log('Playback ended');
-    currentAudioElement = null;
-    document.getElementById('recorderPlayBtn').textContent = 'PLAY';
-    URL.revokeObjectURL(url);
+  recorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
+  recorder.onstop = () => {
+    blob = new Blob(chunks, {type: recorder.mimeType});
+    log('Blob: ' + blob.size);
+    stream.getTracks().forEach(t=>t.stop());
+    state = 'stopped';
+    updateUI();
   };
-  currentAudioElement.onerror = (e) => {
-    log('Playback ERROR: ' + e.message);
-  };
-  currentAudioElement.play();
-  document.getElementById('recorderPlayBtn').textContent = 'PAUSE';
+  
+  recorder.start(100);
+  state = 'recording';
+  startTime = Date.now();
+  timerInt = setInterval(updateTime, 100);
+  updateUI();
 }
 
-// ===== REWIND / FORWARD =====
-function recorderRewind() {
-  log('recorderRewind()');
-  if (currentAudioElement) {
-    currentAudioElement.currentTime = Math.max(0, currentAudioElement.currentTime - 10);
+function pauseRec() {
+  if (recorder?.state === 'recording') {
+    recorder.pause();
+    state = 'paused';
+    clearInterval(timerInt);
+    updateUI();
   }
 }
 
-function recorderForward() {
-  log('recorderForward()');
-  if (currentAudioElement) {
-    currentAudioElement.currentTime = Math.min(currentAudioElement.duration, currentAudioElement.currentTime + 10);
+function resumeRec() {
+  if (recorder?.state === 'paused') {
+    recorder.resume();
+    state = 'recording';
+    timerInt = setInterval(updateTime, 100);
+    updateUI();
   }
 }
 
-// ===== DELETE =====
-function recorderDelete() {
-  log('recorderDelete()');
-  
-  if (currentAudioElement) {
-    currentAudioElement.pause();
-    currentAudioElement = null;
+function stopRec() {
+  if (recorder && recorder.state !== 'inactive') {
+    recorder.stop();
+    clearInterval(timerInt);
   }
-  
-  recorderBlob = null;
-  audioRecordingChunks = [];
-  recorderState = 'ready';
-  document.getElementById('recorderTime').textContent = '0:00';
-  
-  updateRecorderUI();
-  updateRecorderButtons(false);
-  
-  log('Recording deleted');
-  alert('Recording deleted');
 }
 
-// ===== CREATE DROP =====
-async function recorderCreateDrop() {
-  log('recorderCreateDrop()');
-  
-  if (!recorderBlob) {
-    log('ERROR: No blob');
+function playPause() {
+  if (!blob) return;
+  if (audioEl) {
+    audioEl.pause();
+    audioEl = null;
+    playBtn.textContent = 'PLAY';
     return;
   }
-  
-  const createBtn = document.querySelector('#audioRecorderModal .act-btn.create');
-  const deleteBtn = document.querySelector('#audioRecorderModal .act-btn.delete');
-  const shareBtn = document.querySelector('#audioRecorderModal .act-btn.share');
-  
-  // Disable immediately
+  audioEl = new Audio(URL.createObjectURL(blob));
+  audioEl.onended = () => { audioEl = null; playBtn.textContent = 'PLAY'; };
+  audioEl.play();
+  playBtn.textContent = 'PAUSE';
+}
+
+function rewind() { if (audioEl) audioEl.currentTime = Math.max(0, audioEl.currentTime - 10); }
+function forward() { if (audioEl) audioEl.currentTime += 10; }
+
+function deleteRec() {
+  if (audioEl) { audioEl.pause(); audioEl = null; }
+  blob = null;
+  state = 'ready';
+  timeEl.textContent = '0:00';
+  updateUI();
+  log('Deleted');
+}
+
+async function createDrop() {
+  if (!blob) return;
+  log('Creating drop...');
   createBtn.disabled = true;
   deleteBtn.disabled = true;
   shareBtn.disabled = true;
-  createBtn.style.opacity = '0.4';
-  deleteBtn.style.opacity = '0.4';
-  shareBtn.style.opacity = '0.4';
   createBtn.textContent = 'SAVING...';
   
-  try {
-    log('Converting to base64...');
-    
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error('FileReader failed'));
-      reader.readAsDataURL(recorderBlob);
-    });
-    
-    log('Base64 length: ' + base64.length);
-    
-    // Simulate save
-    const drop = {
-      id: Date.now(),
-      audioData: base64,
-      duration: document.getElementById('recorderTime').textContent,
-      size: recorderBlob.size
-    };
-    
-    log('Drop created: ' + JSON.stringify({id: drop.id, duration: drop.duration, size: drop.size}));
-    
-    // Success
-    createBtn.textContent = 'CREATED!';
-    createBtn.style.background = '#10B981';
-    createBtn.style.color = 'white';
-    createBtn.style.opacity = '1';
-    
-    // Reset
-    recorderBlob = null;
-    recorderState = 'ready';
-    document.getElementById('recorderTime').textContent = '0:00';
-    updateRecorderUI();
-    
-    alert('Drop created! ID: ' + drop.id);
-    
-    setTimeout(() => {
-      createBtn.textContent = 'CREATE DROP';
-      createBtn.style.background = '#D1FAE5';
-      createBtn.style.color = '#065F46';
-    }, 1500);
-    
-  } catch (err) {
-    log('CREATE ERROR: ' + err.message);
-    
-    createBtn.textContent = 'ERROR';
-    createBtn.style.background = '#FEE2E2';
-    createBtn.style.color = '#991B1B';
-    createBtn.style.opacity = '1';
-    
-    alert('Error: ' + err.message);
-    
-    setTimeout(() => {
-      createBtn.textContent = 'CREATE DROP';
-      createBtn.style.background = '#D1FAE5';
-      createBtn.style.color = '#065F46';
-      if (recorderBlob) updateRecorderButtons(true);
-    }, 1500);
-  }
+  const base64 = await new Promise(r => {
+    const rd = new FileReader();
+    rd.onloadend = () => r(rd.result);
+    rd.readAsDataURL(blob);
+  });
+  
+  log('Base64: ' + base64.length);
+  createBtn.textContent = 'CREATED!';
+  createBtn.style.background = '#10B981';
+  
+  blob = null;
+  state = 'ready';
+  timeEl.textContent = '0:00';
+  updateUI();
+  
+  setTimeout(() => {
+    createBtn.textContent = 'CREATE';
+    createBtn.style.background = '#D1FAE5';
+  }, 1500);
 }
 
-// ===== SHARE =====
-function recorderShare() {
-  log('recorderShare()');
+function shareRec() {
+  log('shareRec called');
+  if (!blob) return;
   
-  if (!recorderBlob) {
-    log('ERROR: No blob');
-    return;
-  }
+  const name = 'audio.' + (blob.type.includes('mp4') ? 'm4a' : 'webm');
+  const file = new File([blob], name, {type: blob.type});
+  log('File: ' + name + ' ' + file.size);
   
-  log('Blob size: ' + recorderBlob.size + ', type: ' + recorderBlob.type);
-  
-  // Create file
-  const fileName = 'audio.' + (recorderBlob.type.includes('mp4') ? 'm4a' : 'webm');
-  const file = new File([recorderBlob], fileName, { type: recorderBlob.type });
-  log('File created: ' + fileName);
-  
-  // Direct share - no async/await to preserve user gesture
   navigator.share({
     files: [file],
-    title: 'Audio Recording'
+    title: 'Audio'
   }).then(() => {
-    log('Share SUCCESS');
+    log('Share OK');
   }).catch(err => {
-    log('Share error: ' + err.name + ' - ' + err.message);
-    
+    log('Share err: ' + err.name + ' ' + err.message);
     if (err.name !== 'AbortError') {
-      // Fallback: download
-      log('Downloading...');
-      const url = URL.createObjectURL(recorderBlob);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
+      a.download = name;
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
       log('Downloaded');
     }
   });
 }
 
-// ===== INIT =====
-log('Audio Recorder + Player TEST');
-log('mediaDevices: ' + !!navigator.mediaDevices);
-log('MediaRecorder: ' + !!window.MediaRecorder);
-log('share: ' + (typeof navigator.share));
+log('Ready');
+updateUI();
 </script>
 </body>
 </html>
