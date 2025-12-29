@@ -1341,7 +1341,7 @@
         </button>
         <div class="audio-recorder-actions">
           <button class="act-btn delete" onclick="recorderDelete()" disabled>DELETE</button>
-          <button class="act-btn create" onclick="console.log('CREATE clicked'); alert('CREATE!'); recorderCreateDrop()" disabled>CREATE DROP</button>
+          <button class="act-btn create" onclick="recorderCreateDrop()" disabled>CREATE DROP</button>
           <button class="act-btn share" onclick="recorderShare()" disabled>SHARE</button>
         </div>
         <button class="audio-recorder-cancel" onclick="closeAudioRecorder()">CANCEL</button>
@@ -3156,130 +3156,99 @@ function recorderDelete() {
 }
 
 async function recorderCreateDrop() {
-  alert('INSIDE recorderCreateDrop');
-  alert('recorderBlob = ' + (recorderBlob ? recorderBlob.size + ' bytes' : 'NULL'));
+  alert('1. Function started');
   
   if (!recorderBlob) {
-    alert('NO BLOB - returning');
+    alert('ERROR: No blob');
     return;
   }
-  
-  alert('Blob OK, continuing...');
+  alert('2. Blob exists: ' + recorderBlob.size);
   
   const createBtn = document.querySelector('#audioRecorderModal .act-btn.create');
-  const deleteBtn = document.querySelector('#audioRecorderModal .act-btn.delete');
-  const shareBtn = document.querySelector('#audioRecorderModal .act-btn.share');
-  
-  alert('Buttons found: create=' + !!createBtn + ', delete=' + !!deleteBtn + ', share=' + !!shareBtn);
-  
-  // Disable all buttons immediately
-  if (createBtn) { createBtn.disabled = true; createBtn.style.opacity = '0.4'; }
-  if (deleteBtn) { deleteBtn.disabled = true; deleteBtn.style.opacity = '0.4'; }
-  if (shareBtn) { shareBtn.disabled = true; shareBtn.style.opacity = '0.4'; }
   createBtn.textContent = 'SAVING...';
+  createBtn.disabled = true;
+  alert('3. Button set to SAVING');
   
-  alert('Buttons disabled, starting try block...');
+  // Simple FileReader without await
+  const reader = new FileReader();
   
-  try {
-    alert('Inside try, starting base64...');
-    alert('recorderBlob before FileReader: ' + (recorderBlob ? recorderBlob.size : 'NULL'));
+  reader.onload = function() {
+    alert('4. FileReader onload, length=' + reader.result.length);
     
-    // Convert to base64
-    const base64Data = await new Promise((resolve, reject) => {
-      alert('Inside Promise, creating FileReader...');
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        alert('FileReader onloadend! length=' + reader.result.length);
-        console.log('FileReader onloadend');
-        resolve(reader.result);
+    try {
+      const base64Data = reader.result;
+      alert('5. Got base64');
+      
+      const timeText = document.getElementById('recorderTime').textContent;
+      const parts = timeText.split(':');
+      const duration = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      alert('6. Duration=' + duration);
+      
+      const now = new Date();
+      const drop = {
+        id: Date.now(),
+        text: '',
+        category: 'audio',
+        timestamp: now.toISOString(),
+        date: now.toLocaleDateString('ru-RU'),
+        time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
+        isMedia: true,
+        audioData: base64Data,
+        audioFormat: recorderBlob.type.split('/')[1] || 'webm',
+        audioSize: recorderBlob.size,
+        audioBitrate: duration > 0 ? Math.round((recorderBlob.size * 8) / duration) : 0,
+        duration: duration,
+        waveform: [],
+        notes: ''
       };
-      reader.onerror = () => {
-        alert('FileReader ERROR!');
-        console.log('FileReader onerror');
-        reject(new Error('FileReader failed'));
-      };
-      alert('Calling readAsDataURL...');
-      reader.readAsDataURL(recorderBlob);
-      alert('readAsDataURL called, waiting...');
-    });
-    showToast('Base64 OK: ' + base64Data.length);
-    console.log('recorderCreateDrop: base64 done, length=' + base64Data.length);
-    
-    // Get duration from timer
-    const timeText = document.getElementById('recorderTime').textContent;
-    const parts = timeText.split(':');
-    const duration = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-    console.log('recorderCreateDrop: duration=' + duration);
-    
-    // Create drop
-    const now = new Date();
-    const drop = {
-      id: Date.now(),
-      text: '',
-      category: 'audio',
-      timestamp: now.toISOString(),
-      date: now.toLocaleDateString('ru-RU'),
-      time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
-      isMedia: true,
-      audioData: base64Data,
-      audioFormat: recorderBlob.type.split('/')[1] || 'webm',
-      audioSize: recorderBlob.size,
-      audioBitrate: duration > 0 ? Math.round((recorderBlob.size * 8) / duration) : 0,
-      duration: duration,
-      waveform: [],
-      notes: ''
-    };
-    
-    // Save
-    console.log('recorderCreateDrop: calling ideas.unshift');
-    showToast('Step 1: unshift...');
-    ideas.unshift(drop);
-    console.log('recorderCreateDrop: calling save');
-    showToast('Step 2: save...');
-    save(drop);
-    console.log('recorderCreateDrop: calling render');
-    showToast('Step 3: render...');
-    render();
-    console.log('recorderCreateDrop: calling counts');
-    showToast('Step 4: counts...');
-    counts();
-    console.log('recorderCreateDrop: all done!');
-    
-    // Success
-    createBtn.textContent = 'CREATED!';
-    createBtn.style.background = '#10B981';
-    createBtn.style.color = 'white';
-    createBtn.style.opacity = '1';
-    showToast('Audio saved!');
-    
-    // Reset
-    recorderBlob = null;
-    recorderState = 'ready';
-    document.getElementById('recorderTime').textContent = '0:00';
-    updateRecorderUI();
-    
-    setTimeout(() => {
-      createBtn.textContent = 'CREATE DROP';
-      createBtn.style.background = '#D1FAE5';
-      createBtn.style.color = '#065F46';
-    }, 1500);
-    
-  } catch (err) {
-    console.error('recorderCreateDrop ERROR:', err);
-    showToast('ERROR: ' + err.message);
+      alert('7. Drop object created, id=' + drop.id);
+      
+      ideas.unshift(drop);
+      alert('8. ideas.unshift done, length=' + ideas.length);
+      
+      save(drop);
+      alert('9. save done');
+      
+      render();
+      alert('10. render done');
+      
+      counts();
+      alert('11. counts done');
+      
+      createBtn.textContent = 'CREATED!';
+      createBtn.style.background = '#10B981';
+      showToast('Audio saved!');
+      alert('12. SUCCESS!');
+      
+      recorderBlob = null;
+      recorderState = 'ready';
+      document.getElementById('recorderTime').textContent = '0:00';
+      updateRecorderUI();
+      
+      setTimeout(() => {
+        createBtn.textContent = 'CREATE DROP';
+        createBtn.style.background = '#D1FAE5';
+        createBtn.style.color = '#065F46';
+      }, 1500);
+      
+    } catch (err) {
+      alert('CATCH ERROR: ' + err.message);
+      createBtn.textContent = 'ERROR';
+      setTimeout(() => {
+        createBtn.textContent = 'CREATE DROP';
+        createBtn.disabled = false;
+      }, 2000);
+    }
+  };
+  
+  reader.onerror = function() {
+    alert('FileReader ERROR');
     createBtn.textContent = 'ERROR';
-    createBtn.style.background = '#FEE2E2';
-    createBtn.style.color = '#991B1B';
-    createBtn.style.opacity = '1';
-    showToast('Error: ' + err.message);
-    
-    setTimeout(() => {
-      createBtn.textContent = 'CREATE DROP';
-      createBtn.style.background = '#D1FAE5';
-      createBtn.style.color = '#065F46';
-      if (recorderBlob) updateRecorderUI();
-    }, 1500);
-  }
+  };
+  
+  alert('3b. Calling readAsDataURL...');
+  reader.readAsDataURL(recorderBlob);
+  alert('3c. readAsDataURL called, waiting for callback...');
 }
 
 async function recorderShare() {
