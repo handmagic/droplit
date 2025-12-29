@@ -864,7 +864,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.43 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.44 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1807,7 +1807,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.43 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.44 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1820,7 +1820,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.43 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.44 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2532,7 +2532,7 @@ function stopAskiResponse() {
     voiceModeSleeping = true;
     updateVoiceModeIndicator('sleeping');
   }
-  showToast('Stopped');
+  toast('Stopped');
 }
 
 function setAskAIPrompt(text) {
@@ -2583,11 +2583,11 @@ let elevenlabsLoadedVoices = [];
 // Load voices from ElevenLabs API
 async function loadElevenLabsVoices() {
   if (!elevenlabsApiKey) {
-    showToast('Enter ElevenLabs API key first');
+    toast('Enter ElevenLabs API key first');
     return;
   }
   
-  showToast('Loading voices...');
+  toast('Loading voices...');
   
   try {
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
@@ -2598,7 +2598,7 @@ async function loadElevenLabsVoices() {
     });
     
     if (!response.ok) {
-      showToast('Failed to load voices');
+      toast('Failed to load voices');
       return;
     }
     
@@ -2610,11 +2610,11 @@ async function loadElevenLabsVoices() {
     // Update voice selector with loaded voices
     updateElevenLabsVoiceSelector();
     
-    showToast(`Loaded ${elevenlabsLoadedVoices.length} voices`);
+    toast(`Loaded ${elevenlabsLoadedVoices.length} voices`);
     
   } catch (error) {
     console.error('Error loading voices:', error);
-    showToast('Error loading voices');
+    toast('Error loading voices');
   }
 }
 
@@ -2816,7 +2816,7 @@ async function askiSpeak(text, lang = null, onEnd = null) {
     if (elevenlabsApiKey) {
       await askiSpeakElevenLabs(cleanText, onEnd);
     } else {
-      showToast('ElevenLabs: no API key');
+      toast('ElevenLabs: no API key');
       askiSpeakBrowser(cleanText, lang, onEnd);
     }
   } else if (ttsProvider === 'openai') {
@@ -2854,7 +2854,7 @@ async function askiSpeakOpenAI(text, onEnd = null) {
     
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      showToast('TTS error: ' + (error.error?.message || response.status));
+      toast('TTS error: ' + (error.error?.message || response.status));
       askiIsSpeaking = false;
       updateSpeakingIndicator(false);
       askiSpeakBrowser(text, null, onEnd);
@@ -2889,7 +2889,7 @@ async function askiSpeakOpenAI(text, onEnd = null) {
 async function askiSpeakElevenLabs(text, onEnd = null) {
   // Check if we have API key
   if (!elevenlabsApiKey) {
-    showToast('ElevenLabs: no API key');
+    toast('ElevenLabs: no API key');
     askiSpeakBrowser(text, null, onEnd);
     return;
   }
@@ -2922,7 +2922,7 @@ async function askiSpeakElevenLabs(text, onEnd = null) {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       const errMsg = error.detail?.message || error.detail?.status || error.detail || response.status;
-      showToast('ElevenLabs: ' + errMsg);
+      toast('ElevenLabs: ' + errMsg);
       askiIsSpeaking = false;
       updateSpeakingIndicator(false);
       askiSpeakBrowser(text, null, onEnd);
@@ -2945,7 +2945,7 @@ async function askiSpeakElevenLabs(text, onEnd = null) {
     }
     
   } catch (error) {
-    showToast('ElevenLabs: ' + (error.message || 'network error'));
+    toast('ElevenLabs: ' + (error.message || 'network error'));
     askiIsSpeaking = false;
     updateSpeakingIndicator(false);
     askiSpeakBrowser(text, null, onEnd);
@@ -3128,7 +3128,7 @@ async function startRecorderRecording() {
     updateRecorderUI();
     
   } catch (err) {
-    showToast('Microphone access denied');
+    toast('Microphone access denied');
   }
 }
 
@@ -3152,37 +3152,31 @@ function recorderDelete() {
   recorderState = 'ready';
   document.getElementById('recorderTime').textContent = '0:00';
   updateRecorderUI();
-  showToast('Recording deleted');
+  toast('Recording deleted');
 }
 
-async function recorderCreateDrop() {
-  alert('1. Function started');
-  
-  if (!recorderBlob) {
-    alert('ERROR: No blob');
-    return;
-  }
-  alert('2. Blob exists: ' + recorderBlob.size);
+function recorderCreateDrop() {
+  if (!recorderBlob) return;
   
   const createBtn = document.querySelector('#audioRecorderModal .act-btn.create');
+  const deleteBtn = document.querySelector('#audioRecorderModal .act-btn.delete');
+  const shareBtn = document.querySelector('#audioRecorderModal .act-btn.share');
+  
+  // Disable all buttons
   createBtn.textContent = 'SAVING...';
   createBtn.disabled = true;
-  alert('3. Button set to SAVING');
+  if (deleteBtn) deleteBtn.disabled = true;
+  if (shareBtn) shareBtn.disabled = true;
   
-  // Simple FileReader without await
   const reader = new FileReader();
   
   reader.onload = function() {
-    alert('4. FileReader onload, length=' + reader.result.length);
-    
     try {
       const base64Data = reader.result;
-      alert('5. Got base64');
       
       const timeText = document.getElementById('recorderTime').textContent;
       const parts = timeText.split(':');
       const duration = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-      alert('6. Duration=' + duration);
       
       const now = new Date();
       const drop = {
@@ -3201,25 +3195,19 @@ async function recorderCreateDrop() {
         waveform: [],
         notes: ''
       };
-      alert('7. Drop object created, id=' + drop.id);
       
       ideas.unshift(drop);
-      alert('8. ideas.unshift done, length=' + ideas.length);
-      
       save(drop);
-      alert('9. save done');
-      
       render();
-      alert('10. render done');
-      
       counts();
-      alert('11. counts done');
       
+      // Success
       createBtn.textContent = 'CREATED!';
       createBtn.style.background = '#10B981';
-      showToast('Audio saved!');
-      alert('12. SUCCESS!');
+      createBtn.style.color = 'white';
+      toast('Audio saved!', 'success');
       
+      // Reset
       recorderBlob = null;
       recorderState = 'ready';
       document.getElementById('recorderTime').textContent = '0:00';
@@ -3232,23 +3220,27 @@ async function recorderCreateDrop() {
       }, 1500);
       
     } catch (err) {
-      alert('CATCH ERROR: ' + err.message);
+      console.error('recorderCreateDrop error:', err);
       createBtn.textContent = 'ERROR';
+      createBtn.style.background = '#FEE2E2';
+      toast('Error: ' + err.message, 'error');
       setTimeout(() => {
         createBtn.textContent = 'CREATE DROP';
+        createBtn.style.background = '#D1FAE5';
+        createBtn.style.color = '#065F46';
         createBtn.disabled = false;
+        if (deleteBtn) deleteBtn.disabled = false;
+        if (shareBtn) shareBtn.disabled = false;
       }, 2000);
     }
   };
   
   reader.onerror = function() {
-    alert('FileReader ERROR');
     createBtn.textContent = 'ERROR';
+    toast('File read error', 'error');
   };
   
-  alert('3b. Calling readAsDataURL...');
   reader.readAsDataURL(recorderBlob);
-  alert('3c. readAsDataURL called, waiting for callback...');
 }
 
 async function recorderShare() {
@@ -3263,7 +3255,7 @@ async function recorderShare() {
         files: [file],
         title: 'DropLit Audio'
       });
-      showToast('Shared!');
+      toast('Shared!');
     } catch (err) {
       if (err.name === 'AbortError') {
         return;
@@ -3274,7 +3266,7 @@ async function recorderShare() {
           title: 'DropLit Audio',
           text: 'Audio ' + document.getElementById('recorderTime').textContent
         });
-        showToast('Shared (text only)');
+        toast('Shared (text only)');
       } catch (err2) {
         downloadRecorderFile();
       }
@@ -3292,7 +3284,7 @@ async function recorderShare() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast('Downloaded');
+    toast('Downloaded');
   }
 }
 
@@ -3396,12 +3388,12 @@ async function saveAudioDrop(blob) {
     render();
     counts();
     
-    showToast('Audio saved! ' + formatDuration(duration));
+    toast('Audio saved! ' + formatDuration(duration));
     return drop;
     
   } catch (error) {
     console.error('Save audio error:', error);
-    showToast('Error saving audio');
+    toast('Error saving audio');
     throw error;
   }
 }
@@ -3412,7 +3404,7 @@ function playAudioDrop(id, event) {
   
   const item = ideas.find(x => x.id === id);
   if (!item || !item.audioData) {
-    showToast('Audio not found');
+    toast('Audio not found');
     return;
   }
   
@@ -3469,7 +3461,7 @@ function playAudioDrop(id, event) {
   };
   
   currentAudioElement.onerror = () => {
-    showToast('Error playing audio');
+    toast('Error playing audio');
     currentPlayingAudioId = null;
     currentAudioElement = null;
   };
@@ -3516,16 +3508,16 @@ function updateWaveformProgress(id, progress) {
 async function transcribeAudio(id) {
   const item = ideas.find(x => x.id === id);
   if (!item || !item.audioData) {
-    showToast('Audio not found');
+    toast('Audio not found');
     return;
   }
   
   if (!askiApiKey) {
-    showToast('Enter OpenAI API key first');
+    toast('Enter OpenAI API key first');
     return;
   }
   
-  showToast('Transcribing...');
+  toast('Transcribing...');
   
   try {
     // Convert base64 to blob
@@ -3547,7 +3539,7 @@ async function transcribeAudio(id) {
     
     if (!result.ok) {
       const error = await result.json().catch(() => ({}));
-      showToast('Transcription error: ' + (error.error?.message || result.status));
+      toast('Transcription error: ' + (error.error?.message || result.status));
       return;
     }
     
@@ -3560,18 +3552,18 @@ async function transcribeAudio(id) {
     updateDrop(item);
     render();
     
-    showToast('Transcribed: ' + transcript.substring(0, 50) + '...');
+    toast('Transcribed: ' + transcript.substring(0, 50) + '...');
     
   } catch (error) {
     console.error('Transcription error:', error);
-    showToast('Transcription failed');
+    toast('Transcription failed');
   }
 }
 
 // Fallback browser TTS
 function askiSpeakBrowser(text, lang = null, onEnd = null) {
   if (!('speechSynthesis' in window)) {
-    showToast('Voice not supported');
+    toast('Voice not supported');
     if (onEnd) onEnd();
     return;
   }
@@ -3707,7 +3699,7 @@ function isAutoSpeakEnabled() {
 
 function setAutoSpeak(enabled) {
   localStorage.setItem('aski_auto_speak', enabled ? 'true' : 'false');
-  showToast(enabled ? 'Auto-speak enabled' : 'Auto-speak disabled');
+  toast(enabled ? 'Auto-speak enabled' : 'Auto-speak disabled');
 }
 
 // Voice Mode: Start listening (only when NOT locked)
@@ -3727,7 +3719,7 @@ function startVoiceModeListening() {
     return;
   }
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    showToast('Voice not supported in this browser');
+    toast('Voice not supported in this browser');
     return;
   }
   
@@ -3942,7 +3934,7 @@ function setAskiVoice(voice) {
 // Preview voice with sample text
 async function previewVoice(voice) {
   if (!askiApiKey) {
-    showToast('Enter API key to preview');
+    toast('Enter API key to preview');
     return;
   }
   
@@ -4052,7 +4044,7 @@ function setTTSProvider(provider) {
     }
   }
   
-  showToast(`TTS: ${provider === 'openai' ? 'OpenAI' : provider === 'elevenlabs' ? 'ElevenLabs' : 'Browser'}`);
+  toast(`TTS: ${provider === 'openai' ? 'OpenAI' : provider === 'elevenlabs' ? 'ElevenLabs' : 'Browser'}`);
 }
 
 // ElevenLabs voice selection (legacy, kept for compatibility)
@@ -4069,7 +4061,7 @@ async function previewElevenLabsVoice(voice) {
   elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
   
   if (!elevenlabsApiKey) {
-    showToast('Enter ElevenLabs API key');
+    toast('Enter ElevenLabs API key');
     return;
   }
   
@@ -4077,14 +4069,14 @@ async function previewElevenLabsVoice(voice) {
   const voiceId = ELEVENLABS_VOICES[voice];
   
   if (!voiceId) {
-    showToast('Unknown voice: ' + voice);
+    toast('Unknown voice: ' + voice);
     return;
   }
   
   // ENGLISH text to avoid encoding issues
   const text = 'Hello! This is ' + voice + ' voice test.';
   
-  showToast('Loading...');
+  toast('Loading...');
   
   try {
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -4100,21 +4092,21 @@ async function previewElevenLabsVoice(voice) {
     });
     
     if (!response.ok) {
-      showToast('API error: ' + response.status);
+      toast('API error: ' + response.status);
       return;
     }
     
     const blob = await response.blob();
-    showToast('Playing...');
+    toast('Playing...');
     
     // Play using AudioContext (works on Android!)
     const success = await playAudioBlob(blob);
     if (!success) {
-      showToast('Playback error');
+      toast('Playback error');
     }
     
   } catch (error) {
-    showToast('Error: ' + error.message);
+    toast('Error: ' + error.message);
   }
 }
 
@@ -4122,7 +4114,7 @@ async function previewElevenLabsVoice(voice) {
 function saveElevenLabsKey() {
   const input = document.getElementById('elevenlabsApiKeyInput');
   if (!input) {
-    showToast('Input not found');
+    toast('Input not found');
     return;
   }
   
@@ -4208,7 +4200,7 @@ function setListenCycles(seconds) {
   document.querySelectorAll('#listenCyclesSelector .pill-m').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.cycles === seconds.toString());
   });
-  showToast(`Listen time: ${seconds} sec`);
+  toast(`Listen time: ${seconds} sec`);
 }
 
 // Load voices (some browsers need this)
@@ -4393,7 +4385,7 @@ function createDropFromAI(btn) {
   
   // Check if already created
   if (btn.classList.contains('created')) {
-    showToast('Drop already created');
+    toast('Drop already created');
     return;
   }
   
@@ -4444,7 +4436,7 @@ function createDropFromAI(btn) {
     syncDropToSyntrise(drop);
   }
   
-  showToast('Drop created');
+  toast('Drop created');
 }
 
 function copyAIResponse(btn) {
@@ -4455,7 +4447,7 @@ function copyAIResponse(btn) {
     btn.textContent = 'Copied!';
     setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
   }).catch(() => {
-    showToast('Failed to copy');
+    toast('Failed to copy');
   });
 }
 
@@ -4478,7 +4470,7 @@ function toggleAskAIVoice() {
     
     // If locked (Aski speaking/processing) - just show message
     if (voiceModeLocked || askiIsProcessing || askiIsSpeaking) {
-      showToast('Wait for Aski to finish');
+      toast('Wait for Aski to finish');
       return;
     }
     
@@ -4495,7 +4487,7 @@ function toggleAskAIVoice() {
     btn.classList.remove('recording');
   } else {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      showToast('Voice not supported in this browser');
+      toast('Voice not supported in this browser');
       return;
     }
     
@@ -4521,7 +4513,7 @@ function toggleAskAIVoice() {
     
     askAIVoiceRecognition.onerror = () => {
       btn.classList.remove('recording');
-      showToast('Voice recognition error');
+      toast('Voice recognition error');
     };
     
     askAIVoiceRecognition.start();
@@ -6775,7 +6767,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.43';
+  md+='---\nExported from DropLit v0.9.44';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -7150,7 +7142,7 @@ function toggleVoiceMode() {
   updateVoiceModeUI();
   
   if (isEnabled) {
-    showToast('Voice Mode ON');
+    toast('Voice Mode ON');
     acquireWakeLock(); // Keep screen on
     // Start in sleep mode - wait for user tap
     if (document.getElementById('askAIPanel')?.classList.contains('show')) {
@@ -7160,7 +7152,7 @@ function toggleVoiceMode() {
   } else {
     stopVoiceModeListening();
     releaseWakeLock(); // Allow screen to sleep
-    showToast('Voice Mode OFF');
+    toast('Voice Mode OFF');
     updateVoiceModeIndicator('');
   }
 }
@@ -7178,7 +7170,7 @@ function isAutoDropEnabled() {
 
 function setAutoDrop(enabled) {
   localStorage.setItem('aski_autodrop', enabled ? 'true' : 'false');
-  showToast(enabled ? 'AutoDrop enabled' : 'AutoDrop disabled');
+  toast(enabled ? 'AutoDrop enabled' : 'AutoDrop disabled');
 }
 
 function toggleAutoDrop() {
