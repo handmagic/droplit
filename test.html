@@ -644,61 +644,77 @@ async function recorderShare() {
   
   if (!recorderBlob) {
     log('ERROR: No blob');
-    alert('No recording');
     return;
   }
   
+  log('Blob size: ' + recorderBlob.size + ', type: ' + recorderBlob.type);
+  
+  // Create file
   const fileName = 'audio.' + (recorderBlob.type.includes('mp4') ? 'm4a' : 'webm');
   const file = new File([recorderBlob], fileName, { type: recorderBlob.type });
+  log('File created: ' + fileName);
   
-  log('File: ' + fileName + ', size: ' + file.size);
-  log('navigator.share: ' + (typeof navigator.share));
+  // Check APIs
+  const hasShare = typeof navigator.share === 'function';
+  const hasCanShare = typeof navigator.canShare === 'function';
+  log('navigator.share: ' + hasShare);
+  log('navigator.canShare: ' + hasCanShare);
   
-  if (typeof navigator.share === 'function') {
+  if (hasCanShare) {
     try {
-      log('Calling navigator.share with file...');
+      const canShareFile = navigator.canShare({ files: [file] });
+      log('canShare({files}): ' + canShareFile);
+    } catch (e) {
+      log('canShare error: ' + e.message);
+    }
+  }
+  
+  // Try to share
+  if (hasShare) {
+    try {
+      log('Calling navigator.share...');
       await navigator.share({
         files: [file],
-        title: 'DropLit Audio'
+        title: 'Audio Recording'
       });
       log('Share SUCCESS');
-      alert('Shared!');
-      return;
     } catch (err) {
       log('Share error: ' + err.name + ' - ' + err.message);
       
       if (err.name === 'AbortError') {
         log('User cancelled');
-        return;
-      }
-      
-      // Try without file
-      try {
-        log('Trying text share...');
-        await navigator.share({
-          title: 'DropLit Audio',
-          text: 'Audio ' + document.getElementById('recorderTime').textContent
-        });
-        log('Text share SUCCESS');
-        alert('Shared (text only)');
-        return;
-      } catch (err2) {
-        log('Text share error: ' + err2.message);
+      } else {
+        // Try without files
+        try {
+          log('Trying share without files...');
+          await navigator.share({
+            title: 'Audio Recording',
+            text: 'Audio ' + document.getElementById('recorderTime').textContent
+          });
+          log('Text share SUCCESS');
+        } catch (err2) {
+          log('Text share error: ' + err2.message);
+          downloadFile();
+        }
       }
     }
+  } else {
+    log('No share API, downloading...');
+    downloadFile();
   }
   
-  // Fallback: download
-  log('Fallback: download');
-  const url = URL.createObjectURL(recorderBlob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  alert('Downloaded: ' + fileName);
+  function downloadFile() {
+    log('Downloading file...');
+    const url = URL.createObjectURL(recorderBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log('Download triggered');
+  }
 }
 
 // ===== INIT =====
