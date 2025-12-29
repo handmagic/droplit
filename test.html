@@ -51,6 +51,7 @@
     .main-btn.ready { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; }
     .main-btn.recording { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; }
     .main-btn.stopped { background: linear-gradient(135deg, #10B981, #059669); color: white; }
+    .main-btn.paused { background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; }
     .main-btn:active { transform: scale(0.98); }
     
     .actions {
@@ -111,7 +112,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">TEST: RECORDER + PLAY + RW/FF</div>
+    <div class="header">TEST: + PAUSE/RESUME</div>
     <div class="body">
       <div class="time" id="time">0:00</div>
       
@@ -141,7 +142,7 @@
 
 <script>
 // ===== STATE =====
-let state = 'ready'; // ready, recording, stopped
+let state = 'ready'; // ready, recording, paused, stopped
 let mediaRecorder = null;
 let audioChunks = [];
 let audioBlob = null;
@@ -175,13 +176,15 @@ function updateUI() {
   if (state === 'ready') {
     mainBtn.textContent = 'TAP TO RECORD';
   } else if (state === 'recording') {
-    mainBtn.textContent = 'RECORDING...';
+    mainBtn.textContent = 'TAP TO PAUSE';
+  } else if (state === 'paused') {
+    mainBtn.textContent = 'TAP TO RESUME';
   } else if (state === 'stopped') {
     mainBtn.textContent = 'TAP TO RE-RECORD';
   }
   
-  // Stop button - show during recording
-  stopBtn.style.display = (state === 'recording') ? 'block' : 'none';
+  // Stop button - show during recording or paused
+  stopBtn.style.display = (state === 'recording' || state === 'paused') ? 'block' : 'none';
   
   // Play/rewind/forward buttons - show when stopped with recording
   const hasRecording = state === 'stopped' && audioBlob !== null;
@@ -211,6 +214,33 @@ function toggleRecord() {
   
   if (state === 'ready' || state === 'stopped') {
     startRecording();
+  } else if (state === 'recording') {
+    pauseRecording();
+  } else if (state === 'paused') {
+    resumeRecording();
+  }
+}
+
+function pauseRecording() {
+  log('pauseRecording');
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.pause();
+    state = 'paused';
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    updateUI();
+  }
+}
+
+function resumeRecording() {
+  log('resumeRecording');
+  if (mediaRecorder && mediaRecorder.state === 'paused') {
+    mediaRecorder.resume();
+    state = 'recording';
+    timerInterval = setInterval(updateTimer, 100);
+    updateUI();
   }
 }
 
