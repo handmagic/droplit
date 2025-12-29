@@ -1833,6 +1833,7 @@
       
       <!-- Footer with Close button -->
       <div class="main-menu-footer">
+        <button class="pill-l sec" onclick="showDebugInfo()" style="margin-right: 8px;">🔧 Debug</button>
         <button class="pill-l sec" onclick="closeMainMenu()">Close Menu</button>
       </div>
     </div>
@@ -7413,6 +7414,39 @@ function openMainMenu() {
 function closeMainMenu() {
   document.getElementById('mainMenu').classList.remove('show');
   updateMenuIcon(false);
+}
+
+// Debug info (v0.9.47)
+function showDebugInfo() {
+  closeMainMenu();
+  const total = ideas.length;
+  const stringIds = ideas.filter(i => typeof i.id === 'string').length;
+  const merged = ideas.filter(i => i.isMerged).length;
+  const audio = ideas.filter(i => i.category === 'audio').length;
+  const textDrops = ideas.filter(i => !i.isMedia && !i.image && !i.audioData).length;
+  const mediaDrops = ideas.filter(i => i.isMedia || i.image || i.audioData).length;
+  const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
+  const deviceId = (typeof DEVICE_ID !== 'undefined' && DEVICE_ID) ? DEVICE_ID : 'Not set';
+  const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
+  const lastSync = lastSyncTime ? lastSyncTime.toLocaleTimeString() : 'Never';
+  
+  alert(
+    `DropLit Debug v0.9.47\n\n` +
+    `=== DROPS ===\n` +
+    `Total: ${total}\n` +
+    `Text: ${textDrops}\n` +
+    `Media: ${mediaDrops}\n` +
+    `Merged: ${merged}\n` +
+    `Audio: ${audio}\n` +
+    `String IDs: ${stringIds}\n\n` +
+    `=== SYNC ===\n` +
+    `User ID: ${userId}\n` +
+    `Device ID: ${deviceId}\n` +
+    `Sync: ${syncStatus}\n` +
+    `Last sync: ${lastSync}\n\n` +
+    `=== STORAGE ===\n` +
+    `LocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`
+  );
 }
 
 function updateMenuIcon(isOpen) {
