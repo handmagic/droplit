@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Recorder + Player (NO MODAL)</title>
+  <title>TEST: Recorder + PLAY button</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -50,28 +50,8 @@
     }
     .main-btn.ready { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; }
     .main-btn.recording { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; }
-    .main-btn.paused { background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; }
     .main-btn.stopped { background: linear-gradient(135deg, #10B981, #059669); color: white; }
     .main-btn:active { transform: scale(0.98); }
-    
-    /* Player controls */
-    .player-controls {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .ctrl-btn {
-      padding: 12px 20px;
-      border: none;
-      border-radius: 20px;
-      background: #E7E5E4;
-      color: #57534E;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .ctrl-btn:disabled { opacity: 0.4; }
-    .ctrl-btn.stop-rec { background: #EF4444; color: white; }
     
     .actions {
       display: flex;
@@ -89,11 +69,30 @@
       text-transform: uppercase;
       transition: all 0.15s;
     }
-    .act-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .act-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
     .act-btn:active:not(:disabled) { transform: scale(0.95); }
     .act-btn.delete { background: #FEE2E2; color: #991B1B; }
     .act-btn.create { background: #D1FAE5; color: #065F46; }
     .act-btn.share { background: #E0E7FF; color: #3730A3; }
+    
+    .stop-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: #EF4444;
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .stop-btn.show { display: block; }
     
     .log {
       margin-top: 20px;
@@ -102,232 +101,391 @@
       border-radius: 8px;
       color: #0f0;
       font-family: monospace;
-      font-size: 0.7rem;
-      max-height: 150px;
+      font-size: 0.75rem;
+      max-height: 200px;
       overflow-y: auto;
       white-space: pre-wrap;
+      word-break: break-all;
     }
   </style>
 </head>
 <body>
-  <!-- NO MODAL - DIRECT ON PAGE -->
   <div class="container">
-    <div class="header">RECORDER + PLAYER (NO MODAL)</div>
+    <div class="header">TEST: RECORDER + PLAY</div>
     <div class="body">
       <div class="time" id="time">0:00</div>
-      
-      <div class="player-controls">
-        <button class="ctrl-btn" id="rewindBtn" onclick="rewind()" disabled>&lt;&lt;</button>
-        <button class="ctrl-btn stop-rec" id="stopBtn" onclick="stopRec()" style="display:none;">STOP</button>
-        <button class="ctrl-btn" id="playBtn" onclick="playPause()" disabled>PLAY</button>
-        <button class="ctrl-btn" id="forwardBtn" onclick="forward()" disabled>&gt;&gt;</button>
-      </div>
       
       <button class="main-btn ready" id="mainBtn" onclick="toggleRecord()">
         TAP TO RECORD
       </button>
       
+      <button class="stop-btn" id="stopBtn" onclick="stopRecording()">
+        STOP RECORDING
+      </button>
+      
+      <button class="stop-btn" id="playBtn" onclick="playAudio()" style="background:#3B82F6; display:none;">
+        PLAY
+      </button>
+      
       <div class="actions">
-        <button class="act-btn delete" id="deleteBtn" onclick="deleteRec()" disabled>DELETE</button>
+        <button class="act-btn delete" id="deleteBtn" onclick="deleteRecording()" disabled>DELETE</button>
         <button class="act-btn create" id="createBtn" onclick="createDrop()" disabled>CREATE</button>
-        <button class="act-btn share" id="shareBtn" onclick="shareRec()" disabled>SHARE</button>
+        <button class="act-btn share" id="shareBtn" onclick="shareRecording()" disabled>SHARE</button>
       </div>
     </div>
   </div>
   
-  <div class="log" id="log">Log:</div>
+  <div class="log" id="log">Console log:</div>
 
 <script>
-function log(msg) {
-  const el = document.getElementById('log');
-  el.textContent += '\n' + msg;
-  el.scrollTop = el.scrollHeight;
-}
-
-// State
-let state = 'ready';
-let blob = null;
-let recorder = null;
-let chunks = [];
-let stream = null;
+// ===== STATE =====
+let state = 'ready'; // ready, recording, stopped
+let mediaRecorder = null;
+let audioChunks = [];
+let audioBlob = null;
+let audioStream = null;
 let startTime = null;
-let timerInt = null;
-let audioEl = null;
+let timerInterval = null;
+let currentAudio = null;
 
-// UI refs
-const mainBtn = document.getElementById('mainBtn');
-const stopBtn = document.getElementById('stopBtn');
-const playBtn = document.getElementById('playBtn');
-const rewindBtn = document.getElementById('rewindBtn');
-const forwardBtn = document.getElementById('forwardBtn');
-const deleteBtn = document.getElementById('deleteBtn');
-const createBtn = document.getElementById('createBtn');
-const shareBtn = document.getElementById('shareBtn');
-const timeEl = document.getElementById('time');
+// ===== LOGGING =====
+function log(msg) {
+  const logEl = document.getElementById('log');
+  const time = new Date().toLocaleTimeString();
+  logEl.textContent += '\n[' + time + '] ' + msg;
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(msg);
+}
 
+// ===== UI UPDATE =====
 function updateUI() {
+  const mainBtn = document.getElementById('mainBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const playBtn = document.getElementById('playBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const createBtn = document.getElementById('createBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  
+  // Main button
   mainBtn.className = 'main-btn ' + state;
+  if (state === 'ready') {
+    mainBtn.textContent = 'TAP TO RECORD';
+  } else if (state === 'recording') {
+    mainBtn.textContent = 'RECORDING...';
+  } else if (state === 'stopped') {
+    mainBtn.textContent = 'TAP TO RE-RECORD';
+  }
   
-  if (state === 'ready') mainBtn.textContent = 'TAP TO RECORD';
-  else if (state === 'recording') mainBtn.textContent = 'TAP TO PAUSE';
-  else if (state === 'paused') mainBtn.textContent = 'TAP TO RESUME';
-  else if (state === 'stopped') mainBtn.textContent = 'TAP TO RE-RECORD';
+  // Stop button - show during recording
+  stopBtn.style.display = (state === 'recording') ? 'block' : 'none';
   
-  stopBtn.style.display = (state === 'recording' || state === 'paused') ? 'block' : 'none';
-  playBtn.style.display = (state === 'recording' || state === 'paused') ? 'none' : 'block';
+  // Play button - show when stopped with recording
+  const hasRecording = state === 'stopped' && audioBlob !== null;
+  playBtn.style.display = hasRecording ? 'block' : 'none';
   
-  const hasRec = state === 'stopped' && blob;
-  playBtn.disabled = !hasRec;
-  rewindBtn.disabled = !hasRec;
-  forwardBtn.disabled = !hasRec;
-  deleteBtn.disabled = !hasRec;
-  createBtn.disabled = !hasRec;
-  shareBtn.disabled = !hasRec;
+  // Action buttons - only enabled when stopped with recording
+  deleteBtn.disabled = !hasRecording;
+  createBtn.disabled = !hasRecording;
+  shareBtn.disabled = !hasRecording;
+  
+  log('UI updated: state=' + state + ', hasBlob=' + (audioBlob !== null));
 }
 
-function updateTime() {
-  const s = Math.floor((Date.now() - startTime) / 1000);
-  timeEl.textContent = Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0');
+// ===== TIMER =====
+function updateTimer() {
+  const elapsed = Date.now() - startTime;
+  const secs = Math.floor(elapsed / 1000);
+  const mins = Math.floor(secs / 60);
+  document.getElementById('time').textContent = mins + ':' + (secs % 60).toString().padStart(2, '0');
 }
 
+// ===== MAIN BUTTON =====
 function toggleRecord() {
-  if (state === 'ready' || state === 'stopped') startRec();
-  else if (state === 'recording') pauseRec();
-  else if (state === 'paused') resumeRec();
-}
-
-async function startRec() {
-  log('startRec');
-  chunks = [];
-  blob = null;
+  log('toggleRecord called, state=' + state);
   
-  stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-  recorder = new MediaRecorder(stream, {mimeType: mime});
-  
-  recorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
-  recorder.onstop = () => {
-    blob = new Blob(chunks, {type: recorder.mimeType});
-    log('Blob: ' + blob.size);
-    stream.getTracks().forEach(t=>t.stop());
-    state = 'stopped';
-    updateUI();
-  };
-  
-  recorder.start(100);
-  state = 'recording';
-  startTime = Date.now();
-  timerInt = setInterval(updateTime, 100);
-  updateUI();
-}
-
-function pauseRec() {
-  if (recorder?.state === 'recording') {
-    recorder.pause();
-    state = 'paused';
-    clearInterval(timerInt);
-    updateUI();
+  if (state === 'ready' || state === 'stopped') {
+    startRecording();
   }
 }
 
-function resumeRec() {
-  if (recorder?.state === 'paused') {
-    recorder.resume();
+// ===== START RECORDING =====
+async function startRecording() {
+  log('startRecording called');
+  
+  try {
+    // Reset
+    audioChunks = [];
+    audioBlob = null;
+    
+    // Get microphone
+    log('Requesting microphone...');
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    log('Microphone granted');
+    
+    // Create recorder
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+    log('Using mimeType: ' + mimeType);
+    
+    mediaRecorder = new MediaRecorder(audioStream, { mimeType: mimeType });
+    
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        audioChunks.push(e.data);
+        log('Chunk received: ' + e.data.size + ' bytes');
+      }
+    };
+    
+    mediaRecorder.onstop = () => {
+      log('MediaRecorder stopped');
+      audioBlob = new Blob(audioChunks, { type: mimeType });
+      log('Blob created: ' + audioBlob.size + ' bytes, type=' + audioBlob.type);
+      
+      // Stop stream
+      audioStream.getTracks().forEach(t => t.stop());
+      
+      state = 'stopped';
+      updateUI();
+    };
+    
+    mediaRecorder.onerror = (e) => {
+      log('MediaRecorder ERROR: ' + e.error);
+    };
+    
+    // Start
+    mediaRecorder.start(100);
     state = 'recording';
-    timerInt = setInterval(updateTime, 100);
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 100);
+    
+    log('Recording started');
     updateUI();
+    
+  } catch (err) {
+    log('ERROR: ' + err.message);
+    alert('Microphone error: ' + err.message);
   }
 }
 
-function stopRec() {
-  if (recorder && recorder.state !== 'inactive') {
-    recorder.stop();
-    clearInterval(timerInt);
+// ===== STOP RECORDING =====
+function stopRecording() {
+  log('stopRecording called');
+  
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    log('Stop command sent');
+  } else {
+    log('No active recorder to stop');
   }
 }
 
-function playPause() {
-  if (!blob) return;
-  if (audioEl) {
-    audioEl.pause();
-    audioEl = null;
-    playBtn.textContent = 'PLAY';
+// ===== DELETE =====
+function deleteRecording() {
+  log('deleteRecording called');
+  
+  audioBlob = null;
+  audioChunks = [];
+  state = 'ready';
+  document.getElementById('time').textContent = '0:00';
+  
+  updateUI();
+  log('Recording deleted');
+}
+
+// ===== CREATE DROP =====
+async function createDrop() {
+  log('createDrop called');
+  
+  if (!audioBlob) {
+    log('ERROR: No audioBlob!');
     return;
   }
-  audioEl = new Audio(URL.createObjectURL(blob));
-  audioEl.onended = () => { audioEl = null; playBtn.textContent = 'PLAY'; };
-  audioEl.play();
-  playBtn.textContent = 'PAUSE';
-}
-
-function rewind() { if (audioEl) audioEl.currentTime = Math.max(0, audioEl.currentTime - 10); }
-function forward() { if (audioEl) audioEl.currentTime += 10; }
-
-function deleteRec() {
-  if (audioEl) { audioEl.pause(); audioEl = null; }
-  blob = null;
-  state = 'ready';
-  timeEl.textContent = '0:00';
-  updateUI();
-  log('Deleted');
-}
-
-async function createDrop() {
-  if (!blob) return;
-  log('Creating drop...');
+  
+  const createBtn = document.getElementById('createBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  
+  // Disable all buttons immediately
   createBtn.disabled = true;
   deleteBtn.disabled = true;
   shareBtn.disabled = true;
   createBtn.textContent = 'SAVING...';
   
-  const base64 = await new Promise(r => {
-    const rd = new FileReader();
-    rd.onloadend = () => r(rd.result);
-    rd.readAsDataURL(blob);
-  });
-  
-  log('Base64: ' + base64.length);
-  createBtn.textContent = 'CREATED!';
-  createBtn.style.background = '#10B981';
-  
-  blob = null;
-  state = 'ready';
-  timeEl.textContent = '0:00';
-  updateUI();
-  
-  setTimeout(() => {
-    createBtn.textContent = 'CREATE';
-    createBtn.style.background = '#D1FAE5';
-  }, 1500);
+  try {
+    log('Converting blob to base64...');
+    
+    // Convert to base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        log('FileReader completed');
+        resolve(reader.result);
+      };
+      reader.onerror = () => {
+        log('FileReader ERROR');
+        reject(new Error('FileReader failed'));
+      };
+      reader.readAsDataURL(audioBlob);
+    });
+    
+    log('Base64 length: ' + base64.length);
+    
+    // Simulate saving (in real app this would save to localStorage)
+    const drop = {
+      id: Date.now(),
+      audioData: base64,
+      duration: document.getElementById('time').textContent,
+      size: audioBlob.size
+    };
+    
+    log('Drop created: id=' + drop.id + ', duration=' + drop.duration);
+    
+    // Success
+    createBtn.textContent = 'CREATED!';
+    createBtn.style.background = '#10B981';
+    createBtn.style.color = 'white';
+    
+    // Reset state
+    audioBlob = null;
+    state = 'ready';
+    document.getElementById('time').textContent = '0:00';
+    
+    setTimeout(() => {
+      createBtn.textContent = 'CREATE';
+      createBtn.style.background = '#D1FAE5';
+      createBtn.style.color = '#065F46';
+      updateUI();
+    }, 1500);
+    
+  } catch (err) {
+    log('CREATE ERROR: ' + err.message);
+    createBtn.textContent = 'ERROR';
+    createBtn.style.background = '#FEE2E2';
+    createBtn.style.color = '#991B1B';
+    
+    setTimeout(() => {
+      createBtn.textContent = 'CREATE';
+      createBtn.style.background = '#D1FAE5';
+      createBtn.style.color = '#065F46';
+      updateUI();
+    }, 1500);
+  }
 }
 
-function shareRec() {
-  log('shareRec called');
-  if (!blob) return;
+// ===== SHARE =====
+async function shareRecording() {
+  log('shareRecording called');
   
-  const name = 'audio.' + (blob.type.includes('mp4') ? 'm4a' : 'webm');
-  const file = new File([blob], name, {type: blob.type});
-  log('File: ' + name + ' ' + file.size);
+  if (!audioBlob) {
+    log('ERROR: No audioBlob!');
+    return;
+  }
   
-  navigator.share({
-    files: [file],
-    title: 'Audio'
-  }).then(() => {
-    log('Share OK');
-  }).catch(err => {
-    log('Share err: ' + err.name + ' ' + err.message);
-    if (err.name !== 'AbortError') {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = name;
-      a.click();
-      log('Downloaded');
+  log('Blob size: ' + audioBlob.size + ', type: ' + audioBlob.type);
+  
+  // Create file
+  const fileName = 'audio.' + (audioBlob.type.includes('mp4') ? 'm4a' : 'webm');
+  const file = new File([audioBlob], fileName, { type: audioBlob.type });
+  log('File created: ' + fileName);
+  
+  // Check APIs
+  const hasShare = typeof navigator.share === 'function';
+  const hasCanShare = typeof navigator.canShare === 'function';
+  log('navigator.share: ' + hasShare);
+  log('navigator.canShare: ' + hasCanShare);
+  
+  if (hasCanShare) {
+    try {
+      const canShareFile = navigator.canShare({ files: [file] });
+      log('canShare({files}): ' + canShareFile);
+    } catch (e) {
+      log('canShare error: ' + e.message);
     }
-  });
+  }
+  
+  // Try to share
+  if (hasShare) {
+    try {
+      log('Calling navigator.share...');
+      await navigator.share({
+        files: [file],
+        title: 'Audio Recording'
+      });
+      log('Share SUCCESS');
+    } catch (err) {
+      log('Share error: ' + err.name + ' - ' + err.message);
+      
+      if (err.name === 'AbortError') {
+        log('User cancelled');
+      } else {
+        // Try without files
+        try {
+          log('Trying share without files...');
+          await navigator.share({
+            title: 'Audio Recording',
+            text: 'Audio ' + document.getElementById('time').textContent
+          });
+          log('Text share SUCCESS');
+        } catch (err2) {
+          log('Text share error: ' + err2.message);
+          downloadFile();
+        }
+      }
+    }
+  } else {
+    log('No share API, downloading...');
+    downloadFile();
+  }
+  
+  function downloadFile() {
+    log('Downloading file...');
+    const url = URL.createObjectURL(audioBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log('Download triggered');
+  }
 }
 
-log('Ready');
+// ===== PLAY =====
+function playAudio() {
+  log('playAudio called');
+  if (!audioBlob) return;
+  
+  const playBtn = document.getElementById('playBtn');
+  
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+    playBtn.textContent = 'PLAY';
+    log('Playback stopped');
+    return;
+  }
+  
+  const url = URL.createObjectURL(audioBlob);
+  currentAudio = new Audio(url);
+  currentAudio.onended = () => {
+    currentAudio = null;
+    playBtn.textContent = 'PLAY';
+    URL.revokeObjectURL(url);
+    log('Playback ended');
+  };
+  currentAudio.play();
+  playBtn.textContent = 'PAUSE';
+  log('Playing...');
+}
+
+// ===== INIT =====
+log('Audio Recorder TEST loaded');
+log('navigator.mediaDevices: ' + !!navigator.mediaDevices);
+log('MediaRecorder: ' + !!window.MediaRecorder);
 updateUI();
 </script>
 </body>
