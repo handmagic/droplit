@@ -3182,20 +3182,25 @@ async function recorderCreateDrop() {
   
   try {
     alert('Inside try, starting base64...');
-    showToast('Starting base64...');
-    console.log('recorderCreateDrop: starting base64 conversion');
+    alert('recorderBlob before FileReader: ' + (recorderBlob ? recorderBlob.size : 'NULL'));
+    
     // Convert to base64
     const base64Data = await new Promise((resolve, reject) => {
+      alert('Inside Promise, creating FileReader...');
       const reader = new FileReader();
       reader.onloadend = () => {
+        alert('FileReader onloadend! length=' + reader.result.length);
         console.log('FileReader onloadend');
         resolve(reader.result);
       };
       reader.onerror = () => {
+        alert('FileReader ERROR!');
         console.log('FileReader onerror');
         reject(new Error('FileReader failed'));
       };
+      alert('Calling readAsDataURL...');
       reader.readAsDataURL(recorderBlob);
+      alert('readAsDataURL called, waiting...');
     });
     showToast('Base64 OK: ' + base64Data.length);
     console.log('recorderCreateDrop: base64 done, length=' + base64Data.length);
