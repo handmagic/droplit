@@ -111,8 +111,17 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">TEST: + PAUSE/RESUME</div>
+
+  <button style="width:100%; max-width:400px; margin:20px auto; display:block; padding:20px; background:linear-gradient(135deg,#F59E0B,#D97706); color:white; border:none; border-radius:12px; font-size:1.1rem; font-weight:700; cursor:pointer;" onclick="openModal()">
+    OPEN RECORDER
+  </button>
+  
+  <div class="log" id="log">Log:</div>
+
+  <!-- MODAL -->
+  <div id="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; padding:20px; z-index:100;" onclick="if(event.target===this)closeModal()">
+    <div class="container">
+    <div class="header">TEST: + MODAL</div>
     <div class="body">
       <div class="time" id="time">0:00</div>
       
@@ -135,14 +144,27 @@
         <button class="act-btn create" id="createBtn" onclick="createDrop()" disabled>CREATE</button>
         <button class="act-btn share" id="shareBtn" onclick="shareRecording()" disabled>SHARE</button>
       </div>
+      
+      <button style="width:100%; padding:14px; border:2px solid #D6D3D1; border-radius:12px; background:transparent; font-size:0.9rem; font-weight:600; color:#57534E; cursor:pointer;" onclick="closeModal()">CANCEL</button>
     </div>
   </div>
+  </div><!-- close modal -->
   
-  <div class="log" id="log">Console log:</div>
+  <div class="log" id="log2">Console log (below):</div>
 
 <script>
 // ===== STATE =====
 let state = 'ready'; // ready, recording, paused, stopped
+
+function openModal() {
+  log('openModal');
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() {
+  log('closeModal');
+  document.getElementById('modal').style.display = 'none';
+}
 let mediaRecorder = null;
 let audioChunks = [];
 let audioBlob = null;
