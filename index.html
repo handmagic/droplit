@@ -297,6 +297,9 @@
     .act.danger { background: rgba(239,68,68,0.1); color: #EF4444; border-color: rgba(239,68,68,0.5); }
     .act.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .act.secondary { background: var(--color-bg-btn); color: var(--color-text-soft); }
+    .act.act-tts { background: linear-gradient(135deg, #10B981, #059669); color: white; border-color: transparent; }
+    .act.act-tts.playing { background: linear-gradient(135deg, #EF4444, #DC2626); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.7;} }
 
     /* Empty state */
     .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 30px; }
@@ -864,7 +867,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.44 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.45 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1807,7 +1810,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.44 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.45 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1820,7 +1823,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.44 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.45 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1956,6 +1959,142 @@ const MARKERS={
 };
 // Currently enabled markers (MVP = only heart)
 const ENABLED_MARKERS=['heart'];
+
+// ============================================
+// ID GENERATOR (v0.9.45)
+// Base62: 16 random characters, no timestamp
+// ============================================
+const BASE62_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+function generateId(length = 16) {
+  const randomBytes = new Uint8Array(length);
+  crypto.getRandomValues(randomBytes);
+  return Array.from(randomBytes, byte => BASE62_CHARS[byte % 62]).join('');
+}
+
+// ============================================
+// DROP SOUND (v0.9.45)
+// Signature sound when creating a drop
+// ============================================
+let dropSoundCtx = null;
+function playDropSound() {
+  try {
+    if (!dropSoundCtx) dropSoundCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = dropSoundCtx;
+    if (ctx.state === 'suspended') ctx.resume();
+    
+    // Create a pleasant "drop" sound
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc1.type = 'sine';
+    osc2.type = 'sine';
+    osc1.frequency.setValueAtTime(880, ctx.currentTime); // A5
+    osc1.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15); // A4
+    osc2.frequency.setValueAtTime(1320, ctx.currentTime); // E6
+    osc2.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.15); // E5
+    
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+    
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc1.start(ctx.currentTime);
+    osc2.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.2);
+    osc2.stop(ctx.currentTime + 0.2);
+  } catch(e) {
+    console.log('Sound not available');
+  }
+}
+
+// ============================================
+// TTS - TEXT TO SPEECH (v0.9.45)
+// Read drop content aloud
+// ============================================
+let currentTTSUtterance = null;
+let isTTSPlaying = false;
+
+function speakDrop(id, e) {
+  if (e) e.stopPropagation();
+  
+  const item = ideas.find(x => x.id === id);
+  if (!item) return;
+  
+  // Get text to speak
+  let textToSpeak = '';
+  if (item.category === 'audio' && item.transcription) {
+    textToSpeak = item.transcription;
+  } else if (item.text) {
+    textToSpeak = item.text;
+  } else if (item.notes) {
+    textToSpeak = item.notes;
+  }
+  
+  if (!textToSpeak) {
+    toast('Nothing to read', 'warning');
+    return;
+  }
+  
+  // Stop if already playing this drop
+  if (isTTSPlaying && currentTTSUtterance) {
+    speechSynthesis.cancel();
+    isTTSPlaying = false;
+    updateTTSButton(id, false);
+    toast('Stopped', 'info');
+    return;
+  }
+  
+  // Cancel any existing speech
+  speechSynthesis.cancel();
+  
+  // Create utterance
+  const utterance = new SpeechSynthesisUtterance(textToSpeak);
+  
+  // Detect language (simple heuristic)
+  const hasRussian = /[а-яё]/i.test(textToSpeak);
+  utterance.lang = hasRussian ? 'ru-RU' : 'en-US';
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  
+  // Events
+  utterance.onstart = () => {
+    isTTSPlaying = true;
+    updateTTSButton(id, true);
+  };
+  
+  utterance.onend = () => {
+    isTTSPlaying = false;
+    updateTTSButton(id, false);
+  };
+  
+  utterance.onerror = (e) => {
+    isTTSPlaying = false;
+    updateTTSButton(id, false);
+    if (e.error !== 'canceled') {
+      toast('TTS error', 'error');
+    }
+  };
+  
+  currentTTSUtterance = utterance;
+  speechSynthesis.speak(utterance);
+  toast('Reading...', 'info');
+}
+
+function updateTTSButton(id, isPlaying) {
+  const btn = document.querySelector(`.card[data-id="${id}"] .act-tts`);
+  if (btn) {
+    btn.innerHTML = isPlaying ? '🔊 Stop' : '🔊 Read';
+    btn.classList.toggle('playing', isPlaying);
+  }
+}
+
+function stopAllTTS() {
+  speechSynthesis.cancel();
+  isTTSPlaying = false;
+}
 
 function parseD(s){
   if(!s||typeof s!=='string')return new Date(0);
@@ -2125,7 +2264,7 @@ function saveMerged(){
     return;
   }
   
-  const mergedId = Date.now();
+  const mergedId = generateId();
   const idea={id:mergedId,text:text,category:'inbox',timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMerged:true};
   ideas.push(idea);
   
@@ -2133,6 +2272,7 @@ function saveMerged(){
   saveUndo('merge', { mergedId: mergedId, count: selectedIds.length });
   
   save();
+  playDropSound(); // Play signature sound
   closeMergeModal();
   cancelSelect();
   resetToShowAll();
@@ -2350,6 +2490,7 @@ function saveIdea(t){
   const c=detectCat(t);
   const idea={id:Date.now(),text:t,category:c,timestamp:new Date().toISOString(),date:new Date().toLocaleDateString('ru-RU'),time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),isMedia:false};
   ideas.push(idea);save(idea);
+  playDropSound(); // Play signature sound
   resetToShowAll();
   toast('Saved to '+CATS[c].name,'success');
 }
@@ -2442,6 +2583,7 @@ function savePhoto(dataUrl,geo){
   };
   ideas.push(idea);
   save();
+  playDropSound(); // Play signature sound
   toast('Photo saved!','success');
   try{
     resetToShowAll();
@@ -3198,6 +3340,7 @@ function recorderCreateDrop() {
       
       ideas.unshift(drop);
       save(drop);
+      playDropSound(); // Play signature sound
       render();
       counts();
       
@@ -3385,6 +3528,7 @@ async function saveAudioDrop(blob) {
     
     ideas.unshift(drop);
     save(drop);
+    playDropSound(); // Play signature sound
     render();
     counts();
     
@@ -4631,6 +4775,7 @@ function saveTextNote(){
   };
   ideas.push(idea);
   save();
+  playDropSound();
   toast('Note saved!','success');
   closeTextInput();
   resetToShowAll();
@@ -4661,6 +4806,7 @@ async function pasteLink(){
       };
       ideas.push(idea);
       save();
+      playDropSound();
       toast('Saved from clipboard!','success');
       resetToShowAll();
     } else {
@@ -4693,6 +4839,7 @@ function createLinkCard(url){
   };
   ideas.push(idea);
   save();
+  playDropSound();
   toast('Link saved!','success');
   resetToShowAll();
 }
@@ -4744,6 +4891,7 @@ function handleUploadedImage(e){
     };
     ideas.push(idea);
     save();
+    playDropSound();
     toast('Image uploaded!','success');
     resetToShowAll();
   };
@@ -5032,18 +5180,21 @@ function render(){
       h+='<div class="card-actions">';
       if(i.category==='audio'){
         h+='<button class="act ai" onclick="transcribeAudio('+i.id+')">Transcribe</button>';
+        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">🔊 Read</button>';
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
         h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
         h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       } else if(i.isMedia){
         h+='<button class="act" onclick="viewImage('+i.id+',event)">View</button>';
+        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">🔊 Read</button>';
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
         h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
         h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       } else {
         h+='<button class="act ai" onclick="openAITools('+i.id+')">AI Tools</button>';
+        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">🔊 Read</button>';
         h+='<button class="act" onclick="startEdit('+i.id+')">Edit</button>';
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
@@ -6767,7 +6918,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.44';
+  md+='---\nExported from DropLit v0.9.45';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
