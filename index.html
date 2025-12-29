@@ -864,7 +864,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.42 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.43 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1807,7 +1807,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.42 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.43 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1820,7 +1820,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.42 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.43 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -3169,6 +3169,7 @@ async function recorderCreateDrop() {
   createBtn.textContent = 'SAVING...';
   
   try {
+    console.log('recorderCreateDrop: starting base64 conversion');
     // Convert to base64
     const base64Data = await new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -3176,11 +3177,13 @@ async function recorderCreateDrop() {
       reader.onerror = () => reject(new Error('FileReader failed'));
       reader.readAsDataURL(recorderBlob);
     });
+    console.log('recorderCreateDrop: base64 done, length=' + base64Data.length);
     
     // Get duration from timer
     const timeText = document.getElementById('recorderTime').textContent;
     const parts = timeText.split(':');
     const duration = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    console.log('recorderCreateDrop: duration=' + duration);
     
     // Create drop
     const now = new Date();
@@ -3195,15 +3198,26 @@ async function recorderCreateDrop() {
       audioData: base64Data,
       audioFormat: recorderBlob.type.split('/')[1] || 'webm',
       audioSize: recorderBlob.size,
+      audioBitrate: duration > 0 ? Math.round((recorderBlob.size * 8) / duration) : 0,
       duration: duration,
+      waveform: [],
       notes: ''
     };
     
     // Save
+    console.log('recorderCreateDrop: calling ideas.unshift');
+    showToast('Step 1: unshift...');
     ideas.unshift(drop);
+    console.log('recorderCreateDrop: calling save');
+    showToast('Step 2: save...');
     save(drop);
+    console.log('recorderCreateDrop: calling render');
+    showToast('Step 3: render...');
     render();
+    console.log('recorderCreateDrop: calling counts');
+    showToast('Step 4: counts...');
     counts();
+    console.log('recorderCreateDrop: all done!');
     
     // Success
     createBtn.textContent = 'CREATED!';
@@ -3225,6 +3239,8 @@ async function recorderCreateDrop() {
     }, 1500);
     
   } catch (err) {
+    console.error('recorderCreateDrop ERROR:', err);
+    showToast('ERROR: ' + err.message);
     createBtn.textContent = 'ERROR';
     createBtn.style.background = '#FEE2E2';
     createBtn.style.color = '#991B1B';
@@ -6764,7 +6780,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.42';
+  md+='---\nExported from DropLit v0.9.43';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
