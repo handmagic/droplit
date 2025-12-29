@@ -3157,14 +3157,14 @@ function recorderDelete() {
 
 async function recorderCreateDrop() {
   alert('INSIDE recorderCreateDrop');
-  showToast('CREATE DROP clicked');
+  alert('recorderBlob = ' + (recorderBlob ? recorderBlob.size + ' bytes' : 'NULL'));
   
   if (!recorderBlob) {
-    showToast('ERROR: No recording!');
+    alert('NO BLOB - returning');
     return;
   }
   
-  showToast('Blob: ' + recorderBlob.size + ' bytes');
+  alert('Blob OK, continuing...');
   
   const createBtn = document.querySelector('#audioRecorderModal .act-btn.create');
   const deleteBtn = document.querySelector('#audioRecorderModal .act-btn.delete');
