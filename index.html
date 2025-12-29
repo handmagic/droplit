@@ -2180,13 +2180,26 @@ async function syncDropToServer(idea, action = 'create') {
       device_id: DEVICE_ID
     };
     
+    // DEBUG: показываем что отправляем
     console.log('📤 Syncing drop:', dropData.id, 'device_id:', dropData.device_id);
+    toast(`Sync: ${dropData.device_id}`, 'info');
     
-    const { error } = await supabaseClient
+    const { error, data } = await supabaseClient
       .from('drops')
-      .upsert(dropData, { onConflict: 'id' });
+      .upsert(dropData, { onConflict: 'id' })
+      .select();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      toast(`Error: ${error.message}`, 'error');
+      throw error;
+    }
+    
+    // DEBUG: показываем что вернулось
+    if (data && data[0]) {
+      console.log('📥 Returned:', data[0].device_id);
+      toast(`Saved: ${data[0].device_id || 'NULL!'}`, data[0].device_id ? 'success' : 'warning');
+    }
     
     console.log(`☁️ Synced drop ${String(idea.id).substring(0, 8)}... (${action})`);
     updateSyncUI('synced', 'Synced');
