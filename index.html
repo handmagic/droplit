@@ -69,16 +69,6 @@
 
     /* Header */
     .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--color-bg-card); position: relative; padding-top: max(10px, env(safe-area-inset-top)); z-index: 100; }
-    
-    /* Sync Indicator (v0.9.47) */
-    .sync-indicator { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 700; color: var(--color-text-muted); padding: 6px 12px; border-radius: var(--radius-full); background: var(--color-bg-card); border: 2px solid var(--color-border); }
-    .sync-indicator.synced { color: var(--color-success); border-color: var(--color-success); }
-    .sync-indicator.syncing { color: var(--color-primary); border-color: var(--color-primary); }
-    .sync-indicator.offline { color: var(--color-warning); border-color: var(--color-warning); }
-    .sync-indicator.error { color: var(--color-error); border-color: var(--color-error); }
-    .sync-icon { width: 12px; height: 12px; }
-    .sync-indicator.syncing .sync-icon { animation: spin 1s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     /* Shadow element - always at bottom of visible top bar area */
     .header::after { content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px; background: linear-gradient(to bottom, rgba(0,0,0,0.06), transparent); pointer-events: none; z-index: 99; }
     /* When filters visible - hide header shadow, filters will have its own */
@@ -879,7 +869,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.47 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.48 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1098,10 +1088,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
         Create Drop
       </button>
-      <div class="sync-indicator" id="syncIndicator" onclick="manualSync()" title="Tap to sync">
-        <svg class="sync-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 01-9 9m0 0a9 9 0 01-9-9m9 9v-4m0-14a9 9 0 019 9m-9-9a9 9 0 00-9 9m9-9v4"/></svg>
-        <span id="syncStatus">—</span>
-      </div>
       <button class="btn-icon" id="menuToggleBtn" onclick="toggleMainMenu()">
         <svg class="menu-icon-open" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         <svg class="menu-icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1787,9 +1773,12 @@
         <div class="settings-item no-border">
           <div class="settings-item-left">
             <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span>
-            <span class="settings-item-label">Sync to Syntrise</span>
+            <div>
+              <span class="settings-item-label">Cloud Sync</span>
+              <div id="lastSyncInfo" style="font-size: 0.65rem; color: var(--color-text-muted); margin-top: 2px;">Last sync: —</div>
+            </div>
           </div>
-          <button class="pill-m pri" onclick="syncToCloud()">Sync</button>
+          <button class="pill-m pri" onclick="manualSync()">Sync Now</button>
         </div>
         
         <div class="section-divider"><span>Data</span></div>
@@ -1831,7 +1820,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.47 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.48 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1845,7 +1834,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.47 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.48 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1947,7 +1936,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 
 // ============================================
-// AUTO-FIX: Repair string IDs (v0.9.47)
+// AUTO-FIX: Repair string IDs (v0.9.48)
 // ============================================
 (function autoFixIds() {
   let fixed = 0;
@@ -1965,7 +1954,7 @@ let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 })();
 
 // ============================================
-// SUPABASE SYNC (v0.9.47)
+// SUPABASE SYNC (v0.9.48)
 // ============================================
 const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE';
@@ -2193,11 +2182,8 @@ async function syncDropToServer(idea, action = 'create') {
       }
     };
     
-    // DEBUG: показываем что отправляем
-    console.log('📤 Syncing drop:', dropData.external_id, 'device_id:', dropData.device_id);
-    toast(`Sync: ${dropData.device_id}`, 'info');
+    console.log('📤 Syncing drop:', dropData.external_id);
     
-    // Upsert by external_id
     const { error, data } = await supabaseClient
       .from('drops')
       .upsert(dropData, { 
@@ -2208,14 +2194,7 @@ async function syncDropToServer(idea, action = 'create') {
     
     if (error) {
       console.error('Supabase error:', error);
-      alert('SYNC ERROR:\n\n' + error.message + '\n\nCode: ' + (error.code || 'unknown'));
       throw error;
-    }
-    
-    // DEBUG: показываем что вернулось
-    if (data && data[0]) {
-      console.log('📥 Returned:', data[0].device_id);
-      toast(`Saved: ${data[0].device_id || 'NULL!'}`, data[0].device_id ? 'success' : 'warning');
     }
     
     console.log(`☁️ Synced drop ${String(idea.id).substring(0, 8)}... (${action})`);
@@ -2261,13 +2240,13 @@ async function manualSync() {
   if (isSyncing) return;
   
   if (!currentUser) {
-    toast('Not connected. Tap to retry.', 'warning');
+    toast('Not connected to cloud', 'warning');
     initSupabase();
     return;
   }
   
   isSyncing = true;
-  updateSyncUI('syncing', 'Syncing...');
+  toast('Syncing...', 'info');
   
   try {
     // Sync all local text drops
@@ -2279,27 +2258,37 @@ async function manualSync() {
       if (success) synced++;
     }
     
-    updateSyncUI('synced', 'Synced!');
-    toast(`Synced ${synced} drops`, 'success');
+    lastSyncTime = new Date();
+    updateLastSyncInfo();
+    toast(`Synced ${synced} drops to cloud`, 'success');
     
   } catch (error) {
     console.error('❌ Manual sync error:', error);
-    updateSyncUI('error', 'Sync failed');
-    toast('Sync failed', 'error');
+    toast('Sync failed: ' + error.message, 'error');
   }
   
   isSyncing = false;
 }
 
-// Update sync UI indicator
+// Update last sync info in menu
+function updateLastSyncInfo() {
+  const el = document.getElementById('lastSyncInfo');
+  if (!el) return;
+  
+  if (lastSyncTime) {
+    el.textContent = 'Last sync: ' + lastSyncTime.toLocaleTimeString();
+  } else {
+    el.textContent = 'Last sync: —';
+  }
+}
+
+// Legacy function - now uses Supabase
 function updateSyncUI(status, text) {
-  const indicator = document.getElementById('syncIndicator');
-  const statusEl = document.getElementById('syncStatus');
-  
-  if (!indicator || !statusEl) return;
-  
-  indicator.className = 'sync-indicator ' + status;
-  statusEl.textContent = text;
+  // Update lastSyncInfo if synced
+  if (status === 'synced') {
+    lastSyncTime = new Date();
+    updateLastSyncInfo();
+  }
 }
 
 // Initialize on load
@@ -2345,7 +2334,7 @@ const MARKERS={
 const ENABLED_MARKERS=['heart'];
 
 // ============================================
-// ID GENERATOR (v0.9.47)
+// ID GENERATOR (v0.9.48)
 // Base62: 16 random characters, no timestamp
 // ============================================
 const BASE62_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -2356,7 +2345,7 @@ function generateId(length = 16) {
 }
 
 // ============================================
-// DROP SOUND (v0.9.47)
+// DROP SOUND (v0.9.48)
 // Signature sound when creating a drop
 // ============================================
 let dropSoundCtx = null;
@@ -2395,7 +2384,7 @@ function playDropSound() {
 }
 
 // ============================================
-// TTS - TEXT TO SPEECH (v0.9.47)
+// TTS - TEXT TO SPEECH (v0.9.48)
 // Read drop content aloud
 // ============================================
 let currentTTSUtterance = null;
@@ -2872,7 +2861,7 @@ function detectCat(t){
 }
 function saveIdea(t){
   // ============================================
-  // SLASH COMMANDS (v0.9.47)
+  // SLASH COMMANDS (v0.9.48)
   // ============================================
   if (t.startsWith('/')) {
     const cmd = t.toLowerCase().trim();
@@ -2906,7 +2895,7 @@ function saveIdea(t){
       const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
       const deviceId = DEVICE_ID || 'Not set';
       const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
-      alert(`DropLit Debug v0.9.47\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      alert(`DropLit Debug v0.9.48\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
@@ -5449,7 +5438,7 @@ function confirmDel(){
     const delItem=ideas.find(x=>x.id===delId);
     if(delItem) {
       saveUndo('delete',{...delItem});
-      // Sync delete to Supabase (v0.9.47)
+      // Sync delete to Supabase (v0.9.48)
       if (syncEnabled && currentUser) {
         deleteDropFromServer(delId);
       }
@@ -5475,7 +5464,7 @@ function saveEdit(id){
         i.text=t;
         i.category=detectCat(t);
         save();
-        // Sync update to Supabase (v0.9.47)
+        // Sync update to Supabase (v0.9.48)
         if (syncEnabled && currentUser) {
           syncDropToServer(i, 'update');
         }
@@ -5538,7 +5527,7 @@ function save(newDrop){
     const data=JSON.stringify(ideas);
     localStorage.setItem('droplit_ideas',data);
     
-    // Sync to Supabase (v0.9.47)
+    // Sync to Supabase (v0.9.48)
     if (newDrop && syncEnabled && currentUser) {
       syncDropToServer(newDrop, 'create');
     }
@@ -7405,7 +7394,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.47';
+  md+='---\nExported from DropLit v0.9.48';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -7451,7 +7440,7 @@ function closeMainMenu() {
   updateMenuIcon(false);
 }
 
-// Debug info (v0.9.47)
+// Debug info (v0.9.48)
 function showDebugInfo() {
   closeMainMenu();
   const total = ideas.length;
@@ -7466,7 +7455,7 @@ function showDebugInfo() {
   const lastSync = lastSyncTime ? lastSyncTime.toLocaleTimeString() : 'Never';
   
   alert(
-    `DropLit Debug v0.9.47\n\n` +
+    `DropLit Debug v0.9.48\n\n` +
     `=== DROPS ===\n` +
     `Total: ${total}\n` +
     `Text: ${textDrops}\n` +
