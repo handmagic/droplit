@@ -216,7 +216,7 @@
   <div class="log" id="log">Log:</div>
 
   <!-- ===== EXACT HTML FROM DROPLIT ===== -->
-  <div class="audio-recorder-modal" id="audioRecorderModal" onclick="if(event.target===this)closeAudioRecorder()">
+  <div class="audio-recorder-modal" id="audioRecorderModal">
     <div class="audio-recorder-content">
       <div class="audio-recorder-header">
         <h2>AUDIO RECORDER</h2>
@@ -255,9 +255,9 @@
           <span id="recorderMainText">TAP TO RECORD</span>
         </button>
         <div class="audio-recorder-actions">
-          <button class="act-btn delete" onclick="recorderDelete()">DELETE</button>
-          <button class="act-btn create" onclick="recorderCreateDrop()">CREATE DROP</button>
-          <button class="act-btn share" onclick="recorderShare()">SHARE</button>
+          <button class="act-btn delete" onclick="event.stopPropagation(); recorderDelete()" disabled>DELETE</button>
+          <button class="act-btn create" onclick="event.stopPropagation(); recorderCreateDrop()" disabled>CREATE DROP</button>
+          <button class="act-btn share" onclick="event.stopPropagation(); recorderShare()" disabled>SHARE</button>
         </div>
         <button class="audio-recorder-cancel" onclick="closeAudioRecorder()">CANCEL</button>
       </div>
