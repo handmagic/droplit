@@ -71,11 +71,11 @@
     .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--color-bg-card); position: relative; padding-top: max(10px, env(safe-area-inset-top)); z-index: 100; }
     
     /* Sync Indicator (v0.9.47) */
-    .sync-indicator { display: flex; align-items: center; gap: 4px; font-size: 0.65rem; font-weight: 600; color: var(--color-text-muted); padding: 4px 8px; border-radius: var(--radius-full); background: var(--color-bg-btn); }
-    .sync-indicator.synced { color: var(--color-success); }
-    .sync-indicator.syncing { color: var(--color-primary); }
-    .sync-indicator.offline { color: var(--color-warning); }
-    .sync-indicator.error { color: var(--color-error); }
+    .sync-indicator { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 700; color: var(--color-text-muted); padding: 6px 12px; border-radius: var(--radius-full); background: var(--color-bg-card); border: 2px solid var(--color-border); }
+    .sync-indicator.synced { color: var(--color-success); border-color: var(--color-success); }
+    .sync-indicator.syncing { color: var(--color-primary); border-color: var(--color-primary); }
+    .sync-indicator.offline { color: var(--color-warning); border-color: var(--color-warning); }
+    .sync-indicator.error { color: var(--color-error); border-color: var(--color-error); }
     .sync-icon { width: 12px; height: 12px; }
     .sync-indicator.syncing .sync-icon { animation: spin 1s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -2191,7 +2191,7 @@ async function syncDropToServer(idea, action = 'create') {
     
     if (error) {
       console.error('Supabase error:', error);
-      toast(`Error: ${error.message}`, 'error');
+      alert('SYNC ERROR:\n\n' + error.message + '\n\nCode: ' + (error.code || 'unknown'));
       throw error;
     }
     
