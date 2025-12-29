@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Audio Recorder TEST</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+      background: #F5F5F4; 
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #F59E0B, #D97706);
+      padding: 20px;
+      text-align: center;
+      color: white;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+    .body { padding: 24px; }
+    .time {
+      text-align: center;
+      font-size: 3rem;
+      font-weight: 700;
+      margin: 20px 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .main-btn {
+      width: 100%;
+      padding: 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      transition: all 0.15s;
+    }
+    .main-btn.ready { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; }
+    .main-btn.recording { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; }
+    .main-btn.stopped { background: linear-gradient(135deg, #10B981, #059669); color: white; }
+    .main-btn:active { transform: scale(0.98); }
+    
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .act-btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s;
+    }
+    .act-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .act-btn:active:not(:disabled) { transform: scale(0.95); }
+    .act-btn.delete { background: #FEE2E2; color: #991B1B; }
+    .act-btn.create { background: #D1FAE5; color: #065F46; }
+    .act-btn.share { background: #E0E7FF; color: #3730A3; }
+    
+    .stop-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: #EF4444;
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .stop-btn.show { display: block; }
+    
+    .log {
+      margin-top: 20px;
+      padding: 12px;
+      background: #1a1a1a;
+      border-radius: 8px;
+      color: #0f0;
+      font-family: monospace;
+      font-size: 0.75rem;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">AUDIO RECORDER TEST</div>
+    <div class="body">
+      <div class="time" id="time">0:00</div>
+      
+      <button class="main-btn ready" id="mainBtn" onclick="toggleRecord()">
+        TAP TO RECORD
+      </button>
+      
+      <button class="stop-btn" id="stopBtn" onclick="stopRecording()">
+        STOP RECORDING
+      </button>
+      
+      <div class="actions">
+        <button class="act-btn delete" id="deleteBtn" onclick="deleteRecording()" disabled>DELETE</button>
+        <button class="act-btn create" id="createBtn" onclick="createDrop()" disabled>CREATE</button>
+        <button class="act-btn share" id="shareBtn" onclick="shareRecording()" disabled>SHARE</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="log" id="log">Console log:</div>
+
+<script>
+// ===== STATE =====
+let state = 'ready'; // ready, recording, stopped
+let mediaRecorder = null;
+let audioChunks = [];
+let audioBlob = null;
+let audioStream = null;
+let startTime = null;
+let timerInterval = null;
+
+// ===== LOGGING =====
+function log(msg) {
+  const logEl = document.getElementById('log');
+  const time = new Date().toLocaleTimeString();
+  logEl.textContent += '\n[' + time + '] ' + msg;
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(msg);
+}
+
+// ===== UI UPDATE =====
+function updateUI() {
+  const mainBtn = document.getElementById('mainBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const createBtn = document.getElementById('createBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  
+  // Main button
+  mainBtn.className = 'main-btn ' + state;
+  if (state === 'ready') {
+    mainBtn.textContent = 'TAP TO RECORD';
+  } else if (state === 'recording') {
+    mainBtn.textContent = 'RECORDING...';
+  } else if (state === 'stopped') {
+    mainBtn.textContent = 'TAP TO RE-RECORD';
+  }
+  
+  // Stop button
+  stopBtn.className = 'stop-btn' + (state === 'recording' ? ' show' : '');
+  
+  // Action buttons - only enabled when stopped with recording
+  const hasRecording = state === 'stopped' && audioBlob !== null;
+  deleteBtn.disabled = !hasRecording;
+  createBtn.disabled = !hasRecording;
+  shareBtn.disabled = !hasRecording;
+  
+  log('UI updated: state=' + state + ', hasBlob=' + (audioBlob !== null));
+}
+
+// ===== TIMER =====
+function updateTimer() {
+  const elapsed = Date.now() - startTime;
+  const secs = Math.floor(elapsed / 1000);
+  const mins = Math.floor(secs / 60);
+  document.getElementById('time').textContent = mins + ':' + (secs % 60).toString().padStart(2, '0');
+}
+
+// ===== MAIN BUTTON =====
+function toggleRecord() {
+  log('toggleRecord called, state=' + state);
+  
+  if (state === 'ready' || state === 'stopped') {
+    startRecording();
+  }
+}
+
+// ===== START RECORDING =====
+async function startRecording() {
+  log('startRecording called');
+  
+  try {
+    // Reset
+    audioChunks = [];
+    audioBlob = null;
+    
+    // Get microphone
+    log('Requesting microphone...');
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    log('Microphone granted');
+    
+    // Create recorder
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+    log('Using mimeType: ' + mimeType);
+    
+    mediaRecorder = new MediaRecorder(audioStream, { mimeType: mimeType });
+    
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        audioChunks.push(e.data);
+        log('Chunk received: ' + e.data.size + ' bytes');
+      }
+    };
+    
+    mediaRecorder.onstop = () => {
+      log('MediaRecorder stopped');
+      audioBlob = new Blob(audioChunks, { type: mimeType });
+      log('Blob created: ' + audioBlob.size + ' bytes, type=' + audioBlob.type);
+      
+      // Stop stream
+      audioStream.getTracks().forEach(t => t.stop());
+      
+      state = 'stopped';
+      updateUI();
+    };
+    
+    mediaRecorder.onerror = (e) => {
+      log('MediaRecorder ERROR: ' + e.error);
+    };
+    
+    // Start
+    mediaRecorder.start(100);
+    state = 'recording';
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 100);
+    
+    log('Recording started');
+    updateUI();
+    
+  } catch (err) {
+    log('ERROR: ' + err.message);
+    alert('Microphone error: ' + err.message);
+  }
+}
+
+// ===== STOP RECORDING =====
+function stopRecording() {
+  log('stopRecording called');
+  
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    log('Stop command sent');
+  } else {
+    log('No active recorder to stop');
+  }
+}
+
+// ===== DELETE =====
+function deleteRecording() {
+  log('deleteRecording called');
+  
+  audioBlob = null;
+  audioChunks = [];
+  state = 'ready';
+  document.getElementById('time').textContent = '0:00';
+  
+  updateUI();
+  log('Recording deleted');
+}
+
+// ===== CREATE DROP =====
+async function createDrop() {
+  log('createDrop called');
+  
+  if (!audioBlob) {
+    log('ERROR: No audioBlob!');
+    return;
+  }
+  
+  const createBtn = document.getElementById('createBtn');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  
+  // Disable all buttons immediately
+  createBtn.disabled = true;
+  deleteBtn.disabled = true;
+  shareBtn.disabled = true;
+  createBtn.textContent = 'SAVING...';
+  
+  try {
+    log('Converting blob to base64...');
+    
+    // Convert to base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        log('FileReader completed');
+        resolve(reader.result);
+      };
+      reader.onerror = () => {
+        log('FileReader ERROR');
+        reject(new Error('FileReader failed'));
+      };
+      reader.readAsDataURL(audioBlob);
+    });
+    
+    log('Base64 length: ' + base64.length);
+    
+    // Simulate saving (in real app this would save to localStorage)
+    const drop = {
+      id: Date.now(),
+      audioData: base64,
+      duration: document.getElementById('time').textContent,
+      size: audioBlob.size
+    };
+    
+    log('Drop created: id=' + drop.id + ', duration=' + drop.duration);
+    
+    // Success
+    createBtn.textContent = 'CREATED!';
+    createBtn.style.background = '#10B981';
+    createBtn.style.color = 'white';
+    
+    // Reset state
+    audioBlob = null;
+    state = 'ready';
+    document.getElementById('time').textContent = '0:00';
+    
+    setTimeout(() => {
+      createBtn.textContent = 'CREATE';
+      createBtn.style.background = '#D1FAE5';
+      createBtn.style.color = '#065F46';
+      updateUI();
+    }, 1500);
+    
+  } catch (err) {
+    log('CREATE ERROR: ' + err.message);
+    createBtn.textContent = 'ERROR';
+    createBtn.style.background = '#FEE2E2';
+    createBtn.style.color = '#991B1B';
+    
+    setTimeout(() => {
+      createBtn.textContent = 'CREATE';
+      createBtn.style.background = '#D1FAE5';
+      createBtn.style.color = '#065F46';
+      updateUI();
+    }, 1500);
+  }
+}
+
+// ===== SHARE =====
+async function shareRecording() {
+  log('shareRecording called');
+  
+  if (!audioBlob) {
+    log('ERROR: No audioBlob!');
+    return;
+  }
+  
+  log('Blob size: ' + audioBlob.size + ', type: ' + audioBlob.type);
+  
+  // Create file
+  const fileName = 'audio.' + (audioBlob.type.includes('mp4') ? 'm4a' : 'webm');
+  const file = new File([audioBlob], fileName, { type: audioBlob.type });
+  log('File created: ' + fileName);
+  
+  // Check APIs
+  const hasShare = typeof navigator.share === 'function';
+  const hasCanShare = typeof navigator.canShare === 'function';
+  log('navigator.share: ' + hasShare);
+  log('navigator.canShare: ' + hasCanShare);
+  
+  if (hasCanShare) {
+    try {
+      const canShareFile = navigator.canShare({ files: [file] });
+      log('canShare({files}): ' + canShareFile);
+    } catch (e) {
+      log('canShare error: ' + e.message);
+    }
+  }
+  
+  // Try to share
+  if (hasShare) {
+    try {
+      log('Calling navigator.share...');
+      await navigator.share({
+        files: [file],
+        title: 'Audio Recording'
+      });
+      log('Share SUCCESS');
+    } catch (err) {
+      log('Share error: ' + err.name + ' - ' + err.message);
+      
+      if (err.name === 'AbortError') {
+        log('User cancelled');
+      } else {
+        // Try without files
+        try {
+          log('Trying share without files...');
+          await navigator.share({
+            title: 'Audio Recording',
+            text: 'Audio ' + document.getElementById('time').textContent
+          });
+          log('Text share SUCCESS');
+        } catch (err2) {
+          log('Text share error: ' + err2.message);
+          downloadFile();
+        }
+      }
+    }
+  } else {
+    log('No share API, downloading...');
+    downloadFile();
+  }
+  
+  function downloadFile() {
+    log('Downloading file...');
+    const url = URL.createObjectURL(audioBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    log('Download triggered');
+  }
+}
+
+// ===== INIT =====
+log('Audio Recorder TEST loaded');
+log('navigator.mediaDevices: ' + !!navigator.mediaDevices);
+log('MediaRecorder: ' + !!window.MediaRecorder);
+updateUI();
+</script>
+</body>
+</html>
