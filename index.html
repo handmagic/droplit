@@ -3170,13 +3170,18 @@ async function recorderCreateDrop() {
   const deleteBtn = document.querySelector('#audioRecorderModal .act-btn.delete');
   const shareBtn = document.querySelector('#audioRecorderModal .act-btn.share');
   
+  alert('Buttons found: create=' + !!createBtn + ', delete=' + !!deleteBtn + ', share=' + !!shareBtn);
+  
   // Disable all buttons immediately
   if (createBtn) { createBtn.disabled = true; createBtn.style.opacity = '0.4'; }
   if (deleteBtn) { deleteBtn.disabled = true; deleteBtn.style.opacity = '0.4'; }
   if (shareBtn) { shareBtn.disabled = true; shareBtn.style.opacity = '0.4'; }
   createBtn.textContent = 'SAVING...';
   
+  alert('Buttons disabled, starting try block...');
+  
   try {
+    alert('Inside try, starting base64...');
     showToast('Starting base64...');
     console.log('recorderCreateDrop: starting base64 conversion');
     // Convert to base64
