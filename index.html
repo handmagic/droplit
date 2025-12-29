@@ -482,6 +482,7 @@
     .audio-recorder-main-btn.ready { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; }
     .audio-recorder-main-btn.recording { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; animation: pulse 1s infinite; }
     .audio-recorder-main-btn.paused { background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; }
+    .audio-recorder-main-btn.stopped { background: linear-gradient(135deg, #10B981, #059669); color: white; }
     .audio-recorder-main-btn:active { transform: scale(0.98); }
     .audio-recorder-actions { display: flex; gap: 8px; margin-bottom: 16px; }
     .audio-recorder-actions .act-btn { flex: 1; padding: 12px; border: none; border-radius: var(--radius-md); font-size: 0.8rem; font-weight: 600; cursor: pointer; text-transform: uppercase; transition: all 0.15s; }
@@ -489,6 +490,8 @@
     .audio-recorder-actions .act-btn.delete { background: #FEE2E2; color: #991B1B; }
     .audio-recorder-actions .act-btn.create { background: #D1FAE5; color: #065F46; }
     .audio-recorder-actions .act-btn.share { background: #E0E7FF; color: #3730A3; }
+    .audio-recorder-actions .act-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .audio-recorder-controls .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .audio-recorder-cancel { width: 100%; padding: 16px; border: 2px solid var(--color-border); border-radius: var(--radius-md); background: transparent; font-size: 0.9rem; font-weight: 600; color: var(--color-text-soft); cursor: pointer; text-transform: uppercase; transition: all 0.15s; }
     .audio-recorder-cancel:active { background: var(--color-bg-btn); }
     .magic-header { padding: 20px; text-align: center; background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; }
@@ -861,7 +864,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.41 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.42 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1337,9 +1340,9 @@
           <span id="recorderMainText">TAP TO RECORD</span>
         </button>
         <div class="audio-recorder-actions">
-          <button class="act-btn delete" onclick="recorderDelete()">DELETE</button>
-          <button class="act-btn create" onclick="recorderCreateDrop()">CREATE DROP</button>
-          <button class="act-btn share" onclick="recorderShare()">SHARE</button>
+          <button class="act-btn delete" onclick="recorderDelete()" disabled>DELETE</button>
+          <button class="act-btn create" onclick="recorderCreateDrop()" disabled>CREATE DROP</button>
+          <button class="act-btn share" onclick="recorderShare()" disabled>SHARE</button>
         </div>
         <button class="audio-recorder-cancel" onclick="closeAudioRecorder()">CANCEL</button>
       </div>
@@ -1804,7 +1807,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.41 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.42 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1817,7 +1820,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.41 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.42 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2977,7 +2980,7 @@ function updateAudioRecordButton(isRecording) {
   // Removed - now using modal
 }
 
-// ===== AUDIO RECORDER MODAL =====
+// ===== AUDIO RECORDER MODAL (WORKING VERSION) =====
 let recorderState = 'ready'; // ready, recording, paused, stopped
 let recorderStartTime = null;
 let recorderTimerInterval = null;
@@ -2987,30 +2990,15 @@ function openAudioRecorder() {
   closePlusMenu();
   recorderState = 'ready';
   recorderBlob = null;
+  audioRecordingChunks = [];
   document.getElementById('recorderTime').textContent = '0:00';
   updateRecorderUI();
-  updateRecorderButtons(false); // All buttons disabled
   
   document.getElementById('audioRecorderModal').classList.add('show');
   acquireWakeLock();
 }
 
-// Enable/disable all action buttons based on recording availability
-function updateRecorderButtons(hasRecording) {
-  const deleteBtn = document.querySelector('#audioRecorderModal .act-btn.delete');
-  const createBtn = document.querySelector('#audioRecorderModal .act-btn.create');
-  const shareBtn = document.querySelector('#audioRecorderModal .act-btn.share');
-  
-  [deleteBtn, createBtn, shareBtn].forEach(btn => {
-    if (btn) {
-      btn.disabled = !hasRecording;
-      btn.style.opacity = hasRecording ? '1' : '0.4';
-    }
-  });
-}
-
 function closeAudioRecorder() {
-  // Stop recording if active
   if (audioRecorder && audioRecorder.state === 'recording') {
     audioRecorder.stop();
   }
@@ -3018,66 +3006,74 @@ function closeAudioRecorder() {
     clearInterval(recorderTimerInterval);
     recorderTimerInterval = null;
   }
-  // Stop playback
   if (currentAudioElement) {
     currentAudioElement.pause();
     currentAudioElement = null;
   }
   document.getElementById('audioRecorderModal').classList.remove('show');
-  releaseWakeLock(); // Allow screen to sleep
+  releaseWakeLock();
+}
+
+function updateRecorderUI() {
+  const mainBtn = document.getElementById('recorderMainBtn');
+  const mainText = document.getElementById('recorderMainText');
+  const waveform = document.getElementById('recorderWaveform');
+  const stopBtn = document.getElementById('recorderStopBtn');
+  const playBtn = document.getElementById('recorderPlayBtn');
+  const rewindBtn = document.querySelector('#audioRecorderModal .ctrl-btn.rewind');
+  const forwardBtn = document.querySelector('#audioRecorderModal .ctrl-btn.forward');
+  const deleteBtn = document.querySelector('#audioRecorderModal .act-btn.delete');
+  const createBtn = document.querySelector('#audioRecorderModal .act-btn.create');
+  const shareBtn = document.querySelector('#audioRecorderModal .act-btn.share');
+  
+  // Main button class
+  mainBtn.className = 'audio-recorder-main-btn ' + recorderState;
+  
+  // Main button text
+  if (recorderState === 'ready') {
+    mainText.textContent = 'TAP TO RECORD';
+  } else if (recorderState === 'recording') {
+    mainText.textContent = 'TAP TO PAUSE';
+  } else if (recorderState === 'paused') {
+    mainText.textContent = 'TAP TO RESUME';
+  } else if (recorderState === 'stopped') {
+    mainText.textContent = 'TAP TO RE-RECORD';
+  }
+  
+  // Waveform animation
+  if (waveform) {
+    waveform.className = 'audio-recorder-waveform' + (recorderState === 'recording' ? ' recording' : '');
+  }
+  
+  // Stop button - show during recording or paused
+  if (stopBtn) stopBtn.style.display = (recorderState === 'recording' || recorderState === 'paused') ? 'block' : 'none';
+  
+  // Play/rewind/forward - show when stopped with recording
+  const hasRecording = recorderState === 'stopped' && recorderBlob !== null;
+  if (playBtn) playBtn.style.display = hasRecording ? 'block' : 'none';
+  if (rewindBtn) rewindBtn.style.display = hasRecording ? 'block' : 'none';
+  if (forwardBtn) forwardBtn.style.display = hasRecording ? 'block' : 'none';
+  
+  // Action buttons
+  if (deleteBtn) { deleteBtn.disabled = !hasRecording; deleteBtn.style.opacity = hasRecording ? '1' : '0.4'; }
+  if (createBtn) { createBtn.disabled = !hasRecording; createBtn.style.opacity = hasRecording ? '1' : '0.4'; }
+  if (shareBtn) { shareBtn.disabled = !hasRecording; shareBtn.style.opacity = hasRecording ? '1' : '0.4'; }
+}
+
+function updateRecorderTime() {
+  const elapsed = Date.now() - recorderStartTime;
+  const secs = Math.floor(elapsed / 1000);
+  const mins = Math.floor(secs / 60);
+  document.getElementById('recorderTime').textContent = mins + ':' + (secs % 60).toString().padStart(2, '0');
 }
 
 function recorderToggleRecord() {
-  if (recorderState === 'ready') {
+  if (recorderState === 'ready' || recorderState === 'stopped') {
     startRecorderRecording();
   } else if (recorderState === 'recording') {
     pauseRecorderRecording();
   } else if (recorderState === 'paused') {
     resumeRecorderRecording();
-  } else if (recorderState === 'stopped') {
-    // Re-record
-    recorderBlob = null;
-    startRecorderRecording();
-  }
-}
-
-async function startRecorderRecording() {
-  try {
-    audioRecordingStream = await navigator.mediaDevices.getUserMedia({ 
-      audio: { echoCancellation: true, noiseSuppression: true }
-    });
-    
-    audioRecordingChunks = [];
-    audioRecorder = new MediaRecorder(audioRecordingStream, {
-      mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
-    });
-    
-    audioRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) audioRecordingChunks.push(e.data);
-    };
-    
-    audioRecorder.onstop = () => {
-      recorderBlob = new Blob(audioRecordingChunks, { type: audioRecorder.mimeType });
-      audioRecordingStream.getTracks().forEach(track => track.stop());
-      recorderState = 'stopped';
-      updateRecorderUI();
-      updateRecorderButtons(true); // All buttons enabled
-    };
-    
-    audioRecorder.start(100);
-    recorderState = 'recording';
-    recorderStartTime = Date.now();
-    
-    // Start timer
-    recorderTimerInterval = setInterval(updateRecorderTime, 100);
-    
-    // Buttons disabled during recording
-    updateRecorderButtons(false);
-    
-    updateRecorderUI();
-    
-  } catch (error) {
-    showToast('Microphone access denied');
   }
 }
 
@@ -3102,8 +3098,42 @@ function resumeRecorderRecording() {
   }
 }
 
-function stopRecorderRecording() {
-  if (audioRecorder && (audioRecorder.state === 'recording' || audioRecorder.state === 'paused')) {
+async function startRecorderRecording() {
+  try {
+    audioRecordingChunks = [];
+    recorderBlob = null;
+    
+    audioRecordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+    audioRecorder = new MediaRecorder(audioRecordingStream, { mimeType: mimeType });
+    
+    audioRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        audioRecordingChunks.push(e.data);
+      }
+    };
+    
+    audioRecorder.onstop = () => {
+      recorderBlob = new Blob(audioRecordingChunks, { type: mimeType });
+      audioRecordingStream.getTracks().forEach(t => t.stop());
+      recorderState = 'stopped';
+      updateRecorderUI();
+    };
+    
+    audioRecorder.start(100);
+    recorderState = 'recording';
+    recorderStartTime = Date.now();
+    recorderTimerInterval = setInterval(updateRecorderTime, 100);
+    updateRecorderUI();
+    
+  } catch (err) {
+    showToast('Microphone access denied');
+  }
+}
+
+function recorderStop() {
+  if (audioRecorder && audioRecorder.state !== 'inactive') {
     audioRecorder.stop();
     if (recorderTimerInterval) {
       clearInterval(recorderTimerInterval);
@@ -3112,107 +3142,16 @@ function stopRecorderRecording() {
   }
 }
 
-function updateRecorderTime() {
-  const elapsed = Date.now() - recorderStartTime;
-  const secs = Math.floor(elapsed / 1000);
-  const mins = Math.floor(secs / 60);
-  const display = mins + ':' + (secs % 60).toString().padStart(2, '0');
-  document.getElementById('recorderTime').textContent = display;
-}
-
-function updateRecorderUI() {
-  const mainBtn = document.getElementById('recorderMainBtn');
-  const mainText = document.getElementById('recorderMainText');
-  const waveform = document.getElementById('recorderWaveform');
-  const playBtn = document.getElementById('recorderPlayBtn');
-  const stopBtn = document.getElementById('recorderStopBtn');
-  
-  mainBtn.className = 'audio-recorder-main-btn ' + recorderState;
-  waveform.className = 'audio-recorder-waveform' + (recorderState === 'recording' ? ' recording' : '');
-  
-  // Show STOP button during recording/paused, PLAY button when stopped
-  if (recorderState === 'recording' || recorderState === 'paused') {
-    stopBtn.style.display = 'block';
-    playBtn.style.display = 'none';
-  } else {
-    stopBtn.style.display = 'none';
-    playBtn.style.display = 'block';
-  }
-  
-  switch(recorderState) {
-    case 'ready':
-      mainText.textContent = 'TAP TO RECORD';
-      document.getElementById('recorderTime').textContent = '0:00';
-      break;
-    case 'recording':
-      mainText.textContent = 'TAP TO PAUSE';
-      break;
-    case 'paused':
-      mainText.textContent = 'TAP TO RESUME';
-      break;
-    case 'stopped':
-      mainText.textContent = 'TAP TO RE-RECORD';
-      break;
-  }
-}
-
-// Separate STOP function
-function recorderStop() {
-  stopRecorderRecording();
-}
-
-function recorderPlayPause() {
-  // Only for playback when stopped
-  if (recorderState !== 'stopped') {
-    return;
-  }
-  
-  if (!recorderBlob) {
-    showToast('No recording yet');
-    return;
-  }
-  
-  if (currentAudioElement) {
-    currentAudioElement.pause();
-    currentAudioElement = null;
-    document.getElementById('recorderPlayBtn').textContent = 'PLAY';
-    return;
-  }
-  
-  const url = URL.createObjectURL(recorderBlob);
-  currentAudioElement = new Audio(url);
-  currentAudioElement.onended = () => {
-    currentAudioElement = null;
-    document.getElementById('recorderPlayBtn').textContent = 'PLAY';
-    URL.revokeObjectURL(url);
-  };
-  currentAudioElement.play();
-  document.getElementById('recorderPlayBtn').textContent = 'PAUSE';
-}
-
-function recorderRewind() {
-  if (currentAudioElement) {
-    currentAudioElement.currentTime = Math.max(0, currentAudioElement.currentTime - 10);
-  }
-}
-
-function recorderForward() {
-  if (currentAudioElement) {
-    currentAudioElement.currentTime = Math.min(currentAudioElement.duration, currentAudioElement.currentTime + 10);
-  }
-}
-
 function recorderDelete() {
-  stopRecorderRecording();
   if (currentAudioElement) {
     currentAudioElement.pause();
     currentAudioElement = null;
   }
   recorderBlob = null;
+  audioRecordingChunks = [];
   recorderState = 'ready';
   document.getElementById('recorderTime').textContent = '0:00';
   updateRecorderUI();
-  updateRecorderButtons(false); // All buttons disabled
   showToast('Recording deleted');
 }
 
@@ -3230,7 +3169,7 @@ async function recorderCreateDrop() {
   createBtn.textContent = 'SAVING...';
   
   try {
-    // Convert blob to base64 (simple, no decodeAudioData)
+    // Convert to base64
     const base64Data = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result);
@@ -3238,12 +3177,12 @@ async function recorderCreateDrop() {
       reader.readAsDataURL(recorderBlob);
     });
     
-    // Get duration from timer display (avoid decodeAudioData which crashes on mobile)
+    // Get duration from timer
     const timeText = document.getElementById('recorderTime').textContent;
     const parts = timeText.split(':');
     const duration = parseInt(parts[0]) * 60 + parseInt(parts[1]);
     
-    // Create drop object
+    // Create drop
     const now = new Date();
     const drop = {
       id: Date.now(),
@@ -3266,56 +3205,47 @@ async function recorderCreateDrop() {
     render();
     counts();
     
-    // SUCCESS
+    // Success
     createBtn.textContent = 'CREATED!';
     createBtn.style.background = '#10B981';
     createBtn.style.color = 'white';
+    createBtn.style.opacity = '1';
     showToast('Audio saved!');
     
-    // Reset state
+    // Reset
     recorderBlob = null;
     recorderState = 'ready';
     document.getElementById('recorderTime').textContent = '0:00';
     updateRecorderUI();
     
-    // Reset button after delay
     setTimeout(() => {
       createBtn.textContent = 'CREATE DROP';
       createBtn.style.background = '#D1FAE5';
       createBtn.style.color = '#065F46';
     }, 1500);
     
-  } catch (error) {
+  } catch (err) {
     createBtn.textContent = 'ERROR';
     createBtn.style.background = '#FEE2E2';
     createBtn.style.color = '#991B1B';
-    showToast('Error: ' + error.message);
+    createBtn.style.opacity = '1';
+    showToast('Error: ' + err.message);
     
     setTimeout(() => {
       createBtn.textContent = 'CREATE DROP';
       createBtn.style.background = '#D1FAE5';
       createBtn.style.color = '#065F46';
-      // Re-enable if blob still exists
-      if (recorderBlob) {
-        if (createBtn) { createBtn.disabled = false; createBtn.style.opacity = '1'; }
-        if (deleteBtn) { deleteBtn.disabled = false; deleteBtn.style.opacity = '1'; }
-        if (shareBtn) { shareBtn.disabled = false; shareBtn.style.opacity = '1'; }
-      }
+      if (recorderBlob) updateRecorderUI();
     }, 1500);
   }
 }
 
 async function recorderShare() {
-  if (!recorderBlob) {
-    showToast('No recording');
-    return;
-  }
+  if (!recorderBlob) return;
   
-  // Create file
   const fileName = 'droplit-audio.' + (recorderBlob.type.includes('mp4') ? 'm4a' : 'webm');
   const file = new File([recorderBlob], fileName, { type: recorderBlob.type });
   
-  // Try share API
   if (typeof navigator.share === 'function') {
     try {
       await navigator.share({
@@ -3323,10 +3253,8 @@ async function recorderShare() {
         title: 'DropLit Audio'
       });
       showToast('Shared!');
-      return;
     } catch (err) {
       if (err.name === 'AbortError') {
-        // User cancelled
         return;
       }
       // Try without files
@@ -3336,23 +3264,60 @@ async function recorderShare() {
           text: 'Audio ' + document.getElementById('recorderTime').textContent
         });
         showToast('Shared (text only)');
-        return;
       } catch (err2) {
-        // Fall through to download
+        downloadRecorderFile();
       }
     }
+  } else {
+    downloadRecorderFile();
   }
   
-  // Fallback: download
+  function downloadRecorderFile() {
+    const url = URL.createObjectURL(recorderBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Downloaded');
+  }
+}
+
+function recorderPlayPause() {
+  if (recorderState !== 'stopped' || !recorderBlob) return;
+  
+  const playBtn = document.getElementById('recorderPlayBtn');
+  
+  if (currentAudioElement) {
+    currentAudioElement.pause();
+    currentAudioElement = null;
+    playBtn.textContent = 'PLAY';
+    return;
+  }
+  
   const url = URL.createObjectURL(recorderBlob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('Downloaded');
+  currentAudioElement = new Audio(url);
+  currentAudioElement.onended = () => {
+    currentAudioElement = null;
+    playBtn.textContent = 'PLAY';
+    URL.revokeObjectURL(url);
+  };
+  currentAudioElement.play();
+  playBtn.textContent = 'PAUSE';
+}
+
+function recorderRewind() {
+  if (currentAudioElement) {
+    currentAudioElement.currentTime = Math.max(0, currentAudioElement.currentTime - 10);
+  }
+}
+
+function recorderForward() {
+  if (currentAudioElement) {
+    currentAudioElement.currentTime = Math.min(currentAudioElement.duration, currentAudioElement.currentTime + 10);
+  }
 }
 
 // Generate simple waveform from audio buffer
@@ -6799,7 +6764,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.41';
+  md+='---\nExported from DropLit v0.9.42';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
