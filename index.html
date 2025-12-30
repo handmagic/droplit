@@ -869,7 +869,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.55 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.56 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1075,9 +1075,91 @@
       .scroll-fab { right: calc(50% - 220px); }
       .select-bar { left: 50%; right: auto; transform: translateX(-50%); max-width: 480px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
     }
+
+    /* ========== INSIGHTS BANNER ========== */
+    .insights-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+      color: white;
+      padding: 12px 16px;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+      transform: translateY(-100%);
+      transition: transform 0.3s ease;
+    }
+    .insights-banner.show { transform: translateY(0); }
+    .insights-banner-icon { font-size: 24px; }
+    .insights-banner-content { flex: 1; }
+    .insights-banner-title { font-weight: 600; font-size: 14px; }
+    .insights-banner-text { font-size: 12px; opacity: 0.9; margin-top: 2px; }
+    .insights-banner-close {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .insights-banner-close:hover { background: rgba(255,255,255,0.3); }
+
+    /* Notification permission banner */
+    .notif-banner {
+      position: fixed;
+      bottom: 100px;
+      left: 16px;
+      right: 16px;
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      z-index: 9998;
+      display: none;
+    }
+    .notif-banner.show { display: block; }
+    .notif-banner-title { font-weight: 600; margin-bottom: 8px; }
+    .notif-banner-text { font-size: 13px; color: #666; margin-bottom: 12px; }
+    .notif-banner-actions { display: flex; gap: 8px; }
+    .notif-banner-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .notif-banner-btn.primary { background: #6366F1; color: white; }
+    .notif-banner-btn.secondary { background: #f3f4f6; color: #666; }
   </style>
 </head>
 <body>
+  <!-- Insights Banner -->
+  <div class="insights-banner" id="insightsBanner">
+    <div class="insights-banner-icon">🎂</div>
+    <div class="insights-banner-content">
+      <div class="insights-banner-title" id="insightTitle">Напоминание</div>
+      <div class="insights-banner-text" id="insightText">...</div>
+    </div>
+    <button class="insights-banner-close" onclick="dismissInsight()">×</button>
+  </div>
+
+  <!-- Notification Permission Banner -->
+  <div class="notif-banner" id="notifBanner">
+    <div class="notif-banner-title">🔔 Включить уведомления?</div>
+    <div class="notif-banner-text">ASKI сможет напоминать о днях рождения и важных событиях</div>
+    <div class="notif-banner-actions">
+      <button class="notif-banner-btn secondary" onclick="dismissNotifBanner()">Позже</button>
+      <button class="notif-banner-btn primary" onclick="requestNotifPermission()">Включить</button>
+    </div>
+  </div>
+
   <div class="app" id="app">
     <header class="header">
       <button class="logo-btn" id="logoBtn" onclick="toggleFilters()" title="Toggle filters">
@@ -1820,7 +1902,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.55 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.56 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1834,7 +1916,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.55 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.56 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1936,7 +2018,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 
 // ============================================
-// AUTO-FIX: Repair string IDs (v0.9.55)
+// AUTO-FIX: Repair string IDs (v0.9.56)
 // ============================================
 (function autoFixIds() {
   let fixed = 0;
@@ -1954,7 +2036,7 @@ let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 })();
 
 // ============================================
-// SUPABASE SYNC (v0.9.55)
+// SUPABASE SYNC (v0.9.56)
 // ============================================
 const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE';
@@ -2383,7 +2465,7 @@ const MARKERS={
 const ENABLED_MARKERS=['heart'];
 
 // ============================================
-// ID GENERATOR (v0.9.55)
+// ID GENERATOR (v0.9.56)
 // Base62: 16 random characters, no timestamp
 // ============================================
 const BASE62_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -2394,7 +2476,7 @@ function generateId(length = 16) {
 }
 
 // ============================================
-// DROP SOUND (v0.9.55)
+// DROP SOUND (v0.9.56)
 // Signature sound when creating a drop
 // ============================================
 let dropSoundCtx = null;
@@ -2433,7 +2515,7 @@ function playDropSound() {
 }
 
 // ============================================
-// TTS - TEXT TO SPEECH (v0.9.55)
+// TTS - TEXT TO SPEECH (v0.9.56)
 // Read drop content aloud
 // ============================================
 let currentTTSUtterance = null;
@@ -2910,7 +2992,7 @@ function detectCat(t){
 }
 function saveIdea(t){
   // ============================================
-  // SLASH COMMANDS (v0.9.55)
+  // SLASH COMMANDS (v0.9.56)
   // ============================================
   if (t.startsWith('/')) {
     const cmd = t.toLowerCase().trim();
@@ -2944,7 +3026,7 @@ function saveIdea(t){
       const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
       const deviceId = DEVICE_ID || 'Not set';
       const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
-      alert(`DropLit Debug v0.9.55\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      alert(`DropLit Debug v0.9.56\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
@@ -4952,7 +5034,7 @@ async function sendAskAIMessage() {
   
   showAskAITyping();
   
-  // Get context from Supabase (v0.9.55 - Dynamic Context)
+  // Get context from Supabase (v0.9.56 - Dynamic Context)
   let contextForAI = null;
   try {
     const supabaseContext = await getSupabaseContext(text, {
@@ -5560,7 +5642,7 @@ function confirmDel(){
     const delItem=ideas.find(x=>x.id===delId);
     if(delItem) {
       saveUndo('delete',{...delItem});
-      // Sync delete to Supabase (v0.9.55)
+      // Sync delete to Supabase (v0.9.56)
       if (syncEnabled && currentUser) {
         deleteDropFromServer(delId);
       }
@@ -5586,7 +5668,7 @@ function saveEdit(id){
         i.text=t;
         i.category=detectCat(t);
         save();
-        // Sync update to Supabase (v0.9.55)
+        // Sync update to Supabase (v0.9.56)
         if (syncEnabled && currentUser) {
           syncDropToServer(i, 'update');
         }
@@ -5649,7 +5731,7 @@ function save(newDrop){
     const data=JSON.stringify(ideas);
     localStorage.setItem('droplit_ideas',data);
     
-    // Sync to Supabase (v0.9.55)
+    // Sync to Supabase (v0.9.56)
     if (newDrop && syncEnabled && currentUser) {
       syncDropToServer(newDrop, 'create');
     }
@@ -7516,7 +7598,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.55';
+  md+='---\nExported from DropLit v0.9.56';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -7562,7 +7644,7 @@ function closeMainMenu() {
   updateMenuIcon(false);
 }
 
-// Debug info (v0.9.55)
+// Debug info (v0.9.56)
 function showDebugInfo() {
   closeMainMenu();
   const total = ideas.length;
@@ -7577,7 +7659,7 @@ function showDebugInfo() {
   const lastSync = lastSyncTime ? lastSyncTime.toLocaleTimeString() : 'Never';
   
   alert(
-    `DropLit Debug v0.9.55\n\n` +
+    `DropLit Debug v0.9.56\n\n` +
     `=== DROPS ===\n` +
     `Total: ${total}\n` +
     `Text: ${textDrops}\n` +
@@ -8657,7 +8739,7 @@ async function getSyntriseContext(query) {
 }
 
 // ============================================
-// DYNAMIC CONTEXT FROM SUPABASE (v0.9.55)
+// DYNAMIC CONTEXT FROM SUPABASE (v0.9.56)
 // ============================================
 
 // Get fresh drops for ASKI context
@@ -8868,7 +8950,172 @@ async function syncToCloud() {
   }
 }
 
+// ============================================
+// PUSH NOTIFICATIONS & PROACTIVE INSIGHTS
+// ============================================
+
+let currentInsight = null;
+const INSIGHTS_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+// Register Service Worker
+async function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw-droplit.js');
+      console.log('✅ Service Worker registered');
+      return registration;
+    } catch (error) {
+      console.warn('⚠️ Service Worker registration failed:', error);
+    }
+  }
+}
+
+// Check notification permission
+function checkNotificationPermission() {
+  if (!('Notification' in window)) {
+    console.log('Notifications not supported');
+    return;
+  }
+  
+  if (Notification.permission === 'default') {
+    // Show permission banner after 30 seconds
+    setTimeout(() => {
+      const dismissed = localStorage.getItem('notif_banner_dismissed');
+      if (!dismissed) {
+        document.getElementById('notifBanner').classList.add('show');
+      }
+    }, 30000);
+  }
+}
+
+// Request notification permission
+async function requestNotifPermission() {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      toast('Уведомления включены!', 'success');
+      // Test notification
+      new Notification('DropLit', {
+        body: 'Теперь ASKI сможет напоминать о важном!',
+        icon: '/icons/icon-192.png'
+      });
+    }
+  } catch (error) {
+    console.error('Notification permission error:', error);
+  }
+  dismissNotifBanner();
+}
+
+// Dismiss notification banner
+function dismissNotifBanner() {
+  document.getElementById('notifBanner').classList.remove('show');
+  localStorage.setItem('notif_banner_dismissed', 'true');
+}
+
+// Check for pending insights
+async function checkPendingInsights() {
+  if (!currentUser) return;
+  
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/core_insights?user_id=eq.${currentUser.id}&status=eq.pending&order=priority.desc&limit=1`,
+      {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      }
+    );
+    
+    const insights = await response.json();
+    
+    if (insights?.length > 0) {
+      showInsightBanner(insights[0]);
+    }
+  } catch (error) {
+    console.warn('Check insights error:', error);
+  }
+}
+
+// Show insight banner
+function showInsightBanner(insight) {
+  currentInsight = insight;
+  
+  const banner = document.getElementById('insightsBanner');
+  const title = document.getElementById('insightTitle');
+  const text = document.getElementById('insightText');
+  
+  // Set icon based on type
+  const icon = banner.querySelector('.insights-banner-icon');
+  if (insight.insight_type === 'birthday_reminder') {
+    icon.textContent = '🎂';
+  } else if (insight.insight_type === 'event_reminder') {
+    icon.textContent = '📅';
+  } else {
+    icon.textContent = '💡';
+  }
+  
+  title.textContent = insight.title;
+  text.textContent = insight.content;
+  
+  banner.classList.add('show');
+  
+  // Also show browser notification if permitted
+  if (Notification.permission === 'granted') {
+    new Notification(insight.title, {
+      body: insight.content,
+      icon: '/icons/icon-192.png',
+      tag: `insight-${insight.id}`
+    });
+  }
+}
+
+// Dismiss insight
+async function dismissInsight() {
+  document.getElementById('insightsBanner').classList.remove('show');
+  
+  if (currentInsight && currentUser) {
+    try {
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/core_insights?id=eq.${currentInsight.id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({ status: 'dismissed' })
+        }
+      );
+    } catch (error) {
+      console.warn('Dismiss insight error:', error);
+    }
+  }
+  
+  currentInsight = null;
+}
+
+// Initialize proactive features
+function initProactiveFeatures() {
+  registerServiceWorker();
+  checkNotificationPermission();
+  
+  // Check insights on load (after auth)
+  setTimeout(checkPendingInsights, 3000);
+  
+  // Periodic check
+  setInterval(checkPendingInsights, INSIGHTS_CHECK_INTERVAL);
+}
+
+// Start when DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(initProactiveFeatures, 2000);
+});
+
 console.log('🧠 Syntrise CORE integration loaded');
+console.log('🔔 Proactive features initialized');
 </script>
 </body>
 </html>
