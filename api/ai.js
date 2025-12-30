@@ -1,6 +1,6 @@
-// DropLit AI API v2 - Vercel Edge Function
-// With Tool Calling + Dynamic Context + Supabase Integration
-// Version: 2.0.0
+// DropLit AI API v3 - Vercel Edge Function
+// With Tool Calling + Dynamic Context + Supabase Integration + CORE Memory
+// Version: 3.0.0
 
 export const config = {
   runtime: 'edge',
@@ -89,7 +89,55 @@ const TOOLS = [
 // ============================================
 // SYSTEM PROMPT - ENHANCED
 // ============================================
-function buildSystemPrompt(dropContext, userProfile) {
+
+// ============================================
+// FETCH CORE CONTEXT FROM SUPABASE
+// ============================================
+async function fetchCoreContext(userId) {
+  if (!userId) return null;
+  
+  const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
+  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  
+  if (!SUPABASE_KEY) {
+    console.warn('No SUPABASE_SERVICE_KEY configured');
+    return null;
+  }
+
+  try {
+    // Fetch memory (facts)
+    const memoryRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/core_memory?user_id=eq.${userId}&is_active=eq.true&order=confidence.desc&limit=20`,
+      {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      }
+    );
+    const memory = memoryRes.ok ? await memoryRes.json() : [];
+
+    // Fetch entities (people, places, etc.)
+    const entitiesRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/core_entities?user_id=eq.${userId}&order=mention_count.desc&limit=15`,
+      {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      }
+    );
+    const entities = entitiesRes.ok ? await entitiesRes.json() : [];
+
+    return { memory, entities };
+
+  } catch (error) {
+    console.error('Error fetching CORE context:', error);
+    return null;
+  }
+}
+
+function buildSystemPrompt(dropContext, userProfile, coreContext) {
   let basePrompt = `You are Aski — a highly capable AI assistant with access to the user's personal knowledge base.
 
 ## YOUR CAPABILITIES:
@@ -143,6 +191,33 @@ Use this context naturally when relevant. If user's question relates to their no
 
 ## USER PROFILE:
 ${JSON.stringify(userProfile, null, 2)}`;
+  }
+
+  // Add CORE memory context
+  if (coreContext?.memory?.length > 0) {
+    basePrompt += `
+
+## LONG-TERM KNOWLEDGE ABOUT USER:`;
+    for (const mem of coreContext.memory) {
+      basePrompt += `\n- ${mem.fact}`;
+    }
+  }
+
+  // Add known entities
+  if (coreContext?.entities?.length > 0) {
+    basePrompt += `
+
+## KNOWN PEOPLE AND PLACES:`;
+    for (const entity of coreContext.entities) {
+      let info = `\n- ${entity.name} (${entity.entity_type})`;
+      if (entity.attributes && Object.keys(entity.attributes).length > 0) {
+        const attrs = Object.entries(entity.attributes)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(', ');
+        info += ` — ${attrs}`;
+      }
+      basePrompt += info;
+    }
   }
 
   return basePrompt;
@@ -282,8 +357,13 @@ export default async function handler(req) {
       image,
       style,
       context,
-      targetLang
+      targetLang,
+      userId,           // NEW: for CORE memory
+      user_id           // Alternative name
     } = body;
+
+    // Support both naming conventions
+    const uid = userId || user_id;
 
     // Validate input
     if (!action) {
@@ -343,8 +423,14 @@ export default async function handler(req) {
           .join('\n');
       }
       
-      // Build system prompt with context
-      systemPrompt = buildSystemPrompt(formattedContext, userProfile);
+      // NEW: Fetch CORE memory
+      let coreContext = null;
+      if (uid) {
+        coreContext = await fetchCoreContext(uid);
+      }
+      
+      // Build system prompt with context AND memory
+      systemPrompt = buildSystemPrompt(formattedContext, userProfile, coreContext);
       
       // Enable tools for chat
       useTools = enableTools;
