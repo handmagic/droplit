@@ -19,14 +19,24 @@ export default async function handler(req, res) {
 
   try {
     const { 
-      message, 
+      message,
+      text,  // DropLit может отправлять text
       action,
       conversationHistory = [],
+      history = [],  // альтернативное имя
       dropContext,
-      userId  // NEW: для получения памяти
+      syntriseContext,  // старое имя
+      userId,
+      user_id  // альтернативное имя
     } = req.body;
 
-    if (!message) {
+    // Поддержка разных форматов
+    const userMessage = message || text;
+    const chatHistory = conversationHistory.length ? conversationHistory : history;
+    const context = dropContext || syntriseContext;
+    const uid = userId || user_id;
+
+    if (!userMessage) {
       return res.status(400).json({ error: 'Message is required' });
     }
 
@@ -34,17 +44,17 @@ export default async function handler(req, res) {
     // NEW: Получаем контекст из CORE
     // ==========================================
     let coreContext = null;
-    if (userId) {
-      coreContext = await fetchCoreContext(userId);
+    if (uid) {
+      coreContext = await fetchCoreContext(uid);
     }
 
     // Строим system prompt с памятью
-    const systemPrompt = buildSystemPrompt(action, dropContext, coreContext);
+    const systemPrompt = buildSystemPrompt(action, context, coreContext);
     
     // Формируем сообщения
     const messages = [
-      ...conversationHistory.slice(-10),
-      { role: 'user', content: message }
+      ...chatHistory.slice(-10),
+      { role: 'user', content: userMessage }
     ];
 
     // Вызываем Claude
@@ -87,7 +97,7 @@ export default async function handler(req, res) {
       response: assistantMessage.replace(/\[CREATE_DROP:.+?\]/g, '').trim(),
       createDrop,
       contextUsed: {
-        drops: dropContext?.recent?.length || 0,
+        drops: context?.recent?.length || 0,
         memory: coreContext?.memory?.length || 0,
         entities: coreContext?.entities?.length || 0
       }
