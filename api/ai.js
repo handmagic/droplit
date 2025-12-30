@@ -1,10 +1,77 @@
-// DropLit AI API v3.2 - Vercel Edge Function
-// With Tool Calling + Dynamic Context + Supabase Integration + CORE Memory + Time + Web Search
-// Version: 3.2.0
+// DropLit AI API v4.0 - Vercel Edge Function
+// With Tool Calling + Dynamic Context + Supabase Integration + CORE Memory + Time + Web Search + Rate Limiting
+// Version: 4.0.0
 
 export const config = {
   runtime: 'edge',
 };
+
+// ============================================
+// RATE LIMITING
+// ============================================
+// Simple in-memory rate limiter
+// Limits: 60 requests per minute per user, 20 requests per minute for AI calls
+
+const rateLimitStore = new Map();
+
+const RATE_LIMITS = {
+  default: { requests: 60, windowMs: 60000 },  // 60 req/min general
+  ai: { requests: 20, windowMs: 60000 },        // 20 req/min for AI calls
+};
+
+function getRateLimitKey(request, type = 'default') {
+  // Use IP or user_id from body
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
+             request.headers.get('x-real-ip') || 
+             'unknown';
+  return `${type}:${ip}`;
+}
+
+function checkRateLimit(key, limitType = 'default') {
+  const now = Date.now();
+  const limit = RATE_LIMITS[limitType];
+  
+  // Clean old entries
+  if (rateLimitStore.size > 10000) {
+    const cutoff = now - 120000; // 2 minutes ago
+    for (const [k, v] of rateLimitStore) {
+      if (v.windowStart < cutoff) {
+        rateLimitStore.delete(k);
+      }
+    }
+  }
+  
+  const record = rateLimitStore.get(key);
+  
+  if (!record || (now - record.windowStart) > limit.windowMs) {
+    // New window
+    rateLimitStore.set(key, { count: 1, windowStart: now });
+    return { allowed: true, remaining: limit.requests - 1 };
+  }
+  
+  if (record.count >= limit.requests) {
+    const resetIn = Math.ceil((record.windowStart + limit.windowMs - now) / 1000);
+    return { allowed: false, remaining: 0, resetIn };
+  }
+  
+  record.count++;
+  return { allowed: true, remaining: limit.requests - record.count };
+}
+
+function rateLimitResponse(resetIn) {
+  return new Response(JSON.stringify({
+    error: 'Too many requests',
+    message: `Rate limit exceeded. Try again in ${resetIn} seconds.`,
+    retryAfter: resetIn
+  }), {
+    status: 429,
+    headers: {
+      'Content-Type': 'application/json',
+      'Retry-After': String(resetIn),
+      'Access-Control-Allow-Origin': '*',
+    }
+  });
+}
 
 // ============================================
 // TOOL DEFINITIONS FOR CLAUDE
@@ -442,6 +509,17 @@ export default async function handler(req) {
       status: 405,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+  }
+
+  // ============================================
+  // RATE LIMITING CHECK
+  // ============================================
+  const rateLimitKey = getRateLimitKey(req, 'ai');
+  const rateCheck = checkRateLimit(rateLimitKey, 'ai');
+  
+  if (!rateCheck.allowed) {
+    console.warn(`Rate limit exceeded for ${rateLimitKey}`);
+    return rateLimitResponse(rateCheck.resetIn);
   }
 
   try {
