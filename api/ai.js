@@ -1,6 +1,6 @@
-// DropLit AI API v3 - Vercel Edge Function
-// With Tool Calling + Dynamic Context + Supabase Integration + CORE Memory
-// Version: 3.0.0
+// DropLit AI API v3.1 - Vercel Edge Function
+// With Tool Calling + Dynamic Context + Supabase Integration + CORE Memory + Time
+// Version: 3.1.0
 
 export const config = {
   runtime: 'edge',
@@ -138,7 +138,27 @@ async function fetchCoreContext(userId) {
 }
 
 function buildSystemPrompt(dropContext, userProfile, coreContext) {
+  // Get current date and time
+  const now = new Date();
+  const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
+  const currentDate = now.toLocaleDateString('ru-RU', dateOptions);
+  const currentTime = now.toLocaleTimeString('ru-RU', timeOptions);
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const currentDay = now.getDate();
+
   let basePrompt = `You are Aski — a highly capable AI assistant with access to the user's personal knowledge base.
+
+## CURRENT DATE AND TIME:
+- Today: ${currentDate}
+- Time: ${currentTime} (server time, approximately user's timezone)
+- Date numbers: ${currentDay}.${currentMonth}.${currentYear}
+
+Use this information to:
+- Know what day it is for scheduling and reminders
+- Calculate days until birthdays or events
+- Provide time-relevant responses
 
 ## YOUR CAPABILITIES:
 - You can READ user's notes, tasks, ideas from their personal database
@@ -148,9 +168,9 @@ function buildSystemPrompt(dropContext, userProfile, coreContext) {
 
 ## PERSONALITY:
 - Warm, intelligent, and genuinely helpful
-- Proactive — offer to save important information
 - You remember context from the conversation
 - You speak naturally, as a trusted assistant would
+- Only create drops when user EXPLICITLY asks to save or remember something
 
 ## VOICE-FIRST DESIGN:
 - Your responses will be read aloud by text-to-speech
