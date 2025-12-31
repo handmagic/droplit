@@ -1137,12 +1137,6 @@
     }
     .notif-banner-btn.primary { background: #6366F1; color: white; }
     .notif-banner-btn.secondary { background: #f3f4f6; color: #666; }
-	/* Archive */
-	.archive-toggle{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--color-bg-btn);border:none;border-radius:var(--radius-full);font-size:.75rem;font-weight:600;color:var(--color-text-soft);cursor:pointer}
-	.archive-toggle.active{background:#78716C;color:#fff}
-	.card.archived{opacity:.7}
-	.streaming-indicator{display:inline-block;width:8px;height:8px;background:var(--color-primary);border-radius:50%;animation:pulse .5s infinite;margin-left:4px}
-	@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   </style>
 </head>
 <body>
@@ -1208,7 +1202,6 @@
         <button class="cat" data-category="sketch">Sketch <span class="cnt" id="cntSketch">0</span></button>
         <button class="cat" data-category="scan">Scan <span class="cnt" id="cntScan">0</span></button>
         <button class="cat-add" onclick="addCatPrompt()">+</button>
-		<button class="archive-toggle" id="archiveToggle" onclick="toggleArchiveView()">📦 Archive</button>
       </div>
     </div>
     </div>
@@ -2441,8 +2434,6 @@ let lastScrollTop=0,longPressTimer=null;
 
 // AI Configuration
 const AI_API_URL = '/api/ai';
-const STREAMING_ENABLED = true;
-let showArchived = false;
 let aiProcessing = false;
 
 const CATS={
@@ -5033,247 +5024,149 @@ async function sendAskAIMessage() {
   console.log('sendAskAIMessage called');
   const input = document.getElementById('askAIInput');
   const text = input.value.trim();
-  if (!text) return;
+  console.log('Text:', text);
+  if (!text) {
+    console.log('No text, returning');
+    return;
+  }
   
+  // LOCK voice mode while processing
   voiceModeLocked = true;
   askiIsProcessing = true;
   stopVoiceModeListening();
   updateVoiceModeIndicator('processing');
   
+  // Save for retry
   lastUserMessage = text;
+  
   addAskAIMessage(text, true);
   input.value = '';
-  input.style.height = 'auto';
+  input.style.height = 'auto'; // Reset textarea height
   updateAskAICharCount();
+  
   showAskAITyping();
   
-  // Get context
-  let contextObject = null;
+  // Get context from Supabase (v0.9.58 - Dynamic Context)
+  let contextForAI = null;
   try {
-    const supabaseContext = await getSupabaseContext(text, { limit: 20, recentHours: 24, searchEnabled: true });
-    if (supabaseContext?.recent?.length || supabaseContext?.relevant?.length) {
-      contextObject = { recent: supabaseContext.recent || [], relevant: supabaseContext.relevant || [] };
+    const supabaseContext = await getSupabaseContext(text, {
+      limit: 20,
+      recentHours: 24,
+      searchEnabled: true
+    });
+    contextForAI = formatContextForAI(supabaseContext);
+    if (contextForAI) {
+      console.log('📚 Context loaded for ASKI');
     }
-  } catch (e) { console.warn('Context fetch skipped:', e.message); }
-  
-  let syntriseContext = [];
-  if (window.SyntriseCore && SYNTRISE_CONFIG?.ENABLED) {
-    try { syntriseContext = await getSyntriseContext(text); } catch (e) {}
+  } catch (e) {
+    console.warn('Context fetch skipped:', e.message);
   }
   
-  const requestBody = {
-    action: 'chat',
-    text: text,
-    history: askAIMessages.slice(-10),
-    syntriseContext: syntriseContext,
-    dropContext: contextObject,
-    enableTools: false,
-    userId: currentUser?.id,
-    uid: currentUser?.id,
-    stream: STREAMING_ENABLED
-  };
+  // Legacy: Also try Syntrise CORE if enabled
+  let syntriseContext = [];
+  if (window.SyntriseCore && SYNTRISE_CONFIG?.ENABLED) {
+    try {
+      syntriseContext = await getSyntriseContext(text);
+      console.log('Syntrise context:', syntriseContext?.length || 0, 'drops found');
+    } catch (e) {
+      console.warn('Syntrise context fetch skipped');
+    }
+  }
+  
+  console.log('Sending to:', AI_API_URL);
+  
+  // v2 API: Send structured context, server handles formatting
+  const INJECT_CONTEXT_INTO_MESSAGE = false; // v2: Server handles context
+  
+  // Prepare context object for server
+  let contextObject = null;
+  try {
+    if (supabaseContext?.recent?.length || supabaseContext?.relevant?.length) {
+      contextObject = {
+        recent: supabaseContext.recent || [],
+        relevant: supabaseContext.relevant || []
+      };
+    }
+  } catch (e) {
+    console.warn('Context preparation error:', e);
+  }
   
   try {
     const response = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify({
+        action: 'chat',
+        text: text,  // Clean text, no injection
+        history: askAIMessages.slice(-10),
+        syntriseContext: syntriseContext, // Legacy
+        dropContext: contextObject, // v2: Structured context for server
+        enableTools: true, // v2: Enable Tool Calling
+        userId: currentUser?.id // v3: For CORE Memory integration
+      })
     });
     
-    const contentType = response.headers.get('content-type');
+    console.log('Response status:', response.status);
+    const data = await response.json();
+    console.log('Response data:', data);
     
-    if (STREAMING_ENABLED && contentType?.includes('text/event-stream')) {
-      hideAskAITyping();
-      await handleStreamingResponse(response);
-      // Успех - просто выходим
-      return;
-    } else {
-      const data = await response.json();
-      if (data.toolsUsed?.length) console.log('AI used tools:', data.toolsUsed.join(', '));
-      hideAskAITyping();
+    // Log tools used (v2)
+    if (data.toolsUsed?.length) {
+      console.log('🔧 AI used tools:', data.toolsUsed.join(', '));
+    }
+    
+    hideAskAITyping();
+    
+    if (data.success && data.result) {
+      addAskAIMessage(data.result, false);
       
-      if (data.success && data.result) {
-        addAskAIMessage(data.result, false);
-        if (data.createDrop?.action === 'create_drop' && isAutoDropEnabled()) {
-          createDropFromAIResponse(data.createDrop);
+      // Handle AI-initiated drop creation (v2 Tool Calling)
+      // Only create if AutoDrop is enabled OR user explicitly asked
+      if (data.createDrop?.action === 'create_drop') {
+        const autoDropEnabled = isAutoDropEnabled();
+        
+        if (autoDropEnabled) {
+          const dropText = data.createDrop.text;
+          const dropCategory = data.createDrop.category || 'inbox';
+          
+          // Create the drop
+          const now = new Date();
+          const newIdea = {
+            id: Date.now(),
+            text: dropText,
+            category: dropCategory,
+            date: now.toLocaleDateString('ru-RU'),
+            time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: now.toISOString(),
+            aiGenerated: true
+          };
+          
+          ideas.unshift(newIdea);
+          save(newIdea);
+          render();
+          counts();
+          
+          console.log('✅ AI created drop:', dropText.substring(0, 50) + '...');
+          toast(`Aski created: ${dropCategory}`, 'success');
+        } else {
+          console.log('⏭️ AI wanted to create drop but AutoDrop is OFF');
         }
-      } else {
-        addAskAIMessage('Sorry, I could not process your request. ' + (data.error || ''), false);
-        if (!isAutoSpeakEnabled()) unlockVoiceMode();
+      }
+    } else {
+      console.log('Error in response:', data);
+      addAskAIMessage('Sorry, I could not process your request. ' + (data.error || ''), false);
+      // Unlock on error if no auto-speak
+      if (!isAutoSpeakEnabled()) {
+        unlockVoiceMode();
       }
     }
   } catch (error) {
     hideAskAITyping();
-    // НЕ показываем ошибку для streaming - он уже обработан
-    if (!STREAMING_ENABLED) {
-      addErrorMessage('Connection error. Please check your internet connection.');
-    }
+    console.error('Ask AI error:', error);
+    addErrorMessage('Connection error. Please check your internet connection.');
+    // Unlock on error
     unlockVoiceMode();
   }
-
-// ============================================
-// STREAMING HANDLER
-// ============================================
-async function handleStreamingResponse(response) {
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  
-  const messagesDiv = document.getElementById('askAIMessages');
-  const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  
-  const msgDiv = document.createElement('div');
-  msgDiv.className = 'ask-ai-message ai streaming';
-  msgDiv.innerHTML = `
-    <div class="ask-ai-bubble"><span class="streaming-text"></span><span class="streaming-indicator"></span></div>
-    <div class="ask-ai-time">${time}</div>
-  `;
-  messagesDiv.appendChild(msgDiv);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  
-  const textSpan = msgDiv.querySelector('.streaming-text');
-  let fullText = '';
-  let buffer = '';
-  
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') break;
-          
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-              fullText += parsed.delta.text;
-              textSpan.textContent = fullText;
-              messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            }
-          } catch (e) {
-            if (data && !data.startsWith('{')) {
-              fullText += data;
-              textSpan.textContent = fullText;
-            }
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Streaming error:', error);
-  }
-  
-  // Finalize
-  msgDiv.classList.remove('streaming');
-  const indicator = msgDiv.querySelector('.streaming-indicator');
-  if (indicator) indicator.remove();
-  
-  // Add action buttons
-  const bubble = msgDiv.querySelector('.ask-ai-bubble');
-  const actionsDiv = document.createElement('div');
-  actionsDiv.className = 'ask-ai-actions';
-  actionsDiv.innerHTML = `
-    <button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-    <button class="ask-ai-action-btn" onclick="speakText(this.closest('.ask-ai-message').querySelector('.ask-ai-bubble').textContent)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>
-    <button class="ask-ai-action-btn" onclick="createDropFromAI(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>
-  `;
-  bubble.after(actionsDiv);
-  
-  askAIMessages.push({ text: fullText, isUser: false });
-  
-  if (isAutoDropEnabled()) autoSaveMessageAsDrop(fullText, false);
-if (isAutoSpeakEnabled() && fullText) {
-  try {
-    speakText(fullText);
-  } catch (e) {
-    console.error('TTS error:', e);
-    unlockVoiceMode();
-  }
-} else {
-  unlockVoiceMode();
-}
-
-// ============================================
-// ARCHIVE FUNCTIONS
-// ============================================
-function toggleArchiveView() {
-  showArchived = !showArchived;
-  const btn = document.getElementById('archiveToggle');
-  
-  if (showArchived) {
-    btn.classList.add('active');
-    btn.textContent = '← Back';
-    toast('Showing archived drops', 'info');
-  } else {
-    btn.classList.remove('active');
-    btn.textContent = '📦 Archive';
-  }
-  render();
-}
-
-async function archiveDrop(id) {
-  const idea = ideas.find(i => i.id === id);
-  if (!idea) return;
-  
-  idea.is_archived = true;
-  idea.archived_at = new Date().toISOString();
-  
-  if (idea.supabase_id && currentUser) {
-    try {
-      await supabase.from('drops').update({ is_archived: true, archived_at: idea.archived_at }).eq('id', idea.supabase_id);
-    } catch (e) { console.error('Archive sync error:', e); }
-  }
-  
-  localStorage.setItem('ideas', JSON.stringify(ideas));
-  render();
-  counts();
-  toast('Moved to archive', 'success');
-  closeModal();
-}
-
-async function restoreDrop(id) {
-  const idea = ideas.find(i => i.id === id);
-  if (!idea) return;
-  
-  idea.is_archived = false;
-  idea.archived_at = null;
-  
-  if (idea.supabase_id && currentUser) {
-    try {
-      await supabase.from('drops').update({ is_archived: false, archived_at: null }).eq('id', idea.supabase_id);
-    } catch (e) { console.error('Restore sync error:', e); }
-  }
-  
-  localStorage.setItem('ideas', JSON.stringify(ideas));
-  render();
-  counts();
-  toast('Restored from archive', 'success');
-  closeModal();
-}
-
-function createDropFromAIResponse(dropData) {
-  const now = new Date();
-  const newIdea = {
-    id: Date.now(),
-    text: dropData.text,
-    category: dropData.category || 'inbox',
-    date: now.toLocaleDateString('ru-RU'),
-    time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-    timestamp: now.toISOString(),
-    aiGenerated: true,
-    is_archived: false
-  };
-  
-  ideas.unshift(newIdea);
-  save(newIdea);
-  render();
-  counts();
-  toast('Aski created: ' + dropData.category, 'success');
 }
 
 // Add error message with Retry button
@@ -5916,9 +5809,6 @@ function isNewDrop(i) {
 }
 function filtered(){
   let f=[...ideas].filter(x=>x&&x.date); // Filter out invalid entries
-  
-  // Filter by archive status
-  f = f.filter(x => showArchived ? x.is_archived : !x.is_archived);
   
   // Apply search filter
   if(searchMode && searchQuery) {
