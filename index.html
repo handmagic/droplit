@@ -5083,13 +5083,16 @@ async function sendAskAIMessage() {
     const contentType = response.headers.get('content-type');
     
     if (STREAMING_ENABLED && contentType?.includes('text/event-stream')) {
-      hideAskAITyping();
-      await handleStreamingResponse(response);
-      // Успех - просто выходим
-      return;
-    } else {
+	hideAskAITyping();
+	try {
+    await handleStreamingResponse(response);
+  } catch (streamErr) {
+    console.error('Streaming error:', streamErr);
+  }
+  return;
+} else {
       const data = await response.json();
-      if (data.toolsUsed?.length) console.log('AI used tools:', data.toolsUsed.join(', '));
+      if (data.toolsUsed?.length) console.log('🔧 AI used tools:', data.toolsUsed.join(', '));
       hideAskAITyping();
       
       if (data.success && data.result) {
@@ -5104,12 +5107,11 @@ async function sendAskAIMessage() {
     }
   } catch (error) {
     hideAskAITyping();
-    // НЕ показываем ошибку для streaming - он уже обработан
-    if (!STREAMING_ENABLED) {
-      addErrorMessage('Connection error. Please check your internet connection.');
-    }
+    console.error('Ask AI error:', error);
+    addErrorMessage('Connection error. Please check your internet connection.');
     unlockVoiceMode();
   }
+}
 
 // ============================================
 // STREAMING HANDLER
