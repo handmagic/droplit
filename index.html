@@ -5083,10 +5083,14 @@ async function sendAskAIMessage() {
     const contentType = response.headers.get('content-type');
     
     if (STREAMING_ENABLED && contentType?.includes('text/event-stream')) {
-      hideAskAITyping();
-      await handleStreamingResponse(response);
-	  return;
-    } else {
+	hideAskAITyping();
+	try {
+    await handleStreamingResponse(response);
+  } catch (streamErr) {
+    console.error('Streaming error:', streamErr);
+  }
+  return;
+} else {
       const data = await response.json();
       if (data.toolsUsed?.length) console.log('🔧 AI used tools:', data.toolsUsed.join(', '));
       hideAskAITyping();
@@ -5185,8 +5189,15 @@ async function handleStreamingResponse(response) {
   askAIMessages.push({ text: fullText, isUser: false });
   
   if (isAutoDropEnabled()) autoSaveMessageAsDrop(fullText, false);
-  if (isAutoSpeakEnabled() && fullText) speakText(fullText);
-  else unlockVoiceMode();
+if (isAutoSpeakEnabled() && fullText) {
+  try {
+    speakText(fullText);
+  } catch (e) {
+    console.error('TTS error:', e);
+    unlockVoiceMode();
+  }
+} else {
+  unlockVoiceMode();
 }
 
 // ============================================
