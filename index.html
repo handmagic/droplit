@@ -393,8 +393,8 @@
     .ask-ai-prompt { padding: 10px 16px; background: var(--color-bg-card); border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; color: var(--color-text-soft); cursor: pointer; transition: all 0.15s; }
     .ask-ai-prompt:hover { border-color: var(--color-primary); color: var(--color-primary); }
     .ask-ai-input-area { padding: 12px 16px; padding-bottom: max(24px, env(safe-area-inset-bottom)); background: var(--color-bg-card); border-top: 1px solid var(--color-border); flex-shrink: 0; }
-    .ask-ai-input-row { display: flex; align-items: center; gap: 10px; }
-    .ask-ai-input { flex: 1; padding: 14px 18px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 1rem; background: var(--color-bg); color: var(--color-text); outline: none; transition: border-color 0.15s; }
+    .ask-ai-input-row { display: flex; align-items: flex-end; gap: 10px; }
+    .ask-ai-input { flex: 1; padding: 12px 16px; border: 2px solid var(--color-border); border-radius: 16px; font-family: var(--font-main); font-size: 1rem; background: var(--color-bg); color: var(--color-text); outline: none; transition: border-color 0.15s; resize: none; min-height: 44px; max-height: 120px; line-height: 1.4; }
     .ask-ai-input:focus { border-color: var(--color-primary); }
     .ask-ai-input::placeholder { color: var(--color-text-muted); }
     .ask-ai-btn { width: 48px; height: 48px; min-width: 48px; min-height: 48px; max-width: 48px; max-height: 48px; flex: 0 0 48px; align-self: center; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
@@ -869,7 +869,7 @@
     .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
     .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-    /* ========== UNIFIED PILLS SYSTEM v0.9.57 ========== */
+    /* ========== UNIFIED PILLS SYSTEM v0.9.58 ========== */
     
     /* Pills - Small (34px) for compact areas */
     .pill-s { height: 34px; padding: 0 14px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.7rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); }
@@ -1636,7 +1636,7 @@
         <button class="ask-ai-btn ask-ai-btn-voice" id="askAIVoiceBtn" onclick="toggleAskAIVoice()">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
         </button>
-        <input type="text" class="ask-ai-input" id="askAIInput" placeholder="Ask anything..." maxlength="500" oninput="updateAskAICharCount()" onkeypress="if(event.key==='Enter' && this.value.trim()) sendAskAIMessage()">
+        <textarea class="ask-ai-input" id="askAIInput" placeholder="Ask anything..." maxlength="2000" rows="2" oninput="updateAskAICharCount(); autoResizeTextarea(this);" onkeypress="if(event.key==='Enter' && !event.shiftKey && this.value.trim()) { event.preventDefault(); sendAskAIMessage(); }"></textarea>
         <button class="ask-ai-btn ask-ai-btn-send" id="askAISendBtn" onclick="console.log('Send clicked'); sendAskAIMessage()">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9 22 2Z"/></svg>
         </button>
@@ -1645,7 +1645,7 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
         <span id="voiceLargeText">Tap to talk</span>
       </button>
-      <div class="ask-ai-char-count" id="askAICharCount">0 / 500</div>
+      <div class="ask-ai-char-count" id="askAICharCount">0 / 2000</div>
     </div>
   </div>
 
@@ -1902,7 +1902,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.57 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.58 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1916,7 +1916,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.57 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.58 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2018,7 +2018,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 
 // ============================================
-// AUTO-FIX: Repair string IDs (v0.9.57)
+// AUTO-FIX: Repair string IDs (v0.9.58)
 // ============================================
 (function autoFixIds() {
   let fixed = 0;
@@ -2036,7 +2036,7 @@ let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 })();
 
 // ============================================
-// SUPABASE SYNC (v0.9.57)
+// SUPABASE SYNC (v0.9.58)
 // ============================================
 const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE';
@@ -2465,7 +2465,7 @@ const MARKERS={
 const ENABLED_MARKERS=['heart'];
 
 // ============================================
-// ID GENERATOR (v0.9.57)
+// ID GENERATOR (v0.9.58)
 // Base62: 16 random characters, no timestamp
 // ============================================
 const BASE62_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -2476,7 +2476,7 @@ function generateId(length = 16) {
 }
 
 // ============================================
-// DROP SOUND (v0.9.57)
+// DROP SOUND (v0.9.58)
 // Signature sound when creating a drop
 // ============================================
 let dropSoundCtx = null;
@@ -2515,7 +2515,7 @@ function playDropSound() {
 }
 
 // ============================================
-// TTS - TEXT TO SPEECH (v0.9.57)
+// TTS - TEXT TO SPEECH (v0.9.58)
 // Read drop content aloud
 // ============================================
 let currentTTSUtterance = null;
@@ -2992,7 +2992,7 @@ function detectCat(t){
 }
 function saveIdea(t){
   // ============================================
-  // SLASH COMMANDS (v0.9.57)
+  // SLASH COMMANDS (v0.9.58)
   // ============================================
   if (t.startsWith('/')) {
     const cmd = t.toLowerCase().trim();
@@ -3026,7 +3026,7 @@ function saveIdea(t){
       const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
       const deviceId = DEVICE_ID || 'Not set';
       const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
-      alert(`DropLit Debug v0.9.57\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      alert(`DropLit Debug v0.9.58\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
@@ -3248,9 +3248,16 @@ function updateAskAICharCount() {
   const input = document.getElementById('askAIInput');
   const count = input.value.length;
   const counter = document.getElementById('askAICharCount');
-  counter.textContent = `${count} / 500`;
-  counter.classList.toggle('warning', count > 450);
+  counter.textContent = `${count} / 2000`;
+  counter.classList.toggle('warning', count > 1800);
   document.getElementById('askAISendBtn').disabled = count === 0;
+}
+
+// Auto-resize textarea as user types
+function autoResizeTextarea(textarea) {
+  textarea.style.height = 'auto';
+  const maxHeight = 120; // Max 5-6 lines
+  textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
 }
 
 // ============================================
@@ -5034,7 +5041,7 @@ async function sendAskAIMessage() {
   
   showAskAITyping();
   
-  // Get context from Supabase (v0.9.57 - Dynamic Context)
+  // Get context from Supabase (v0.9.58 - Dynamic Context)
   let contextForAI = null;
   try {
     const supabaseContext = await getSupabaseContext(text, {
@@ -5642,7 +5649,7 @@ function confirmDel(){
     const delItem=ideas.find(x=>x.id===delId);
     if(delItem) {
       saveUndo('delete',{...delItem});
-      // Sync delete to Supabase (v0.9.57)
+      // Sync delete to Supabase (v0.9.58)
       if (syncEnabled && currentUser) {
         deleteDropFromServer(delId);
       }
@@ -5668,7 +5675,7 @@ function saveEdit(id){
         i.text=t;
         i.category=detectCat(t);
         save();
-        // Sync update to Supabase (v0.9.57)
+        // Sync update to Supabase (v0.9.58)
         if (syncEnabled && currentUser) {
           syncDropToServer(i, 'update');
         }
@@ -5731,7 +5738,7 @@ function save(newDrop){
     const data=JSON.stringify(ideas);
     localStorage.setItem('droplit_ideas',data);
     
-    // Sync to Supabase (v0.9.57)
+    // Sync to Supabase (v0.9.58)
     if (newDrop && syncEnabled && currentUser) {
       syncDropToServer(newDrop, 'create');
     }
@@ -7598,7 +7605,7 @@ function exportAll(){
     for(const i of arr)md+='- ['+i.date+' '+i.time+'] '+i.text+'\n';
     md+='\n';
   }
-  md+='---\nExported from DropLit v0.9.57';
+  md+='---\nExported from DropLit v0.9.58';
   document.getElementById('exportBox').textContent=md;
   document.getElementById('exportModal').classList.add('show');
 }
@@ -7644,7 +7651,7 @@ function closeMainMenu() {
   updateMenuIcon(false);
 }
 
-// Debug info (v0.9.57)
+// Debug info (v0.9.58)
 function showDebugInfo() {
   closeMainMenu();
   const total = ideas.length;
@@ -7659,7 +7666,7 @@ function showDebugInfo() {
   const lastSync = lastSyncTime ? lastSyncTime.toLocaleTimeString() : 'Never';
   
   alert(
-    `DropLit Debug v0.9.57\n\n` +
+    `DropLit Debug v0.9.58\n\n` +
     `=== DROPS ===\n` +
     `Total: ${total}\n` +
     `Text: ${textDrops}\n` +
@@ -8739,7 +8746,7 @@ async function getSyntriseContext(query) {
 }
 
 // ============================================
-// DYNAMIC CONTEXT FROM SUPABASE (v0.9.57)
+// DYNAMIC CONTEXT FROM SUPABASE (v0.9.58)
 // ============================================
 
 // Get fresh drops for ASKI context
