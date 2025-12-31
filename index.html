@@ -827,7 +827,7 @@
     .rec-text { font-size: 0.8rem; font-weight: 600; color: var(--color-text); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     /* Scroll FAB */
-    .scroll-fab { position: fixed; right: 20px; width: 44px; height: 44px; border: none; background: var(--color-bg-card); border-radius: var(--radius-full); box-shadow: var(--shadow-scroll); cursor: pointer; display: none; align-items: center; justify-content: center; color: var(--color-primary); font-size: 1.1rem; font-weight: 700; z-index: 40; transition: all 0.2s; }
+    .scroll-fab { position: fixed; right: 26px; width: 44px; height: 44px; border: none; background: var(--color-bg-card); border-radius: var(--radius-full); box-shadow: var(--shadow-scroll); cursor: pointer; display: none; align-items: center; justify-content: center; color: var(--color-primary); font-size: 1.1rem; font-weight: 700; z-index: 40; transition: all 0.2s; }
     .scroll-fab.show { display: flex; }
     .scroll-fab:active { transform: scale(0.9); }
     .scroll-fab.top { bottom: calc(160px + var(--safe-bottom)); }
@@ -1072,7 +1072,7 @@
       .app { margin: 20px auto; height: calc(100vh - 40px); border-radius: var(--radius-lg); box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; }
       .fab-record { right: calc(50% - 220px); }
       .fab-camera { left: calc(50% - 220px); }
-      .scroll-fab { right: calc(50% - 220px); }
+      .scroll-fab { right: calc(50% - 214px); }
       .select-bar { left: 50%; right: auto; transform: translateX(-50%); max-width: 480px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
     }
 
@@ -1845,7 +1845,7 @@
           </div>
           <div class="pill-row" id="fontSizeSelector">
             <button class="pill-m" data-size="small" onclick="setFontSize('small')">Small</button>
-            <button class="pill-m active" data-size="normal" onclick="setFontSize('normal')">Normal</button>
+            <button class="pill-m" data-size="normal" onclick="setFontSize('normal')">Normal</button>
             <button class="pill-m" data-size="large" onclick="setFontSize('large')">Large</button>
           </div>
         </div>
@@ -5193,7 +5193,7 @@ function createDropFromAI(btn) {
   const drop = {
     id: Date.now(),
     text: text,
-    category: isUserMessage ? 'idea' : 'ai',
+    category: 'inbox',
     timestamp: new Date().toISOString(),
     date: new Date().toLocaleDateString('ru-RU'),
     time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
@@ -8058,7 +8058,7 @@ function autoSaveMessageAsDrop(text, isUser) {
   const drop = {
     id: Date.now() + msgIndex, // Ensure unique ID
     text: text,
-    category: isUser ? 'idea' : 'ai',
+    category: 'inbox',
     timestamp: new Date().toISOString(),
     date: new Date().toLocaleDateString('ru-RU'),
     time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
@@ -8274,10 +8274,11 @@ function setFontSize(size) {
 
 function initFontSize() {
   const saved = localStorage.getItem('droplit_fontsize') || 'normal';
+  document.body.classList.remove('font-small', 'font-normal', 'font-large');
   document.body.classList.add('font-' + saved);
   
-  // Update buttons when menu opens
-  document.querySelectorAll('.font-size-btn').forEach(btn => {
+  // Update buttons when initialized
+  document.querySelectorAll('#fontSizeSelector .pill-m').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.size === saved);
   });
 }
