@@ -827,10 +827,10 @@
     .rec-text { font-size: 0.8rem; font-weight: 600; color: var(--color-text); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     /* Scroll FAB */
-    .scroll-fab { position: fixed; right: 26px; width: 44px; height: 44px; border: none; background: var(--color-bg-card); border-radius: var(--radius-full); box-shadow: var(--shadow-scroll); cursor: pointer; display: none; align-items: center; justify-content: center; color: var(--color-primary); font-size: 1.1rem; font-weight: 700; z-index: 40; transition: all 0.2s; }
+    .scroll-fab { position: fixed; right: 20px; width: 56px; height: 56px; border: none; background: var(--color-bg-card); border-radius: var(--radius-full); box-shadow: var(--shadow-scroll); cursor: pointer; display: none; align-items: center; justify-content: center; color: var(--color-primary); font-size: 1.1rem; font-weight: 700; z-index: 40; transition: all 0.2s; }
     .scroll-fab.show { display: flex; }
     .scroll-fab:active { transform: scale(0.9); }
-    .scroll-fab.top { bottom: calc(160px + var(--safe-bottom)); }
+    .scroll-fab.top { bottom: calc(170px + var(--safe-bottom)); }
     .scroll-fab.bottom { bottom: calc(100px + var(--safe-bottom)); }
     .editing-mode .scroll-fab, .select-mode .scroll-fab { display: none !important; }
     
@@ -1072,7 +1072,7 @@
       .app { margin: 20px auto; height: calc(100vh - 40px); border-radius: var(--radius-lg); box-shadow: 0 10px 40px rgba(0,0,0,0.1); overflow: hidden; }
       .fab-record { right: calc(50% - 220px); }
       .fab-camera { left: calc(50% - 220px); }
-      .scroll-fab { right: calc(50% - 214px); }
+      .scroll-fab { right: calc(50% - 220px); }
       .select-bar { left: 50%; right: auto; transform: translateX(-50%); max-width: 480px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
     }
 
@@ -1598,8 +1598,8 @@
     <span class="rec-text" id="recText">Listening...</span>
   </div>
 
-  <button class="scroll-fab top" id="scrollTop" onclick="scrollToTop()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg></button>
-  <button class="scroll-fab bottom" id="scrollBottom" onclick="scrollToBottom()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></button>
+  <button class="scroll-fab top" id="scrollTop" onclick="scrollToTop()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 15l-6-6-6 6"/></svg></button>
+  <button class="scroll-fab bottom" id="scrollBottom" onclick="scrollToBottom()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></button>
 
   <!-- Ask AI Panel -->
   <div class="ask-ai-panel" id="askAIPanel">
