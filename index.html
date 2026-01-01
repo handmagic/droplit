@@ -2758,8 +2758,9 @@ function speakDrop(id, e) {
     return;
   }
   
-  // Stop if already playing this drop
-  if (isTTSPlaying && currentTTSUtterance) {
+  // Stop if already playing
+  if (isTTSPlaying || currentTTSAudio) {
+    stopTTS();
     speechSynthesis.cancel();
     isTTSPlaying = false;
     updateTTSButton(id, false);
@@ -2767,39 +2768,15 @@ function speakDrop(id, e) {
     return;
   }
   
-  // Cancel any existing speech
-  speechSynthesis.cancel();
+  // Use settings-based TTS
+  isTTSPlaying = true;
+  updateTTSButton(id, true);
   
-  // Create utterance
-  const utterance = new SpeechSynthesisUtterance(textToSpeak);
-  
-  // Detect language (simple heuristic)
-  const hasRussian = /[а-яё]/i.test(textToSpeak);
-  utterance.lang = hasRussian ? 'ru-RU' : 'en-US';
-  utterance.rate = 1.0;
-  utterance.pitch = 1.0;
-  
-  // Events
-  utterance.onstart = () => {
-    isTTSPlaying = true;
-    updateTTSButton(id, true);
-  };
-  
-  utterance.onend = () => {
+  speakTextWithCallback(textToSpeak, function() {
     isTTSPlaying = false;
     updateTTSButton(id, false);
-  };
+  });
   
-  utterance.onerror = (e) => {
-    isTTSPlaying = false;
-    updateTTSButton(id, false);
-    if (e.error !== 'canceled') {
-      toast('TTS error', 'error');
-    }
-  };
-  
-  currentTTSUtterance = utterance;
-  speechSynthesis.speak(utterance);
   toast('Reading...', 'info');
 }
 
