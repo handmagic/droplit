@@ -4831,6 +4831,8 @@ function unlockVoiceMode() {
 function updateVoiceModeIndicator(state) {
   const largeBtn = document.getElementById('askAIVoiceLarge');
   const largeBtnText = document.getElementById('voiceLargeText');
+  const controlRight = document.getElementById('askAIControlRight');
+  const controlRightText = document.getElementById('askAIControlRightText');
   
   // Update only the large button at bottom
   switch(state) {
@@ -4839,6 +4841,11 @@ function updateVoiceModeIndicator(state) {
         largeBtn.classList.add('listening');
         largeBtnText.textContent = 'Listening...';
       }
+      if (controlRight) {
+        controlRight.classList.add('listening');
+        controlRight.classList.remove('processing');
+        if (controlRightText) controlRightText.textContent = 'LISTENING...';
+      }
       break;
     case 'processing':
       setAskiBusy(true);
@@ -4846,6 +4853,12 @@ function updateVoiceModeIndicator(state) {
         largeBtn.classList.remove('listening');
         largeBtnText.textContent = 'Thinking...';
       }
+      if (controlRight) {
+        controlRight.classList.remove('listening');
+        controlRight.classList.add('processing');
+        if (controlRightText) controlRightText.textContent = 'THINKING...';
+      }
+      updateChatControlLeft('stop');
       break;
     case 'speaking':
       setAskiBusy(true);
@@ -4853,11 +4866,22 @@ function updateVoiceModeIndicator(state) {
         largeBtn.classList.remove('listening');
         largeBtnText.textContent = 'Speaking...';
       }
+      if (controlRight) {
+        controlRight.classList.remove('listening');
+        controlRight.classList.add('processing');
+        if (controlRightText) controlRightText.textContent = 'SPEAKING...';
+      }
+      updateChatControlLeft('stop');
       break;
     case 'locked':
       if (largeBtn) {
         largeBtn.classList.remove('listening');
         largeBtnText.textContent = 'Please wait...';
+      }
+      if (controlRight) {
+        controlRight.classList.remove('listening');
+        controlRight.classList.remove('processing');
+        if (controlRightText) controlRightText.textContent = 'WAIT...';
       }
       break;
     case 'waiting':
@@ -4866,6 +4890,12 @@ function updateVoiceModeIndicator(state) {
         largeBtn.classList.remove('listening');
         largeBtnText.textContent = 'Tap to talk';
       }
+      if (controlRight) {
+        controlRight.classList.remove('listening');
+        controlRight.classList.remove('processing');
+        if (controlRightText) controlRightText.textContent = 'TAP TO TALK';
+      }
+      updateChatControlLeft('hide');
       break;
     case 'sleeping':
       setAskiBusy(false);
@@ -4873,6 +4903,12 @@ function updateVoiceModeIndicator(state) {
         largeBtn.classList.remove('listening');
         largeBtnText.textContent = 'Tap to talk';
       }
+      if (controlRight) {
+        controlRight.classList.remove('listening');
+        controlRight.classList.remove('processing');
+        if (controlRightText) controlRightText.textContent = 'TAP TO TALK';
+      }
+      updateChatControlLeft('hide');
       break;
     default:
       setAskiBusy(false);
@@ -4880,6 +4916,12 @@ function updateVoiceModeIndicator(state) {
         largeBtn.classList.remove('listening');
         largeBtnText.textContent = 'Tap to talk';
       }
+      if (controlRight) {
+        controlRight.classList.remove('listening');
+        controlRight.classList.remove('processing');
+        if (controlRightText) controlRightText.textContent = 'TAP TO TALK';
+      }
+      updateChatControlLeft('hide');
   }
 }
 
