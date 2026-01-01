@@ -5002,9 +5002,7 @@ async function handleStreamingResponse(response) {
   
   if (isAutoDropEnabled()) autoSaveMessageAsDrop(fullText, false);
   
-  
-    unlockVoiceMode();
-  }
+	unlockVoiceMode();
 }
 
 function addAskAIMessage(text, isUser = true) {
