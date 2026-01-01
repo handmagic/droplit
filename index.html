@@ -5228,6 +5228,7 @@ function escapeHtml(text) {
 
 // Streaming response handler v2 - supports tools
 async function handleStreamingResponse(response) {
+  toast('STREAMING STARTED', 'success');
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   
