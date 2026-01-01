@@ -5269,10 +5269,13 @@ async function handleStreamingResponse(response) {
               messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }
             
-            // Tool started
-            if (parsed.type === 'tool_start' && indicator) {
-              indicator.textContent = toolStatusText(parsed.tool);
-              indicator.classList.add('tool-active');
+			// Tool started
+            if (parsed.type === 'tool_start') {
+              toast('Tool: ' + parsed.tool, 'info');
+              if (indicator) {
+                indicator.textContent = toolStatusText(parsed.tool);
+                indicator.classList.add('tool-active');
+              }
             }
             
             // Tool completed
