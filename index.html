@@ -3384,12 +3384,24 @@ function openAskAI() {
   // Update AutoDrop indicator
   updateAutoDropIndicator();
   
-  // Voice Mode: start in sleep mode, user taps mic to activate
+  // Show/hide bottom controls based on mode
+  const controlsBottom = document.getElementById('askAIControlsBottom');
+  const voiceLarge = document.getElementById('askAIVoiceLarge');
+  
   if (isVoiceModeEnabled()) {
+    // Voice mode - show new bottom controls
+    if (controlsBottom) controlsBottom.style.display = 'flex';
+    if (voiceLarge) voiceLarge.style.display = 'none';
+    
     voiceModeLocked = false;
-    voiceModeSleeping = true; // Start sleeping - wait for user tap
+    voiceModeSleeping = true;
     askiIsProcessing = false;
     updateVoiceModeIndicator('sleeping');
+    updateChatControlLeft('hide');
+  } else {
+    // Text mode - hide voice controls
+    if (controlsBottom) controlsBottom.style.display = 'none';
+    if (voiceLarge) voiceLarge.style.display = 'none';
   }
 }
 
