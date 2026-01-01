@@ -435,10 +435,8 @@
     .ask-ai-btn-done:hover { background: rgba(255,255,255,0.3); }
     .ask-ai-btn-stop { background: #EF4444; color: white; display: none; }
     .ask-ai-btn-stop:hover { background: #DC2626; }
-    .ask-ai-btn-autodrop { background: #10B981; color: white; }
-    .ask-ai-btn-autodrop:hover { background: #059669; }
-    .ask-ai-btn-autodrop.off { background: rgba(255,255,255,0.2); }
-    .ask-ai-btn-autodrop.off:hover { background: rgba(255,255,255,0.3); }
+    .ask-ai-btn-autodrop { background: #10B981; color: white; border-color: transparent; }
+    .ask-ai-btn-autodrop.off { background: var(--color-bg-btn); color: var(--color-text-soft); border-color: var(--color-border); }
     
     /* Voice Mode active: show large button, hide input row */
     .ask-ai-panel.voice-mode-active .ask-ai-input-row { display: none; }
@@ -1640,7 +1638,7 @@
           <div class="ask-ai-subtitle" id="askiSubtitle">AI Assistant</div>
         </div>
       </div>
-      <button class="ask-ai-header-btn ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()" style="display: none;">AUTODROP</button>
+      <button class="pill-s ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()" style="display: none;">AUTODROP</button>
       <button class="ask-ai-close" onclick="closeAskAI()">×</button>
     </div>
     <div class="ask-ai-messages" id="askAIMessages">
