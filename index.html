@@ -5261,6 +5261,7 @@ async function handleStreamingResponse(response) {
           if (data === '[DONE]') break;
           try {
             const parsed = JSON.parse(data);
+			if (parsed.type) toast('Event: ' + parsed.type, 'info');
             
             // New API v4.5 format
             if (parsed.type === 'text' && parsed.content) {
