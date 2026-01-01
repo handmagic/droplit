@@ -2637,15 +2637,18 @@ let currentTTSAudio = null;
 function speakText(text) {
   if (!text) return;
   
-  // Stop any current playback
   stopTTS();
   
   const provider = localStorage.getItem('tts_provider') || 'browser';
-  const apiKey = localStorage.getItem('openai_tts_key');
-  const voice = localStorage.getItem('aski_voice') || 'nova';
+  const openaiKey = localStorage.getItem('openai_tts_key');
+  const openaiVoice = localStorage.getItem('aski_voice') || 'nova';
+  const elevenlabsKey = localStorage.getItem('elevenlabs_tts_key');
+  const elevenlabsVoice = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
   
-  if (provider === 'openai' && apiKey && apiKey.startsWith('sk-')) {
-    speakWithOpenAI(text, apiKey, voice);
+  if (provider === 'openai' && openaiKey && openaiKey.startsWith('sk-')) {
+    speakWithOpenAI(text, openaiKey, openaiVoice);
+  } else if (provider === 'elevenlabs' && elevenlabsKey) {
+    speakWithElevenLabs(text, elevenlabsKey, elevenlabsVoice);
   } else {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -2654,6 +2657,39 @@ function speakText(text) {
       utterance.onend = function() { unlockVoiceMode(); };
       window.speechSynthesis.speak(utterance);
     }
+  }
+}
+
+async function speakWithElevenLabs(text, apiKey, voiceId) {
+  try {
+    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: text,
+        model_id: 'eleven_multilingual_v2'
+      })
+    });
+    
+    if (!response.ok) throw new Error('ElevenLabs TTS error');
+    
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    currentTTSAudio = new Audio(url);
+    
+    currentTTSAudio.onended = function() {
+      URL.revokeObjectURL(url);
+      currentTTSAudio = null;
+      unlockVoiceMode();
+    };
+    
+    currentTTSAudio.play();
+  } catch (e) {
+    console.error('ElevenLabs TTS error:', e);
+    unlockVoiceMode();
   }
 }
 
