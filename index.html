@@ -1137,6 +1137,20 @@
     }
     .notif-banner-btn.primary { background: #6366F1; color: white; }
     .notif-banner-btn.secondary { background: #f3f4f6; color: #666; }
+	/* Streaming indicator */
+	.streaming-indicator {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	background: var(--color-primary);
+	border-radius: 50%;
+	animation: streamPulse 0.5s ease-in-out infinite;
+	margin-left: 4px;
+	}
+	@keyframes streamPulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.3; }
+	}
   </style>
 </head>
 <body>
