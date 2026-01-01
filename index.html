@@ -2546,7 +2546,7 @@ function speakAskAIMessage(btn) {
   if (!text) return;
   
   // Use OpenAI TTS if available
-  const provider = localStorage.getItem('droplit_tts_provider') || 'browser';
+  const provider = localStorage.getItem('tts_provider') || 'browser';
   
   if (provider === 'openai') {
     speakWithOpenAI(text);
