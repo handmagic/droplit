@@ -4412,6 +4412,8 @@ function askiSpeakBrowser(text, lang = null, onEnd = null) {
 
 // Stop speaking
 function askiStopSpeaking() {
+  // Stop our new TTS audio
+  stopTTS();
   // Stop AudioContext playback
   stopAudioPlayback();
   // Stop legacy Audio element (if any)
