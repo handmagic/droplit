@@ -2654,6 +2654,7 @@ function speakText(text) {
   if (!text) return;
   
   stopTTS();
+  updateChatControlLeft('stop');
   
   const provider = localStorage.getItem('tts_provider') || 'browser';
   const openaiKey = localStorage.getItem('openai_tts_key');
@@ -2751,6 +2752,7 @@ function stopTTS() {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
+  updateChatControlLeft('hide');
 }
 
 function speakDrop(id, e) {
