@@ -311,7 +311,7 @@
     .empty-text { font-size: 0.85rem; color: var(--color-text-muted); }
 
     /* FAB - Record button */
-    .fab-record { position: fixed; bottom: calc(24px + var(--safe-bottom)); right: 20px; width: 56px; height: 56px; border: none; background: #06B6D4; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(6,182,212,0.4); z-index: 50; transition: all 0.2s; }
+  .fab-record { width: 56px; height: 56px; border: none; background: #06B6D4; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(6,182,212,0.4); transition: all 0.2s; }
     .fab-record:active { transform: scale(0.95); }
     .fab-record.recording { background: var(--color-recording); animation: pulse 1.5s ease infinite; box-shadow: 0 4px 14px rgba(239,68,68,0.4); }
     .fab-record svg { width: 24px; height: 24px; color: white; }
@@ -340,6 +340,13 @@
     .fab-askai .sparkle { font-size: 1.1rem; animation: sparkle 1.5s ease-in-out infinite; }
     @keyframes sparkle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.15); } }
     .select-mode .fab-askai, .editing-mode .fab-askai { display: none !important; }
+	/* FAB Container - bottom bar */
+    .fab-container { position: fixed; bottom: calc(24px + var(--safe-bottom)); left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 50; pointer-events: none; }
+    .fab-container > * { pointer-events: auto; }
+    .fab-pill { height: 48px; min-width: 110px; padding: 0 16px; border: none; background: #FF6B4A; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: var(--font-main); font-size: 0.8rem; font-weight: 700; color: white; letter-spacing: 0.5px; text-transform: uppercase; box-shadow: 0 4px 20px rgba(255,107,74,0.4); transition: all 0.2s; }
+    .fab-pill:active { transform: scale(0.95); }
+    .fab-pill.create { background: #8B5CF6; box-shadow: 0 4px 20px rgba(139,92,246,0.4); }
+    .select-mode .fab-container, .editing-mode .fab-container { display: none !important; }
 
     /* Ask AI Panel - Full Screen Slide Up */
     .ask-ai-panel { position: fixed; inset: 0; top: 0; background: var(--color-bg-card); border-radius: 0; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; display: flex; flex-direction: column; box-shadow: 0 -10px 40px rgba(0,0,0,0.15); }
@@ -1227,17 +1234,21 @@
     </div>
   </div>
 
-  <button class="fab-camera" id="fabCamera" onclick="document.getElementById('cameraInput').click()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-  </button>
-  <input type="file" id="cameraInput" class="camera-input" accept="image/*" capture="environment" onchange="handlePhoto(event)">
+<input type="file" id="cameraInput" class="camera-input" accept="image/*" capture="environment" onchange="handlePhoto(event)">
   <input type="file" id="imageUpload" class="camera-input" accept="image/*" onchange="handleUploadedImage(event)">
   <input type="file" id="fileUpload" style="display:none" accept=".txt,.md,.csv,.json" onchange="handleUploadedFile(event)">
-
-  <!-- FAB Ask AI button -->
-  <button class="fab-askai" id="fabAskAI" onclick="openAskAI()">
-    ASK AI
-  </button>
+  
+  <!-- FAB Container - all bottom buttons -->
+  <div class="fab-container" id="fabContainer">
+    <button class="fab-camera" id="fabCamera" onclick="document.getElementById('cameraInput').click()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    </button>
+    <button class="fab-pill" id="fabAskAI" onclick="openAskAI()">AI CHAT</button>
+    <button class="fab-pill create" id="fabCreate" onclick="togglePlusMenu()">CREATE+</button>
+    <button class="fab-record" id="fabRecord" onclick="handleFabClick(event)" ontouchstart="fabTouchStart()" ontouchend="fabTouchEnd()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
+  </div>
 
   <!-- Plus menu backdrop -->
   <div class="plus-menu-backdrop" id="plusBackdrop" onclick="closePlusMenu()"></div>
@@ -1600,10 +1611,6 @@
       </div>
     </div>
   </div>
-
-  <button class="fab-record" id="fabRecord" onclick="handleFabClick(event)" ontouchstart="fabTouchStart()" ontouchend="fabTouchEnd()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-  </button>
 
   <div class="rec-status" id="recStatus">
     <span class="rec-dot"></span>
