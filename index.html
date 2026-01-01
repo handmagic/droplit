@@ -2545,20 +2545,7 @@ function speakAskAIMessage(btn) {
   const text = bubble.textContent || bubble.innerText;
   if (!text) return;
   
-  // Use OpenAI TTS if available
-  const provider = localStorage.getItem('tts_provider') || 'browser';
-  
-  if (provider === 'openai') {
-    speakWithOpenAI(text);
-  } else {
-    // Browser TTS fallback
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ru-RU';
-      window.speechSynthesis.speak(utterance);
-    }
-  }
+  speakText(text);
 }
 
 let currentTTSAudio = null;
@@ -2569,7 +2556,7 @@ function speakText(text) {
   // Stop any current playback
   stopTTS();
   
-  const provider = localStorage.getItem('droplit_tts_provider') || 'browser';
+  const provider = localStorage.getItem('tts_provider') || 'browser';
   const apiKey = localStorage.getItem('openai_tts_key');
   const voice = localStorage.getItem('aski_voice') || 'nova';
   
