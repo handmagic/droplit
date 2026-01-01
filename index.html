@@ -5183,7 +5183,8 @@ async function sendAskAIMessage() {
         history: askAIMessages.slice(-10),
         syntriseContext: syntriseContext, // Legacy
         dropContext: contextObject, // v2: Structured context for server
-        enableTools: true, // v2: Enable Tool Calling
+        stream: STREAMING_ENABLED,
+		enableTools: true, // v2: Enable Tool Calling
         userId: currentUser?.id // v3: For CORE Memory integration
       })
     });
