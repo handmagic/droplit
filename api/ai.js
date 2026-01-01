@@ -1,8 +1,9 @@
-// DropLit AI API v4.5 - Vercel Edge Function
-// + Streaming WITH Tools support
-// + Timezone from Vercel Geo
-// + Fixed dialogue flow
-// Version: 4.5.0
+// DropLit AI API v4.4 - Vercel Edge Function
+// + Timezone from Vercel Geo (fixes date bug)
+// + Streaming Support
+// + Fixed dialogue flow (STOP after question)
+// + All previous features preserved
+// Version: 4.4.0
 
 export const config = {
   runtime: 'edge',
@@ -123,7 +124,7 @@ const TOOLS = [
   },
   {
     name: "web_search",
-    description: "Search internet for current events, news, weather, prices, facts.",
+    description: "Search internet for current events, news, weather, prices.",
     input_schema: {
       type: "object",
       properties: {
@@ -174,9 +175,10 @@ async function fetchCoreContext(userId) {
 }
 
 // ============================================
-// SYSTEM PROMPT
+// SYSTEM PROMPT - ADAPTIVE + FIXED DIALOGUE
 // ============================================
 function buildSystemPrompt(dropContext, userProfile, coreContext, isExpansion = false, userTimezone = 'UTC') {
+  // Use user's timezone from Vercel Geo
   const now = new Date();
   const currentDate = now.toLocaleDateString('en-US', { 
     weekday: 'long', 
@@ -225,14 +227,25 @@ EXPLANATORY (how, why, compare):
 DEEP (philosophy, strategy, meaning):
 → 1-2 paragraphs, then OFFER to explore aspects
 
-### STOP AFTER QUESTION:
+### ⚠️ CRITICAL - STOP AFTER QUESTION:
 When you ask "Want more details?" or similar:
 - STOP IMMEDIATELY after the question
 - DO NOT continue with more content
+- DO NOT add "In the meantime..." or any continuation
 - WAIT for user's response
+- The question mark is your HARD STOP
+
+WRONG Example:
+"HTTP is a protocol. Want me to explain more? So basically it works by..."
+                                            ↑ VIOLATION - continued after question
+
+CORRECT Example:
+"HTTP is a protocol for web data transfer. Want me to elaborate?"
+[FULL STOP - wait for user]
 
 ### LANGUAGE:
-Always respond in SAME language as user's message.`;
+Always respond in SAME language as user's message.
+Offer phrases also in user's language.`;
 
   if (isExpansion) {
     basePrompt += `
@@ -290,9 +303,11 @@ async function executeTool(toolName, toolInput, dropContext) {
     case 'fetch_recent_drops':
     case 'search_drops':
     case 'get_summary':
+      // Return context we already have
       return { success: true, data: dropContext || 'No drops available in current context.' };
     
     case 'create_drop':
+      // Return data for client to create
       return { 
         success: true, 
         action: 'create_drop',
@@ -347,211 +362,30 @@ async function executeWebSearch(query, depth = 'basic') {
 }
 
 // ============================================
-// PARSE SSE STREAM FROM CLAUDE
+// STREAMING CHAT HANDLER
 // ============================================
-async function* parseSSEStream(response) {
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-    
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const data = line.slice(6);
-        if (data === '[DONE]') {
-          yield { type: 'done' };
-        } else {
-          try {
-            yield JSON.parse(data);
-          } catch (e) {
-            // Skip invalid JSON
-          }
-        }
-      }
-    }
-  }
-}
-
-// ============================================
-// STREAMING CHAT WITH TOOLS
-// ============================================
-async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer) {
-  const encoder = new TextEncoder();
-  let toolResults = [];
-  let createDropAction = null;
-  
-  // Helper to send SSE event to client
-  const sendEvent = (data) => {
-    writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-  };
-  
-  // Tool loop - max 5 iterations
-  for (let iteration = 0; iteration < 5; iteration++) {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: maxTokens,
-        system: systemPrompt,
-        messages,
-        tools: TOOLS,
-        tool_choice: { type: 'auto' },
-        stream: true
-      }),
-    });
-    
-    if (!response.ok) {
-      const error = await response.text();
-      sendEvent({ type: 'error', error: `API error: ${response.status}` });
-      break;
-    }
-    
-    // Collect response data
-    let currentTextContent = '';
-    let currentToolUse = null;
-    let toolUseInputBuffer = '';
-    let stopReason = null;
-    let contentBlocks = [];
-    
-    // Parse stream
-    for await (const event of parseSSEStream(response)) {
-      if (event.type === 'done') break;
-      
-      // Message start
-      if (event.type === 'message_start') {
-        // Message metadata
-      }
-      
-      // Content block start
-      if (event.type === 'content_block_start') {
-        if (event.content_block?.type === 'text') {
-          currentTextContent = '';
-        } else if (event.content_block?.type === 'tool_use') {
-          currentToolUse = {
-            id: event.content_block.id,
-            name: event.content_block.name,
-            input: {}
-          };
-          toolUseInputBuffer = '';
-          // Notify client that tool is starting
-          sendEvent({ type: 'tool_start', tool: event.content_block.name });
-        }
-      }
-      
-      // Content block delta
-      if (event.type === 'content_block_delta') {
-        if (event.delta?.type === 'text_delta') {
-          const text = event.delta.text || '';
-          currentTextContent += text;
-          // Stream text to client immediately
-          if (text) {
-            sendEvent({ type: 'text', content: text });
-          }
-        } else if (event.delta?.type === 'input_json_delta') {
-          // Accumulate tool input JSON
-          toolUseInputBuffer += event.delta.partial_json || '';
-        }
-      }
-      
-      // Content block stop
-      if (event.type === 'content_block_stop') {
-        if (currentTextContent) {
-          contentBlocks.push({ type: 'text', text: currentTextContent });
-        }
-        if (currentToolUse) {
-          // Parse accumulated JSON input
-          try {
-            currentToolUse.input = JSON.parse(toolUseInputBuffer || '{}');
-          } catch (e) {
-            currentToolUse.input = {};
-          }
-          contentBlocks.push({
-            type: 'tool_use',
-            id: currentToolUse.id,
-            name: currentToolUse.name,
-            input: currentToolUse.input
-          });
-          currentToolUse = null;
-          toolUseInputBuffer = '';
-        }
-      }
-      
-      // Message delta (contains stop_reason)
-      if (event.type === 'message_delta') {
-        stopReason = event.delta?.stop_reason;
-      }
-    }
-    
-    // Check if we need to execute tools
-    if (stopReason === 'tool_use') {
-      const toolBlocks = contentBlocks.filter(b => b.type === 'tool_use');
-      
-      if (toolBlocks.length === 0) break;
-      
-      // Add assistant message with all content blocks
-      messages.push({ role: 'assistant', content: contentBlocks });
-      
-      // Execute all tools and collect results
-      const toolResultsContent = [];
-      
-      for (const toolBlock of toolBlocks) {
-        const toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext);
-        toolResults.push({ toolName: toolBlock.name, result: toolResult });
-        
-        // Track create_drop action
-        if (toolBlock.name === 'create_drop' && toolResult.action === 'create_drop') {
-          createDropAction = toolResult;
-        }
-        
-        // Notify client about tool result
-        sendEvent({ 
-          type: 'tool_result', 
-          tool: toolBlock.name, 
-          success: toolResult.success 
-        });
-        
-        toolResultsContent.push({
-          type: 'tool_result',
-          tool_use_id: toolBlock.id,
-          content: JSON.stringify(toolResult)
-        });
-      }
-      
-      // Add tool results to messages
-      messages.push({ role: 'user', content: toolResultsContent });
-      
-      // Continue to next iteration to get Claude's response after tools
-      continue;
-    }
-    
-    // No more tools needed, we're done
-    break;
-  }
-  
-  // Send final event with metadata
-  sendEvent({ 
-    type: 'done',
-    toolsUsed: toolResults.map(t => t.toolName),
-    createDrop: createDropAction
+async function handleStreamingChat(apiKey, systemPrompt, messages, maxTokens, enableTools, dropContext) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages,
+      stream: true
+    }),
   });
   
-  writer.close();
+  return response;
 }
 
 // ============================================
-// NON-STREAMING CHAT HANDLER (fallback)
+// NON-STREAMING CHAT HANDLER (with tools)
 // ============================================
 async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens, dropContext) {
   const claudeRequest = {
@@ -565,6 +399,7 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
   let data;
   let toolResults = [];
   
+  // Tool loop
   for (let i = 0; i < 5; i++) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -596,6 +431,7 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
       }]
     });
     
+    // Get final response after tool
     const finalResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -655,7 +491,7 @@ export default async function handler(req) {
       action, text, image, style, targetLang,
       history = [], syntriseContext, dropContext, userProfile,
       enableTools = true, userId, uid,
-      stream = false
+      stream = false  // NEW: streaming flag
     } = body;
 
     if (!action) {
@@ -703,6 +539,8 @@ export default async function handler(req) {
       const isExpansion = lastAssistant?.text?.includes('?') && isShortAffirmative(text);
       
       const maxTokens = isExpansion ? 2500 : 1000;
+      
+      // Pass userTimezone to system prompt
       const systemPrompt = buildSystemPrompt(formattedContext, userProfile, coreContext, isExpansion, userTimezone);
       
       // Build messages
@@ -715,33 +553,29 @@ export default async function handler(req) {
       }
       messages.push({ role: 'user', content: text });
 
-      // STREAMING MODE WITH TOOLS
-      if (stream) {
-        const { readable, writable } = new TransformStream();
-        const writer = writable.getWriter();
-        
-        // Start streaming in background
-        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer)
-          .catch(error => {
-            console.error('Streaming error:', error);
-            const encoder = new TextEncoder();
-            writer.write(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`));
-            writer.close();
+      // STREAMING MODE
+      if (stream && !enableTools) {
+        try {
+          const streamResponse = await handleStreamingChat(apiKey, systemPrompt, messages, maxTokens, false, dropContext);
+          
+          // Return streaming response directly
+          return new Response(streamResponse.body, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+            },
           });
-        
-        return new Response(readable, {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-          },
-        });
+        } catch (error) {
+          console.error('Streaming error, falling back:', error);
+          // Fall through to non-streaming
+        }
       }
 
-      // NON-STREAMING MODE (fallback)
+      // NON-STREAMING MODE (or fallback)
       const { resultText, toolResults, usage } = await handleNonStreamingChat(
-        apiKey, systemPrompt, messages, maxTokens, formattedContext
+        apiKey, systemPrompt, messages, maxTokens, dropContext
       );
       
       const createDropAction = toolResults.find(t => t.toolName === 'create_drop');
