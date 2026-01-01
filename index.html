@@ -74,7 +74,7 @@
 .logo-btn { width: 48px; height: 48px; border: none; background: var(--color-bg-soft); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; color: var(--color-text-soft); }
     .logo-btn:active { opacity: 0.7; transform: scale(0.95); }
     .logo-btn svg { width: 22px; height: 22px; transition: transform 0.3s; }
-    .logo-btn.filters-open svg { transform: rotate(180deg); }
+    body.filters-visible .logo-btn svg { transform: rotate(180deg); }
     
     /* Filters toggle - hidden by default */
     .filters-wrap { position: relative; z-index: 99; }
