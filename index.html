@@ -5289,7 +5289,8 @@ async function handleStreamingResponse(response) {
             if (parsed.type === 'done') {
               createDropData = parsed.createDrop;
             }
-            
+            // Debug: show raw event type
+			toast('RAW: ' + (parsed.type || 'no-type'), 'info');
             // Legacy format (v4.4 and earlier)
             if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
               fullText += parsed.delta.text;
