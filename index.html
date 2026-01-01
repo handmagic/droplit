@@ -5226,7 +5226,7 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Streaming response handler
+// Streaming response handler v2 - supports tools
 async function handleStreamingResponse(response) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -5241,8 +5241,10 @@ async function handleStreamingResponse(response) {
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
   
   const textSpan = msgDiv.querySelector('.streaming-text');
+  const indicator = msgDiv.querySelector('.streaming-indicator');
   let fullText = '';
   let buffer = '';
+  let createDropData = null;
   
   try {
     while (true) {
@@ -5259,11 +5261,38 @@ async function handleStreamingResponse(response) {
           if (data === '[DONE]') break;
           try {
             const parsed = JSON.parse(data);
+            
+            // New API v4.5 format
+            if (parsed.type === 'text' && parsed.content) {
+              fullText += parsed.content;
+              textSpan.textContent = fullText;
+              messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+            
+            // Tool started
+            if (parsed.type === 'tool_start' && indicator) {
+              indicator.textContent = toolStatusText(parsed.tool);
+              indicator.classList.add('tool-active');
+            }
+            
+            // Tool completed
+            if (parsed.type === 'tool_result' && indicator) {
+              indicator.classList.remove('tool-active');
+              indicator.textContent = '';
+            }
+            
+            // Stream done
+            if (parsed.type === 'done') {
+              createDropData = parsed.createDrop;
+            }
+            
+            // Legacy format (v4.4 and earlier)
             if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
               fullText += parsed.delta.text;
               textSpan.textContent = fullText;
               messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }
+            
           } catch (e) {}
         }
       }
@@ -5272,7 +5301,6 @@ async function handleStreamingResponse(response) {
     console.error('Streaming error:', e);
   }
   
-  const indicator = msgDiv.querySelector('.streaming-indicator');
   if (indicator) indicator.remove();
   
   const bubble = msgDiv.querySelector('.ask-ai-bubble');
@@ -5283,23 +5311,28 @@ async function handleStreamingResponse(response) {
   
   askAIMessages.push({ text: fullText, isUser: false });
   
+  // Handle create_drop from tool
+  if (createDropData && createDropData.drop) {
+    const drop = createDropData.drop;
+    const newIdea = { id: Date.now().toString(), text: drop.text, category: drop.category || 'inbox', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }), isMedia: false };
+    ideas.unshift(newIdea);
+    save();
+    render();
+    toast('Drop created by Aski', 'success');
+  }
+  
   if (isAutoDropEnabled()) autoSaveMessageAsDrop(fullText, false);
   
-	if (isAutoSpeakEnabled() && fullText) {
-  try {
-    speakText(fullText);
-  } catch (e) {
-    console.error('TTS error:', e);
+  if (isAutoSpeakEnabled() && fullText) {
+    try {
+      speakText(fullText);
+    } catch (e) {
+      console.error('TTS error:', e);
+      unlockVoiceMode();
+    }
+  } else {
     unlockVoiceMode();
   }
-} else {
-  unlockVoiceMode();
-}
-}
-
-function toolStatusText(toolName) {
-  const names = { 'web_search': 'Searching...', 'create_drop': 'Creating drop...', 'fetch_recent_drops': 'Reading notes...', 'search_drops': 'Searching notes...', 'get_summary': 'Summarizing...' };
-  return names[toolName] || 'Processing...';
 }
 
 function addAskAIMessage(text, isUser = true) {
