@@ -2561,13 +2561,19 @@ function speakAskAIMessage(btn) {
   }
 }
 
+let currentTTSAudio = null;
+
 function speakText(text) {
   if (!text) return;
   
+  // Stop any current playback
+  stopTTS();
+  
+  const provider = localStorage.getItem('droplit_tts_provider') || 'browser';
   const apiKey = localStorage.getItem('openai_tts_key');
   const voice = localStorage.getItem('aski_voice') || 'nova';
   
-  if (apiKey && apiKey.startsWith('sk-')) {
+  if (provider === 'openai' && apiKey && apiKey.startsWith('sk-')) {
     speakWithOpenAI(text, apiKey, voice);
   } else {
     if ('speechSynthesis' in window) {
@@ -2599,17 +2605,28 @@ async function speakWithOpenAI(text, apiKey, voice) {
     
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
+    currentTTSAudio = new Audio(url);
     
-    audio.onended = function() {
+    currentTTSAudio.onended = function() {
       URL.revokeObjectURL(url);
+      currentTTSAudio = null;
       unlockVoiceMode();
     };
     
-    audio.play();
+    currentTTSAudio.play();
   } catch (e) {
     console.error('OpenAI TTS error:', e);
     unlockVoiceMode();
+  }
+}
+
+function stopTTS() {
+  if (currentTTSAudio) {
+    currentTTSAudio.pause();
+    currentTTSAudio = null;
+  }
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
   }
 }
 
