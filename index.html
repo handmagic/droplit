@@ -414,6 +414,19 @@
     .ask-ai-voice-large:hover { border-color: #10B981; background: rgba(16, 185, 129, 0.05); }
     .ask-ai-voice-large.listening { border-color: #10B981; background: rgba(16, 185, 129, 0.1); color: #10B981; animation: pulse 1.5s infinite; }
     .ask-ai-voice-large svg { flex-shrink: 0; }
+	
+	/* Chat Control Buttons - bottom panel */
+    .ask-ai-controls-bottom { display: none; width: 100%; padding: 0 16px 16px 16px; gap: 12px; }
+    .ask-ai-panel.show .ask-ai-controls-bottom { display: flex; }
+    .ask-ai-control-left, .ask-ai-control-right { flex: 1; height: 52px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+    .ask-ai-control-left { background: var(--color-bg-soft); color: var(--color-text-soft); }
+    .ask-ai-control-left:active { opacity: 0.7; transform: scale(0.97); }
+    .ask-ai-control-left.stop { background: #EF4444; color: white; }
+    .ask-ai-control-right { background: #06B6D4; color: white; box-shadow: 0 4px 20px rgba(6,182,212,0.4); }
+    .ask-ai-control-right:active { opacity: 0.7; transform: scale(0.97); }
+    .ask-ai-control-right.listening { background: #10B981; animation: pulse 1.5s infinite; }
+    .ask-ai-control-right.processing { background: #8B5CF6; }
+    .ask-ai-control-right svg { width: 20px; height: 20px; flex-shrink: 0; }
     
     /* Voice Mode: Header buttons */
     .ask-ai-header-btn { height: 44px; padding: 0 20px; border: none; border-radius: 22px; font-family: var(--font-main); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; transition: all 0.15s; }
@@ -1627,8 +1640,6 @@
         </div>
       </div>
       <button class="ask-ai-header-btn ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()" style="display: none;">AUTO</button>
-      <button class="ask-ai-header-btn ask-ai-btn-stop" id="askiStopBtn" onclick="stopAskiResponse()">STOP</button>
-      <button class="ask-ai-header-btn ask-ai-btn-done" onclick="closeAskAI()">HIDE</button>
       <button class="ask-ai-close" onclick="closeAskAI()">×</button>
     </div>
     <div class="ask-ai-messages" id="askAIMessages">
@@ -1651,6 +1662,13 @@
         <textarea class="ask-ai-input" id="askAIInput" placeholder="Ask anything..." maxlength="2000" rows="2" oninput="updateAskAICharCount(); autoResizeTextarea(this);" onkeypress="if(event.key==='Enter' && !event.shiftKey && this.value.trim()) { event.preventDefault(); sendAskAIMessage(); }"></textarea>
         <button class="ask-ai-btn ask-ai-btn-send" id="askAISendBtn" onclick="console.log('Send clicked'); sendAskAIMessage()">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9 22 2Z"/></svg>
+        </button>
+      </div>
+	  <div class="ask-ai-controls-bottom" id="askAIControlsBottom">
+        <button class="ask-ai-control-left" id="askAIControlLeft" onclick="handleChatControlLeft()">HIDE</button>
+        <button class="ask-ai-control-right" id="askAIControlRight" onclick="toggleAskAIVoice()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          <span id="askAIControlRightText">TAP TO TALK</span>
         </button>
       </div>
       <button class="ask-ai-voice-large" id="askAIVoiceLarge" onclick="toggleAskAIVoice()">
@@ -3372,6 +3390,31 @@ function openAskAI() {
     voiceModeSleeping = true; // Start sleeping - wait for user tap
     askiIsProcessing = false;
     updateVoiceModeIndicator('sleeping');
+  }
+}
+
+function handleChatControlLeft() {
+  // If ASKI is speaking - stop it
+  if (askiIsSpeaking || currentTTSAudio) {
+    askiStopSpeaking();
+    stopTTS();
+    updateChatControlLeft('hide');
+    return;
+  }
+  // Otherwise - close chat
+  closeAskAI();
+}
+
+function updateChatControlLeft(state) {
+  const btn = document.getElementById('askAIControlLeft');
+  if (!btn) return;
+  
+  if (state === 'stop') {
+    btn.textContent = 'STOP';
+    btn.classList.add('stop');
+  } else {
+    btn.textContent = 'HIDE';
+    btn.classList.remove('stop');
   }
 }
 
