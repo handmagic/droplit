@@ -5078,7 +5078,7 @@ async function handleStreamingResponse(response) {
   const bubble = msgDiv.querySelector('.ask-ai-bubble');
   const actionsDiv = document.createElement('div');
   actionsDiv.className = 'ask-ai-actions';
-  actionsDiv.innerHTML = '<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button><button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)">Speak</button><button class="ask-ai-action-btn" onclick="createDropFromAI(this)">Create Drop</button>';
+  actionsDiv.innerHTML = '<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button><button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button><button class="ask-ai-action-btn" onclick="createDropFromAI(this)">Create Drop</button>';
   bubble.after(actionsDiv);
   
   askAIMessages.push({ text: fullText, isUser: false });
