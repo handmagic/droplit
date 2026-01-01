@@ -2783,7 +2783,7 @@ function speakDrop(id, e) {
 function updateTTSButton(id, isPlaying) {
   const btn = document.querySelector(`.card[data-id="${id}"] .act-tts`);
   if (btn) {
-    btn.innerHTML = isPlaying ? '🔊 Stop' : '🔊 Read';
+    btn.innerHTML = isPlaying ? 'Stop' : 'Read';
     btn.classList.toggle('playing', isPlaying);
   }
 }
