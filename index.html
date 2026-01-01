@@ -5190,6 +5190,13 @@ async function sendAskAIMessage() {
     });
     
     console.log('Response status:', response.status);
+	const contentType = response.headers.get('content-type') || '';
+
+	if (STREAMING_ENABLED && contentType.includes('text/event-stream')) {
+	hideAskAITyping();
+	await handleStreamingResponse(response);
+	return;
+	}
     const data = await response.json();
     console.log('Response data:', data);
     
