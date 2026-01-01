@@ -68,12 +68,12 @@
     .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--color-bg); position: relative; padding-top: var(--safe-top); }
 
  /* Header */
-    .header { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; background: var(--color-bg-card); position: relative; padding-top: max(6px, env(safe-area-inset-top)); z-index: 100; height: 44px; }
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--color-bg-card); position: relative; padding-top: max(10px, env(safe-area-inset-top)); z-index: 100; }
     .header::after { content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px; background: linear-gradient(to bottom, rgba(0,0,0,0.06), transparent); pointer-events: none; z-index: 99; }
     body.filters-visible .header::after { display: none; }
-    .logo-btn { width: 36px; height: 36px; border: none; background: transparent; border-radius: var(--radius-md); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; color: var(--color-text-soft); }
-    .logo-btn:active { opacity: 0.6; }
-    .logo-btn svg { width: 20px; height: 20px; transition: transform 0.3s; }
+    .logo-btn { width: 48px; height: 48px; border: none; background: var(--color-bg-soft); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; color: var(--color-text-soft); }
+    .logo-btn:active { opacity: 0.7; transform: scale(0.95); }
+    .logo-btn svg { width: 22px; height: 22px; transition: transform 0.3s; }
     .logo-btn.filters-open svg { transform: rotate(180deg); }
     
     /* Filters toggle - hidden by default */
@@ -91,9 +91,9 @@
     .header-add-btn:active { transform: translateX(-50%) scale(0.97); }
     .header-add-btn svg { width: 12px; height: 12px; }
     body.chat-open .header-add-btn { display: none; }
-   .btn-icon { width: 36px; height: 36px; border: none; background: transparent; border-radius: var(--radius-md); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); flex-shrink: 0; transition: all 0.15s; }
-    .btn-icon:active { opacity: 0.6; }
-    .btn-icon.active { color: var(--color-text); }
+   .btn-icon { width: 48px; height: 48px; border: none; background: var(--color-bg-soft); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); flex-shrink: 0; transition: all 0.15s; }
+    .btn-icon:active { opacity: 0.7; transform: scale(0.95); }
+    .btn-icon.active { background: var(--color-text-soft); color: white; }
 
     .network-banner { display: none; padding: 6px; background: var(--color-error); color: white; font-size: 0.7rem; font-weight: 600; text-align: center; }
     .network-banner.show { display: block; }
