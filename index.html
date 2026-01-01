@@ -67,15 +67,12 @@
     
     .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--color-bg); position: relative; padding-top: var(--safe-top); }
 
-    /* Header */
-    .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--color-bg-card); position: relative; padding-top: max(10px, env(safe-area-inset-top)); z-index: 100; }
-    /* Shadow element - always at bottom of visible top bar area */
+ /* Header */
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; background: var(--color-bg-card); position: relative; padding-top: max(6px, env(safe-area-inset-top)); z-index: 100; height: 44px; }
     .header::after { content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px; background: linear-gradient(to bottom, rgba(0,0,0,0.06), transparent); pointer-events: none; z-index: 99; }
-    /* When filters visible - hide header shadow, filters will have its own */
     body.filters-visible .header::after { display: none; }
-.logo-btn { width: 44px; height: 44px; border: none; background: transparent; border-radius: var(--radius-md); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; color: var(--color-text-soft); }
-    .logo-btn:hover { background: var(--color-bg-soft); }
-    .logo-btn:active { transform: scale(0.95); }
+    .logo-btn { width: 36px; height: 36px; border: none; background: transparent; border-radius: var(--radius-md); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; color: var(--color-text-soft); }
+    .logo-btn:active { opacity: 0.6; }
     .logo-btn svg { width: 20px; height: 20px; transition: transform 0.3s; }
     .logo-btn.filters-open svg { transform: rotate(180deg); }
     
@@ -86,18 +83,17 @@
     .filters { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease; padding: 0; background: var(--color-bg-card); }
     body.filters-visible .filters { max-height: 200px; opacity: 1; padding: 8px 10px; }
     body.filters-visible .logo-btn { background: linear-gradient(135deg, #8B5CF6, #7C3AED); }
-    .header-title { position: absolute; left: 50%; transform: translateX(-50%); font-family: var(--font-main); font-size: 1.3rem; font-weight: 800; letter-spacing: 0.5px; }
+    .header-title { position: absolute; left: 50%; transform: translateX(-50%); font-family: var(--font-main); font-size: 1.1rem; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
     .title-drop { color: #FF6B4A; }
-    .title-lit { color: #06B6D4; }.header-title span { color: var(--color-primary); }
+    .title-lit { color: #06B6D4; }
     .header-add-btn { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 6px; height: 48px; padding: 0 20px; background: linear-gradient(135deg, #8B5CF6, #7C3AED); border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.8rem; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s; box-shadow: 0 3px 12px rgba(139,92,246,0.3); }
     .header-add-btn:hover { transform: translateX(-50%) scale(1.03); box-shadow: 0 4px 14px rgba(139,92,246,0.4); }
     .header-add-btn:active { transform: translateX(-50%) scale(0.97); }
     .header-add-btn svg { width: 12px; height: 12px; }
     body.chat-open .header-add-btn { display: none; }
-    .btn-icon { width: 52px; height: 52px; border: none; background: var(--color-bg); border: 2px solid var(--color-border); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); flex-shrink: 0; transition: all 0.15s; }
-    .btn-icon:hover { border-color: var(--color-primary); color: var(--color-primary); }
-    .btn-icon:active { transform: scale(0.95); }
-    .btn-icon.active { background: linear-gradient(135deg, #8B5CF6, #7C3AED); border-color: transparent; color: white; }
+   .btn-icon { width: 36px; height: 36px; border: none; background: transparent; border-radius: var(--radius-md); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-soft); flex-shrink: 0; transition: all 0.15s; }
+    .btn-icon:active { opacity: 0.6; }
+    .btn-icon.active { color: var(--color-text); }
 
     .network-banner { display: none; padding: 6px; background: var(--color-error); color: white; font-size: 0.7rem; font-weight: 600; text-align: center; }
     .network-banner.show { display: block; }
