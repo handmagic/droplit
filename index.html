@@ -2537,6 +2537,47 @@ function playDropSound() {
 let currentTTSUtterance = null;
 let isTTSPlaying = false;
 
+function speakAskAIMessage(btn) {
+  const msgDiv = btn.closest('.ask-ai-message');
+  const bubble = msgDiv?.querySelector('.ask-ai-bubble');
+  if (!bubble) return;
+  
+  const text = bubble.textContent || bubble.innerText;
+  if (!text) return;
+  
+  // Use OpenAI TTS if available
+  const provider = localStorage.getItem('droplit_tts_provider') || 'browser';
+  
+  if (provider === 'openai') {
+    speakWithOpenAI(text);
+  } else {
+    // Browser TTS fallback
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ru-RU';
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+}
+
+function speakText(text) {
+  if (!text) return;
+  
+  const provider = localStorage.getItem('droplit_tts_provider') || 'browser';
+  
+  if (provider === 'openai') {
+    speakWithOpenAI(text);
+  } else {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ru-RU';
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+}
+
 function speakDrop(id, e) {
   if (e) e.stopPropagation();
   
