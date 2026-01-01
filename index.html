@@ -5194,7 +5194,11 @@ async function sendAskAIMessage() {
 
 	if (STREAMING_ENABLED && contentType.includes('text/event-stream')) {
 	hideAskAITyping();
+	try {
 	await handleStreamingResponse(response);
+	} catch (e) {
+	console.error('Streaming error:', e);
+	}
 	return;
 	}
     const data = await response.json();
