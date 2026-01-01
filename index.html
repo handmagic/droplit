@@ -85,8 +85,9 @@
     .filters { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease; padding: 0; background: var(--color-bg-card); }
     body.filters-visible .filters { max-height: 200px; opacity: 1; padding: 8px 10px; }
     body.filters-visible .logo-btn { background: linear-gradient(135deg, #8B5CF6, #7C3AED); }
-    .header-title { font-size: 0.9rem; font-weight: 700; color: var(--color-text); display: none; }
-    .header-title span { color: var(--color-primary); }
+    .header-title { position: absolute; left: 50%; transform: translateX(-50%); font-family: var(--font-main); font-size: 1.3rem; font-weight: 800; letter-spacing: 0.5px; }
+    .title-drop { color: #FF6B4A; }
+    .title-lit { color: #06B6D4; }.header-title span { color: var(--color-primary); }
     .header-add-btn { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 6px; height: 48px; padding: 0 20px; background: linear-gradient(135deg, #8B5CF6, #7C3AED); border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.8rem; font-weight: 700; color: white; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s; box-shadow: 0 3px 12px rgba(139,92,246,0.3); }
     .header-add-btn:hover { transform: translateX(-50%) scale(1.03); box-shadow: 0 4px 14px rgba(139,92,246,0.4); }
     .header-add-btn:active { transform: translateX(-50%) scale(0.97); }
@@ -1184,11 +1185,7 @@
       <button class="logo-btn" id="logoBtn" onclick="toggleFilters()" title="Toggle filters">
         <svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
       </button>
-      <div class="header-title"><span>Drop</span>Lit</div>
-      <button class="header-add-btn" onclick="togglePlusMenu()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
-        Create Drop
-      </button>
+      <div class="header-title"><span class="title-drop">Drop</span><span class="title-lit">Lit</span></div>
       <button class="btn-icon" id="menuToggleBtn" onclick="toggleMainMenu()">
         <svg class="menu-icon-open" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         <svg class="menu-icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
