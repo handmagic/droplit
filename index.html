@@ -5002,7 +5002,16 @@ async function handleStreamingResponse(response) {
   
   if (isAutoDropEnabled()) autoSaveMessageAsDrop(fullText, false);
   
-	unlockVoiceMode();
+	if (isAutoSpeakEnabled() && fullText) {
+  try {
+    speakText(fullText);
+  } catch (e) {
+    console.error('TTS error:', e);
+    unlockVoiceMode();
+  }
+} else {
+  unlockVoiceMode();
+}
 }
 
 function addAskAIMessage(text, isUser = true) {
