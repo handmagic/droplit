@@ -6189,7 +6189,7 @@ function render(){
       h+='<div class="card-actions">';
       if(i.category==='audio'){
         h+='<button class="act ai" onclick="transcribeAudio('+i.id+')">Transcribe</button>';
-        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">🔊 Read</button>';
+        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">Read</button>';
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
         h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
@@ -6203,7 +6203,7 @@ function render(){
         h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       } else {
         h+='<button class="act ai" onclick="openAITools('+i.id+')">AI Tools</button>';
-        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">🔊 Read</button>';
+        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">Read</button>';
         h+='<button class="act" onclick="startEdit('+i.id+')">Edit</button>';
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
