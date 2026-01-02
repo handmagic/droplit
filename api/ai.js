@@ -1,9 +1,8 @@
-// DropLit AI API v4.9 - Vercel Edge Function
-// + SMART MEMORY - handles contradictions, ignores anti-facts
-// + EXTENDED DEBUG - shows actual facts loaded
+// DropLit AI API v4.10 - Vercel Edge Function
+// + SMART MEMORY - expanded filter, increased limit to 50
+// + Filters technical junk (bugs, tasks, debug)
 // + Streaming WITH Tools support
-// + Timezone from Vercel Geo
-// Version: 4.9.0
+// Version: 4.10.0
 
 export const config = {
   runtime: 'edge',
@@ -147,6 +146,7 @@ function isShortAffirmative(text) {
 // ANTI-FACT FILTER
 // ============================================
 const ANTI_FACT_PATTERNS = [
+  // AI meta-statements
   /ai (does not|doesn't|не) (have|know|знает)/i,
   /no information about/i,
   /нет информации/i,
@@ -160,7 +160,26 @@ const ANTI_FACT_PATTERNS = [
   /cannot find/i,
   /не могу найти/i,
   /not found in/i,
-  /не найден/i
+  /не найден/i,
+  
+  // Technical junk (bug reports, feature requests)
+  /функция.*перестала/i,
+  /function.*stopped/i,
+  /баг|bug/i,
+  /ошибка в коде/i,
+  /error in code/i,
+  /не работает корректно/i,
+  /doesn't work correctly/i,
+  /задачи создаются/i,
+  /tasks are created/i,
+  /без подтверждения/i,
+  /without confirmation/i,
+  /без разрешения/i,
+  /without permission/i,
+  /нужно исправить/i,
+  /need to fix/i,
+  /TODO|FIXME/i,
+  /отладк|debug/i
 ];
 
 function isAntiFact(fact) {
@@ -210,7 +229,7 @@ async function fetchCoreContext(userId, queryText = '') {
   try {
     // 1. Fetch core memory and entities
     const [memoryRes, entitiesRes] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/core_memory?user_id=eq.${userId}&is_active=eq.true&order=confidence.desc&limit=20`, {
+      fetch(`${SUPABASE_URL}/rest/v1/core_memory?user_id=eq.${userId}&is_active=eq.true&order=confidence.desc&limit=50`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       }),
       fetch(`${SUPABASE_URL}/rest/v1/core_entities?user_id=eq.${userId}&order=mention_count.desc&limit=15`, {
@@ -255,15 +274,17 @@ async function fetchCoreContext(userId, queryText = '') {
     
     console.log(`Core context: ${memory.length} memories, ${entities.length} entities, ${semanticDrops.length} semantic drops`);
     
-    // Add sample data to debug (first 3 items)
-    debug.sampleFacts = memory.slice(0, 3).map(m => m.fact || m.content || JSON.stringify(m).slice(0, 100));
-    debug.sampleEntities = entities.slice(0, 3).map(e => `${e.name} (${e.entity_type})`);
-    
     // Count how many facts will be filtered out
     const cleanMemory = memory.filter(m => !isAntiFact(m.fact));
+    
+    // Add debug info
     debug.factsBeforeFilter = memory.length;
     debug.factsAfterFilter = cleanMemory.length;
     debug.factsFiltered = memory.length - cleanMemory.length;
+    
+    // Show sample CLEAN facts (not junk)
+    debug.sampleFactsClean = cleanMemory.slice(0, 5).map(m => m.fact?.slice(0, 80) || 'no fact');
+    debug.sampleEntities = entities.slice(0, 3).map(e => `${e.name} (${e.entity_type})`);
     
     return { memory, entities, semanticDrops, _debug: debug };
   } catch (error) {
