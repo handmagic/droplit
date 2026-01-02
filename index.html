@@ -974,7 +974,7 @@
     .about-name { font-size: 1.4rem; font-weight: 800; }
     .about-ver { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px; }
 
-    .toast-wrap { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); z-index: 200; pointer-events: none; }
+    .toast-wrap { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); z-index: 9999; pointer-events: none; }
     .toast { padding: 12px 20px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); opacity: 0; transform: translateY(10px); transition: all 0.3s; pointer-events: auto; }
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.success { background: var(--color-success); color: white; }
