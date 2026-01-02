@@ -238,17 +238,6 @@ async function semanticSearch(userId, queryText, supabaseUrl, supabaseKey, opena
     return [];
   }
 }
-```
-
----
-
-## 📋 Также добавь OPENAI_API_KEY в Vercel:
-
-**Vercel → Project → Settings → Environment Variables**
-```
-Name: OPENAI_API_KEY
-Value: sk-proj-... (твой ключ)
-
 // ============================================
 // SYSTEM PROMPT
 // ============================================
@@ -340,6 +329,15 @@ User confirmed they want details. Now give comprehensive answer:
     basePrompt += '\n### Key entities:\n';
     coreContext.entities.slice(0, 8).forEach(e => {
       basePrompt += `- ${e.name} (${e.entity_type}): mentioned ${e.mention_count}x\n`;
+    });
+  }
+
+  // Semantic search results (most relevant notes for this query)
+  if (coreContext?.semanticDrops?.length) {
+    basePrompt += '\n### MOST RELEVANT NOTES (semantic match):\n';
+    coreContext.semanticDrops.slice(0, 5).forEach(d => {
+      const similarity = (d.similarity * 100).toFixed(0);
+      basePrompt += `- [${similarity}% match] ${d.content?.slice(0, 200)}${d.content?.length > 200 ? '...' : ''}\n`;
     });
   }
 
@@ -770,8 +768,8 @@ export default async function handler(req) {
         formattedContext = syntriseContext.map(d => `[${d.category || 'inbox'}] ${d.content}`).join('\n');
       }
       
-      // Fetch CORE memory
-      const coreContext = uid ? await fetchCoreContext(uid) : null;
+      // Fetch CORE memory + semantic search
+      const coreContext = uid ? await fetchCoreContext(uid, text) : null;
       
       // Detect expansion
       const recentHistory = history.slice(-4);
