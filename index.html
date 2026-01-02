@@ -5269,10 +5269,8 @@ async function handleStreamingResponse(response) {
               messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }
             
-            // Tool started
+            // Tool started - show indicator
             if (parsed.type === 'tool_start') {
-              toast('Tool: ' + parsed.tool, 'info');
-              toast('Indicator: ' + (indicator ? 'YES' : 'NO'), 'warning');
               if (indicator) {
                 indicator.textContent = toolStatusText(parsed.tool);
                 indicator.classList.add('tool-active');
