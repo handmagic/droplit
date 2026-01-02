@@ -5243,7 +5243,6 @@ async function handleStreamingResponse(response) {
   const indicator = msgDiv.querySelector('.streaming-indicator');
   let fullText = '';
   let buffer = '';
-  let toolsUsed = [];
   let createDropData = null;
   
   try {
@@ -5272,8 +5271,7 @@ async function handleStreamingResponse(response) {
             // Tool started
             if (parsed.type === 'tool_start') {
               toast('Tool: ' + parsed.tool, 'info');
-              toast('Indicator exists: ' + (indicator ? 'YES' : 'NO'), 'warning');
-            if (indicator) {
+              if (indicator) {
                 indicator.textContent = toolStatusText(parsed.tool);
                 indicator.classList.add('tool-active');
               }
@@ -5287,19 +5285,12 @@ async function handleStreamingResponse(response) {
               }
             }
             
-            // Stream done - get metadata
+            // Stream done
             if (parsed.type === 'done') {
-              toolsUsed = parsed.toolsUsed || [];
               createDropData = parsed.createDrop;
             }
             
-            // Error
-            if (parsed.type === 'error') {
-              console.error('Stream error:', parsed.error);
-              textSpan.textContent = 'Error: ' + parsed.error;
-            }
-            
-            // Legacy format support (fallback)
+            // Legacy format (v4.4 and earlier)
             if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
               fullText += parsed.delta.text;
               textSpan.textContent = fullText;
@@ -5314,40 +5305,27 @@ async function handleStreamingResponse(response) {
     console.error('Streaming error:', e);
   }
   
-  // Remove indicator
   if (indicator) indicator.remove();
   
-  // Add action buttons
   const bubble = msgDiv.querySelector('.ask-ai-bubble');
   const actionsDiv = document.createElement('div');
   actionsDiv.className = 'ask-ai-actions';
   actionsDiv.innerHTML = '<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button><button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button><button class="ask-ai-action-btn" onclick="createDropFromAI(this)">Create Drop</button>';
   bubble.after(actionsDiv);
   
-  // Save to history
   askAIMessages.push({ text: fullText, isUser: false });
   
-  // Handle create_drop from tool
-  if (createDropData?.drop) {
+  if (createDropData && createDropData.drop) {
     const drop = createDropData.drop;
-    const newIdea = {
-      id: Date.now().toString(),
-      text: drop.text,
-      category: drop.category || 'inbox',
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      isMedia: false
-    };
+    const newIdea = { id: Date.now().toString(), text: drop.text, category: drop.category || 'inbox', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }), isMedia: false };
     ideas.unshift(newIdea);
     save();
     render();
     toast('Drop created by Aski', 'success');
   }
   
-  // AutoDrop
   if (isAutoDropEnabled()) autoSaveMessageAsDrop(fullText, false);
   
-  // Auto-speak
   if (isAutoSpeakEnabled() && fullText) {
     try {
       speakText(fullText);
@@ -5360,17 +5338,9 @@ async function handleStreamingResponse(response) {
   }
 }
 
-// Helper for tool status
 function toolStatusText(toolName) {
-  const names = {
-    'web_search': 'Searching...',
-    'create_drop': 'Creating drop...',
-    'fetch_recent_drops': 'Reading notes...',
-    'search_drops': 'Searching notes...',
-    'get_summary': 'Summarizing...'
-  };
+  const names = { 'web_search': 'Searching...', 'create_drop': 'Creating drop...', 'fetch_recent_drops': 'Reading notes...', 'search_drops': 'Searching notes...', 'get_summary': 'Summarizing...' };
   return names[toolName] || 'Processing...';
-}
 }
 
 function addAskAIMessage(text, isUser = true) {
