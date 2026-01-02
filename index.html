@@ -5271,7 +5271,6 @@ async function handleStreamingResponse(response) {
             
             // Tool started
             if (parsed.type === 'tool_start') {
-              toast('Tool: ' + parsed.tool, 'info');
               if (indicator) {
                 indicator.textContent = toolStatusText(parsed.tool);
                 indicator.classList.add('tool-active');
