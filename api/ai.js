@@ -1,9 +1,9 @@
-// DropLit AI API v4.8 - Vercel Edge Function
+// DropLit AI API v4.9 - Vercel Edge Function
+// + SMART MEMORY - handles contradictions, ignores anti-facts
 // + EXTENDED DEBUG - shows actual facts loaded
 // + Streaming WITH Tools support
 // + Timezone from Vercel Geo
-// + Fixed dialogue flow
-// Version: 4.8.0
+// Version: 4.9.0
 
 export const config = {
   runtime: 'edge',
@@ -144,6 +144,36 @@ function isShortAffirmative(text) {
 }
 
 // ============================================
+// ANTI-FACT FILTER
+// ============================================
+const ANTI_FACT_PATTERNS = [
+  /ai (does not|doesn't|не) (have|know|знает)/i,
+  /no information about/i,
+  /нет информации/i,
+  /не знаю/i,
+  /no records/i,
+  /нет записей/i,
+  /first time.*mention/i,
+  /первый раз.*упоминаю/i,
+  /I don't have data/i,
+  /у меня нет данных/i,
+  /cannot find/i,
+  /не могу найти/i,
+  /not found in/i,
+  /не найден/i
+];
+
+function isAntiFact(fact) {
+  if (!fact) return true;
+  return ANTI_FACT_PATTERNS.some(pattern => pattern.test(fact));
+}
+
+function filterMemory(memory) {
+  if (!memory?.length) return [];
+  return memory.filter(m => !isAntiFact(m.fact));
+}
+
+// ============================================
 // FETCH CORE CONTEXT (with DEBUG)
 // ============================================
 async function fetchCoreContext(userId, queryText = '') {
@@ -228,6 +258,12 @@ async function fetchCoreContext(userId, queryText = '') {
     // Add sample data to debug (first 3 items)
     debug.sampleFacts = memory.slice(0, 3).map(m => m.fact || m.content || JSON.stringify(m).slice(0, 100));
     debug.sampleEntities = entities.slice(0, 3).map(e => `${e.name} (${e.entity_type})`);
+    
+    // Count how many facts will be filtered out
+    const cleanMemory = memory.filter(m => !isAntiFact(m.fact));
+    debug.factsBeforeFilter = memory.length;
+    debug.factsAfterFilter = cleanMemory.length;
+    debug.factsFiltered = memory.length - cleanMemory.length;
     
     return { memory, entities, semanticDrops, _debug: debug };
   } catch (error) {
@@ -334,6 +370,14 @@ function buildSystemPrompt(dropContext, userProfile, coreContext, isExpansion = 
 - Natural speech, avoid bullet points
 - Use punctuation for rhythm
 
+## MEMORY INTELLIGENCE:
+When working with CORE MEMORY facts:
+- TRUST positive facts (statements about what IS true)
+- IGNORE negative/meta facts like "AI doesn't know X" - these are artifacts
+- If you see contradictions, PRIORITIZE the most specific positive fact
+- When uncertain, ASK the user to confirm rather than guessing
+- NEVER say "I don't have information" if there ARE relevant facts in memory
+
 ## CRITICAL DIALOGUE RULES:
 
 ### ADAPTIVE RESPONSE LENGTH:
@@ -376,9 +420,12 @@ User confirmed they want details. Now give comprehensive answer:
 
 ## CORE MEMORY:`;
 
-  if (coreContext?.memory?.length) {
+  // Filter out anti-facts before adding to prompt
+  const cleanMemory = filterMemory(coreContext?.memory);
+  
+  if (cleanMemory?.length) {
     basePrompt += '\n### Known facts:\n';
-    coreContext.memory.slice(0, 10).forEach(m => {
+    cleanMemory.slice(0, 10).forEach(m => {
       basePrompt += `- ${m.fact}\n`;
     });
   }
