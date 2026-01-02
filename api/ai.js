@@ -1,9 +1,9 @@
-
-// DropLit AI API v4.5 - Vercel Edge Function
+// DropLit AI API v4.7 - Vercel Edge Function
+// + DEBUG MODE for core_memory diagnostics
 // + Streaming WITH Tools support
 // + Timezone from Vercel Geo
 // + Fixed dialogue flow
-// Version: 4.5.0
+// Version: 4.7.0
 
 export const config = {
   runtime: 'edge',
@@ -144,16 +144,38 @@ function isShortAffirmative(text) {
 }
 
 // ============================================
-// FETCH CORE CONTEXT
+// FETCH CORE CONTEXT (with DEBUG)
 // ============================================
 async function fetchCoreContext(userId, queryText = '') {
-  if (!userId) return null;
+  // DEBUG object to track what's happening
+  const debug = {
+    userId: userId || null,
+    hasSupabaseKey: false,
+    hasOpenAIKey: false,
+    memoryFetchStatus: null,
+    entitiesFetchStatus: null,
+    memoryCount: 0,
+    entitiesCount: 0,
+    semanticDropsCount: 0,
+    errors: []
+  };
+
+  if (!userId) {
+    debug.errors.push('No userId provided');
+    return { memory: [], entities: [], semanticDrops: [], _debug: debug };
+  }
   
   const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   const OPENAI_KEY = process.env.OPENAI_API_KEY;
   
-  if (!SUPABASE_KEY) return null;
+  debug.hasSupabaseKey = !!SUPABASE_KEY;
+  debug.hasOpenAIKey = !!OPENAI_KEY;
+  
+  if (!SUPABASE_KEY) {
+    debug.errors.push('SUPABASE_SERVICE_KEY not found in environment');
+    return { memory: [], entities: [], semanticDrops: [], _debug: debug };
+  }
   
   try {
     // 1. Fetch core memory and entities
@@ -166,21 +188,48 @@ async function fetchCoreContext(userId, queryText = '') {
       })
     ]);
     
-    const memory = memoryRes.ok ? await memoryRes.json() : [];
-    const entities = entitiesRes.ok ? await entitiesRes.json() : [];
+    debug.memoryFetchStatus = memoryRes.status;
+    debug.entitiesFetchStatus = entitiesRes.status;
+    
+    let memory = [];
+    let entities = [];
+    
+    if (memoryRes.ok) {
+      memory = await memoryRes.json();
+      debug.memoryCount = memory.length;
+    } else {
+      const errorText = await memoryRes.text();
+      debug.errors.push(`Memory fetch failed: ${memoryRes.status} - ${errorText.slice(0, 100)}`);
+    }
+    
+    if (entitiesRes.ok) {
+      entities = await entitiesRes.json();
+      debug.entitiesCount = entities.length;
+    } else {
+      const errorText = await entitiesRes.text();
+      debug.errors.push(`Entities fetch failed: ${entitiesRes.status} - ${errorText.slice(0, 100)}`);
+    }
     
     // 2. Semantic search if query provided and OpenAI key exists
     let semanticDrops = [];
     if (queryText && OPENAI_KEY) {
-      semanticDrops = await semanticSearch(userId, queryText, SUPABASE_URL, SUPABASE_KEY, OPENAI_KEY);
+      const semanticResult = await semanticSearch(userId, queryText, SUPABASE_URL, SUPABASE_KEY, OPENAI_KEY);
+      semanticDrops = semanticResult.drops || [];
+      debug.semanticDropsCount = semanticDrops.length;
+      if (semanticResult.error) {
+        debug.errors.push(`Semantic search: ${semanticResult.error}`);
+      }
+    } else if (queryText && !OPENAI_KEY) {
+      debug.errors.push('Semantic search skipped: no OPENAI_API_KEY');
     }
     
     console.log(`Core context: ${memory.length} memories, ${entities.length} entities, ${semanticDrops.length} semantic drops`);
     
-    return { memory, entities, semanticDrops };
+    return { memory, entities, semanticDrops, _debug: debug };
   } catch (error) {
+    debug.errors.push(`Exception: ${error.message}`);
     console.error('Core context error:', error);
-    return null;
+    return { memory: [], entities: [], semanticDrops: [], _debug: debug };
   }
 }
 
@@ -201,13 +250,15 @@ async function semanticSearch(userId, queryText, supabaseUrl, supabaseKey, opena
     
     if (!embeddingRes.ok) {
       console.error('Embedding generation failed:', embeddingRes.status);
-      return [];
+      return { drops: [], error: `Embedding API error: ${embeddingRes.status}` };
     }
     
     const embeddingData = await embeddingRes.json();
     const queryEmbedding = embeddingData.data?.[0]?.embedding;
     
-    if (!queryEmbedding) return [];
+    if (!queryEmbedding) {
+      return { drops: [], error: 'No embedding returned from OpenAI' };
+    }
     
     // 2. Call Supabase RPC for vector search
     const searchRes = await fetch(`${supabaseUrl}/rest/v1/rpc/search_drops_by_embedding`, {
@@ -226,19 +277,21 @@ async function semanticSearch(userId, queryText, supabaseUrl, supabaseKey, opena
     });
     
     if (!searchRes.ok) {
+      const errorText = await searchRes.text();
       console.error('Semantic search failed:', searchRes.status);
-      return [];
+      return { drops: [], error: `Search RPC error: ${searchRes.status} - ${errorText.slice(0, 100)}` };
     }
     
     const results = await searchRes.json();
     console.log(`Semantic search found ${results.length} relevant drops`);
     
-    return results;
+    return { drops: results, error: null };
   } catch (error) {
     console.error('Semantic search error:', error);
-    return [];
+    return { drops: [], error: error.message };
   }
 }
+
 // ============================================
 // SYSTEM PROMPT
 // ============================================
@@ -457,7 +510,7 @@ async function* parseSSEStream(response) {
 // ============================================
 // STREAMING CHAT WITH TOOLS
 // ============================================
-async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer) {
+async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null) {
   const encoder = new TextEncoder();
   let toolResults = [];
   let createDropAction = null;
@@ -615,11 +668,12 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     break;
   }
   
-  // Send final event with metadata
+  // Send final event with metadata AND debug info
   sendEvent({ 
     type: 'done',
     toolsUsed: toolResults.map(t => t.toolName),
-    createDrop: createDropAction
+    createDrop: createDropAction,
+    _debug: debugInfo
   });
   
   writer.close();
@@ -770,7 +824,15 @@ export default async function handler(req) {
       }
       
       // Fetch CORE memory + semantic search
-      const coreContext = (userId || uid) ? await fetchCoreContext(userId || uid, text) : null;
+      // Pass the actual user ID received from frontend
+      const effectiveUserId = userId || uid || null;
+      const coreContext = effectiveUserId ? await fetchCoreContext(effectiveUserId, text) : null;
+      
+      // Extract debug info from coreContext
+      const coreDebug = coreContext?._debug || {
+        userId: effectiveUserId,
+        error: 'fetchCoreContext returned null - no userId provided'
+      };
       
       // Detect expansion
       const recentHistory = history.slice(-4);
@@ -795,8 +857,8 @@ export default async function handler(req) {
         const { readable, writable } = new TransformStream();
         const writer = writable.getWriter();
         
-        // Start streaming in background
-        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer)
+        // Start streaming in background, pass debug info
+        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug)
           .catch(error => {
             console.error('Streaming error:', error);
             const encoder = new TextEncoder();
@@ -828,7 +890,14 @@ export default async function handler(req) {
         usage,
         toolsUsed: toolResults.map(t => t.toolName),
         createDrop: createDropAction?.result || null,
-        geo: { timezone: userTimezone, country: userCountry, city: userCity }
+        geo: { timezone: userTimezone, country: userCountry, city: userCity },
+        // DEBUG INFO - remove after fixing!
+        _debug: {
+          receivedUserId: userId || null,
+          receivedUid: uid || null,
+          effectiveUserId: effectiveUserId,
+          coreContext: coreDebug
+        }
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
