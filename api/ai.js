@@ -1,3 +1,4 @@
+
 // DropLit AI API v4.5 - Vercel Edge Function
 // + Streaming WITH Tools support
 // + Timezone from Vercel Geo
@@ -769,7 +770,7 @@ export default async function handler(req) {
       }
       
       // Fetch CORE memory + semantic search
-      const coreContext = uid ? await fetchCoreContext(uid, text) : null;
+      const coreContext = (userId || uid) ? await fetchCoreContext(userId || uid, text) : null;
       
       // Detect expansion
       const recentHistory = history.slice(-4);
