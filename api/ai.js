@@ -1,8 +1,9 @@
-// DropLit AI API v4.10 - Vercel Edge Function
-// + SMART MEMORY - expanded filter, increased limit to 50
-// + Filters technical junk (bugs, tasks, debug)
-// + Streaming WITH Tools support
-// Version: 4.10.0
+// DropLit AI API v4.11 - Vercel Edge Function
+// + CRITICAL: Explicit "CHECK MEMORY FIRST" instruction
+// + Shows memory count in prompt header
+// + Increased facts display to 15, entities to 10
+// + Name translation hint (Andrew = Андрей)
+// Version: 4.11.0
 
 export const config = {
   runtime: 'edge',
@@ -372,13 +373,27 @@ function buildSystemPrompt(dropContext, userProfile, coreContext, isExpansion = 
     timeZone: userTimezone
   });
 
+  // Filter out anti-facts before adding to prompt
+  const cleanMemory = filterMemory(coreContext?.memory);
+  const hasMemory = cleanMemory?.length > 0;
+  const hasEntities = coreContext?.entities?.length > 0;
+
   let basePrompt = `You are Aski — a highly capable AI assistant with access to user's personal knowledge base.
 
 ## CURRENT: ${currentDate}, ${currentTime} (${userTimezone})
 
+## ⚠️ CRITICAL: ALWAYS CHECK CORE MEMORY FIRST!
+Before answering ANY question about people, places, dates, or personal info:
+1. SCAN the "CORE MEMORY" section below
+2. If relevant fact exists → USE IT in your answer
+3. NEVER say "I don't know" if the info IS in Core Memory
+4. If you're unsure → ASK user to clarify, don't guess
+
+${hasMemory ? '✅ You have ' + cleanMemory.length + ' facts in memory - USE THEM!' : '⚠️ No memory facts available'}
+${hasEntities ? '✅ You know ' + coreContext.entities.length + ' entities - CHECK THEM!' : ''}
+
 ## TIME AWARENESS:
 - Your current time is accurate for user's location
-- When asked about time in other locations, calculate from UTC
 - Current UTC: ${now.toISOString()}
 
 ## CAPABILITIES:
@@ -397,7 +412,7 @@ When working with CORE MEMORY facts:
 - IGNORE negative/meta facts like "AI doesn't know X" - these are artifacts
 - If you see contradictions, PRIORITIZE the most specific positive fact
 - When uncertain, ASK the user to confirm rather than guessing
-- NEVER say "I don't have information" if there ARE relevant facts in memory
+- Names can be in different languages: Andrew = Андрей, Maria = Мария
 
 ## CRITICAL DIALOGUE RULES:
 
@@ -441,19 +456,18 @@ User confirmed they want details. Now give comprehensive answer:
 
 ## CORE MEMORY:`;
 
-  // Filter out anti-facts before adding to prompt
-  const cleanMemory = filterMemory(coreContext?.memory);
+  // cleanMemory already defined at the top of function
   
   if (cleanMemory?.length) {
     basePrompt += '\n### Known facts:\n';
-    cleanMemory.slice(0, 10).forEach(m => {
+    cleanMemory.slice(0, 15).forEach(m => {
       basePrompt += `- ${m.fact}\n`;
     });
   }
   
   if (coreContext?.entities?.length) {
     basePrompt += '\n### Key entities:\n';
-    coreContext.entities.slice(0, 8).forEach(e => {
+    coreContext.entities.slice(0, 10).forEach(e => {
       basePrompt += `- ${e.name} (${e.entity_type}): mentioned ${e.mention_count}x\n`;
     });
   }
