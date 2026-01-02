@@ -1,9 +1,9 @@
-// DropLit AI API v4.7 - Vercel Edge Function
-// + DEBUG MODE for core_memory diagnostics
+// DropLit AI API v4.8 - Vercel Edge Function
+// + EXTENDED DEBUG - shows actual facts loaded
 // + Streaming WITH Tools support
 // + Timezone from Vercel Geo
 // + Fixed dialogue flow
-// Version: 4.7.0
+// Version: 4.8.0
 
 export const config = {
   runtime: 'edge',
@@ -224,6 +224,10 @@ async function fetchCoreContext(userId, queryText = '') {
     }
     
     console.log(`Core context: ${memory.length} memories, ${entities.length} entities, ${semanticDrops.length} semantic drops`);
+    
+    // Add sample data to debug (first 3 items)
+    debug.sampleFacts = memory.slice(0, 3).map(m => m.fact || m.content || JSON.stringify(m).slice(0, 100));
+    debug.sampleEntities = entities.slice(0, 3).map(e => `${e.name} (${e.entity_type})`);
     
     return { memory, entities, semanticDrops, _debug: debug };
   } catch (error) {
@@ -841,6 +845,11 @@ export default async function handler(req) {
       
       const maxTokens = isExpansion ? 2500 : 1000;
       const systemPrompt = buildSystemPrompt(formattedContext, userProfile, coreContext, isExpansion, userTimezone);
+      
+      // Add system prompt debug info (AFTER systemPrompt is built)
+      coreDebug.systemPromptHasCoreMemory = systemPrompt.includes('### Known facts:');
+      coreDebug.systemPromptHasEntities = systemPrompt.includes('### Key entities:');
+      coreDebug.systemPromptLength = systemPrompt.length;
       
       // Build messages
       let messages = [];
