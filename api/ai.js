@@ -152,7 +152,7 @@ async function fetchCoreContext(userId) {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   if (!SUPABASE_KEY) return null;
-
+  
   try {
     const [memoryRes, entitiesRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/core_memory?user_id=eq.${userId}&is_active=eq.true&order=confidence.desc&limit=20`, {
@@ -165,7 +165,9 @@ async function fetchCoreContext(userId) {
     
     const memory = memoryRes.ok ? await memoryRes.json() : [];
     const entities = entitiesRes.ok ? await entitiesRes.json() : [];
-
+    
+    console.log(`Core context: ${memory.length} memories, ${entities.length} entities`);
+    
     return { memory, entities };
   } catch (error) {
     console.error('Core context error:', error);
