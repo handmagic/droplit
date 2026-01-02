@@ -1,9 +1,10 @@
-// DropLit AI API v4.12 - Vercel Edge Function
+// DropLit AI API v4.13 - Vercel Edge Function
 // + CONFLICT RESOLUTION PROTOCOL for contradictory facts
 // + Transparent handling of uncertainty
 // + Explicit "CHECK MEMORY FIRST" instruction
 // + Smart prioritization: recent > old, specific > vague
-// Version: 4.12.0
+// + EVENT SCHEDULING: create_event tool for reminders/alarms
+// Version: 4.13.0
 
 export const config = {
   runtime: 'edge',
@@ -132,6 +133,23 @@ const TOOLS = [
         search_depth: { type: "string", enum: ["basic", "advanced"] }
       },
       required: ["query"]
+    }
+  },
+  {
+    name: "create_event",
+    description: "Create scheduled event: reminder, alarm, or notification. Use when user asks to remind, wake up, schedule something at specific time. Trigger phrases: 'remind me...', 'wake me up...', 'in X hours...', 'tomorrow at...', 'напомни...', 'разбуди...'",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Short event name/title" },
+        description: { type: "string", description: "What to remind about" },
+        trigger_type: { type: "string", enum: ["datetime", "cron"], description: "datetime for one-time, cron for recurring" },
+        trigger_at: { type: "string", description: "ISO datetime when to trigger (e.g. 2026-01-04T08:00:00-05:00). REQUIRED for datetime type." },
+        cron_expression: { type: "string", description: "Cron for recurring (e.g. '0 8 * * *' = daily 8am). Use for 'every day', 'every morning' etc." },
+        action_type: { type: "string", enum: ["push", "tts", "email"], description: "push=notification banner, tts=voice announcement" },
+        priority: { type: "number", description: "1-10, higher = more urgent. Use 8-10 for alarms, 5 for reminders" }
+      },
+      required: ["name", "trigger_type", "action_type"]
     }
   }
 ];
@@ -530,7 +548,7 @@ User confirmed they want details. Now give comprehensive answer:
 // ============================================
 // TOOL EXECUTION
 // ============================================
-async function executeTool(toolName, toolInput, dropContext) {
+async function executeTool(toolName, toolInput, dropContext, userId = null) {
   switch (toolName) {
     case 'fetch_recent_drops':
     case 'search_drops':
@@ -549,6 +567,9 @@ async function executeTool(toolName, toolInput, dropContext) {
     
     case 'web_search':
       return await executeWebSearch(toolInput.query, toolInput.search_depth);
+    
+    case 'create_event':
+      return await executeCreateEvent(toolInput, userId);
     
     default:
       return { success: false, error: 'Unknown tool' };
@@ -592,6 +613,85 @@ async function executeWebSearch(query, depth = 'basic') {
 }
 
 // ============================================
+// CREATE SCHEDULED EVENT
+// ============================================
+async function executeCreateEvent(input, userId) {
+  const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
+  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  
+  if (!SUPABASE_KEY) {
+    console.error('[create_event] SUPABASE_SERVICE_KEY not configured');
+    return { success: false, error: 'Database not configured' };
+  }
+  
+  if (!userId) {
+    console.error('[create_event] No userId provided');
+    return { success: false, error: 'User not authenticated' };
+  }
+  
+  try {
+    // Validate trigger_at for datetime type
+    if (input.trigger_type === 'datetime' && !input.trigger_at) {
+      return { success: false, error: 'trigger_at is required for datetime events' };
+    }
+    
+    // Prepare event data
+    const eventData = {
+      user_id: userId,
+      name: input.name,
+      description: input.description || input.name,
+      trigger_type: input.trigger_type || 'datetime',
+      trigger_at: input.trigger_type === 'datetime' ? input.trigger_at : null,
+      cron_expression: input.trigger_type === 'cron' ? input.cron_expression : null,
+      timezone: 'America/New_York',
+      action_type: input.action_type || 'push',
+      action_config: input.action_config || {},
+      priority: input.priority || 5,
+      status: 'active',
+      next_run: input.trigger_at || new Date().toISOString(),
+      run_count: 0
+    };
+    
+    console.log('[create_event] Creating:', eventData.name, 'at:', eventData.next_run, 'for user:', userId);
+    
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/scheduled_events`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(eventData)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[create_event] Supabase error:', response.status, errorText);
+      return { success: false, error: 'Failed to create event: ' + response.status };
+    }
+    
+    const created = await response.json();
+    console.log('[create_event] Success! Event ID:', created[0]?.id);
+    
+    return { 
+      success: true, 
+      action: 'create_event',
+      event: {
+        id: created[0]?.id,
+        name: input.name,
+        trigger_at: eventData.next_run,
+        action_type: input.action_type
+      }
+    };
+    
+  } catch (error) {
+    console.error('[create_event] Exception:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================
 // PARSE SSE STREAM FROM CLAUDE
 // ============================================
 async function* parseSSEStream(response) {
@@ -627,10 +727,11 @@ async function* parseSSEStream(response) {
 // ============================================
 // STREAMING CHAT WITH TOOLS
 // ============================================
-async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null) {
+async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null, userId = null) {
   const encoder = new TextEncoder();
   let toolResults = [];
   let createDropAction = null;
+  let createEventAction = null;
   
   // Helper to send SSE event to client
   const sendEvent = (data) => {
@@ -752,12 +853,17 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
       const toolResultsContent = [];
       
       for (const toolBlock of toolBlocks) {
-        const toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext);
+        const toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId);
         toolResults.push({ toolName: toolBlock.name, result: toolResult });
         
         // Track create_drop action
         if (toolBlock.name === 'create_drop' && toolResult.action === 'create_drop') {
           createDropAction = toolResult;
+        }
+        
+        // Track create_event action
+        if (toolBlock.name === 'create_event' && toolResult.action === 'create_event') {
+          createEventAction = toolResult;
         }
         
         // Notify client about tool result
@@ -790,6 +896,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     type: 'done',
     toolsUsed: toolResults.map(t => t.toolName),
     createDrop: createDropAction,
+    createEvent: createEventAction,
     _debug: debugInfo
   });
   
@@ -799,7 +906,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
 // ============================================
 // NON-STREAMING CHAT HANDLER (fallback)
 // ============================================
-async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens, dropContext) {
+async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens, dropContext, userId = null) {
   const claudeRequest = {
     model: 'claude-sonnet-4-20250514',
     max_tokens: maxTokens,
@@ -829,7 +936,7 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
     const toolBlock = data.content?.find(b => b.type === 'tool_use');
     if (!toolBlock) break;
     
-    const toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext);
+    const toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId);
     toolResults.push({ toolName: toolBlock.name, result: toolResult });
     
     messages.push({ role: 'assistant', content: data.content });
@@ -979,8 +1086,8 @@ export default async function handler(req) {
         const { readable, writable } = new TransformStream();
         const writer = writable.getWriter();
         
-        // Start streaming in background, pass debug info
-        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug)
+        // Start streaming in background, pass debug info and userId
+        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId)
           .catch(error => {
             console.error('Streaming error:', error);
             const encoder = new TextEncoder();
@@ -1000,10 +1107,11 @@ export default async function handler(req) {
 
       // NON-STREAMING MODE (fallback)
       const { resultText, toolResults, usage } = await handleNonStreamingChat(
-        apiKey, systemPrompt, messages, maxTokens, formattedContext
+        apiKey, systemPrompt, messages, maxTokens, formattedContext, effectiveUserId
       );
       
       const createDropAction = toolResults.find(t => t.toolName === 'create_drop');
+      const createEventAction = toolResults.find(t => t.toolName === 'create_event');
 
       return new Response(JSON.stringify({ 
         success: true,
@@ -1012,6 +1120,7 @@ export default async function handler(req) {
         usage,
         toolsUsed: toolResults.map(t => t.toolName),
         createDrop: createDropAction?.result || null,
+        createEvent: createEventAction?.result || null,
         geo: { timezone: userTimezone, country: userCountry, city: userCity },
         // DEBUG INFO - remove after fixing!
         _debug: {
