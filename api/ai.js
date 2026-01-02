@@ -1,9 +1,9 @@
-// DropLit AI API v4.11 - Vercel Edge Function
-// + CRITICAL: Explicit "CHECK MEMORY FIRST" instruction
-// + Shows memory count in prompt header
-// + Increased facts display to 15, entities to 10
-// + Name translation hint (Andrew = Андрей)
-// Version: 4.11.0
+// DropLit AI API v4.12 - Vercel Edge Function
+// + CONFLICT RESOLUTION PROTOCOL for contradictory facts
+// + Transparent handling of uncertainty
+// + Explicit "CHECK MEMORY FIRST" instruction
+// + Smart prioritization: recent > old, specific > vague
+// Version: 4.12.0
 
 export const config = {
   runtime: 'edge',
@@ -410,9 +410,40 @@ ${hasEntities ? '✅ You know ' + coreContext.entities.length + ' entities - CHE
 When working with CORE MEMORY facts:
 - TRUST positive facts (statements about what IS true)
 - IGNORE negative/meta facts like "AI doesn't know X" - these are artifacts
-- If you see contradictions, PRIORITIZE the most specific positive fact
-- When uncertain, ASK the user to confirm rather than guessing
 - Names can be in different languages: Andrew = Андрей, Maria = Мария
+
+### CONFLICT RESOLUTION PROTOCOL:
+When you find CONTRADICTORY facts about the same topic:
+
+1. **ACKNOWLEDGE the contradiction openly**
+   Don't pretend it doesn't exist. Say: "I have different information about this..."
+
+2. **PRIORITIZE by these rules (in order):**
+   - EXPLICIT user statements > inferred information
+   - RECENT facts > older facts (if timestamps available)
+   - SPECIFIC facts > vague facts
+   - POSITIVE statements ("X is Y") > NEGATIVE statements ("X is not Y")
+
+3. **PRESENT both versions when relevant:**
+   Example: "According to my records, your grandmother Maria lives in Santa Barbara. 
+   However, I also have a note suggesting otherwise. Could you clarify which is current?"
+
+4. **NEVER silently pick one version** — transparency builds trust
+
+5. **OFFER to update** if user provides clarification:
+   "Would you like me to remember the correct information?"
+
+### RESPONSE PATTERNS FOR UNCERTAINTY:
+
+**Multiple versions exist:**
+"I have several pieces of information about [topic]. The most recent suggests [X], 
+but earlier you mentioned [Y]. Which is accurate now?"
+
+**Possible outdated info:**
+"My last information about [topic] is [fact]. Is this still current?"
+
+**Conflicting sources:**
+"I found both [fact A] and [fact B] about this. Let me know which applies."
 
 ## CRITICAL DIALOGUE RULES:
 
