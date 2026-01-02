@@ -974,7 +974,7 @@
     .about-name { font-size: 1.4rem; font-weight: 800; }
     .about-ver { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px; }
 
-    .toast-wrap { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); z-index: 9999; pointer-events: none; }
+    .toast-wrap { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); z-index: 200; pointer-events: none; }
     .toast { padding: 12px 20px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); opacity: 0; transform: translateY(10px); transition: all 0.3s; pointer-events: auto; }
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.success { background: var(--color-success); color: white; }
@@ -1168,7 +1168,6 @@
 	@keyframes streamPulse {
 	0%, 100% { opacity: 1; }
 	50% { opacity: 0.3; }
-	.streaming-indicator.tool-active { width: auto; height: auto; background: rgba(139,92,246,0.15); color: #8B5CF6; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; animation: none; margin-left: 8px; font-weight: 500; }
 	}
   </style>
 </head>
@@ -5244,6 +5243,7 @@ async function handleStreamingResponse(response) {
   const indicator = msgDiv.querySelector('.streaming-indicator');
   let fullText = '';
   let buffer = '';
+  let toolsUsed = [];
   let createDropData = null;
   
   try {
@@ -5269,28 +5269,37 @@ async function handleStreamingResponse(response) {
               messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }
             
-			// Tool started
-            if (parsed.type === 'tool_start') {
-              toast('Tool: ' + parsed.tool, 'info');
+            // Tool started
+			if (parsed.type === 'tool_start') {
+			toast('Tool: ' + parsed.tool, 'info');
+			toast('Indicator exists: ' + (indicator ? 'YES' : 'NO'), 'warning');
+			if (indicator) {
+			indicator.textContent = toolStatusText(parsed.tool);
+			indicator.classList.add('tool-active');
+			}
+			}
+            
+            // Tool completed
+            if (parsed.type === 'tool_result') {
               if (indicator) {
-                indicator.textContent = toolStatusText(parsed.tool);
-                indicator.classList.add('tool-active');
+                indicator.classList.remove('tool-active');
+                indicator.textContent = '';
               }
             }
             
-            // Tool completed
-            if (parsed.type === 'tool_result' && indicator) {
-              indicator.classList.remove('tool-active');
-              indicator.textContent = '';
-            }
-            
-            // Stream done
+            // Stream done - get metadata
             if (parsed.type === 'done') {
+              toolsUsed = parsed.toolsUsed || [];
               createDropData = parsed.createDrop;
             }
-            // Debug: show raw event type
-			
-            // Legacy format (v4.4 and earlier)
+            
+            // Error
+            if (parsed.type === 'error') {
+              console.error('Stream error:', parsed.error);
+              textSpan.textContent = 'Error: ' + parsed.error;
+            }
+            
+            // Legacy format support (fallback)
             if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
               fullText += parsed.delta.text;
               textSpan.textContent = fullText;
@@ -5305,28 +5314,40 @@ async function handleStreamingResponse(response) {
     console.error('Streaming error:', e);
   }
   
+  // Remove indicator
   if (indicator) indicator.remove();
   
+  // Add action buttons
   const bubble = msgDiv.querySelector('.ask-ai-bubble');
   const actionsDiv = document.createElement('div');
   actionsDiv.className = 'ask-ai-actions';
   actionsDiv.innerHTML = '<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button><button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button><button class="ask-ai-action-btn" onclick="createDropFromAI(this)">Create Drop</button>';
   bubble.after(actionsDiv);
   
+  // Save to history
   askAIMessages.push({ text: fullText, isUser: false });
   
   // Handle create_drop from tool
-  if (createDropData && createDropData.drop) {
+  if (createDropData?.drop) {
     const drop = createDropData.drop;
-    const newIdea = { id: Date.now().toString(), text: drop.text, category: drop.category || 'inbox', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }), isMedia: false };
+    const newIdea = {
+      id: Date.now().toString(),
+      text: drop.text,
+      category: drop.category || 'inbox',
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      isMedia: false
+    };
     ideas.unshift(newIdea);
     save();
     render();
     toast('Drop created by Aski', 'success');
   }
   
+  // AutoDrop
   if (isAutoDropEnabled()) autoSaveMessageAsDrop(fullText, false);
   
+  // Auto-speak
   if (isAutoSpeakEnabled() && fullText) {
     try {
       speakText(fullText);
@@ -5337,6 +5358,19 @@ async function handleStreamingResponse(response) {
   } else {
     unlockVoiceMode();
   }
+}
+
+// Helper for tool status
+function toolStatusText(toolName) {
+  const names = {
+    'web_search': 'Searching...',
+    'create_drop': 'Creating drop...',
+    'fetch_recent_drops': 'Reading notes...',
+    'search_drops': 'Searching notes...',
+    'get_summary': 'Summarizing...'
+  };
+  return names[toolName] || 'Processing...';
+}
 }
 
 function addAskAIMessage(text, isUser = true) {
@@ -5514,7 +5548,7 @@ async function sendAskAIMessage() {
         syntriseContext: syntriseContext, // Legacy
         dropContext: contextObject, // v2: Structured context for server
         stream: STREAMING_ENABLED,
-		enableTools: true, // v2: Enable Tool Calling
+		enableTools: false, // v2: Enable Tool Calling
         userId: currentUser?.id // v3: For CORE Memory integration
       })
     });
