@@ -145,15 +145,17 @@ function isShortAffirmative(text) {
 // ============================================
 // FETCH CORE CONTEXT
 // ============================================
-async function fetchCoreContext(userId) {
+async function fetchCoreContext(userId, queryText = '') {
   if (!userId) return null;
   
   const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  const OPENAI_KEY = process.env.OPENAI_API_KEY;
   
   if (!SUPABASE_KEY) return null;
   
   try {
+    // 1. Fetch core memory and entities
     const [memoryRes, entitiesRes] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/core_memory?user_id=eq.${userId}&is_active=eq.true&order=confidence.desc&limit=20`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -166,14 +168,86 @@ async function fetchCoreContext(userId) {
     const memory = memoryRes.ok ? await memoryRes.json() : [];
     const entities = entitiesRes.ok ? await entitiesRes.json() : [];
     
-    console.log(`Core context: ${memory.length} memories, ${entities.length} entities`);
+    // 2. Semantic search if query provided and OpenAI key exists
+    let semanticDrops = [];
+    if (queryText && OPENAI_KEY) {
+      semanticDrops = await semanticSearch(userId, queryText, SUPABASE_URL, SUPABASE_KEY, OPENAI_KEY);
+    }
     
-    return { memory, entities };
+    console.log(`Core context: ${memory.length} memories, ${entities.length} entities, ${semanticDrops.length} semantic drops`);
+    
+    return { memory, entities, semanticDrops };
   } catch (error) {
     console.error('Core context error:', error);
     return null;
   }
 }
+
+async function semanticSearch(userId, queryText, supabaseUrl, supabaseKey, openaiKey) {
+  try {
+    // 1. Generate embedding for query
+    const embeddingRes = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiKey}`
+      },
+      body: JSON.stringify({
+        model: 'text-embedding-3-small',
+        input: queryText.slice(0, 8000)
+      })
+    });
+    
+    if (!embeddingRes.ok) {
+      console.error('Embedding generation failed:', embeddingRes.status);
+      return [];
+    }
+    
+    const embeddingData = await embeddingRes.json();
+    const queryEmbedding = embeddingData.data?.[0]?.embedding;
+    
+    if (!queryEmbedding) return [];
+    
+    // 2. Call Supabase RPC for vector search
+    const searchRes = await fetch(`${supabaseUrl}/rest/v1/rpc/search_drops_by_embedding`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`
+      },
+      body: JSON.stringify({
+        query_embedding: queryEmbedding,
+        match_user_id: userId,
+        match_count: 10,
+        match_threshold: 0.5
+      })
+    });
+    
+    if (!searchRes.ok) {
+      console.error('Semantic search failed:', searchRes.status);
+      return [];
+    }
+    
+    const results = await searchRes.json();
+    console.log(`Semantic search found ${results.length} relevant drops`);
+    
+    return results;
+  } catch (error) {
+    console.error('Semantic search error:', error);
+    return [];
+  }
+}
+```
+
+---
+
+## 📋 Также добавь OPENAI_API_KEY в Vercel:
+
+**Vercel → Project → Settings → Environment Variables**
+```
+Name: OPENAI_API_KEY
+Value: sk-proj-... (твой ключ)
 
 // ============================================
 // SYSTEM PROMPT
