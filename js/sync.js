@@ -1,380 +1,292 @@
 // ============================================
-// DROPLIT SYNC - v0.9.59
-// Supabase synchronization
+// DROPLIT SYNC v1.0
+// Syntrise Core Integration & Supabase Context
 // ============================================
 
-// Initialize Supabase client
-async function initSupabase() {
+// ============================================
+// SYNTRISE CORE INTEGRATION v0.1
+// ============================================
+
+const SYNTRISE_CONFIG = {
+  API_URL: 'https://syntrise-core.vercel.app/api',
+  USER_ID: 'c95e2b0c-1182-424d-ac0a-0f0566cf09fa',
+  ENABLED: true
+};
+
+let syntriseSyncQueue = [];
+
+// Sync single drop to Syntrise CORE
+async function syncDropToCore(drop) {
+  if (!SYNTRISE_CONFIG.ENABLED) return;
   try {
-    if (typeof window.supabase === 'undefined') {
-      console.log('Supabase SDK not loaded');
-      updateSyncUI('offline', 'No SDK');
-      return false;
-    }
-    
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('Supabase client initialized');
-    
-    // Check for existing session
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    
-    if (session && session.user.id !== TEST_USER_ID) {
-      console.log('Wrong user, signing out...');
-      await supabaseClient.auth.signOut();
-      await signInWithTestAccount();
-    } else if (session && session.user.id === TEST_USER_ID) {
-      currentUser = session.user;
-      toast('Connected: ' + currentUser.id.substring(0, 8) + '...', 'success');
-      await pullFromServer();
-      updateSyncUI('synced', 'Synced');
-    } else {
-      await signInWithTestAccount();
-    }
-    
-    // Listen for auth changes
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        currentUser = session.user;
-        console.log('Auth state changed:', event);
-      }
+    const response = await fetch(`${SYNTRISE_CONFIG.API_URL}/drops/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: SYNTRISE_CONFIG.USER_ID,
+        drops: [{
+          id: String(drop.id),
+          content: drop.text,
+          category: drop.category || 'uncategorized',
+          tags: drop.tags || [],
+          created_at: drop.created || new Date().toISOString()
+        }]
+      })
     });
-    
-    return true;
-  } catch (error) {
-    console.error('Supabase init error:', error);
-    updateSyncUI('error', 'Error');
-    return false;
+    if (response.ok) {
+      console.log('✅ Synced to Syntrise CORE:', drop.id);
+    }
+  } catch (e) {
+    console.warn('⚠️ Syntrise sync queued:', e.message);
+    syntriseSyncQueue.push(drop);
   }
 }
 
-// Sign in with test account
-async function signInWithTestAccount() {
+// Get context for Aski from Syntrise CORE
+async function getSyntriseContext(query) {
+  // LEGACY: Old API - now using Supabase
+  if (!SYNTRISE_CONFIG.ENABLED) return null;
   try {
-    updateSyncUI('syncing', 'Connecting...');
-    toast('Logging in...', 'info');
-    
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email: TEST_USER_EMAIL,
-      password: TEST_USER_PASSWORD
+    const response = await fetch(`${SYNTRISE_CONFIG.API_URL}/drops/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: SYNTRISE_CONFIG.USER_ID,
+        query: query,
+        limit: 5,
+        threshold: 0.1
+      })
     });
-    
-    if (error) {
-      toast('Login error: ' + error.message, 'error');
-      throw error;
-    }
-    
-    currentUser = data.user;
-    toast('Logged in: ' + currentUser.id.substring(0, 8) + '...', 'success');
-    
-    const migrated = localStorage.getItem('droplit_migrated_' + currentUser.id);
-    if (!migrated && ideas.length > 0) {
-      await migrateLocalData();
-    } else {
-      await pullFromServer();
-    }
-    
-    updateSyncUI('synced', 'Synced');
-    return true;
-  } catch (error) {
-    console.error('Sign in error:', error);
-    toast('Auth failed: ' + error.message, 'error');
-    updateSyncUI('error', 'Auth error');
-    return false;
+    const data = await response.json();
+    return data.results || [];
+  } catch (e) {
+    console.warn('Syntrise context error:', e.message);
+    return [];
   }
 }
 
-// Migrate local data to Supabase
-async function migrateLocalData() {
-  if (!currentUser || ideas.length === 0) return;
-  
-  updateSyncUI('syncing', 'Migrating...');
-  console.log('Migrating ' + ideas.length + ' drops to Supabase...');
-  
-  try {
-    const textDrops = ideas.filter(i => !i.isMedia && !i.image && !i.audioData);
-    
-    const dropsToInsert = textDrops.map(idea => ({
-      user_id: currentUser.id,
-      external_id: String(idea.id),
-      content: idea.text || '',
-      category: idea.category || 'inbox',
-      tags: idea.tags || [],
-      markers: idea.markers || [],
-      source: 'droplit',
-      language: 'ru',
-      is_media: false,
-      has_local_media: !!(idea.image || idea.audioData),
-      is_merged: idea.isMerged || false,
-      ai_generated: idea.aiGenerated || false,
-      transcription: idea.transcription || null,
-      original_text: idea.originalText || null,
-      notes: idea.notes || null,
-      local_id: String(idea.id),
-      device_id: DEVICE_ID,
-      is_archived: idea.is_archived || false,
-      metadata: {
-        date: idea.date,
-        time: idea.time,
-        timestamp: idea.timestamp
-      }
-    }));
-    
-    if (dropsToInsert.length > 0) {
-      for (let i = 0; i < dropsToInsert.length; i += 50) {
-        const batch = dropsToInsert.slice(i, i + 50);
-        const { error } = await supabaseClient
-          .from('drops')
-          .upsert(batch, { onConflict: 'external_id', ignoreDuplicates: false });
-        
-        if (error) console.error('Migration batch error:', error);
-      }
-    }
-    
-    localStorage.setItem('droplit_migrated_' + currentUser.id, 'true');
-    console.log('Migrated ' + dropsToInsert.length + ' text drops');
-    
-    updateSyncUI('synced', 'Migrated!');
-    toast('Synced ' + dropsToInsert.length + ' drops to cloud!', 'success');
-    
-  } catch (error) {
-    console.error('Migration error:', error);
-    updateSyncUI('error', 'Migration failed');
-  }
-}
+// ============================================
+// DYNAMIC CONTEXT FROM SUPABASE (v0.9.58)
+// ============================================
 
-// Pull drops from server
-async function pullFromServer() {
-  if (!currentUser) return;
-  
-  try {
-    const { data, error } = await supabaseClient
-      .from('drops')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    
-    if (data && data.length > 0) {
-      console.log('Pulled ' + data.length + ' drops from server');
-    }
-    
-    lastSyncTime = new Date();
-    
-  } catch (error) {
-    console.error('Pull error:', error);
-  }
-}
-
-// Sync single drop to server
-async function syncDropToServer(idea, action = 'create') {
-  if (!syncEnabled || !currentUser || !supabaseClient) {
-    console.log('Sync disabled or not connected');
-    return false;
-  }
-  
-  if (idea.isMedia || idea.image || idea.audioData) {
-    console.log('Skipping media drop sync');
-    return true;
-  }
-  
-  try {
-    updateSyncUI('syncing', 'Saving...');
-    
-    const dropData = {
-      user_id: currentUser.id,
-      external_id: String(idea.id),
-      content: idea.text || '',
-      category: idea.category || 'inbox',
-      tags: idea.tags || [],
-      markers: idea.markers || [],
-      source: 'droplit',
-      language: 'ru',
-      is_media: !!(idea.isMedia || idea.image || idea.audioData),
-      has_local_media: !!(idea.image || idea.audioData),
-      is_merged: idea.isMerged || false,
-      ai_generated: idea.aiGenerated || false,
-      transcription: idea.transcription || null,
-      original_text: idea.originalText || null,
-      notes: idea.notes || null,
-      local_id: String(idea.id),
-      device_id: DEVICE_ID,
-      is_archived: idea.is_archived || false,
-      metadata: {
-        date: idea.date,
-        time: idea.time,
-        timestamp: idea.timestamp
-      }
-    };
-    
-    const { error } = await supabaseClient
-      .from('drops')
-      .upsert(dropData, { onConflict: 'external_id', ignoreDuplicates: false })
-      .select();
-    
-    if (error) throw error;
-    
-    console.log('Synced drop ' + String(idea.id).substring(0, 8) + '...');
-    updateSyncUI('synced', 'Synced');
-    lastSyncTime = new Date();
-    
-    return true;
-  } catch (error) {
-    console.error('Sync error:', error);
-    updateSyncUI('error', 'Sync failed');
-    return false;
-  }
-}
-
-// Delete drop from server
-async function deleteDropFromServer(ideaId) {
-  if (!syncEnabled || !currentUser || !supabaseClient) return false;
-  
-  try {
-    updateSyncUI('syncing', 'Deleting...');
-    
-    const { error } = await supabaseClient
-      .from('drops')
-      .delete()
-      .eq('external_id', String(ideaId))
-      .eq('user_id', currentUser.id);
-    
-    if (error) throw error;
-    
-    console.log('Deleted drop ' + String(ideaId).substring(0, 8) + '...');
-    updateSyncUI('synced', 'Synced');
-    
-    return true;
-  } catch (error) {
-    console.error('Delete sync error:', error);
-    updateSyncUI('error', 'Delete failed');
-    return false;
-  }
-}
-
-// Manual sync
-async function manualSync() {
-  if (isSyncing) return;
-  
-  if (!currentUser) {
-    toast('Not connected to cloud', 'warning');
-    initSupabase();
-    return;
-  }
-  
-  isSyncing = true;
-  toast('Syncing...', 'info');
-  
-  try {
-    const textDrops = ideas.filter(i => !i.isMedia && !i.image && !i.audioData);
-    let synced = 0;
-    
-    for (const idea of textDrops) {
-      const success = await syncDropToServer(idea, 'sync');
-      if (success) synced++;
-    }
-    
-    lastSyncTime = new Date();
-    updateLastSyncInfo();
-    toast('Synced ' + synced + ' drops to cloud', 'success');
-    
-  } catch (error) {
-    console.error('Manual sync error:', error);
-    toast('Sync failed: ' + error.message, 'error');
-  }
-  
-  isSyncing = false;
-}
-
-// Update last sync info
-function updateLastSyncInfo() {
-  const el = document.getElementById('lastSyncInfo');
-  if (!el) return;
-  
-  if (lastSyncTime) {
-    el.textContent = 'Last sync: ' + lastSyncTime.toLocaleTimeString();
-  } else {
-    el.textContent = 'Last sync: -';
-  }
-}
-
-// Update sync UI indicator
-function updateSyncUI(status, text) {
-  if (status === 'synced') {
-    lastSyncTime = new Date();
-    updateLastSyncInfo();
-  }
-}
-
-// Get context for AI from Supabase
+// Get fresh drops for ASKI context
 async function getSupabaseContext(query, options = {}) {
-  if (!currentUser || !supabaseClient) return null;
+  const {
+    limit = 20,           // Max drops to return
+    recentHours = 24,     // Include drops from last N hours
+    searchEnabled = true  // Enable text search
+  } = options;
   
-  const limit = options.limit || 20;
-  const recentHours = options.recentHours || 24;
+  if (!supabaseClient || !currentUser) {
+    console.log('⚠️ Supabase not ready for context');
+    return { recent: [], relevant: [] };
+  }
   
   try {
-    // Get recent drops
-    const recentCutoff = new Date(Date.now() - recentHours * 60 * 60 * 1000).toISOString();
+    const context = { recent: [], relevant: [] };
     
-    const { data: recent } = await supabaseClient
+    // 1. Get RECENT drops (last N hours)
+    const recentSince = new Date(Date.now() - recentHours * 60 * 60 * 1000).toISOString();
+    
+    const { data: recentDrops, error: recentError } = await supabaseClient
       .from('drops')
-      .select('id, content, category, created_at')
+      .select('content, category, created_at, metadata')
       .eq('user_id', currentUser.id)
-      .gte('created_at', recentCutoff)
+      .gte('created_at', recentSince)
       .order('created_at', { ascending: false })
       .limit(limit);
     
-    // Search relevant drops if query provided
-    let relevant = [];
-    if (query && options.searchEnabled) {
-      const { data: searched } = await supabaseClient
-        .from('drops')
-        .select('id, content, category, created_at')
-        .eq('user_id', currentUser.id)
-        .ilike('content', '%' + query + '%')
-        .limit(5);
-      
-      relevant = searched || [];
-    }
-    
-    return {
-      recent: (recent || []).map(d => ({
-        id: d.id,
+    if (!recentError && recentDrops) {
+      context.recent = recentDrops.map(d => ({
         text: d.content,
         category: d.category,
-        time: new Date(d.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-      })),
-      relevant: relevant.map(d => ({
-        id: d.id,
-        text: d.content,
-        category: d.category
-      }))
-    };
+        time: d.metadata?.time || '',
+        date: d.metadata?.date || ''
+      }));
+      console.log(`📥 Context: ${recentDrops.length} recent drops`);
+    }
+    
+    // 2. SEARCH relevant drops by keywords (if query provided)
+    if (searchEnabled && query && query.length > 2) {
+      // Extract keywords (simple: split and filter)
+      const keywords = query.toLowerCase()
+        .split(/\s+/)
+        .filter(w => w.length > 3)
+        .slice(0, 3); // Max 3 keywords
+      
+      if (keywords.length > 0) {
+        // Search using ilike for each keyword
+        const searchPattern = `%${keywords[0]}%`;
+        
+        const { data: relevantDrops, error: searchError } = await supabaseClient
+          .from('drops')
+          .select('content, category, created_at, metadata')
+          .eq('user_id', currentUser.id)
+          .ilike('content', searchPattern)
+          .order('created_at', { ascending: false })
+          .limit(5);
+        
+        if (!searchError && relevantDrops) {
+          context.relevant = relevantDrops.map(d => ({
+            text: d.content,
+            category: d.category,
+            time: d.metadata?.time || '',
+            date: d.metadata?.date || ''
+          }));
+          console.log(`🔍 Context: ${relevantDrops.length} relevant drops for "${keywords[0]}"`);
+        }
+      }
+    }
+    
+    return context;
+    
   } catch (error) {
-    console.error('Context fetch error:', error);
-    return null;
+    console.error('❌ Supabase context error:', error);
+    return { recent: [], relevant: [] };
   }
 }
 
 // Format context for AI prompt
 function formatContextForAI(context) {
-  if (!context) return null;
+  if (!context || (!context.recent?.length && !context.relevant?.length)) {
+    return null;
+  }
   
-  const parts = [];
+  let formatted = [];
   
+  // Add relevant drops first (if any)
   if (context.relevant?.length) {
-    parts.push('RELEVANT:');
-    context.relevant.forEach(d => parts.push('- [' + d.category + '] ' + d.text));
+    formatted.push('=== RELEVANT NOTES ===');
+    context.relevant.forEach(d => {
+      formatted.push(`[${d.category}] ${d.text}`);
+    });
   }
   
+  // Add recent drops
   if (context.recent?.length) {
-    parts.push('RECENT:');
-    context.recent.slice(0, 10).forEach(d => parts.push('- [' + d.category + '] ' + d.text));
+    formatted.push('=== RECENT NOTES (last 24h) ===');
+    context.recent.slice(0, 10).forEach(d => {
+      const timeStr = d.time ? ` (${d.time})` : '';
+      formatted.push(`[${d.category}]${timeStr} ${d.text}`);
+    });
   }
   
-  return parts.length ? parts.join('\n') : null;
+  return formatted.join('\n');
 }
 
-console.log('Sync module loaded');
+// Sync all existing drops in batches (to avoid timeout)
+async function syncAllDropsToCore() {
+  if (!SYNTRISE_CONFIG.ENABLED) {
+    console.log('Syntrise sync disabled');
+    return { synced: 0, error: 'disabled' };
+  }
+  
+  // Filter text drops only
+  const textDrops = ideas.filter(drop => drop.text && !drop.isMedia);
+  
+  if (!textDrops.length) {
+    console.log('No drops to sync');
+    return { synced: 0, error: 'no_drops' };
+  }
+  
+  console.log('🔄 Syncing', textDrops.length, 'drops in batches...');
+  
+  const BATCH_SIZE = 5;
+  let totalSynced = 0;
+  let errors = [];
+  
+  // Split into batches
+  for (let i = 0; i < textDrops.length; i += BATCH_SIZE) {
+    const batch = textDrops.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+    const totalBatches = Math.ceil(textDrops.length / BATCH_SIZE);
+    
+    console.log(`Batch ${batchNum}/${totalBatches}...`);
+    
+    try {
+      const response = await fetch(`${SYNTRISE_CONFIG.API_URL}/drops/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: SYNTRISE_CONFIG.USER_ID,
+          drops: batch.map(drop => ({
+            id: String(drop.id),
+            content: drop.text,
+            category: drop.category || 'uncategorized',
+            created_at: drop.timestamp || new Date().toISOString()
+          }))
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        totalSynced += data.synced || 0;
+      } else {
+        errors.push(`Batch ${batchNum} failed`);
+      }
+    } catch (e) {
+      errors.push(`Batch ${batchNum}: ${e.message}`);
+    }
+    
+    // Small delay between batches
+    if (i + BATCH_SIZE < textDrops.length) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+  
+  console.log(`✅ Synced ${totalSynced}/${textDrops.length} drops`);
+  
+  if (errors.length) {
+    return { synced: totalSynced, error: errors.join(', ') };
+  }
+  return { synced: totalSynced };
+}
+
+// Expose for console access
+window.SyntriseCore = {
+  sync: syncDropToCore,
+  syncAll: syncAllDropsToCore,
+  getContext: getSyntriseContext,
+  config: SYNTRISE_CONFIG
+};
+
+// Sync to Cloud button handler
+async function syncToCloud() {
+  const textDrops = ideas.filter(drop => drop.text && !drop.isMedia);
+  if (!textDrops.length) {
+    toast('No text drops to sync', 'info');
+    return;
+  }
+  
+  const batches = Math.ceil(textDrops.length / 5);
+  toast(`Syncing ${textDrops.length} drops (${batches} batches)...`, 'info');
+  
+  try {
+    const result = await syncAllDropsToCore();
+    if (result.error === 'disabled') {
+      toast('Cloud sync is disabled', 'info');
+    } else if (result.error && result.synced === 0) {
+      toast('Sync failed: ' + result.error, 'error');
+    } else if (result.synced > 0) {
+      toast('Synced ' + result.synced + ' drops!', 'success');
+    } else {
+      toast('All drops already synced', 'success');
+    }
+  } catch (e) {
+    toast('Sync error: ' + e.message, 'error');
+  }
+}
+
+
+// ============================================
+// EXPORTS
+// ============================================
+window.DropLitSync = {
+  syncDropToCore,
+  getSyntriseContext,
+  getSupabaseContext,
+  formatContextForAI,
+  syncAllDropsToCore,
+  syncToCloud,
+  SYNTRISE_CONFIG
+};
