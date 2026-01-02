@@ -5270,14 +5270,14 @@ async function handleStreamingResponse(response) {
             }
             
             // Tool started
-			if (parsed.type === 'tool_start') {
-			toast('Tool: ' + parsed.tool, 'info');
-			toast('Indicator exists: ' + (indicator ? 'YES' : 'NO'), 'warning');
-			if (indicator) {
-			indicator.textContent = toolStatusText(parsed.tool);
-			indicator.classList.add('tool-active');
-			  }
-			}
+            if (parsed.type === 'tool_start') {
+              toast('Tool: ' + parsed.tool, 'info');
+              toast('Indicator: ' + (indicator ? 'YES' : 'NO'), 'warning');
+              if (indicator) {
+                indicator.textContent = toolStatusText(parsed.tool);
+                indicator.classList.add('tool-active');
+              }
+            }
             
             // Tool completed
             if (parsed.type === 'tool_result') {
