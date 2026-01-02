@@ -1,167 +1,96 @@
 // ============================================
-// DROPLIT UTILS - v0.9.59
+// DROPLIT UTILS v1.0
+// Constants and helper functions
 // ============================================
 
-// Generate unique ID
+// Categories configuration
+const CATS = {
+  tasks: { name: 'TASKS', single: 'TASK', kw: ['task', 'tasks', 'todo', 'задача', 'задачи', 'сделать', 'нужно', 'надо'], isMedia: false },
+  ideas: { name: 'IDEAS', single: 'IDEA', kw: ['idea', 'ideas', 'идея', 'идеи', 'мысль', 'придумал'], isMedia: false },
+  handmagic: { name: 'HANDMAGIC', single: 'HANDMAGIC', kw: ['handmagic', 'хендмеджик', 'магия', 'ручная магия'], isMedia: false },
+  design: { name: 'DESIGN', single: 'DESIGN', kw: ['design', 'дизайн', 'ui', 'ux', 'кнопка', 'цвет', 'интерфейс'], isMedia: false },
+  bugs: { name: 'BUGS', single: 'BUG', kw: ['bug', 'bugs', 'fix', 'баг', 'баги', 'ошибка', 'ошибки', 'исправить'], isMedia: false },
+  questions: { name: 'QUESTIONS', single: 'QUESTION', kw: ['question', 'questions', 'вопрос', 'вопросы', 'спросить', 'claude', 'клод'], isMedia: false },
+  link: { name: 'LINKS', single: 'LINK', kw: ['link', 'url', 'http', 'https', 'www', 'ссылка'], isMedia: false },
+  sketch: { name: 'SKETCHES', single: 'SKETCH', kw: [], isMedia: true },
+  scan: { name: 'SCANS', single: 'SCAN', kw: [], isMedia: true },
+  photo: { name: 'PHOTOS', single: 'PHOTO', kw: [], isMedia: true },
+  audio: { name: 'AUDIO', single: 'AUDIO', kw: [], isMedia: true, isAudio: true },
+  inbox: { name: 'INBOX', single: 'INBOX', kw: [], isMedia: false }
+};
+
+const MEDIA_CATS = ['photo', 'sketch', 'scan', 'audio'];
+
+// Markers system
+const MARKERS = {
+  heart: '❤️',
+  star: '⭐',
+  fire: '🔥',
+  done: '✅',
+  trash: '💩',
+  think: '🤔'
+};
+
+// Currently enabled markers (MVP = only heart)
+const ENABLED_MARKERS = ['heart'];
+
+// ============================================
+// ID GENERATOR (Base62: 16 random characters)
+// ============================================
+const BASE62_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
 function generateId(length = 16) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  const randomBytes = new Uint8Array(length);
+  crypto.getRandomValues(randomBytes);
+  return Array.from(randomBytes, byte => BASE62_CHARS[byte % 62]).join('');
 }
 
-// Parse date string to Date object
+// ============================================
+// DATE HELPERS
+// ============================================
 function parseD(s) {
-  if (!s) return new Date(0);
-  const p = s.split('.');
-  if (p.length === 3) {
-    return new Date(p[2], p[1] - 1, p[0]);
-  }
-  return new Date(s);
+  if (!s || typeof s !== 'string') return new Date(0);
+  const parts = s.split('.');
+  if (parts.length !== 3) return new Date(0);
+  const [d, m, y] = parts.map(Number);
+  return new Date(y, m - 1, d);
 }
 
-// Check if date is within N days
 function inDays(s, n) {
-  const d = parseD(s);
-  const now = new Date();
-  const diff = (now - d) / (1000 * 60 * 60 * 24);
-  return diff >= 0 && diff <= n;
-}
-
-// Check if date is today
-function isToday(s) {
-  const d = parseD(s);
-  const now = new Date();
-  return d.getDate() === now.getDate() && 
-         d.getMonth() === now.getMonth() && 
-         d.getFullYear() === now.getFullYear();
-}
-
-// Format time for display
-function formatTime(date) {
-  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-}
-
-// Format date for display
-function formatDate(date) {
-  return date.toLocaleDateString('ru-RU');
-}
-
-// Toast notification
-function toast(message, type = 'info') {
-  const existing = document.querySelector('.toast');
-  if (existing) existing.remove();
-  
-  const t = document.createElement('div');
-  t.className = 'toast ' + type;
-  t.textContent = message;
-  document.body.appendChild(t);
-  
-  setTimeout(() => t.classList.add('show'), 10);
-  setTimeout(() => {
-    t.classList.remove('show');
-    setTimeout(() => t.remove(), 300);
-  }, 2500);
-}
-
-// Update network banner
-function updateNet() {
-  const banner = document.getElementById('netBanner');
-  if (banner) {
-    banner.classList.toggle('show', !navigator.onLine);
-  }
-}
-
-// Scroll functions
-function scrollToTop() {
-  if (ideasWrap) {
-    ideasWrap.scrollTo({ top: 0, behavior: 'smooth' });
-    if (scrollTopBtn) scrollTopBtn.classList.remove('show');
-  }
-}
-
-function scrollToBottom() {
-  if (ideasWrap) {
-    ideasWrap.scrollTo({ top: ideasWrap.scrollHeight, behavior: 'smooth' });
-    if (scrollBottomBtn) scrollBottomBtn.classList.remove('show');
-  }
-}
-
-function scrollToBottomInstant() {
-  if (ideasWrap) {
-    ideasWrap.scrollTo({ top: ideasWrap.scrollHeight, behavior: 'instant' });
-  }
-}
-
-// Play drop sound
-function playDropSound() {
+  if (!s) return false;
   try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const ctx = new AudioContext();
-    
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc1.type = 'sine';
-    osc2.type = 'triangle';
-    osc1.frequency.setValueAtTime(880, ctx.currentTime);
-    osc2.frequency.setValueAtTime(1320, ctx.currentTime);
-    
-    osc1.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
-    osc2.frequency.exponentialRampToValueAtTime(2640, ctx.currentTime + 0.1);
-    
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-    
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc1.start(ctx.currentTime);
-    osc2.start(ctx.currentTime);
-    osc1.stop(ctx.currentTime + 0.2);
-    osc2.stop(ctx.currentTime + 0.2);
-    
-    setTimeout(() => ctx.close(), 300);
+    return (new Date() - parseD(s)) / (864e5) <= n;
   } catch (e) {
-    console.warn('Sound error:', e);
+    return false;
   }
 }
 
-// Wake lock for recording
-async function acquireWakeLock() {
-  if ('wakeLock' in navigator) {
-    try {
-      wakeLock = await navigator.wakeLock.request('screen');
-      console.log('Wake lock acquired');
-    } catch (e) {
-      console.warn('Wake lock failed:', e);
-    }
-  }
+function isToday(s) {
+  if (!s) return false;
+  return s === new Date().toLocaleDateString('ru-RU');
 }
 
-function releaseWakeLock() {
-  if (wakeLock) {
-    wakeLock.release();
-    wakeLock = null;
-    console.log('Wake lock released');
-  }
-}
-
-// Escape HTML for safe display
+// ============================================
+// HTML ESCAPE (XSS prevention)
+// ============================================
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
 
-// Truncate text
-function truncate(text, maxLength = 100) {
-  if (!text || text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + '...';
-}
-
-console.log('Utils loaded');
+// ============================================
+// EXPORTS (for future module use)
+// ============================================
+// These are already global, but we can namespace them
+window.DropLitUtils = {
+  CATS,
+  MEDIA_CATS,
+  MARKERS,
+  ENABLED_MARKERS,
+  generateId,
+  parseD,
+  inDays,
+  isToday,
+  escapeHtml
+};
