@@ -5288,6 +5288,10 @@ async function handleStreamingResponse(response) {
             // Stream done
             if (parsed.type === 'done') {
               createDropData = parsed.createDrop;
+            // DEBUG: Show core memory status
+            if (parsed._debug) {
+            alert('DEBUG Core Memory:\n' + JSON.stringify(parsed._debug, null, 2));
+              }
             }
             
             // Legacy format (v4.4 and earlier)
