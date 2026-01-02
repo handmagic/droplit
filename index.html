@@ -5228,7 +5228,6 @@ function escapeHtml(text) {
 
 // Streaming response handler v2 - supports tools
 async function handleStreamingResponse(response) {
-  toast('STREAMING STARTED', 'success');
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   
@@ -5262,7 +5261,6 @@ async function handleStreamingResponse(response) {
           if (data === '[DONE]') break;
           try {
             const parsed = JSON.parse(data);
-			if (parsed.type) toast('Event: ' + parsed.type, 'info');
             
             // New API v4.5 format
             if (parsed.type === 'text' && parsed.content) {
@@ -5291,7 +5289,7 @@ async function handleStreamingResponse(response) {
               createDropData = parsed.createDrop;
             }
             // Debug: show raw event type
-			toast('RAW: ' + (parsed.type || 'no-type'), 'info');
+			
             // Legacy format (v4.4 and earlier)
             if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
               fullText += parsed.delta.text;
