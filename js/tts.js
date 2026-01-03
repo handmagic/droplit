@@ -1,6 +1,7 @@
 // ============================================
-// DROPLIT TTS v1.0
+// DROPLIT TTS v1.1
 // Text-to-Speech and Sound functions
+// Fixed: Stop TTS when card becomes inactive
 // ============================================
 
 // ============================================
@@ -51,6 +52,7 @@ let currentTTSUtterance = null;
 let isTTSPlaying = false;
 let currentTTSAudio = null;
 let activeSpeakBtn = null;
+let currentTTSDropId = null; // Track which drop is being read
 
 function speakAskAIMessage(btn) {
   // If this button is already playing - stop it
@@ -242,6 +244,7 @@ async function speakWithOpenAI(text, apiKey, voice) {
 }
 
 function stopTTS() {
+  currentTTSDropId = null; // Clear tracking
   if (currentTTSAudio) {
     currentTTSAudio.pause();
     currentTTSAudio = null;
@@ -274,26 +277,114 @@ function speakDrop(id, e) {
     return;
   }
   
-  // Stop if already playing
+  // Stop if already playing (any TTS)
   if (isTTSPlaying || currentTTSAudio) {
     stopTTS();
     speechSynthesis.cancel();
     isTTSPlaying = false;
+    currentTTSDropId = null;
     updateTTSButton(id, false);
     if (typeof toast === 'function') toast('Stopped', 'info');
     return;
   }
   
-  // Use settings-based TTS
+  // Check if card is active
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  if (!card || !card.classList.contains('active')) {
+    if (typeof toast === 'function') toast('Open card first', 'warning');
+    return;
+  }
+  
+  // Track which drop we're reading
+  currentTTSDropId = id;
   isTTSPlaying = true;
   updateTTSButton(id, true);
   
-  speakTextWithCallback(textToSpeak, function() {
-    isTTSPlaying = false;
-    updateTTSButton(id, false);
-  });
+  // Use settings-based TTS with card activity check
+  speakDropWithCheck(id, textToSpeak);
   
   if (typeof toast === 'function') toast('Reading...', 'info');
+}
+
+// Speak with periodic check that card is still active
+function speakDropWithCheck(id, text) {
+  const provider = localStorage.getItem('tts_provider') || 'browser';
+  const apiKey = localStorage.getItem('openai_tts_key');
+  const voice = localStorage.getItem('aski_voice') || 'nova';
+  
+  // Callback to run when TTS ends or is stopped
+  function onTTSEnd() {
+    isTTSPlaying = false;
+    currentTTSDropId = null;
+    updateTTSButton(id, false);
+  }
+  
+  // Check card is still active before playing
+  function checkAndPlay() {
+    const card = document.querySelector(`.card[data-id="${id}"]`);
+    if (!card || !card.classList.contains('active') || currentTTSDropId !== id) {
+      // Card is no longer active - don't play
+      stopTTS();
+      onTTSEnd();
+      return false;
+    }
+    return true;
+  }
+  
+  if (provider === 'openai' && apiKey && apiKey.startsWith('sk-')) {
+    // OpenAI TTS
+    fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: text,
+        voice: voice
+      })
+    }).then(response => {
+      if (!response.ok) throw new Error('OpenAI TTS error');
+      return response.blob();
+    }).then(blob => {
+      // Check card is still active before playing
+      if (!checkAndPlay()) return;
+      
+      const url = URL.createObjectURL(blob);
+      currentTTSAudio = new Audio(url);
+      
+      currentTTSAudio.onended = function() {
+        URL.revokeObjectURL(url);
+        currentTTSAudio = null;
+        onTTSEnd();
+      };
+      
+      // Final check before play
+      if (checkAndPlay()) {
+        currentTTSAudio.play();
+      }
+    }).catch(e => {
+      console.error('OpenAI TTS error:', e);
+      onTTSEnd();
+    });
+  } else {
+    // Browser TTS
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ru-RU';
+      
+      utterance.onend = function() {
+        onTTSEnd();
+      };
+      
+      // Check before speaking
+      if (checkAndPlay()) {
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+  }
 }
 
 function updateTTSButton(id, isPlaying) {
@@ -309,6 +400,7 @@ function stopAllTTS() {
     speechSynthesis.cancel();
   }
   isTTSPlaying = false;
+  currentTTSDropId = null;
 }
 
 // ============================================
