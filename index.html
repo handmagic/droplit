@@ -3903,8 +3903,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 // ============================================
 
 function toggleAutoDrop() {
+  console.log('[AutoDrop] Toggle called, current state:', isAutoDropEnabled());
   const enabled = !isAutoDropEnabled();
-  localStorage.setItem('droplit_autodrop', enabled);
+  console.log('[AutoDrop] Setting to:', enabled);
+  localStorage.setItem('droplit_autodrop', String(enabled));
   const toggle = document.getElementById('autoDropToggle');
   if (toggle) toggle.classList.toggle('active', enabled);
   updateAutoDropIndicator();
@@ -3912,13 +3914,16 @@ function toggleAutoDrop() {
 }
 
 function toggleAutoDropFromChat() {
+  console.log('[AutoDrop] toggleAutoDropFromChat called');
   toggleAutoDrop();
 }
 
 function updateAutoDropIndicator() {
   const indicator = document.getElementById('autoDropIndicator');
+  const rawValue = localStorage.getItem('droplit_autodrop');
+  const enabled = rawValue === 'true';
+  console.log('[AutoDrop] Update indicator - raw:', rawValue, 'enabled:', enabled);
   if (indicator) {
-    const enabled = isAutoDropEnabled();
     indicator.classList.toggle('active', enabled);
     indicator.textContent = enabled ? 'AUTODROP ON' : 'AUTODROP';
   }
