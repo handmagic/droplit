@@ -140,8 +140,7 @@ body.chat-open .header-add-btn { display: none; }
 .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
 /* Checkbox removed in v0.8.2 */
 .card-checkbox { display: none !important; }
-.select-mode .card-checkbox { display: flex !important; position: absolute; right: 10px; bottom: 10px; width: 22px; height: 22px; background: white; border: 2px solid var(--color-merge); border-radius: 50%; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: var(--color-merge); z-index: 5; }
-.select-mode .card.selected .card-checkbox { background: var(--color-merge); color: white; }
+.select-mode .card.selected .card-checkbox { display: flex !important; position: absolute; right: 10px; bottom: 10px; width: 22px; height: 22px; background: var(--color-merge); border: 2px solid var(--color-merge); border-radius: 50%; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: white; z-index: 5; }
 .card-chars { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
 .card-cat { padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; cursor: pointer; letter-spacing: 0.02em; }
 .card-cat:active { opacity: 0.8; }
