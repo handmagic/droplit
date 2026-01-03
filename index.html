@@ -22,6 +22,12 @@
   <script src="js/utils.js"></script>
   <script src="js/tts.js"></script>
   <script src="js/auth.js"></script>
+  <script>
+    // AutoDrop check - must be defined before chat.js
+    function isAutoDropEnabled() {
+      return localStorage.getItem('droplit_autodrop') === 'true';
+    }
+  </script>
   <script src="js/chat.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/photo.js"></script>
@@ -907,13 +913,6 @@
 
 <script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
-
-// ============================================
-// AUTODROP FUNCTIONS (must be defined early for chat.js)
-// ============================================
-function isAutoDropEnabled() {
-  return localStorage.getItem('droplit_autodrop') === 'true';
-}
 
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 
