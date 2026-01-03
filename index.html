@@ -1909,7 +1909,35 @@ function save(newDrop){
     toast('Storage full ('+sizeMB+'MB)! Delete old photos','error');
   }
 }
-function smartTime(i){const td=new Date().toLocaleDateString('ru-RU'),yd=new Date(Date.now()-864e5).toLocaleDateString('ru-RU');if(i.date===td)return i.time;if(i.date===yd)return'Yesterday '+i.time;const p=i.date.split('.');return p[0]+'.'+p[1]+' '+i.time;}
+function smartTime(i){
+  if(!i.date && !i.time) return '';
+  
+  const td=new Date().toLocaleDateString('ru-RU');
+  const yd=new Date(Date.now()-864e5).toLocaleDateString('ru-RU');
+  
+  // Normalize date to ru-RU format if it's ISO
+  let dateStr = i.date || '';
+  if(dateStr.includes('-') && !dateStr.includes('T')){
+    // ISO format: 2026-01-02 -> 02.01.2026
+    const [y,m,d] = dateStr.split('-');
+    dateStr = d+'.'+m+'.'+y;
+  } else if(dateStr.includes('T')){
+    // Full ISO: 2026-01-02T12:00:00
+    const dt = new Date(dateStr);
+    dateStr = dt.toLocaleDateString('ru-RU');
+  }
+  
+  const timeStr = i.time || '';
+  
+  if(dateStr===td) return timeStr;
+  if(dateStr===yd) return 'Yesterday '+timeStr;
+  
+  const p=dateStr.split('.');
+  if(p.length >= 2){
+    return p[0]+'.'+p[1]+' '+timeStr;
+  }
+  return timeStr;
+}
 
 // NEW badge for drops < 15 minutes old
 function isNewDrop(i) {
