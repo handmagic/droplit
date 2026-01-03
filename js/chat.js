@@ -1977,6 +1977,22 @@ async function handleStreamingResponse(response) {
   let buffer = '';
   let createDropData = null;
   
+  // Start WebSocket streaming TTS if enabled
+  const useStreamingTTS = isAutoSpeakEnabled() && 
+                          localStorage.getItem('tts_provider') === 'elevenlabs' &&
+                          window.StreamingTTS;
+  let streamingTTSActive = false;
+  
+  if (useStreamingTTS) {
+    try {
+      streamingTTSActive = await window.StreamingTTS.start();
+      console.log('[Chat] Streaming TTS started:', streamingTTSActive);
+    } catch (e) {
+      console.error('[Chat] Streaming TTS start failed:', e);
+      streamingTTSActive = false;
+    }
+  }
+  
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -1998,6 +2014,11 @@ async function handleStreamingResponse(response) {
               fullText += parsed.content;
               textSpan.textContent = fullText;
               messagesDiv.scrollTop = messagesDiv.scrollHeight;
+              
+              // Feed to streaming TTS
+              if (streamingTTSActive) {
+                window.StreamingTTS.feedText(parsed.content);
+              }
             }
             
             // Tool started
@@ -2026,6 +2047,11 @@ async function handleStreamingResponse(response) {
               fullText += parsed.delta.text;
               textSpan.textContent = fullText;
               messagesDiv.scrollTop = messagesDiv.scrollHeight;
+              
+              // Feed to streaming TTS
+              if (streamingTTSActive) {
+                window.StreamingTTS.feedText(parsed.delta.text);
+              }
             }
             
           } catch (e) {}
@@ -2064,7 +2090,16 @@ async function handleStreamingResponse(response) {
   
   if (isAutoDropEnabled()) autoSaveMessageAsDrop(fullText, false);
   
-  if (isAutoSpeakEnabled() && fullText) {
+  // Handle TTS
+  if (streamingTTSActive) {
+    // Finish streaming TTS - audio is already playing
+    window.StreamingTTS.finish();
+    // Set callback for when audio ends
+    window.StreamingTTS.onEnd(() => {
+      unlockVoiceMode();
+    });
+  } else if (isAutoSpeakEnabled() && fullText) {
+    // Fallback to regular TTS (OpenAI, browser, or ElevenLabs REST)
     try {
       speakText(fullText);
     } catch (e) {
