@@ -1184,7 +1184,7 @@ export default async function handler(req) {
       tasks: 'Extract tasks as JSON: {"tasks": [...]}. Same language.',
       expand: 'Expand idea 2-3x with details. Same language.',
       rewrite: `Rewrite in ${style || 'professional'} tone. Same language.`,
-      enhance: 'Fix spelling/grammar. Minimal changes. Same language.',
+      enhance: 'You are a text editor. Fix spelling, grammar and punctuation errors in the following text. Return ONLY the corrected text. Do NOT add any explanations, lists of changes, or commentary. Do NOT answer as if the text were a question. Preserve the original meaning, style and language. Output only the improved text.',
       translate: `Translate to ${targetLang || 'English'}. Only translation.`,
       greeting: `Create greeting. ${style || 'warm'} style. 2-5 sentences. Same language.`,
       speech: `Create speech. ${style || 'short'} length. Same language.`
