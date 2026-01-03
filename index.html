@@ -2002,9 +2002,12 @@ function render(){
       // Card with full width, avatar inside
       h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
-      // Row 1: Avatar + Name + Time
-      h+='<div class="card-row1">';
+      // Header: Avatar left, two rows right
+      h+='<div class="card-header">';
       h+='<div class="card-avatar '+creator+'">'+avatarSvg+'</div>';
+      h+='<div class="card-header-content">';
+      // Row 1: Name + Time
+      h+='<div class="card-row1">';
       h+='<span class="card-creator">'+creatorName+'</span>';
       h+='<span class="card-time">'+smartTime(i)+'</span>';
       h+='</div>';
@@ -2027,6 +2030,8 @@ function render(){
       }
       if(isNewDrop(i))h+='<span class="new-badge">NEW</span>';
       h+='</div>';
+      h+='</div>'; // close card-header-content
+      h+='</div>'; // close card-header
       // Audio player
       if(i.category==='audio'&&i.audioData){
         h+='<div class="card-audio-player" data-audio-id="'+i.id+'">';
