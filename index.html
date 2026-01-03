@@ -501,7 +501,7 @@
           <div class="ask-ai-subtitle" id="askiSubtitle">AI Assistant</div>
         </div>
       </div>
-      <button class="pill-s ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()" style="display: none;">AUTODROP</button>
+      <button class="pill-s ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()">AUTODROP</button>
       <button class="ask-ai-close" onclick="closeAskAI()">×</button>
     </div>
     <div class="ask-ai-messages" id="askAIMessages">
@@ -907,6 +907,14 @@
 
 <script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
+
+// ============================================
+// AUTODROP FUNCTIONS (must be defined early for chat.js)
+// ============================================
+function isAutoDropEnabled() {
+  return localStorage.getItem('droplit_autodrop') === 'true';
+}
+
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 
 // ============================================
@@ -3893,10 +3901,6 @@ document.addEventListener('DOMContentLoaded',()=>{
 // AUTODROP FUNCTIONS
 // ============================================
 
-function isAutoDropEnabled() {
-  return localStorage.getItem('droplit_autodrop') === 'true';
-}
-
 function toggleAutoDrop() {
   const enabled = !isAutoDropEnabled();
   localStorage.setItem('droplit_autodrop', enabled);
@@ -3913,8 +3917,9 @@ function toggleAutoDropFromChat() {
 function updateAutoDropIndicator() {
   const indicator = document.getElementById('autoDropIndicator');
   if (indicator) {
-    indicator.style.display = isAutoDropEnabled() ? 'flex' : 'none';
-    indicator.classList.toggle('active', isAutoDropEnabled());
+    const enabled = isAutoDropEnabled();
+    indicator.classList.toggle('active', enabled);
+    indicator.textContent = enabled ? 'AUTODROP ON' : 'AUTODROP';
   }
 }
 
