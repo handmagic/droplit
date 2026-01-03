@@ -212,6 +212,28 @@ function filterMemory(memory) {
 }
 
 // ============================================
+// DEDUPLICATION - Remove duplicate drops from context
+// Prevents ASKI from seeing the same message twice
+// ============================================
+function deduplicateDrops(drops) {
+  if (!drops?.length) return [];
+  const seen = new Set();
+  return drops.filter(drop => {
+    const text = drop.text || drop.content || '';
+    // Normalize: lowercase, trim, remove extra spaces
+    const normalized = text.trim().toLowerCase().replace(/\s+/g, ' ');
+    // Skip empty or very short
+    if (normalized.length < 5) return true;
+    // Check for duplicates
+    if (seen.has(normalized)) {
+      return false; // Duplicate - skip
+    }
+    seen.add(normalized);
+    return true;
+  });
+}
+
+// ============================================
 // FETCH CORE CONTEXT (with DEBUG)
 // ============================================
 async function fetchCoreContext(userId, queryText = '') {
@@ -522,12 +544,16 @@ User confirmed they want details. Now give comprehensive answer:
   }
 
   // Semantic search results (most relevant notes for this query)
+  // DEDUPLICATE to prevent seeing same message twice
   if (coreContext?.semanticDrops?.length) {
-    basePrompt += '\n### MOST RELEVANT NOTES (semantic match):\n';
-    coreContext.semanticDrops.slice(0, 5).forEach(d => {
-      const similarity = (d.similarity * 100).toFixed(0);
-      basePrompt += `- [${similarity}% match] ${d.content?.slice(0, 200)}${d.content?.length > 200 ? '...' : ''}\n`;
-    });
+    const dedupedSemanticDrops = deduplicateDrops(coreContext.semanticDrops);
+    if (dedupedSemanticDrops.length) {
+      basePrompt += '\n### MOST RELEVANT NOTES (semantic match):\n';
+      dedupedSemanticDrops.slice(0, 5).forEach(d => {
+        const similarity = (d.similarity * 100).toFixed(0);
+        basePrompt += `- [${similarity}% match] ${d.content?.slice(0, 200)}${d.content?.length > 200 ? '...' : ''}\n`;
+      });
+    }
   }
 
   if (dropContext) {
@@ -1028,23 +1054,28 @@ export default async function handler(req) {
 
     // === CHAT ACTION ===
     if (action === 'chat') {
-      // Format context
+      // Format context with DEDUPLICATION
       let formattedContext = null;
       if (dropContext) {
         const parts = [];
-        if (dropContext.relevant?.length) {
+        // Deduplicate relevant drops
+        const relevantDeduped = deduplicateDrops(dropContext.relevant || []);
+        if (relevantDeduped.length) {
           parts.push('### RELEVANT:');
-          dropContext.relevant.forEach(d => parts.push(`- [${d.category}] ${d.text}`));
+          relevantDeduped.forEach(d => parts.push(`- [${d.category}] ${d.text}`));
         }
-        if (dropContext.recent?.length) {
+        // Deduplicate recent drops
+        const recentDeduped = deduplicateDrops(dropContext.recent || []);
+        if (recentDeduped.length) {
           parts.push('\n### RECENT:');
-          dropContext.recent.slice(0, 10).forEach(d => parts.push(`- [${d.category}] ${d.text}`));
+          recentDeduped.slice(0, 10).forEach(d => parts.push(`- [${d.category}] ${d.text}`));
         }
         if (parts.length) formattedContext = parts.join('\n');
       }
       
       if (!formattedContext && syntriseContext?.length) {
-        formattedContext = syntriseContext.map(d => `[${d.category || 'inbox'}] ${d.content}`).join('\n');
+        const dedupedSyntrise = deduplicateDrops(syntriseContext);
+        formattedContext = dedupedSyntrise.map(d => `[${d.category || 'inbox'}] ${d.content}`).join('\n');
       }
       
       // Fetch CORE memory + semantic search
