@@ -986,7 +986,7 @@ function enterSelectMode(id){
 }
 
 function cancelSelect(){
-  // Fast: remove selected class from all cards before clearing array
+  // Remove selected class from tracked cards
   selectedIds.forEach(id => {
     const card = document.querySelector('[data-id="'+id+'"]');
     if(card) {
@@ -994,6 +994,12 @@ function cancelSelect(){
       const checkbox = card.querySelector('.card-checkbox');
       if(checkbox) checkbox.textContent = '';
     }
+  });
+  // Fallback: remove .selected from ANY card that might have it
+  document.querySelectorAll('.card.selected').forEach(card => {
+    card.classList.remove('selected');
+    const checkbox = card.querySelector('.card-checkbox');
+    if(checkbox) checkbox.textContent = '';
   });
   selectMode=false;
   selectedIds=[];
@@ -1016,23 +1022,36 @@ function deleteSelected(){
 }
 
 function toggleSelect(id){
+  const card = document.querySelector('[data-id="'+id+'"]');
+  
   if(selectedIds.includes(id)){
+    // DESELECT: First remove visual, then update array
+    if(card) {
+      card.classList.remove('selected');
+      const checkbox = card.querySelector('.card-checkbox');
+      if(checkbox) checkbox.textContent = '';
+    }
     selectedIds=selectedIds.filter(x=>x!==id);
     if(selectedIds.length===0) {
       cancelSelect();
-      return; // Already handled by cancelSelect
+      // Extra safety: ensure no orphan selected cards
+      document.querySelectorAll('.card.selected').forEach(c => {
+        c.classList.remove('selected');
+        const cb = c.querySelector('.card-checkbox');
+        if(cb) cb.textContent = '';
+      });
+      return;
     }
+    updateSelectBar();
   } else {
+    // SELECT: Add to array and update visual
     selectedIds.push(id);
-  }
-  updateSelectBar();
-  // Fast targeted update instead of full render()
-  const card = document.querySelector('[data-id="'+id+'"]');
-  if(card) {
-    const isNowSelected = selectedIds.includes(id);
-    card.classList.toggle('selected', isNowSelected);
-    const checkbox = card.querySelector('.card-checkbox');
-    if(checkbox) checkbox.textContent = isNowSelected ? 'V' : '';
+    updateSelectBar();
+    if(card) {
+      card.classList.add('selected');
+      const checkbox = card.querySelector('.card-checkbox');
+      if(checkbox) checkbox.textContent = 'V';
+    }
   }
 }
 
