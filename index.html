@@ -3889,6 +3889,65 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.body.classList.add('font-' + savedFontSize);
 });
 
+// ============================================
+// AUTODROP FUNCTIONS
+// ============================================
+
+function isAutoDropEnabled() {
+  return localStorage.getItem('droplit_autodrop') === 'true';
+}
+
+function toggleAutoDrop() {
+  const enabled = !isAutoDropEnabled();
+  localStorage.setItem('droplit_autodrop', enabled);
+  const toggle = document.getElementById('autoDropToggle');
+  if (toggle) toggle.classList.toggle('active', enabled);
+  updateAutoDropIndicator();
+  toast(enabled ? 'AutoDrop enabled' : 'AutoDrop disabled');
+}
+
+function toggleAutoDropFromChat() {
+  toggleAutoDrop();
+}
+
+function updateAutoDropIndicator() {
+  const indicator = document.getElementById('autoDropIndicator');
+  if (indicator) {
+    indicator.style.display = isAutoDropEnabled() ? 'flex' : 'none';
+    indicator.classList.toggle('active', isAutoDropEnabled());
+  }
+}
+
+function autoSaveMessageAsDrop(text, isUser) {
+  if (!text || !text.trim()) return;
+  
+  const drop = {
+    id: Date.now(),
+    text: text,
+    category: 'inbox',
+    timestamp: new Date().toISOString(),
+    date: new Date().toLocaleDateString('ru-RU'),
+    time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+    isMedia: false,
+    creator: isUser ? 'user' : 'aski'
+  };
+  
+  ideas.unshift(drop);
+  save(drop);
+  
+  // Don't call render() to avoid UI disruption during chat
+  counts();
+  
+  console.log('AutoDrop saved:', isUser ? 'User' : 'ASKI', text.substring(0, 30) + '...');
+}
+
+// Initialize AutoDrop toggle on load
+document.addEventListener('DOMContentLoaded', function() {
+  const toggle = document.getElementById('autoDropToggle');
+  if (toggle) toggle.classList.toggle('active', isAutoDropEnabled());
+  updateAutoDropIndicator();
+});
+
 </script>
 </body>
 </html>
