@@ -123,14 +123,16 @@ body.chat-open .header-add-btn { display: none; }
 
 /* Card */
 .card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 10px 12px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 6px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-.card-row1 { display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; margin-bottom: 4px; }
-.card-row2 { display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
-.card-avatar { width: 28px; height: 28px; min-width: 28px; border-radius: 50%; background: var(--color-bg-soft); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.card-avatar svg { width: 14px; height: 14px; color: var(--color-text-soft); }
+.card-header { display: flex; gap: 10px; margin-bottom: 8px; }
+.card-avatar { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; background: var(--color-bg-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; }
+.card-avatar svg { width: 22px; height: 22px; color: var(--color-text-soft); }
 .card-avatar.aski { background: linear-gradient(135deg, #8B5CF6, #6366F1); }
 .card-avatar.aski svg { color: white; }
 .card-avatar.system { background: var(--color-bg-soft); }
 .card-avatar.system svg { color: var(--color-text-muted); }
+.card-header-content { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.card-row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.card-row2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .card-creator { font-size: 0.8rem; font-weight: 700; color: var(--color-text); }
 .card-time { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; margin-left: auto; }
 .card.active { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
@@ -745,12 +747,9 @@ body.font-normal .card-time, body.font-normal .card-chars { font-size: 0.75rem; 
 body.font-large .card-time, body.font-large .card-chars { font-size: 0.85rem; }
 
 /* Card header */
-body.font-small .card-row1 { font-size: 0.75rem; }
-body.font-normal .card-row1 { font-size: 0.8rem; }
-body.font-large .card-row1 { font-size: 0.9rem; }
-body.font-small .card-row2 { font-size: 0.75rem; }
-body.font-normal .card-row2 { font-size: 0.8rem; }
-body.font-large .card-row2 { font-size: 0.9rem; }
+body.font-small .card-header { font-size: 0.75rem; }
+body.font-normal .card-header { font-size: 0.8rem; }
+body.font-large .card-header { font-size: 0.9rem; }
 
 /* Category badges */
 body.font-small .card-cat { font-size: 0.65rem; padding: 3px 8px; }
