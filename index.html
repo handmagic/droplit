@@ -975,17 +975,32 @@ function enterSelectMode(id){
   document.getElementById('fabRecord').style.display='none';
   document.getElementById('fabCamera').style.display='none';
   updateSelectBar();
-  render();
+  // Fast targeted update instead of render()
+  const card = document.querySelector('[data-id="'+id+'"]');
+  if(card) {
+    card.classList.add('selected');
+    card.classList.remove('active');
+    const checkbox = card.querySelector('.card-checkbox');
+    if(checkbox) checkbox.textContent = 'V';
+  }
 }
 
 function cancelSelect(){
+  // Fast: remove selected class from all cards before clearing array
+  selectedIds.forEach(id => {
+    const card = document.querySelector('[data-id="'+id+'"]');
+    if(card) {
+      card.classList.remove('selected');
+      const checkbox = card.querySelector('.card-checkbox');
+      if(checkbox) checkbox.textContent = '';
+    }
+  });
   selectMode=false;
   selectedIds=[];
   document.body.classList.remove('select-mode');
   document.getElementById('selectBar').classList.remove('show');
   document.getElementById('fabRecord').style.display='flex';
   document.getElementById('fabCamera').style.display='flex';
-  render();
 }
 
 function deleteSelected(){
@@ -1003,7 +1018,10 @@ function deleteSelected(){
 function toggleSelect(id){
   if(selectedIds.includes(id)){
     selectedIds=selectedIds.filter(x=>x!==id);
-    if(selectedIds.length===0) cancelSelect();
+    if(selectedIds.length===0) {
+      cancelSelect();
+      return; // Already handled by cancelSelect
+    }
   } else {
     selectedIds.push(id);
   }
