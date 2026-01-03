@@ -1704,7 +1704,7 @@ function setElevenLabsVoice(voice) {
 
 // Preview ElevenLabs voice
 async function previewElevenLabsVoice(voice) {
-  // Перечитываем ключ из localStorage
+  // Re-read key from localStorage
   elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
   
   if (!elevenlabsApiKey) {
@@ -1712,8 +1712,15 @@ async function previewElevenLabsVoice(voice) {
     return;
   }
   
-  // Получаем voice ID из словаря
-  const voiceId = ELEVENLABS_VOICES[voice];
+  // Debug: log key info (not the key itself for security)
+  console.log('ElevenLabs key length:', elevenlabsApiKey.length);
+  console.log('ElevenLabs key starts with:', elevenlabsApiKey.substring(0, 4) + '...');
+  
+  // Use stored voiceId (already saved by selectElevenLabsVoice)
+  // Fallback to dictionary for preset voices
+  const voiceId = elevenlabsVoiceId || ELEVENLABS_VOICES[voice];
+  
+  console.log('Using voice:', voice, 'voiceId:', voiceId);
   
   if (!voiceId) {
     toast('Unknown voice: ' + voice);
@@ -1739,7 +1746,16 @@ async function previewElevenLabsVoice(voice) {
     });
     
     if (!response.ok) {
-      toast('API error: ' + response.status);
+      const errorText = await response.text();
+      console.error('ElevenLabs error:', response.status, errorText);
+      
+      if (response.status === 401) {
+        toast('Invalid API key - check in settings');
+      } else if (response.status === 429) {
+        toast('Rate limit - try again later');
+      } else {
+        toast('API error: ' + response.status);
+      }
       return;
     }
     
@@ -1753,6 +1769,7 @@ async function previewElevenLabsVoice(voice) {
     }
     
   } catch (error) {
+    console.error('ElevenLabs preview error:', error);
     toast('Error: ' + error.message);
   }
 }
@@ -1946,7 +1963,14 @@ async function handleStreamingResponse(response) {
   const bubble = msgDiv.querySelector('.ask-ai-bubble');
   const actionsDiv = document.createElement('div');
   actionsDiv.className = 'ask-ai-actions';
-  actionsDiv.innerHTML = '<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button><button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button><button class="ask-ai-action-btn" onclick="createDropFromAI(this)">Create Drop</button>';
+  
+  // Check AutoDrop - show Saved button if enabled
+  const autoDropEnabled = typeof isAutoDropEnabled === 'function' && isAutoDropEnabled();
+  const createDropBtn = autoDropEnabled 
+    ? '<button class="ask-ai-action-btn created autodrop-saved"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Saved</button>'
+    : '<button class="ask-ai-action-btn" onclick="createDropFromAI(this)">Create Drop</button>';
+  
+  actionsDiv.innerHTML = '<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button><button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button>' + createDropBtn;
   bubble.after(actionsDiv);
   
   askAIMessages.push({ text: fullText, isUser: false });
