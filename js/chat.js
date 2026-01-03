@@ -1800,6 +1800,45 @@ function saveElevenLabsKey() {
   }
 }
 
+// Direct test of ElevenLabs API key - call from console: testElevenLabsKey()
+async function testElevenLabsKey() {
+  const key = localStorage.getItem('elevenlabs_tts_key');
+  
+  console.log('=== ElevenLabs Key Test ===');
+  console.log('Key from localStorage:', key ? `"${key.substring(0,8)}..." (${key.length} chars)` : 'NULL');
+  
+  if (!key) {
+    alert('No key in localStorage!');
+    return;
+  }
+  
+  // Test 1: Get user info (simplest API call)
+  try {
+    console.log('Testing /v1/user endpoint...');
+    const res = await fetch('https://api.elevenlabs.io/v1/user', {
+      headers: { 'xi-api-key': key }
+    });
+    
+    console.log('Response status:', res.status);
+    
+    if (res.ok) {
+      const data = await res.json();
+      console.log('SUCCESS! User:', data);
+      alert('Key works! User: ' + (data.subscription?.tier || 'unknown tier'));
+    } else {
+      const error = await res.text();
+      console.log('Error response:', error);
+      alert('Key INVALID! Status: ' + res.status + '\n' + error);
+    }
+  } catch (e) {
+    console.error('Network error:', e);
+    alert('Network error: ' + e.message);
+  }
+}
+
+// Expose for console testing
+window.testElevenLabsKey = testElevenLabsKey;
+
 // Toggle API key visibility (supports both providers)
 function toggleApiKeyVisibility(provider = 'openai') {
   if (provider === 'elevenlabs') {
