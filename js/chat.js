@@ -2092,12 +2092,13 @@ async function handleStreamingResponse(response) {
   
   // Handle TTS
   if (streamingTTSActive) {
-    // Finish streaming TTS - audio is already playing
-    window.StreamingTTS.finish();
-    // Set callback for when audio ends
+    // Set callback BEFORE finishing - prevents race condition
     window.StreamingTTS.onEnd(() => {
+      console.log('[Chat] Streaming TTS ended, unlocking voice mode');
       unlockVoiceMode();
     });
+    // Now finish streaming TTS - audio continues playing
+    window.StreamingTTS.finish();
   } else if (isAutoSpeakEnabled() && fullText) {
     // Fallback to regular TTS (OpenAI, browser, or ElevenLabs REST)
     try {
