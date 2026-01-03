@@ -1704,53 +1704,60 @@ function setElevenLabsVoice(voice) {
 
 // Preview ElevenLabs voice
 async function previewElevenLabsVoice(voice) {
-  // Re-read key from localStorage
-  elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
+  // Get key DIRECTLY from localStorage (exactly like working test)
+  const key = localStorage.getItem('elevenlabs_tts_key');
   
-  if (!elevenlabsApiKey) {
+  if (!key) {
     toast('Enter ElevenLabs API key');
     return;
   }
   
-  // Debug: log key info (not the key itself for security)
-  console.log('ElevenLabs key length:', elevenlabsApiKey.length);
-  console.log('ElevenLabs key starts with:', elevenlabsApiKey.substring(0, 4) + '...');
+  // Debug - show exactly what we're sending
+  console.log('=== Preview Debug ===');
+  console.log('Key length:', key.length);
+  console.log('Key first 8 chars:', key.substring(0, 8));
+  console.log('Key last 4 chars:', key.substring(key.length - 4));
   
-  // Use stored voiceId (already saved by selectElevenLabsVoice)
-  // Fallback to dictionary for preset voices
+  // Use stored voiceId
   const voiceId = elevenlabsVoiceId || ELEVENLABS_VOICES[voice];
-  
-  console.log('Using voice:', voice, 'voiceId:', voiceId);
+  console.log('Voice:', voice, 'ID:', voiceId);
   
   if (!voiceId) {
     toast('Unknown voice: ' + voice);
     return;
   }
   
-  // ENGLISH text to avoid encoding issues
   const text = 'Hello! This is ' + voice + ' voice test.';
   
   toast('Loading...');
   
   try {
+    // EXACTLY like working test file
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
-        'xi-api-key': elevenlabsApiKey,
-        'Content-Type': 'application/json'
+        'xi-api-key': key,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
       },
       body: JSON.stringify({
         text: text,
-        model_id: 'eleven_multilingual_v2'
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75
+        }
       })
     });
+    
+    console.log('Response status:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
       console.error('ElevenLabs error:', response.status, errorText);
       
       if (response.status === 401) {
-        toast('Invalid API key - check in settings');
+        toast('Invalid API key');
       } else if (response.status === 429) {
         toast('Rate limit - try again later');
       } else {
@@ -1760,6 +1767,7 @@ async function previewElevenLabsVoice(voice) {
     }
     
     const blob = await response.blob();
+    console.log('Blob size:', blob.size);
     toast('Playing...');
     
     // Play using AudioContext (works on Android!)
@@ -1824,7 +1832,38 @@ async function testElevenLabsKey() {
     if (res.ok) {
       const data = await res.json();
       console.log('SUCCESS! User:', data);
-      alert('Key works! User: ' + (data.subscription?.tier || 'unknown tier'));
+      const tier = data.subscription?.tier || 'unknown';
+      
+      // Test 2: Try TTS with simple model
+      toast('Key OK! Testing TTS...');
+      
+      try {
+        // Use default voice and simpler model for Free tier
+        const ttsRes = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
+          method: 'POST',
+          headers: {
+            'xi-api-key': key,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            text: 'Hello, this is a test.',
+            model_id: 'eleven_monolingual_v1'
+          })
+        });
+        
+        console.log('TTS response:', ttsRes.status);
+        
+        if (ttsRes.ok) {
+          alert('Key works! Tier: ' + tier + '\nTTS also works!');
+        } else {
+          const ttsError = await ttsRes.text();
+          console.log('TTS error:', ttsError);
+          alert('Key works (Tier: ' + tier + ')\nBut TTS failed: ' + ttsRes.status + '\n' + ttsError.substring(0, 100));
+        }
+      } catch (ttsErr) {
+        alert('Key works (Tier: ' + tier + ')\nTTS network error: ' + ttsErr.message);
+      }
+      
     } else {
       const error = await res.text();
       console.log('Error response:', error);
