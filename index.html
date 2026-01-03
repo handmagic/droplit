@@ -1991,8 +1991,17 @@ function render(){
       const isSelected=selectedIds.includes(i.id);
       const cc=i.isMedia?0:(i.text?.length||0);
       const isTruncated=cc>1000; /* ~20 lines */
+      // Determine creator type and avatar
+      const creator = i.creator || 'user';
+      const avatarSvg = creator === 'aski' 
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>'
+        : creator === 'system'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
       h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
       h+='<div class="card-checkbox">'+(isSelected?'V':'')+'</div>';
+      h+='<div class="card-avatar '+creator+'">'+avatarSvg+'</div>';
+      h+='<div class="card-content">';
       h+='<div class="card-head"><span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
       // Markers (right after category)
       if(i.markers&&i.markers.length){
@@ -2083,7 +2092,8 @@ function render(){
         h+='<button class="marker-btn'+(isMarked?' active':'')+'" onclick="toggleMarker('+i.id+',\''+mk+'\',event)">'+MARKERS[mk]+'</button>';
       }
       h+='</div>';
-      h+='</div>';
+      h+='</div>'; // close card-content
+      h+='</div>'; // close card
     }
   }
   wrap.innerHTML=h;
