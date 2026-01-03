@@ -133,7 +133,7 @@ body.chat-open .header-add-btn { display: none; }
 .card-header-content { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; height: 44px; }
 .card-row1 { display: flex; align-items: center; gap: 8px; }
 .card-row2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.card-creator { font-size: 0.7rem; font-weight: 700; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+.card-creator { font-size: 0.7rem; font-weight: 500; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
 .card-time { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; margin-left: auto; white-space: nowrap; }
 .card.active { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
 .card.editing { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
