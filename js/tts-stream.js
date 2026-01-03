@@ -1,7 +1,8 @@
 // ============================================
-// DROPLIT TTS STREAM v1.0
+// DROPLIT TTS STREAM v1.1
 // ElevenLabs WebSocket Streaming
 // Real-time text-to-speech with minimal latency
+// Fixed: speed control, chunk scheduling, end detection
 // ============================================
 
 class TTSStream {
@@ -20,6 +21,9 @@ class TTSStream {
     // Audio playback state
     this.nextStartTime = 0;
     this.scheduledBuffers = [];
+    this.audioEndedCount = 0;
+    this.totalChunksReceived = 0;
+    this.isFinalReceived = false;
   }
   
   // Initialize with API key and voice
@@ -31,6 +35,14 @@ class TTSStream {
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
+    
+    // Reset state
+    this.audioEndedCount = 0;
+    this.totalChunksReceived = 0;
+    this.isFinalReceived = false;
+    this.scheduledBuffers = [];
+    this.nextStartTime = 0;
+    this.isPlaying = false;
     
     console.log('[TTS Stream] Initialized with voice:', this.voiceId);
   }
@@ -47,7 +59,8 @@ class TTSStream {
     }
     
     return new Promise((resolve, reject) => {
-      const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${this.voiceId}/stream-input?model_id=eleven_multilingual_v2`;
+      // Use turbo model for better quality with good speed
+      const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${this.voiceId}/stream-input?model_id=eleven_turbo_v2_5`;
       
       console.log('[TTS Stream] Connecting to:', wsUrl);
       
@@ -60,8 +73,15 @@ class TTSStream {
         const bosMessage = {
           text: ' ',
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75
+            stability: 0.6,
+            similarity_boost: 0.75,
+            speed: 0.85  // Slow down for clarity (0.7-1.0 range)
+          },
+          generation_config: {
+            // Require more text before generating - better quality
+            // Default is [120, 160, 250, 290]
+            // Increasing values = more text buffered = better quality but more latency
+            chunk_length_schedule: [150, 200, 280, 350]
           },
           xi_api_key: this.apiKey
         };
@@ -76,13 +96,17 @@ class TTSStream {
           const data = JSON.parse(event.data);
           
           if (data.audio) {
+            this.totalChunksReceived++;
+            console.log('[TTS Stream] Audio chunk received:', this.totalChunksReceived);
             // Decode base64 audio and queue for playback
             const audioData = this.base64ToArrayBuffer(data.audio);
             await this.queueAudio(audioData);
           }
           
           if (data.isFinal) {
-            console.log('[TTS Stream] Received final chunk');
+            console.log('[TTS Stream] Received final marker');
+            this.isFinalReceived = true;
+            this.checkPlaybackComplete();
           }
           
           if (data.error) {
@@ -105,7 +129,6 @@ class TTSStream {
       this.ws.onclose = (event) => {
         console.log('[TTS Stream] WebSocket closed:', event.code, event.reason);
         this.isConnected = false;
-        if (this.onEnd) this.onEnd();
       };
     });
   }
@@ -121,7 +144,7 @@ class TTSStream {
       return false;
     }
     
-    console.log('[TTS Stream] Sending text:', text.substring(0, 50) + '...');
+    console.log('[TTS Stream] Sending text:', text.substring(0, 60) + (text.length > 60 ? '...' : ''));
     
     const message = {
       text: text,
@@ -140,12 +163,13 @@ class TTSStream {
     
     console.log('[TTS Stream] Flushing (EOS)');
     
-    // Send EOS (End of Stream) message
-    const eosMessage = {
-      text: ''
+    // Send flush to force generation of remaining text
+    const flushMessage = {
+      text: '',
+      flush: true
     };
     
-    this.ws.send(JSON.stringify(eosMessage));
+    this.ws.send(JSON.stringify(flushMessage));
   }
   
   // Close connection
@@ -156,7 +180,6 @@ class TTSStream {
       this.ws = null;
     }
     this.isConnected = false;
-    this.stopPlayback();
   }
   
   // Convert base64 to ArrayBuffer
@@ -217,14 +240,38 @@ class TTSStream {
       if (index > -1) {
         this.scheduledBuffers.splice(index, 1);
       }
+      this.audioEndedCount++;
+      console.log('[TTS Stream] Chunk ended:', this.audioEndedCount, '/', this.totalChunksReceived);
       
       // Check if all playback finished
-      if (this.scheduledBuffers.length === 0 && !this.isConnected) {
-        this.isPlaying = false;
-        console.log('[TTS Stream] Audio playback ended');
-        if (this.onEnd) this.onEnd();
-      }
+      this.checkPlaybackComplete();
     };
+  }
+  
+  // Check if all audio has finished playing
+  checkPlaybackComplete() {
+    console.log('[TTS Stream] Check complete:', {
+      isFinal: this.isFinalReceived,
+      scheduled: this.scheduledBuffers.length,
+      ended: this.audioEndedCount,
+      total: this.totalChunksReceived
+    });
+    
+    if (this.isFinalReceived && 
+        this.scheduledBuffers.length === 0 && 
+        this.audioEndedCount >= this.totalChunksReceived &&
+        this.totalChunksReceived > 0) {
+      
+      console.log('[TTS Stream] *** All audio playback completed ***');
+      this.isPlaying = false;
+      
+      // Disconnect WebSocket
+      this.disconnect();
+      
+      if (this.onEnd) {
+        this.onEnd();
+      }
+    }
   }
   
   // Stop all playback
@@ -242,12 +289,16 @@ class TTSStream {
     this.scheduledBuffers = [];
     this.nextStartTime = 0;
     this.isPlaying = false;
+    this.isFinalReceived = true; // Prevent onEnd from firing again
   }
   
   // Full stop - disconnect and stop audio
   stop() {
-    this.disconnect();
     this.stopPlayback();
+    this.disconnect();
+    if (this.onEnd) {
+      this.onEnd();
+    }
   }
 }
 
@@ -260,9 +311,12 @@ class StreamingTTSHelper {
   constructor() {
     this.ttsStream = new TTSStream();
     this.buffer = '';
+    // Sentence endings including Russian
     this.sentenceEnders = /[.!?。！？\n]/;
-    this.minChunkLength = 20; // Minimum chars before sending
+    // Minimum chars before sending - larger = better quality
+    this.minChunkLength = 80;
     this.isActive = false;
+    this.endCallback = null;
   }
   
   // Start streaming session
@@ -294,13 +348,16 @@ class StreamingTTSHelper {
     
     this.buffer += text;
     
-    // Check if we have a complete sentence or enough text
-    const lastChar = this.buffer.trim().slice(-1);
+    // Check if we have a complete sentence AND enough text
+    const trimmed = this.buffer.trim();
+    const lastChar = trimmed.slice(-1);
     const isSentenceEnd = this.sentenceEnders.test(lastChar);
     const isLongEnough = this.buffer.length >= this.minChunkLength;
     
-    if (isSentenceEnd || (isLongEnough && this.buffer.includes(' '))) {
-      // Send buffer to TTS
+    // Only send when we have a complete sentence with good length
+    // This ensures better audio quality and natural speech
+    if (isSentenceEnd && isLongEnough) {
+      console.log('[Streaming TTS] Sending buffer:', this.buffer.length, 'chars');
       this.ttsStream.sendText(this.buffer);
       this.buffer = '';
     }
@@ -309,6 +366,8 @@ class StreamingTTSHelper {
   // Finish streaming - send remaining buffer
   finish() {
     if (!this.isActive) return;
+    
+    console.log('[Streaming TTS] Finishing, remaining buffer:', this.buffer.length, 'chars');
     
     // Send any remaining text
     if (this.buffer.trim()) {
@@ -320,7 +379,7 @@ class StreamingTTSHelper {
     this.ttsStream.flush();
     this.isActive = false;
     
-    console.log('[Streaming TTS] Session finished');
+    console.log('[Streaming TTS] Session finished, waiting for audio to complete');
   }
   
   // Cancel streaming
@@ -337,7 +396,13 @@ class StreamingTTSHelper {
   }
   
   onEnd(callback) {
-    this.ttsStream.onEnd = callback;
+    this.endCallback = callback;
+    this.ttsStream.onEnd = () => {
+      console.log('[Streaming TTS] *** onEnd callback fired ***');
+      if (this.endCallback) {
+        this.endCallback();
+      }
+    };
   }
   
   onError(callback) {
@@ -354,4 +419,4 @@ const streamingTTS = new StreamingTTSHelper();
 window.StreamingTTS = streamingTTS;
 window.TTSStream = TTSStream;
 
-console.log('[TTS Stream] Module loaded');
+console.log('[TTS Stream] Module v1.1 loaded');
