@@ -128,13 +128,9 @@ body.chat-open .header-add-btn { display: none; }
 .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
 /* Checkbox removed in v0.8.2 */
 .card-checkbox { display: none !important; }
-.card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-.card-time { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; cursor: pointer; }
-.card-time:active { opacity: 0.6; }
-.card-time.time-drift { color: #EF4444; }
-.card-type { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
+.card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .card-chars { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; }
-.card-head-spacer { flex: 1; }
+.card-time { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; margin-left: auto; }
 .card-cat { padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; cursor: pointer; letter-spacing: 0.02em; }
 .card-cat:active { opacity: 0.8; }
 .card-cat.tasks { background: var(--cat-tasks-bg); color: var(--cat-tasks-text); }
@@ -734,9 +730,9 @@ body.font-normal .card-notes { font-size: 0.85rem; }
 body.font-large .card-notes { font-size: 1rem; }
 
 /* Card meta (time, chars) */
-body.font-small .card-time, body.font-small .card-chars, body.font-small .card-type { font-size: 0.7rem; }
-body.font-normal .card-time, body.font-normal .card-chars, body.font-normal .card-type { font-size: 0.75rem; }
-body.font-large .card-time, body.font-large .card-chars, body.font-large .card-type { font-size: 0.85rem; }
+body.font-small .card-time, body.font-small .card-chars { font-size: 0.7rem; }
+body.font-normal .card-time, body.font-normal .card-chars { font-size: 0.75rem; }
+body.font-large .card-time, body.font-large .card-chars { font-size: 0.85rem; }
 
 /* Card header */
 body.font-small .card-head { font-size: 0.75rem; }
@@ -1154,13 +1150,3 @@ body.font-large .balance-value { font-size: 2rem; }
 	50% { opacity: 0.3; }
 	}
 	.streaming-indicator.tool-active { width: auto; height: auto; background: rgba(139,92,246,0.15); color: #8B5CF6; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; animation: none; margin-left: 8px; font-weight: 500; }
-
-/* Time Info Modal (v0.9.64) */
-.time-info-modal { max-width: 320px; }
-.time-info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-border); }
-.time-info-row:last-of-type { border-bottom: none; }
-.time-info-label { font-size: 0.85rem; color: var(--color-text-muted); }
-.time-info-value { font-size: 0.85rem; font-weight: 600; color: var(--color-text); }
-.time-info-value.drift-warning { color: #EF4444; }
-.time-info-warning { margin-top: 12px; padding: 10px; background: #FEF2F2; border-radius: 8px; font-size: 0.8rem; color: #991B1B; }
-.time-info-ok { margin-top: 12px; padding: 10px; background: #ECFDF5; border-radius: 8px; font-size: 0.8rem; color: #065F46; text-align: center; }
