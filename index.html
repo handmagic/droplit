@@ -3930,13 +3930,9 @@ function updateAutoDropIndicator() {
 }
 
 function autoSaveMessageAsDrop(text, isUser) {
-  // DEBUG: Check actual localStorage value
-  const rawValue = localStorage.getItem('droplit_autodrop');
-  const isEnabled = rawValue === 'true';
+  // Check localStorage directly for reliability
+  const isEnabled = localStorage.getItem('droplit_autodrop') === 'true';
   
-  alert('AutoSave called!\nRaw localStorage: "' + rawValue + '"\nEnabled: ' + isEnabled);
-  
-  // Double-check AutoDrop is enabled
   if (!isEnabled) {
     console.log('[AutoDrop] Skipped - disabled');
     return;
