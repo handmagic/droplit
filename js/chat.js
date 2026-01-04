@@ -2069,8 +2069,8 @@ async function handleStreamingResponse(response) {
   const actionsDiv = document.createElement('div');
   actionsDiv.className = 'ask-ai-actions';
   
-  // Check AutoDrop - show Saved button if enabled
-  const autoDropEnabled = typeof isAutoDropEnabled === 'function' && isAutoDropEnabled();
+  // Check AutoDrop directly from localStorage
+  const autoDropEnabled = localStorage.getItem('droplit_autodrop') === 'true';
   const createDropBtn = autoDropEnabled 
     ? '<button class="ask-ai-action-btn created autodrop-saved"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Saved</button>'
     : '<button class="ask-ai-action-btn" onclick="createDropFromAI(this)">Create Drop</button>';
@@ -2089,7 +2089,7 @@ async function handleStreamingResponse(response) {
     toast('Drop created by Aski', 'success');
   }
   
-  if (isAutoDropEnabled()) autoSaveMessageAsDrop(fullText, false);
+  if (localStorage.getItem('droplit_autodrop') === 'true') autoSaveMessageAsDrop(fullText, false);
   
   // Handle TTS
   if (streamingTTSActive) {
@@ -2125,7 +2125,8 @@ function addAskAIMessage(text, isUser = true) {
   if (emptyState) emptyState.style.display = 'none';
   
   const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  const autoDropEnabled = isAutoDropEnabled();
+  // Check localStorage directly for reliability
+  const autoDropEnabled = localStorage.getItem('droplit_autodrop') === 'true';
   
   const msgDiv = document.createElement('div');
   msgDiv.className = `ask-ai-message ${isUser ? 'user' : 'ai'}`;
