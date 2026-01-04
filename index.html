@@ -3906,14 +3906,7 @@ function toggleAutoDrop() {
   const currentState = localStorage.getItem('droplit_autodrop');
   const newEnabled = currentState !== 'true';
   
-  // Debug alert for mobile
-  alert('AutoDrop toggle:\nCurrent: ' + currentState + '\nSetting to: ' + newEnabled);
-  
   localStorage.setItem('droplit_autodrop', newEnabled ? 'true' : 'false');
-  
-  // Verify save
-  const savedValue = localStorage.getItem('droplit_autodrop');
-  console.log('[AutoDrop] Saved value:', savedValue);
   
   const toggle = document.getElementById('autoDropToggle');
   if (toggle) toggle.classList.toggle('active', newEnabled);
@@ -3922,7 +3915,6 @@ function toggleAutoDrop() {
 }
 
 function toggleAutoDropFromChat() {
-  alert('AutoDrop button clicked!');
   toggleAutoDrop();
 }
 
