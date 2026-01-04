@@ -1,7 +1,6 @@
 // ============================================
-// DROPLIT TTS v1.1
+// DROPLIT TTS v1.0
 // Text-to-Speech and Sound functions
-// Fixed: Stop TTS when card becomes inactive
 // ============================================
 
 // ============================================
@@ -52,7 +51,6 @@ let currentTTSUtterance = null;
 let isTTSPlaying = false;
 let currentTTSAudio = null;
 let activeSpeakBtn = null;
-let currentTTSDropId = null; // Track which drop is being read
 
 function speakAskAIMessage(btn) {
   // If this button is already playing - stop it
@@ -178,31 +176,64 @@ function speakText(text) {
 
 async function speakWithElevenLabs(text, apiKey, voiceId) {
   try {
+    console.log('[ElevenLabs] Starting TTS...');
     const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
       method: 'POST',
       headers: {
         'xi-api-key': apiKey,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
       },
       body: JSON.stringify({
         text: text,
-        model_id: 'eleven_multilingual_v2'
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75
+        }
       })
     });
     
-    if (!response.ok) throw new Error('ElevenLabs TTS error');
+    if (!response.ok) throw new Error('ElevenLabs TTS error: ' + response.status);
     
     const blob = await response.blob();
+    console.log('[ElevenLabs] Audio blob received:', blob.size, 'bytes');
     const url = URL.createObjectURL(blob);
     currentTTSAudio = new Audio(url);
     
-    currentTTSAudio.onended = function() {
+    // Multiple event handlers for reliability
+    const cleanup = function() {
+      console.log('[ElevenLabs] Audio cleanup');
       URL.revokeObjectURL(url);
       currentTTSAudio = null;
-      if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+      if (typeof unlockVoiceMode === 'function') {
+        console.log('[ElevenLabs] Calling unlockVoiceMode');
+        unlockVoiceMode();
+      }
     };
     
-    currentTTSAudio.play();
+    currentTTSAudio.onended = function() {
+      console.log('[ElevenLabs] Audio onended');
+      cleanup();
+    };
+    
+    currentTTSAudio.onerror = function(e) {
+      console.error('[ElevenLabs] Audio error:', e);
+      cleanup();
+    };
+    
+    // Fallback timeout based on text length (~100ms per character for speech)
+    const estimatedDuration = Math.max(5000, text.length * 80);
+    setTimeout(function() {
+      if (currentTTSAudio) {
+        console.log('[ElevenLabs] Timeout fallback triggered');
+        cleanup();
+      }
+    }, estimatedDuration);
+    
+    await currentTTSAudio.play();
+    console.log('[ElevenLabs] Audio playing');
+    
   } catch (e) {
     console.error('ElevenLabs TTS error:', e);
     if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
@@ -244,7 +275,6 @@ async function speakWithOpenAI(text, apiKey, voice) {
 }
 
 function stopTTS() {
-  currentTTSDropId = null; // Clear tracking
   if (currentTTSAudio) {
     currentTTSAudio.pause();
     currentTTSAudio = null;
@@ -277,114 +307,26 @@ function speakDrop(id, e) {
     return;
   }
   
-  // Stop if already playing (any TTS)
+  // Stop if already playing
   if (isTTSPlaying || currentTTSAudio) {
     stopTTS();
     speechSynthesis.cancel();
     isTTSPlaying = false;
-    currentTTSDropId = null;
     updateTTSButton(id, false);
     if (typeof toast === 'function') toast('Stopped', 'info');
     return;
   }
   
-  // Check if card is active
-  const card = document.querySelector(`.card[data-id="${id}"]`);
-  if (!card || !card.classList.contains('active')) {
-    if (typeof toast === 'function') toast('Open card first', 'warning');
-    return;
-  }
-  
-  // Track which drop we're reading
-  currentTTSDropId = id;
+  // Use settings-based TTS
   isTTSPlaying = true;
   updateTTSButton(id, true);
   
-  // Use settings-based TTS with card activity check
-  speakDropWithCheck(id, textToSpeak);
+  speakTextWithCallback(textToSpeak, function() {
+    isTTSPlaying = false;
+    updateTTSButton(id, false);
+  });
   
   if (typeof toast === 'function') toast('Reading...', 'info');
-}
-
-// Speak with periodic check that card is still active
-function speakDropWithCheck(id, text) {
-  const provider = localStorage.getItem('tts_provider') || 'browser';
-  const apiKey = localStorage.getItem('openai_tts_key');
-  const voice = localStorage.getItem('aski_voice') || 'nova';
-  
-  // Callback to run when TTS ends or is stopped
-  function onTTSEnd() {
-    isTTSPlaying = false;
-    currentTTSDropId = null;
-    updateTTSButton(id, false);
-  }
-  
-  // Check card is still active before playing
-  function checkAndPlay() {
-    const card = document.querySelector(`.card[data-id="${id}"]`);
-    if (!card || !card.classList.contains('active') || currentTTSDropId !== id) {
-      // Card is no longer active - don't play
-      stopTTS();
-      onTTSEnd();
-      return false;
-    }
-    return true;
-  }
-  
-  if (provider === 'openai' && apiKey && apiKey.startsWith('sk-')) {
-    // OpenAI TTS
-    fetch('https://api.openai.com/v1/audio/speech', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + apiKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'tts-1',
-        input: text,
-        voice: voice
-      })
-    }).then(response => {
-      if (!response.ok) throw new Error('OpenAI TTS error');
-      return response.blob();
-    }).then(blob => {
-      // Check card is still active before playing
-      if (!checkAndPlay()) return;
-      
-      const url = URL.createObjectURL(blob);
-      currentTTSAudio = new Audio(url);
-      
-      currentTTSAudio.onended = function() {
-        URL.revokeObjectURL(url);
-        currentTTSAudio = null;
-        onTTSEnd();
-      };
-      
-      // Final check before play
-      if (checkAndPlay()) {
-        currentTTSAudio.play();
-      }
-    }).catch(e => {
-      console.error('OpenAI TTS error:', e);
-      onTTSEnd();
-    });
-  } else {
-    // Browser TTS
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ru-RU';
-      
-      utterance.onend = function() {
-        onTTSEnd();
-      };
-      
-      // Check before speaking
-      if (checkAndPlay()) {
-        window.speechSynthesis.speak(utterance);
-      }
-    }
-  }
 }
 
 function updateTTSButton(id, isPlaying) {
@@ -400,7 +342,6 @@ function stopAllTTS() {
     speechSynthesis.cancel();
   }
   isTTSPlaying = false;
-  currentTTSDropId = null;
 }
 
 // ============================================
