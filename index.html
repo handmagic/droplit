@@ -508,7 +508,7 @@
           <div class="ask-ai-subtitle" id="askiSubtitle">AI Assistant</div>
         </div>
       </div>
-      <button class="pill-s ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()">AUTODROP</button>
+      <button class="pill-s ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()" style="position: relative; z-index: 10; min-width: 100px;">AUTODROP</button>
       <button class="ask-ai-close" onclick="closeAskAI()">×</button>
     </div>
     <div class="ask-ai-messages" id="askAIMessages">
@@ -3903,18 +3903,26 @@ document.addEventListener('DOMContentLoaded',()=>{
 // ============================================
 
 function toggleAutoDrop() {
-  console.log('[AutoDrop] Toggle called, current state:', isAutoDropEnabled());
-  const enabled = !isAutoDropEnabled();
-  console.log('[AutoDrop] Setting to:', enabled);
-  localStorage.setItem('droplit_autodrop', String(enabled));
+  const currentState = localStorage.getItem('droplit_autodrop');
+  const newEnabled = currentState !== 'true';
+  
+  // Debug alert for mobile
+  alert('AutoDrop toggle:\nCurrent: ' + currentState + '\nSetting to: ' + newEnabled);
+  
+  localStorage.setItem('droplit_autodrop', newEnabled ? 'true' : 'false');
+  
+  // Verify save
+  const savedValue = localStorage.getItem('droplit_autodrop');
+  console.log('[AutoDrop] Saved value:', savedValue);
+  
   const toggle = document.getElementById('autoDropToggle');
-  if (toggle) toggle.classList.toggle('active', enabled);
+  if (toggle) toggle.classList.toggle('active', newEnabled);
   updateAutoDropIndicator();
-  toast(enabled ? 'AutoDrop enabled' : 'AutoDrop disabled');
+  toast(newEnabled ? 'AutoDrop enabled' : 'AutoDrop disabled');
 }
 
 function toggleAutoDropFromChat() {
-  console.log('[AutoDrop] toggleAutoDropFromChat called');
+  alert('AutoDrop button clicked!');
   toggleAutoDrop();
 }
 
