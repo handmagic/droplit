@@ -1978,9 +1978,10 @@ async function handleStreamingResponse(response) {
   let createDropData = null;
   
   // Start WebSocket streaming TTS if enabled
-  const useStreamingTTS = isAutoSpeakEnabled() && 
-                          localStorage.getItem('tts_provider') === 'elevenlabs' &&
-                          window.StreamingTTS;
+  // TEMPORARILY DISABLED for debugging
+  const useStreamingTTS = false; // isAutoSpeakEnabled() && 
+                          // localStorage.getItem('tts_provider') === 'elevenlabs' &&
+                          // window.StreamingTTS;
   let streamingTTSActive = false;
   
   if (useStreamingTTS) {
