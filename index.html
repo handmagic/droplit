@@ -3930,6 +3930,12 @@ function updateAutoDropIndicator() {
 }
 
 function autoSaveMessageAsDrop(text, isUser) {
+  // Double-check AutoDrop is enabled
+  if (!isAutoDropEnabled()) {
+    console.log('[AutoDrop] Skipped - disabled');
+    return;
+  }
+  
   if (!text || !text.trim()) return;
   
   const drop = {
