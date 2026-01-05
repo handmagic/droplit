@@ -1200,8 +1200,21 @@ function handleCardClick(id,e){
     // Stop audio when deactivating or switching cards
     if(prevId) stopAllAudio();
     
-    // Re-render to apply correct classes
-    render();
+    // Fast class manipulation (no render)
+    if(prevId) {
+      const prevCard = document.querySelector('.card[data-id="'+prevId+'"]');
+      if(prevCard) {
+        prevCard.classList.remove('active');
+        if(rollUpMode) prevCard.classList.add('roll-up');
+      }
+    }
+    if(activeCardId) {
+      const newCard = document.querySelector('.card[data-id="'+activeCardId+'"]');
+      if(newCard) {
+        newCard.classList.add('active');
+        newCard.classList.remove('roll-up');
+      }
+    }
   }
 }
 
@@ -1222,6 +1235,8 @@ function toggleMarker(id,marker,e){
   }
   
   save();
+  // In roll-up mode, collapse card after action
+  if(rollUpMode) activeCardId=null;
   render();
   
   // Update photo markers button if in image viewer
@@ -1267,8 +1282,12 @@ function cardTouchEnd(){
 document.addEventListener('click',(e)=>{
   if(activeCardId&&!e.target.closest('.card')&&!e.target.closest('.overlay')&&!e.target.closest('.fab-record')&&!e.target.closest('.select-bar')){
     stopAllAudio();
+    const prevCard = document.querySelector('.card[data-id="'+activeCardId+'"]');
+    if(prevCard) {
+      prevCard.classList.remove('active');
+      if(rollUpMode) prevCard.classList.add('roll-up');
+    }
     activeCardId=null;
-    render();
   }
 });
 
@@ -1858,11 +1877,13 @@ function saveEdit(id){
     }
   }
   editId=null;
+  // In roll-up mode, collapse card after save
+  if(rollUpMode) activeCardId=null;
   document.body.classList.remove('editing-mode');
   render();
   counts();
 }
-function cancelEdit(id){editId=null;document.body.classList.remove('editing-mode');render();}
+function cancelEdit(id){editId=null;if(rollUpMode)activeCardId=null;document.body.classList.remove('editing-mode');render();}
 function openSendModal(id){sendId=id;document.getElementById('sendModal').classList.add('show');}
 function closeSendModal(){document.getElementById('sendModal').classList.remove('show');sendId=null;}
 function sendAI(){const i=ideas.find(x=>x.id===sendId);if(i){navigator.clipboard.writeText(i.text);window.open('https://claude.ai','_blank');toast('Copied to clipboard!','success');}closeSendModal();}
@@ -1987,9 +2008,18 @@ function filtered(){
 
 function toggleRollUpMode() {
   rollUpMode = !rollUpMode;
-  localStorage.setItem('droplit_rollup_mode', rollUpMode);
+  localStorage.setItem('droplit_rollup_mode', rollUpMode ? 'true' : 'false');
   document.getElementById('rollUpModeToggle')?.classList.toggle('active', rollUpMode);
-  render();
+  
+  // Apply to all cards instantly (no render)
+  document.querySelectorAll('.card').forEach(card => {
+    const isActive = card.classList.contains('active');
+    if(rollUpMode && !isActive) {
+      card.classList.add('roll-up');
+    } else {
+      card.classList.remove('roll-up');
+    }
+  });
 }
 
 function render(){
