@@ -811,7 +811,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.65 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.66 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -825,8 +825,11 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.65 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.66 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
+  
+  <!-- Creator Info Modal -->
+  <div class="overlay" id="creatorModal"><div class="modal type-b"><div class="modal-header"><div class="creator-modal-avatar" id="creatorModalAvatar"></div><h3 id="creatorModalName">Creator</h3></div><div class="modal-body"><div class="creator-info"><div class="creator-info-row"><span class="creator-info-label">Type</span><span class="creator-info-value" id="creatorModalType">User</span></div><div class="creator-info-row"><span class="creator-info-label">Created</span><span class="creator-info-value" id="creatorModalDate">—</span></div><div class="creator-info-row"><span class="creator-info-label">Copyright</span><span class="creator-info-value" id="creatorModalCopyright">© 2025</span></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCreatorModal()">Close</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
   <div class="overlay" id="delModal"><div class="modal"><div class="modal-title">Delete this idea?</div><div class="modal-text">This action cannot be undone.</div><div class="modal-actions"><button class="modal-btn sec" onclick="closeDelModal()">Cancel</button><button class="modal-btn danger" onclick="confirmDel()">Delete</button></div></div></div>
@@ -1214,8 +1217,8 @@ function saveMerged(){
 
 // Card interactions
 function handleCardClick(id,e){
-  // Ignore clicks on category badge, action buttons, textarea, checkbox, markers
-  if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox')||e.target.closest('.card-markers'))return;
+  // Ignore clicks on category badge, action buttons, textarea, checkbox, markers, avatar
+  if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox')||e.target.closest('.card-markers')||e.target.closest('.card-avatar'))return;
   
   // Ignore clicks on audio player buttons only
   if(e.target.closest('.audio-btn'))return;
@@ -1234,10 +1237,11 @@ function handleCardClick(id,e){
   } else {
     // For text cards AND audio cards - toggle expand/collapse
     const prevId = activeCardId;
-    activeCardId = activeCardId===id ? null : id;
+    const isDeactivating = activeCardId === id; // Clicking same card = collapse
+    activeCardId = isDeactivating ? null : id;
     
-    // Stop any playing audio when switching cards
-    if(prevId && prevId !== id) {
+    // Stop any playing audio when deactivating or switching cards
+    if(prevId) {
       stopAllAudio();
     }
     
@@ -1272,6 +1276,13 @@ function toggleMarker(id,marker,e){
   }
   
   save();
+  
+  // In roll-up mode: collapse card after action
+  if(rollUpMode && activeCardId === id) {
+    stopAllAudio();
+    activeCardId = null;
+  }
+  
   render();
   
   // Update photo markers button if in image viewer
@@ -1460,7 +1471,7 @@ function saveIdea(t){
       const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
       const deviceId = DEVICE_ID || 'Not set';
       const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
-      alert(`DropLit Debug v0.9.65\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      alert(`DropLit Debug v0.9.66\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
@@ -1866,6 +1877,41 @@ function openCatModal(id){
 }
 function closeCatModal(){stopAllAudio();document.getElementById('catModal').classList.remove('show');catChangeId=null;}
 function changeCat(c){if(catChangeId){const i=ideas.find(x=>x.id===catChangeId);if(i){saveUndo('category',{id:i.id,previousCategory:i.category,newCategory:c});i.category=c;save();render();counts();toast('Moved to '+CATS[c].name,'success');}}closeCatModal();}
+
+// Creator Info Modal
+let creatorModalId = null;
+function openCreatorModal(id, e) {
+  if(e) e.stopPropagation();
+  const item = ideas.find(x => x.id === id);
+  if(!item) return;
+  
+  creatorModalId = id;
+  const creator = item.creator || 'user';
+  const creatorName = creator === 'aski' ? 'ASKI' : creator === 'system' ? 'System' : 'You';
+  const creatorType = creator === 'aski' ? 'AI Assistant' : creator === 'system' ? 'System' : 'User';
+  
+  // Avatar SVG
+  const avatarSvg = creator === 'aski' 
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>'
+    : creator === 'system'
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+  
+  document.getElementById('creatorModalAvatar').innerHTML = avatarSvg;
+  document.getElementById('creatorModalAvatar').className = 'creator-modal-avatar ' + creator;
+  document.getElementById('creatorModalName').textContent = creatorName;
+  document.getElementById('creatorModalType').textContent = creatorType;
+  document.getElementById('creatorModalDate').textContent = item.date + ' ' + item.time;
+  document.getElementById('creatorModalCopyright').textContent = '© ' + new Date(item.timestamp || Date.now()).getFullYear() + ' ' + creatorName;
+  
+  document.getElementById('creatorModal').classList.add('show');
+}
+function closeCreatorModal() {
+  stopAllAudio();
+  document.getElementById('creatorModal').classList.remove('show');
+  creatorModalId = null;
+}
+
 function reqDel(id){delId=id;document.getElementById('delModal').classList.add('show');}
 function closeDelModal(){stopAllAudio();document.getElementById('delModal').classList.remove('show');delId=null;}
 function confirmDel(){
@@ -1909,6 +1955,13 @@ function saveEdit(id){
   }
   editId=null;
   document.body.classList.remove('editing-mode');
+  
+  // In roll-up mode: collapse card after save
+  if(rollUpMode) {
+    stopAllAudio();
+    activeCardId = null;
+  }
+  
   render();
   counts();
 }
@@ -2083,7 +2136,7 @@ function render(){
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
       // Header: Avatar left, two rows right
       h+='<div class="card-header">';
-      h+='<div class="card-avatar '+creator+'">'+avatarSvg+'</div>';
+      h+='<div class="card-avatar '+creator+'" onclick="openCreatorModal('+i.id+',event)">'+avatarSvg+'</div>';
       h+='<div class="card-header-content">';
       // Row 1: Name + Time
       h+='<div class="card-row1">';
