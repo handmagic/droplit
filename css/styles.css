@@ -920,8 +920,58 @@ body.font-large .balance-value { font-size: 2rem; }
 .section-divider::before, .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
 .section-divider span { font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* NEW badge for fresh drops */
-.new-badge { padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.55rem; font-weight: 700; text-transform: uppercase; background: #D1FAE5; color: #065F46; margin-right: 6px; }
+/* NEW badge for fresh drops - unified with card-cat size */
+.new-badge { padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; background: #D1FAE5; color: #065F46; letter-spacing: 0.02em; }
+
+/* Unified badges (same size as card-cat) */
+.drop-badge { padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+.drop-badge.new { background: #D1FAE5; color: #065F46; }
+.drop-badge.unread { background: #DBEAFE; color: #1E40AF; }
+.drop-badge.pinned { background: #FEF3C7; color: #92400E; }
+.drop-badge.urgent { background: #FEE2E2; color: #991B1B; }
+
+/* ============================================
+   ROLL-UP MODE - Compact card view (like email list)
+   ============================================ */
+
+/* Roll-up card - shows only header with avatar */
+.card.roll-up { padding: 8px 12px 8px 10px; }
+.card.roll-up .card-header { margin-bottom: 0; }
+.card.roll-up .card-text,
+.card.roll-up .card-image,
+.card.roll-up .card-notes,
+.card.roll-up .card-more,
+.card.roll-up .card-audio-player,
+.card.roll-up .card-media-meta,
+.card.roll-up .card-edit,
+.card.roll-up .card-actions,
+.card.roll-up .card-edit-actions,
+.card.roll-up .card-markers { display: none !important; }
+
+/* When roll-up card becomes active, show full content */
+.card.roll-up.active { padding: 10px 12px 10px 10px; }
+.card.roll-up.active .card-header { margin-bottom: 8px; }
+.card.roll-up.active .card-text { display: block; }
+.card.roll-up.active .card-image { display: block; }
+.card.roll-up.active .card-notes { display: block; }
+.card.roll-up.active .card-audio-player { display: block; }
+.card.roll-up.active .card-media-meta { display: flex; }
+.card.roll-up.active .card-more.show { display: block; }
+.card.roll-up.active .card-actions { display: flex !important; }
+.card.roll-up.active .card-markers { display: flex !important; }
+
+/* Smooth animation for roll-up expand */
+.card.roll-up { transition: padding 0.2s ease, box-shadow 0.15s; }
+.card.roll-up.active .card-text,
+.card.roll-up.active .card-image,
+.card.roll-up.active .card-notes,
+.card.roll-up.active .card-audio-player { 
+  animation: rollUpExpand 0.2s ease-out;
+}
+@keyframes rollUpExpand {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* Pill row for side-by-side buttons */
 .pill-row { display: flex; gap: 10px; width: 100%; }
