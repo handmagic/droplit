@@ -1200,17 +1200,8 @@ function handleCardClick(id,e){
     // Stop audio when deactivating or switching cards
     if(prevId) stopAllAudio();
     
-    // Remove active from previous card
-    if(prevId) {
-      const prevCard = document.querySelector('.card[data-id="'+prevId+'"]');
-      if(prevCard) prevCard.classList.remove('active');
-    }
-    
-    // Add active to new card (or none if deactivating)
-    if(activeCardId) {
-      const newCard = document.querySelector('.card[data-id="'+activeCardId+'"]');
-      if(newCard) newCard.classList.add('active');
-    }
+    // Re-render to apply correct classes
+    render();
   }
 }
 
@@ -1275,9 +1266,9 @@ function cardTouchEnd(){
 
 document.addEventListener('click',(e)=>{
   if(activeCardId&&!e.target.closest('.card')&&!e.target.closest('.overlay')&&!e.target.closest('.fab-record')&&!e.target.closest('.select-bar')){
-    const prevCard = document.querySelector('.card[data-id="'+activeCardId+'"]');
-    if(prevCard) prevCard.classList.remove('active');
+    stopAllAudio();
     activeCardId=null;
+    render();
   }
 });
 
