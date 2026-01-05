@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT CHAT v1.2 - Model Selection - Markdown Support
+// DROPLIT CHAT v1.3 - NOUS Persona - Model Selection - Markdown Support
 // ASKI Chat, Voice Mode, Streaming
 // ============================================
 
@@ -14,6 +14,15 @@ function renderChatMarkdown(text) {
   }
   // Fallback: just escape HTML
   return escapeHtml(text);
+}
+
+// Get current AI persona name
+function getCurrentPersonaName() {
+  if (typeof getAIPersona === 'function') {
+    return getAIPersona().name;
+  }
+  const model = localStorage.getItem('aski_model') || 'sonnet';
+  return model === 'opus' ? 'NOUS' : 'ASKI';
 }
 
 let askAIMessages = [];
