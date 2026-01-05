@@ -122,18 +122,18 @@ body.chat-open .header-add-btn { display: none; }
 .date-sep { display: flex; align-items: center; justify-content: center; padding: 16px 0 8px; font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
 /* Card */
-.card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px 14px 12px 12px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 6px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-.card-header { display: flex; gap: 12px; margin-bottom: 10px; padding-top: 2px; }
-.card-avatar { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; background: var(--color-bg-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; transition: all 0.2s ease; }
-.card-avatar svg { width: 22px; height: 22px; color: var(--color-text-soft); transition: all 0.2s ease; }
+.card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 10px 12px 10px 10px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 6px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.card-header { display: flex; gap: 10px; margin-bottom: 8px; }
+.card-avatar { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; background: var(--color-bg-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; }
+.card-avatar svg { width: 22px; height: 22px; color: var(--color-text-soft); }
 .card-avatar.aski { background: linear-gradient(135deg, #8B5CF6, #6366F1); }
 .card-avatar.aski svg { color: white; }
 .card-avatar.system { background: var(--color-bg-soft); }
 .card-avatar.system svg { color: var(--color-text-muted); }
-.card-header-content { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; min-height: 44px; gap: 4px; transition: all 0.2s ease; }
+.card-header-content { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; height: 44px; }
 .card-row1 { display: flex; align-items: center; gap: 8px; }
 .card-row2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.card-creator { font-size: 0.75rem; font-weight: 600; color: var(--color-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+.card-creator { font-size: 0.7rem; font-weight: 500; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
 .card-time { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; margin-left: auto; white-space: nowrap; }
 .card.active { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
 .card.editing { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
@@ -750,17 +750,6 @@ body.font-small .card-header { font-size: 0.75rem; }
 body.font-normal .card-header { font-size: 0.8rem; }
 body.font-large .card-header { font-size: 0.9rem; }
 
-/* Avatar sizing per font size */
-body.font-small .card-avatar { width: 40px; height: 40px; min-width: 40px; }
-body.font-small .card-avatar svg { width: 20px; height: 20px; }
-body.font-small .card-header-content { min-height: 40px; }
-body.font-normal .card-avatar { width: 44px; height: 44px; min-width: 44px; }
-body.font-normal .card-avatar svg { width: 22px; height: 22px; }
-body.font-normal .card-header-content { min-height: 44px; }
-body.font-large .card-avatar { width: 52px; height: 52px; min-width: 52px; }
-body.font-large .card-avatar svg { width: 26px; height: 26px; }
-body.font-large .card-header-content { min-height: 52px; }
-
 /* Category badges */
 body.font-small .card-cat { font-size: 0.65rem; padding: 3px 8px; }
 body.font-normal .card-cat { font-size: 0.7rem; padding: 4px 10px; }
@@ -886,24 +875,6 @@ body.font-large .balance-value { font-size: 2rem; }
 .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
 .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
 
-/* Creator Info Modal */
-.creator-modal-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--color-bg-soft); display: flex; align-items: center; justify-content: center; margin-right: 12px; }
-.creator-modal-avatar svg { width: 24px; height: 24px; color: var(--color-text-soft); }
-.creator-modal-avatar.aski { background: linear-gradient(135deg, #8B5CF6, #6366F1); }
-.creator-modal-avatar.aski svg { color: white; }
-.creator-modal-avatar.system { background: var(--color-bg-soft); }
-#creatorModal .modal-header { display: flex; align-items: center; }
-#creatorModal .modal-header h3 { flex: 1; }
-.creator-info { display: flex; flex-direction: column; gap: 12px; }
-.creator-info-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--color-border); }
-.creator-info-row:last-child { border-bottom: none; }
-.creator-info-label { font-size: 0.75rem; color: var(--color-text-muted); font-weight: 500; }
-.creator-info-value { font-size: 0.8rem; color: var(--color-text); font-weight: 600; }
-
-/* Card avatar touchable */
-.card-avatar { cursor: pointer; }
-.card-avatar:active { transform: scale(0.95); opacity: 0.8; }
-
 /* ========== UNIFIED PILLS SYSTEM v0.9.58 ========== */
 
 /* Pills - Small (34px) for compact areas */
@@ -949,23 +920,12 @@ body.font-large .balance-value { font-size: 2rem; }
 .section-divider::before, .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
 .section-divider span { font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* NEW badge for fresh drops - unified with card-cat size */
-.new-badge { padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; background: #D1FAE5; color: #065F46; letter-spacing: 0.02em; }
+/* NEW badge for fresh drops */
+.new-badge { padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.55rem; font-weight: 700; text-transform: uppercase; background: #D1FAE5; color: #065F46; margin-right: 6px; }
 
-/* Unified badges (same size as card-cat) */
-.drop-badge { padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
-.drop-badge.new { background: #D1FAE5; color: #065F46; }
-.drop-badge.unread { background: #DBEAFE; color: #1E40AF; }
-.drop-badge.pinned { background: #FEF3C7; color: #92400E; }
-.drop-badge.urgent { background: #FEE2E2; color: #991B1B; }
-
-/* ============================================
-   ROLL-UP MODE - Compact card view (like email list)
-   ============================================ */
-
-/* Roll-up card - shows only header with avatar */
-.card.roll-up { padding: 10px 14px 10px 12px; }
-.card.roll-up .card-header { margin-bottom: 0; padding-top: 0; }
+/* Roll-up mode - compact cards */
+.card.roll-up { padding: 10px 12px 10px 10px; }
+.card.roll-up .card-header { margin-bottom: 0; }
 .card.roll-up .card-text,
 .card.roll-up .card-image,
 .card.roll-up .card-notes,
@@ -974,33 +934,19 @@ body.font-large .balance-value { font-size: 2rem; }
 .card.roll-up .card-media-meta,
 .card.roll-up .card-edit,
 .card.roll-up .card-actions,
-.card.roll-up .card-edit-actions,
 .card.roll-up .card-markers { display: none !important; }
-
-/* When roll-up card becomes active, show full content */
-.card.roll-up.active { padding: 12px 14px 12px 12px; }
-.card.roll-up.active .card-header { margin-bottom: 10px; padding-top: 2px; }
-.card.roll-up.active .card-text { display: block !important; }
-.card.roll-up.active .card-image { display: block !important; }
-.card.roll-up.active .card-notes { display: block !important; }
-.card.roll-up.active .card-audio-player { display: block !important; }
-.card.roll-up.active .card-media-meta { display: flex !important; }
-.card.roll-up.active .card-more.show { display: block !important; }
-.card.roll-up.active .card-actions { display: flex !important; }
-.card.roll-up.active .card-markers { display: flex !important; }
-
-/* Smooth animation for roll-up expand */
-.card.roll-up { transition: padding 0.2s ease, box-shadow 0.15s; }
+.card.roll-up.active { padding: 10px 12px 10px 10px; }
+.card.roll-up.active .card-header { margin-bottom: 8px; }
 .card.roll-up.active .card-text,
 .card.roll-up.active .card-image,
 .card.roll-up.active .card-notes,
-.card.roll-up.active .card-audio-player { 
-  animation: rollUpExpand 0.2s ease-out;
-}
-@keyframes rollUpExpand {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+.card.roll-up.active .card-audio-player,
+.card.roll-up.active .card-media-meta,
+.card.roll-up.active .card-actions,
+.card.roll-up.active .card-markers { display: block !important; }
+.card.roll-up.active .card-media-meta,
+.card.roll-up.active .card-actions,
+.card.roll-up.active .card-markers { display: flex !important; }
 
 /* Pill row for side-by-side buttons */
 .pill-row { display: flex; gap: 10px; width: 100%; }
