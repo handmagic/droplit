@@ -1,14 +1,45 @@
-// DropLit AI API v4.13 - Vercel Edge Function
+// DropLit AI API v4.14 - Vercel Edge Function
 // + CONFLICT RESOLUTION PROTOCOL for contradictory facts
 // + Transparent handling of uncertainty
 // + Explicit "CHECK MEMORY FIRST" instruction
 // + Smart prioritization: recent > old, specific > vague
 // + EVENT SCHEDULING: create_event tool for reminders/alarms
-// Version: 4.13.0
+// + MODEL SELECTION: Choose between Sonnet (ASKI) and Opus (Deep)
+// Version: 4.14.0
 
 export const config = {
   runtime: 'edge',
 };
+
+// ============================================
+// AI MODELS CONFIGURATION
+// ============================================
+const AI_MODELS = {
+  'sonnet': {
+    id: 'claude-sonnet-4-20250514',
+    name: 'ASKI (Sonnet)',
+    description: 'Fast, creative, enthusiastic',
+    maxTokens: 4096
+  },
+  'opus': {
+    id: 'claude-opus-4-20250514',
+    name: 'ASKI Deep (Opus)',
+    description: 'Deep thinking, thorough analysis',
+    maxTokens: 8192
+  },
+  'haiku': {
+    id: 'claude-haiku-4-20250514',
+    name: 'ASKI Quick (Haiku)',
+    description: 'Lightning fast responses',
+    maxTokens: 2048
+  }
+};
+
+const DEFAULT_MODEL = 'sonnet';
+
+function getModelConfig(modelKey) {
+  return AI_MODELS[modelKey] || AI_MODELS[DEFAULT_MODEL];
+}
 
 // ============================================
 // RATE LIMITING
@@ -753,11 +784,14 @@ async function* parseSSEStream(response) {
 // ============================================
 // STREAMING CHAT WITH TOOLS
 // ============================================
-async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null, userId = null) {
+async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null, userId = null, modelConfig = null) {
   const encoder = new TextEncoder();
   let toolResults = [];
   let createDropAction = null;
   let createEventAction = null;
+  
+  // Use provided model or default to Sonnet
+  const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
   
   // Helper to send SSE event to client
   const sendEvent = (data) => {
@@ -774,7 +808,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: modelId,
         max_tokens: maxTokens,
         system: systemPrompt,
         messages,
@@ -932,9 +966,12 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
 // ============================================
 // NON-STREAMING CHAT HANDLER (fallback)
 // ============================================
-async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens, dropContext, userId = null) {
+async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens, dropContext, userId = null, modelConfig = null) {
+  // Use provided model or default to Sonnet
+  const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
+  
   const claudeRequest = {
-    model: 'claude-sonnet-4-20250514',
+    model: modelId,
     max_tokens: maxTokens,
     system: systemPrompt,
     tools: TOOLS,
@@ -1034,12 +1071,33 @@ export default async function handler(req) {
       action, text, image, style, targetLang,
       history = [], syntriseContext, dropContext, userProfile,
       enableTools = true, userId, uid,
-      stream = false
+      stream = false,
+      model = DEFAULT_MODEL  // 'sonnet', 'opus', or 'haiku'
     } = body;
+    
+    // Get model configuration
+    const modelConfig = getModelConfig(model);
 
     if (!action) {
       return new Response(JSON.stringify({ error: 'No action specified' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // === GET AVAILABLE MODELS ===
+    if (action === 'models') {
+      return new Response(JSON.stringify({ 
+        success: true,
+        models: Object.entries(AI_MODELS).map(([key, config]) => ({
+          key,
+          id: config.id,
+          name: config.name,
+          description: config.description
+        })),
+        default: DEFAULT_MODEL
+      }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -1117,8 +1175,8 @@ export default async function handler(req) {
         const { readable, writable } = new TransformStream();
         const writer = writable.getWriter();
         
-        // Start streaming in background, pass debug info and userId
-        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId)
+        // Start streaming in background, pass debug info, userId, and model config
+        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId, modelConfig)
           .catch(error => {
             console.error('Streaming error:', error);
             const encoder = new TextEncoder();
@@ -1138,7 +1196,7 @@ export default async function handler(req) {
 
       // NON-STREAMING MODE (fallback)
       const { resultText, toolResults, usage } = await handleNonStreamingChat(
-        apiKey, systemPrompt, messages, maxTokens, formattedContext, effectiveUserId
+        apiKey, systemPrompt, messages, maxTokens, formattedContext, effectiveUserId, modelConfig
       );
       
       const createDropAction = toolResults.find(t => t.toolName === 'create_drop');
@@ -1153,11 +1211,14 @@ export default async function handler(req) {
         createDrop: createDropAction?.result || null,
         createEvent: createEventAction?.result || null,
         geo: { timezone: userTimezone, country: userCountry, city: userCity },
-        // DEBUG INFO - remove after fixing!
+        model: modelConfig.id,  // Which model was used
+        // DEBUG INFO
         _debug: {
           receivedUserId: userId || null,
           receivedUid: uid || null,
           effectiveUserId: effectiveUserId,
+          modelRequested: model,
+          modelUsed: modelConfig.id,
           coreContext: coreDebug
         }
       }), {
@@ -1187,7 +1248,7 @@ export default async function handler(req) {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: modelConfig.id,
           max_tokens: 1000,
           messages: [{
             role: 'user',
@@ -1230,7 +1291,7 @@ export default async function handler(req) {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: modelConfig.id,
           max_tokens: 2048,
           system: textActions[action],
           messages: [{ role: 'user', content: text }]
