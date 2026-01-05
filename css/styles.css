@@ -122,7 +122,7 @@ body.chat-open .header-add-btn { display: none; }
 .date-sep { display: flex; align-items: center; justify-content: center; padding: 16px 0 8px; font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
 /* Card */
-.card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px 14px 12px 12px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 8px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px 14px 12px 12px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 6px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .card-header { display: flex; gap: 12px; margin-bottom: 10px; padding-top: 2px; }
 .card-avatar { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; background: var(--color-bg-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; transition: all 0.2s ease; }
 .card-avatar svg { width: 22px; height: 22px; color: var(--color-text-soft); transition: all 0.2s ease; }
@@ -885,6 +885,24 @@ body.font-large .balance-value { font-size: 2rem; }
 .modal-btn.pri { background: var(--color-primary); color: white; border-color: transparent; }
 .modal-btn.merge { background: var(--color-merge); color: white; border-color: transparent; }
 .modal-btn.danger { background: var(--color-error); color: white; border-color: transparent; }
+
+/* Creator Info Modal */
+.creator-modal-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--color-bg-soft); display: flex; align-items: center; justify-content: center; margin-right: 12px; }
+.creator-modal-avatar svg { width: 24px; height: 24px; color: var(--color-text-soft); }
+.creator-modal-avatar.aski { background: linear-gradient(135deg, #8B5CF6, #6366F1); }
+.creator-modal-avatar.aski svg { color: white; }
+.creator-modal-avatar.system { background: var(--color-bg-soft); }
+#creatorModal .modal-header { display: flex; align-items: center; }
+#creatorModal .modal-header h3 { flex: 1; }
+.creator-info { display: flex; flex-direction: column; gap: 12px; }
+.creator-info-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--color-border); }
+.creator-info-row:last-child { border-bottom: none; }
+.creator-info-label { font-size: 0.75rem; color: var(--color-text-muted); font-weight: 500; }
+.creator-info-value { font-size: 0.8rem; color: var(--color-text); font-weight: 600; }
+
+/* Card avatar touchable */
+.card-avatar { cursor: pointer; }
+.card-avatar:active { transform: scale(0.95); opacity: 0.8; }
 
 /* ========== UNIFIED PILLS SYSTEM v0.9.58 ========== */
 
