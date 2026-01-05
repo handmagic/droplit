@@ -122,18 +122,18 @@ body.chat-open .header-add-btn { display: none; }
 .date-sep { display: flex; align-items: center; justify-content: center; padding: 16px 0 8px; font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
 /* Card */
-.card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 10px 12px 10px 10px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 6px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-.card-header { display: flex; gap: 10px; margin-bottom: 8px; }
-.card-avatar { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; background: var(--color-bg-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; }
-.card-avatar svg { width: 22px; height: 22px; color: var(--color-text-soft); }
+.card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px 14px 12px 12px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 8px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.card-header { display: flex; gap: 12px; margin-bottom: 10px; padding-top: 2px; }
+.card-avatar { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; background: var(--color-bg-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; transition: all 0.2s ease; }
+.card-avatar svg { width: 22px; height: 22px; color: var(--color-text-soft); transition: all 0.2s ease; }
 .card-avatar.aski { background: linear-gradient(135deg, #8B5CF6, #6366F1); }
 .card-avatar.aski svg { color: white; }
 .card-avatar.system { background: var(--color-bg-soft); }
 .card-avatar.system svg { color: var(--color-text-muted); }
-.card-header-content { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; height: 44px; }
+.card-header-content { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
 .card-row1 { display: flex; align-items: center; gap: 8px; }
 .card-row2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.card-creator { font-size: 0.7rem; font-weight: 500; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+.card-creator { font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
 .card-time { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; margin-left: auto; white-space: nowrap; }
 .card.active { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
 .card.editing { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
@@ -755,6 +755,19 @@ body.font-small .card-cat { font-size: 0.65rem; padding: 3px 8px; }
 body.font-normal .card-cat { font-size: 0.7rem; padding: 4px 10px; }
 body.font-large .card-cat { font-size: 0.8rem; padding: 5px 12px; }
 
+/* Avatar scaling */
+body.font-small .card-avatar { width: 40px; height: 40px; min-width: 40px; }
+body.font-small .card-avatar svg { width: 20px; height: 20px; }
+body.font-normal .card-avatar { width: 44px; height: 44px; min-width: 44px; }
+body.font-normal .card-avatar svg { width: 22px; height: 22px; }
+body.font-large .card-avatar { width: 52px; height: 52px; min-width: 52px; }
+body.font-large .card-avatar svg { width: 26px; height: 26px; }
+
+/* NEW badge scaling */
+body.font-small .new-badge { font-size: 0.65rem; padding: 3px 8px; }
+body.font-normal .new-badge { font-size: 0.7rem; padding: 4px 10px; }
+body.font-large .new-badge { font-size: 0.8rem; padding: 5px 12px; }
+
 /* Filter buttons */
 body.font-small .cat, body.font-small .time-btn { font-size: 0.75rem; padding: 6px 10px; }
 body.font-normal .cat, body.font-normal .time-btn { font-size: 0.8rem; padding: 7px 12px; }
@@ -921,11 +934,11 @@ body.font-large .balance-value { font-size: 2rem; }
 .section-divider span { font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
 /* NEW badge for fresh drops */
-.new-badge { padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.55rem; font-weight: 700; text-transform: uppercase; background: #D1FAE5; color: #065F46; margin-right: 6px; }
+.new-badge { padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.6rem; font-weight: 700; text-transform: uppercase; background: #D1FAE5; color: #065F46; letter-spacing: 0.02em; }
 
 /* Roll-up mode - compact cards */
-.card.roll-up { padding: 10px 12px 10px 10px; }
-.card.roll-up .card-header { margin-bottom: 0; }
+.card.roll-up { padding: 10px 14px 10px 12px; }
+.card.roll-up .card-header { margin-bottom: 0; padding-top: 0; }
 .card.roll-up .card-text,
 .card.roll-up .card-image,
 .card.roll-up .card-notes,
@@ -935,8 +948,8 @@ body.font-large .balance-value { font-size: 2rem; }
 .card.roll-up .card-edit,
 .card.roll-up .card-actions,
 .card.roll-up .card-markers { display: none !important; }
-.card.roll-up.active { padding: 10px 12px 10px 10px; }
-.card.roll-up.active .card-header { margin-bottom: 8px; }
+.card.roll-up.active { padding: 12px 14px 12px 12px; }
+.card.roll-up.active .card-header { margin-bottom: 10px; padding-top: 2px; }
 .card.roll-up.active .card-text,
 .card.roll-up.active .card-image,
 .card.roll-up.active .card-notes,
