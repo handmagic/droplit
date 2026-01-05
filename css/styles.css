@@ -951,12 +951,12 @@ body.font-large .balance-value { font-size: 2rem; }
 /* When roll-up card becomes active, show full content */
 .card.roll-up.active { padding: 10px 12px 10px 10px; }
 .card.roll-up.active .card-header { margin-bottom: 8px; }
-.card.roll-up.active .card-text { display: block; }
-.card.roll-up.active .card-image { display: block; }
-.card.roll-up.active .card-notes { display: block; }
-.card.roll-up.active .card-audio-player { display: block; }
-.card.roll-up.active .card-media-meta { display: flex; }
-.card.roll-up.active .card-more.show { display: block; }
+.card.roll-up.active .card-text { display: block !important; }
+.card.roll-up.active .card-image { display: block !important; }
+.card.roll-up.active .card-notes { display: block !important; }
+.card.roll-up.active .card-audio-player { display: block !important; }
+.card.roll-up.active .card-media-meta { display: flex !important; }
+.card.roll-up.active .card-more.show { display: block !important; }
 .card.roll-up.active .card-actions { display: flex !important; }
 .card.roll-up.active .card-markers { display: flex !important; }
 
