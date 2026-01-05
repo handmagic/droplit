@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT CHAT v1.1 - Markdown Support
+// DROPLIT CHAT v1.2 - Model Selection - Markdown Support
 // ASKI Chat, Voice Mode, Streaming
 // ============================================
 
@@ -2299,6 +2299,9 @@ async function sendAskAIMessage() {
   }
   
   try {
+    // Get selected AI model from settings
+    const selectedModel = typeof getAIModel === 'function' ? getAIModel() : localStorage.getItem('aski_model') || 'sonnet';
+    
     const response = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2309,8 +2312,9 @@ async function sendAskAIMessage() {
         syntriseContext: syntriseContext, // Legacy
         dropContext: contextObject, // v2: Structured context for server
         stream: STREAMING_ENABLED,
-		enableTools: false, // v2: Enable Tool Calling
-        userId: currentUser?.id // v3: For CORE Memory integration
+        enableTools: false, // v2: Enable Tool Calling
+        userId: currentUser?.id, // v3: For CORE Memory integration
+        model: selectedModel // v4.14: AI model selection (sonnet/opus/haiku)
       })
     });
     
