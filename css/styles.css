@@ -895,18 +895,23 @@ body.font-large .balance-value { font-size: 2rem; }
 
 /* Creator modal */
 .creator-modal .modal-header { display: flex; align-items: center; transition: background 0.2s; }
-.creator-modal .modal-header.public { background: linear-gradient(135deg, #7DD3FC, #38BDF8); }
-.creator-modal .modal-header.public h3, .creator-modal .modal-header.public .creator-modal-role { color: white; }
-.creator-modal .modal-header.verified { background: linear-gradient(135deg, #86EFAC, #4ADE80); }
-.creator-modal .modal-header.verified h3, .creator-modal .modal-header.verified .creator-modal-role { color: #065F46; }
-.creator-modal .modal-header.vip { background: linear-gradient(135deg, #C084FC, #A855F7); }
-.creator-modal .modal-header.vip h3, .creator-modal .modal-header.vip .creator-modal-role { color: white; }
-.creator-modal-avatar { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; }
-.creator-modal-avatar svg { width: 24px; height: 24px; color: white; }
-.creator-modal .modal-header:not(.public):not(.verified):not(.vip) .creator-modal-avatar { background: var(--color-bg-soft); }
-.creator-modal .modal-header:not(.public):not(.verified):not(.vip) .creator-modal-avatar svg { color: var(--color-text-soft); }
-.creator-modal-avatar.aski { background: linear-gradient(135deg, #8B5CF6, #6366F1); }
-.creator-modal-avatar.aski svg { color: white; }
+.creator-modal .modal-header.public { background: linear-gradient(135deg, #E0F2FE, #BAE6FD); }
+.creator-modal .modal-header.public h3 { color: #0369A1; }
+.creator-modal .modal-header.public .creator-modal-role { color: #0284C7; opacity: 0.8; }
+.creator-modal .modal-header.public .creator-modal-avatar { background: rgba(255,255,255,0.7); }
+.creator-modal .modal-header.public .creator-modal-avatar svg { color: #0EA5E9; }
+.creator-modal .modal-header.verified { background: linear-gradient(135deg, #DCFCE7, #BBF7D0); }
+.creator-modal .modal-header.verified h3 { color: #166534; }
+.creator-modal .modal-header.verified .creator-modal-role { color: #15803D; opacity: 0.8; }
+.creator-modal .modal-header.vip { background: linear-gradient(135deg, #F3E8FF, #E9D5FF); }
+.creator-modal .modal-header.vip h3 { color: #7C3AED; }
+.creator-modal .modal-header.vip .creator-modal-role { color: #8B5CF6; opacity: 0.8; }
+.creator-modal .modal-header.aski { background: linear-gradient(135deg, #8B5CF6, #6366F1); }
+.creator-modal .modal-header.aski h3, .creator-modal .modal-header.aski .creator-modal-role { color: white; }
+.creator-modal .modal-header.aski .creator-modal-avatar { background: rgba(255,255,255,0.2); }
+.creator-modal .modal-header.aski .creator-modal-avatar svg { color: white; }
+.creator-modal-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--color-bg-soft); display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; }
+.creator-modal-avatar svg { width: 24px; height: 24px; color: var(--color-text-soft); }
 .creator-modal-info { flex: 1; min-width: 0; }
 .creator-modal-info h3 { margin: 0; font-size: 1.15rem; font-weight: 700; }
 .creator-modal-role { font-size: 0.85rem; opacity: 0.8; display: block; margin-top: 2px; }
