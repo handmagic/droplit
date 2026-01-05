@@ -810,7 +810,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.73 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.75 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -824,7 +824,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.73 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.75 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1479,7 +1479,7 @@ function saveIdea(t){
       const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
       const deviceId = DEVICE_ID || 'Not set';
       const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
-      alert(`DropLit Debug v0.9.73\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      alert(`DropLit Debug v0.9.75\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
@@ -2045,6 +2045,43 @@ function sendMail(){const i=ideas.find(x=>x.id===sendId);if(i)window.open('mailt
 function copyClip(){const i=ideas.find(x=>x.id===sendId);if(i){navigator.clipboard.writeText(i.text);toast('Copied','success');}closeSendModal();}
 function copyIdea(id){const i=ideas.find(x=>x.id===id);if(i){navigator.clipboard.writeText(i.text);toast('Copied','success');}}
 
+function saveAsMd(id) {
+  const item = ideas.find(x => x.id === id);
+  if (!item || !item.text) {
+    toast('No text to save');
+    return;
+  }
+  
+  // Create filename from first line or date
+  let filename = item.text.split('\n')[0].replace(/[#*_\[\]()]/g, '').trim().substring(0, 30);
+  if (!filename) filename = 'drop-' + item.date;
+  filename = filename.replace(/[^a-zA-Z0-9а-яА-Я\s-]/g, '').replace(/\s+/g, '-') + '.md';
+  
+  // Add metadata header
+  const content = `---
+date: ${item.date}
+time: ${item.time}
+category: ${item.category}
+creator: ${item.creator || 'user'}
+---
+
+${item.text}
+`;
+  
+  // Create and download file
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  toast('Saved as ' + filename, 'success');
+}
+
 function duplicateCard(id){
   const item=ideas.find(x=>x.id===id);
   if(!item)return;
@@ -2311,8 +2348,8 @@ function render(){
         h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">Read</button>';
         h+='<button class="act" onclick="startEdit('+i.id+')">Edit</button>';
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
+        h+='<button class="act" onclick="saveAsMd('+i.id+')">Save MD</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
-        h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
         h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       }
       h+='</div>';
