@@ -1235,19 +1235,7 @@ function toggleMarker(id,marker,e){
   }
   
   save();
-  
-  // Update only marker display, keep card active
-  const card = document.querySelector('.card[data-id="'+id+'"]');
-  if(card) {
-    const markersDiv = card.querySelector('.card-markers');
-    if(markersDiv) {
-      let mh = '';
-      if(item.markers && item.markers.length) {
-        item.markers.forEach(m => { mh += '<span class="card-marker">'+m+'</span>'; });
-      }
-      markersDiv.innerHTML = mh;
-    }
-  }
+  render(); // Need render to update markers display
   
   // Update photo markers button if in image viewer
   if(currentImageId === id) {
