@@ -810,7 +810,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.69 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.70 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -824,12 +824,12 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.69 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.70 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
   <div class="overlay" id="delModal"><div class="modal"><div class="modal-title">Delete this idea?</div><div class="modal-text">This action cannot be undone.</div><div class="modal-actions"><button class="modal-btn sec" onclick="closeDelModal()">Cancel</button><button class="modal-btn danger" onclick="confirmDel()">Delete</button></div></div></div>
-  <div class="overlay" id="creatorModal"><div class="modal type-b creator-modal"><div class="modal-header" id="creatorModalHeader"><div class="creator-modal-avatar" id="creatorModalAvatar"></div><div class="creator-modal-info"><h3 id="creatorModalName">Creator</h3><span class="creator-modal-role" id="creatorModalRole"></span></div></div><div class="modal-body"><div class="creator-info"><div class="creator-info-row"><span class="creator-info-label">Created</span><span class="creator-info-value" id="creatorModalDate">—</span></div><div class="creator-info-row"><span class="creator-info-label">Copyright</span><span class="creator-info-value" id="creatorModalCopyright">© 2025</span></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="filterByCreator()">Show only</button><button class="modal-btn sec" onclick="closeCreatorModal()">Close</button></div></div></div>
+  <div class="overlay" id="creatorModal"><div class="modal type-b creator-modal"><div class="modal-header" id="creatorModalHeader"><div class="creator-modal-avatar" id="creatorModalAvatar"></div><div class="creator-modal-info"><h3 id="creatorModalName">Creator</h3><span class="creator-modal-role" id="creatorModalRole"></span></div></div><div class="modal-body"><div class="creator-info"><div class="creator-info-row"><span class="creator-info-label">Created</span><span class="creator-info-value" id="creatorModalDate">—</span></div><div class="creator-info-row"><span class="creator-info-label">Copyright</span><span class="creator-info-value" id="creatorModalCopyright">© 2025</span></div></div></div><div class="modal-actions"><button class="modal-btn" id="creatorFilterBtn" onclick="filterByCreator()">Show only</button><button class="modal-btn sec" onclick="closeCreatorModal()">Close</button></div></div></div>
   <div class="overlay" id="settingsModal"><div class="modal type-b"><div class="modal-header"><h3>Settings</h3></div><div class="modal-body"><div class="modal-text" style="margin-bottom:0;">Syntrise CORE:<br>Sync your ideas to cloud</div></div><div class="modal-actions"><button class="modal-btn sec" onclick="syncToCloud()">Sync</button><button class="modal-btn sec" onclick="exportAll()">Export</button><button class="modal-btn pri" onclick="closeSettings()">Done</button></div></div></div>
   <div class="overlay" id="addCatModal"><div class="modal"><div class="modal-title">Add Category</div><div class="modal-text">Custom categories coming in a future update!</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAddCatModal()">OK</button></div></div></div>
   <div class="overlay" id="mergeModal"><div class="modal type-b"><div class="modal-header"><h3>Merge Preview</h3></div><div class="modal-body"><div class="merge-options"><label class="merge-toggle"><input type="checkbox" id="mergeSimple" onchange="updateMergePreview()"><span>Simple merge (no headers)</span></label></div><div class="merge-preview" id="mergePreview"></div></div><div class="modal-actions"><button class="pill-m sec" onclick="closeMergeModal()">Cancel</button><button class="pill-m sec" onclick="copyMerged()">Copy</button><button class="pill-m merge" onclick="saveMerged()">Save Merge</button></div></div></div>
@@ -1479,7 +1479,7 @@ function saveIdea(t){
       const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
       const deviceId = DEVICE_ID || 'Not set';
       const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
-      alert(`DropLit Debug v0.9.69\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      alert(`DropLit Debug v0.9.70\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
@@ -1913,6 +1913,20 @@ function openCreatorModal(id, e) {
   const header = document.getElementById('creatorModalHeader');
   header.className = 'modal-header ' + creatorStatus;
   
+  // Update filter button state
+  const filterBtn = document.getElementById('creatorFilterBtn');
+  const isFiltering = window.filterCreator && (
+    window.filterCreator === creator || 
+    window.filterCreator === (item.creatorName || 'You')
+  );
+  if(isFiltering) {
+    filterBtn.textContent = 'Clear filter';
+    filterBtn.className = 'modal-btn danger';
+  } else {
+    filterBtn.textContent = 'Show only';
+    filterBtn.className = 'modal-btn sec';
+  }
+  
   document.getElementById('creatorModal').classList.add('show');
 }
 
@@ -1920,15 +1934,22 @@ function filterByCreator() {
   const item = ideas.find(x => x.id === creatorModalId);
   if(!item) return;
   
-  const creator = item.creator || 'user';
-  const creatorName = item.creatorName || (creator === 'aski' ? 'ASKI' : creator === 'system' ? 'System' : 'You');
-  
-  // Set filter (we'll use a special filter mode)
-  window.filterCreator = creator === 'user' ? (item.creatorName || 'You') : creator;
-  
-  closeCreatorModal();
-  render();
-  toast('Showing drops by ' + creatorName, 'success');
+  // Toggle filter
+  if(window.filterCreator) {
+    // Already filtering - clear it
+    window.filterCreator = null;
+    closeCreatorModal();
+    render();
+    toast('Filter cleared', 'success');
+  } else {
+    // Set filter
+    const creator = item.creator || 'user';
+    const creatorName = item.creatorName || (creator === 'aski' ? 'ASKI' : creator === 'system' ? 'System' : 'You');
+    window.filterCreator = creator === 'user' ? (item.creatorName || 'You') : creator;
+    closeCreatorModal();
+    render();
+    toast('Showing drops by ' + creatorName, 'success');
+  }
 }
 
 function clearCreatorFilter() {
@@ -2165,7 +2186,6 @@ function render(){
       // Determine creator type and display name
       const creator = i.creator || 'user';
       const creatorName = creator === 'aski' ? 'ASKI' : creator === 'system' ? 'System' : (i.creatorName || 'Benedict Cumberbatch');
-      const creatorRole = creator === 'aski' ? '' : creator === 'system' ? '' : (i.creatorRole || 'Creator');
       const creatorStatus = i.creatorStatus || (creator === 'user' ? 'public' : ''); // Demo: public for user
       const avatarSvg = creator === 'aski' 
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>'
@@ -2175,7 +2195,6 @@ function render(){
       // Verified badge SVG (checkmark)
       const badgeSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
       const verifiedBadge = creatorStatus ? '<span class="verified-badge '+creatorStatus+'">'+badgeSvg+'</span>' : '';
-      const roleText = creatorRole ? '<span class="card-role">, '+creatorRole+'</span>' : '';
       // Card with full width, avatar inside
       h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
@@ -2183,9 +2202,9 @@ function render(){
       h+='<div class="card-header">';
       h+='<div class="card-avatar '+creator+'" onclick="openCreatorModal('+i.id+',event)">'+avatarSvg+'</div>';
       h+='<div class="card-header-content">';
-      // Row 1: Badge + Name + Role + Time
+      // Row 1: Badge + Name + Time
       h+='<div class="card-row1">';
-      h+='<span class="card-creator">'+verifiedBadge+creatorName+roleText+'</span>';
+      h+='<span class="card-creator">'+verifiedBadge+creatorName+'</span>';
       h+='<span class="card-time">'+smartTime(i)+'</span>';
       h+='</div>';
       // Row 2: Category + params + NEW
