@@ -130,7 +130,10 @@ body.chat-open .header-add-btn { display: none; }
 .card-avatar.aski svg { color: white; }
 .card-avatar.system { background: var(--color-bg-soft); }
 .card-avatar.system svg { color: var(--color-text-muted); }
-.card-header-content { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; transition: all 0.2s ease; }
+.card-header-content { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease; }
+body.font-small .card-header-content { height: 40px; }
+body.font-normal .card-header-content { height: 44px; }
+body.font-large .card-header-content { height: 52px; }
 .card-row1 { display: flex; align-items: center; gap: 8px; }
 .card-row2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .card-creator { font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; display: flex; align-items: center; }
@@ -892,7 +895,7 @@ body.font-large .balance-value { font-size: 2rem; }
 
 /* Creator modal */
 .creator-modal .modal-header { display: flex; align-items: center; transition: background 0.2s; }
-.creator-modal .modal-header.public { background: linear-gradient(135deg, #38BDF8, #0EA5E9); }
+.creator-modal .modal-header.public { background: linear-gradient(135deg, #7DD3FC, #38BDF8); }
 .creator-modal .modal-header.public h3, .creator-modal .modal-header.public .creator-modal-role { color: white; }
 .creator-modal .modal-header.verified { background: linear-gradient(135deg, #86EFAC, #4ADE80); }
 .creator-modal .modal-header.verified h3, .creator-modal .modal-header.verified .creator-modal-role { color: #065F46; }
@@ -905,8 +908,8 @@ body.font-large .balance-value { font-size: 2rem; }
 .creator-modal-avatar.aski { background: linear-gradient(135deg, #8B5CF6, #6366F1); }
 .creator-modal-avatar.aski svg { color: white; }
 .creator-modal-info { flex: 1; min-width: 0; }
-.creator-modal-info h3 { margin: 0; font-size: 1rem; font-weight: 700; }
-.creator-modal-role { font-size: 0.75rem; opacity: 0.8; display: block; margin-top: 2px; }
+.creator-modal-info h3 { margin: 0; font-size: 1.15rem; font-weight: 700; }
+.creator-modal-role { font-size: 0.85rem; opacity: 0.8; display: block; margin-top: 2px; }
 .creator-info { display: flex; flex-direction: column; gap: 12px; }
 .creator-info-row { display: flex; justify-content: space-between; align-items: center; }
 .creator-info-label { font-size: 0.8rem; color: var(--color-text-muted); }
@@ -915,15 +918,13 @@ body.font-large .balance-value { font-size: 2rem; }
 /* Verified badge in card */
 .verified-badge { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; margin-right: 4px; flex-shrink: 0; }
 .verified-badge svg { width: 8px; height: 8px; }
-.verified-badge.public { background: #0EA5E9; }
+.verified-badge.public { background: #7DD3FC; }
 .verified-badge.public svg { color: white; }
 .verified-badge.verified { background: #4ADE80; }
 .verified-badge.verified svg { color: white; }
 .verified-badge.vip { background: #A855F7; }
 .verified-badge.vip svg { color: white; }
 
-/* Card role */
-.card-role { font-weight: 400; opacity: 0.7; margin-left: 0; }
 .card-avatar:active { transform: scale(0.95); opacity: 0.8; }
 
 /* ========== UNIFIED PILLS SYSTEM v0.9.58 ========== */
