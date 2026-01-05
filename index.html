@@ -497,7 +497,7 @@
 
   <!-- Ask AI Panel -->
   <div class="ask-ai-panel" id="askAIPanel">
-    <div class="ask-ai-handle" onclick="closeAskAI()">
+    <div class="ask-ai-handle" onclick="stopAllAudio();closeAskAI()">
       <div class="ask-ai-handle-bar"></div>
     </div>
     <div class="ask-ai-header">
@@ -509,7 +509,7 @@
         </div>
       </div>
       <button class="pill-s ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()" style="position: relative; z-index: 10; min-width: 100px;">AUTODROP</button>
-      <button class="ask-ai-close" onclick="closeAskAI()">×</button>
+      <button class="ask-ai-close" onclick="stopAllAudio();closeAskAI()">×</button>
     </div>
     <div class="ask-ai-messages" id="askAIMessages">
       <div class="ask-ai-empty" id="askAIEmpty">
@@ -957,6 +957,50 @@ let aiProcessing = false;
 let showArchived = false;
 let rollUpMode = false; // Compact feed view
 
+// ============================================
+// STOP ALL AUDIO - Universal audio stopper
+// ============================================
+let currentAudioElement = null; // Track currently playing audio
+let currentPlayingDropId = null;
+
+function stopAllAudio() {
+  // 1. Stop HTML5 Audio elements
+  if (currentAudioElement) {
+    currentAudioElement.pause();
+    currentAudioElement.currentTime = 0;
+    currentAudioElement = null;
+  }
+  
+  // 2. Stop all audio elements on page
+  document.querySelectorAll('audio').forEach(audio => {
+    audio.pause();
+    audio.currentTime = 0;
+  });
+  
+  // 3. Stop browser speech synthesis
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  
+  // 4. Stop TTS if function exists (from tts.js)
+  if (typeof window.stopTTS === 'function') {
+    window.stopTTS();
+  }
+  
+  // 5. Reset playing state
+  if (currentPlayingDropId) {
+    const btn = document.getElementById('playbtn-' + currentPlayingDropId);
+    if (btn) btn.textContent = 'PLAY';
+    currentPlayingDropId = null;
+  }
+  
+  // 6. Reset any TTS buttons
+  document.querySelectorAll('.act-tts.speaking').forEach(btn => {
+    btn.classList.remove('speaking');
+    btn.textContent = 'Read';
+  });
+}
+
 const ideasWrap=document.getElementById('ideasWrap');
 const scrollTopBtn=document.getElementById('scrollTop');
 const scrollBottomBtn=document.getElementById('scrollBottom');
@@ -1133,7 +1177,7 @@ function showMergePreview(){
   document.getElementById('mergeModal').classList.add('show');
 }
 
-function closeMergeModal(){document.getElementById('mergeModal').classList.remove('show');}
+function closeMergeModal(){stopAllAudio();document.getElementById('mergeModal').classList.remove('show');}
 
 function copyMerged(){
   const simple=document.getElementById('mergeSimple').checked;
@@ -1191,6 +1235,11 @@ function handleCardClick(id,e){
     // For text cards AND audio cards - toggle expand/collapse
     const prevId = activeCardId;
     activeCardId = activeCardId===id ? null : id;
+    
+    // Stop any playing audio when switching cards
+    if(prevId && prevId !== id) {
+      stopAllAudio();
+    }
     
     // Remove active from previous card
     if(prevId) {
@@ -1815,10 +1864,10 @@ function openCatModal(id){
   });
   document.getElementById('catModal').classList.add('show');
 }
-function closeCatModal(){document.getElementById('catModal').classList.remove('show');catChangeId=null;}
+function closeCatModal(){stopAllAudio();document.getElementById('catModal').classList.remove('show');catChangeId=null;}
 function changeCat(c){if(catChangeId){const i=ideas.find(x=>x.id===catChangeId);if(i){saveUndo('category',{id:i.id,previousCategory:i.category,newCategory:c});i.category=c;save();render();counts();toast('Moved to '+CATS[c].name,'success');}}closeCatModal();}
 function reqDel(id){delId=id;document.getElementById('delModal').classList.add('show');}
-function closeDelModal(){document.getElementById('delModal').classList.remove('show');delId=null;}
+function closeDelModal(){stopAllAudio();document.getElementById('delModal').classList.remove('show');delId=null;}
 function confirmDel(){
   if(delId){
     const delItem=ideas.find(x=>x.id===delId);
@@ -1865,7 +1914,7 @@ function saveEdit(id){
 }
 function cancelEdit(id){editId=null;document.body.classList.remove('editing-mode');render();}
 function openSendModal(id){sendId=id;document.getElementById('sendModal').classList.add('show');}
-function closeSendModal(){document.getElementById('sendModal').classList.remove('show');sendId=null;}
+function closeSendModal(){stopAllAudio();document.getElementById('sendModal').classList.remove('show');sendId=null;}
 function sendAI(){const i=ideas.find(x=>x.id===sendId);if(i){navigator.clipboard.writeText(i.text);window.open('https://claude.ai','_blank');toast('Copied to clipboard!','success');}closeSendModal();}
 function shareNative(){const i=ideas.find(x=>x.id===sendId);if(i&&navigator.share)navigator.share({title:'DropLit',text:i.text}).catch(()=>{});else if(i){navigator.clipboard.writeText(i.text);toast('Copied','success');}closeSendModal();}
 function sendMail(){const i=ideas.find(x=>x.id===sendId);if(i)window.open('mailto:?subject='+encodeURIComponent('DropLit: '+CATS[i.category].name)+'&body='+encodeURIComponent(i.text));closeSendModal();}
@@ -2742,6 +2791,7 @@ function handleImageViewerClick(e){
 }
 
 function closeImageViewer(){
+  stopAllAudio();
   if(isEditingCaption){
     saveCaption();
   }
