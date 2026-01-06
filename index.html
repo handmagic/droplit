@@ -828,7 +828,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.77 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.78 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -842,7 +842,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.77 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.78 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1497,7 +1497,7 @@ function saveIdea(t){
       const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
       const deviceId = DEVICE_ID || 'Not set';
       const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
-      alert(`DropLit Debug v0.9.77\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      alert(`DropLit Debug v0.9.78\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
@@ -4335,8 +4335,28 @@ function getAIPersona() {
 }
 
 // ============================================
-// AUTODROP FUNCTIONS
+// AUTODROP FUNCTIONS — v1.1 FIXED
 // ============================================
+// Changes: session tracking, source field, unified UI sync, no render()
+// ============================================
+
+// Current chat session ID (for filtering duplicates)
+let currentChatSessionId = null;
+
+function generateChatSessionId() {
+  currentChatSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  console.log('[AutoDrop] New session:', currentChatSessionId);
+  return currentChatSessionId;
+}
+
+function clearChatSessionId() {
+  console.log('[AutoDrop] Session cleared:', currentChatSessionId);
+  currentChatSessionId = null;
+}
+
+function getChatSessionId() {
+  return currentChatSessionId;
+}
 
 function toggleAutoDrop() {
   const currentState = localStorage.getItem('droplit_autodrop');
@@ -4344,10 +4364,18 @@ function toggleAutoDrop() {
   
   localStorage.setItem('droplit_autodrop', newEnabled ? 'true' : 'false');
   
+  // Update BOTH UI elements for sync
   const toggle = document.getElementById('autoDropToggle');
   if (toggle) toggle.classList.toggle('active', newEnabled);
-  updateAutoDropIndicator();
+  
+  const indicator = document.getElementById('autoDropIndicator');
+  if (indicator) {
+    indicator.classList.toggle('active', newEnabled);
+    indicator.textContent = newEnabled ? 'AUTODROP ON' : 'AUTODROP';
+  }
+  
   toast(newEnabled ? 'AutoDrop enabled' : 'AutoDrop disabled');
+  console.log('[AutoDrop] Toggled to:', newEnabled);
 }
 
 function toggleAutoDropFromChat() {
@@ -4355,10 +4383,14 @@ function toggleAutoDropFromChat() {
 }
 
 function updateAutoDropIndicator() {
+  const enabled = localStorage.getItem('droplit_autodrop') === 'true';
+  
+  // Update Settings toggle
+  const toggle = document.getElementById('autoDropToggle');
+  if (toggle) toggle.classList.toggle('active', enabled);
+  
+  // Update Chat indicator
   const indicator = document.getElementById('autoDropIndicator');
-  const rawValue = localStorage.getItem('droplit_autodrop');
-  const enabled = rawValue === 'true';
-  console.log('[AutoDrop] Update indicator - raw:', rawValue, 'enabled:', enabled);
   if (indicator) {
     indicator.classList.toggle('active', enabled);
     indicator.textContent = enabled ? 'AUTODROP ON' : 'AUTODROP';
@@ -4366,40 +4398,39 @@ function updateAutoDropIndicator() {
 }
 
 function autoSaveMessageAsDrop(text, isUser) {
-  // Check localStorage directly for reliability
   const isEnabled = localStorage.getItem('droplit_autodrop') === 'true';
   
   if (!isEnabled) {
     console.log('[AutoDrop] Skipped - disabled');
-    return;
+    return null;
   }
   
-  if (!text || !text.trim()) return;
+  if (!text || !text.trim()) return null;
   
+  const now = new Date();
   const drop = {
     id: Date.now(),
     text: text,
     category: 'inbox',
-    timestamp: new Date().toISOString(),
-    date: new Date().toLocaleDateString('ru-RU'),
-    time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+    timestamp: now.toISOString(),
+    date: now.toLocaleDateString('ru-RU'),
+    time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
     isMedia: false,
-    creator: isUser ? 'user' : 'aski'
+    creator: isUser ? 'user' : 'aski',
+    source: 'autodrop',
+    sessionId: currentChatSessionId
   };
   
   ideas.unshift(drop);
   save(drop);
+  counts();  // NO render() - causes 2-3 sec delays!
   
-  // Don't call render() to avoid UI disruption during chat
-  counts();
-  
-  console.log('AutoDrop saved:', isUser ? 'User' : 'ASKI', text.substring(0, 30) + '...');
+  console.log('[AutoDrop] Saved:', isUser ? 'User' : 'ASKI', 'session:', currentChatSessionId?.slice(-8), 'text:', text.substring(0, 30) + '...');
+  return drop;
 }
 
-// Initialize AutoDrop toggle on load
+// Initialize on load
 document.addEventListener('DOMContentLoaded', function() {
-  const toggle = document.getElementById('autoDropToggle');
-  if (toggle) toggle.classList.toggle('active', isAutoDropEnabled());
   updateAutoDropIndicator();
 });
 
