@@ -35,6 +35,11 @@ function openAskAI() {
   document.body.classList.add('chat-open');
   // No auto-focus - voice-first approach, keyboard won't popup
   
+  // Generate new session ID for AutoDrop filtering
+  if (typeof generateChatSessionId === 'function') {
+    generateChatSessionId();
+  }
+  
   // Keep screen on while chat is open (like TikTok)
   acquireWakeLock();
   
@@ -96,6 +101,11 @@ function closeAskAI() {
   const panel = document.getElementById('askAIPanel');
   panel.classList.remove('show', 'voice-mode-active', 'aski-busy');
   document.body.classList.remove('chat-open');
+  
+  // Clear session ID for AutoDrop
+  if (typeof clearChatSessionId === 'function') {
+    clearChatSessionId();
+  }
   
   // Stop everything and reset all voice states
   voiceModeLocked = true;
@@ -2106,11 +2116,23 @@ async function handleStreamingResponse(response) {
   
   if (createDropData && createDropData.drop) {
     const drop = createDropData.drop;
-    const newIdea = { id: Date.now().toString(), text: drop.text, category: drop.category || 'inbox', date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }), isMedia: false };
+    const now = new Date();
+    const newIdea = {
+      id: Date.now().toString(),
+      text: drop.text,
+      category: drop.category || 'inbox',
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('ru-RU'),
+      time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+      isMedia: false,
+      source: 'aski_tool',
+      creator: 'aski',
+      sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null
+    };
     ideas.unshift(newIdea);
-    save();
-    render();
-    toast('Drop created by Aski', 'success');
+    save(newIdea);
+    counts();  // NO render() - causes delays!
+    toast('Drop created by ASKI', 'success');
   }
   
   if (localStorage.getItem('droplit_autodrop') === 'true') autoSaveMessageAsDrop(fullText, false);
@@ -2440,7 +2462,7 @@ function retryLastMessage(btn) {
 }
 
 function createDropFromAI(btn) {
-  console.log('createDropFromAI called');
+  console.log('[createDropFromAI] Called');
   
   // Check if already created
   if (btn.classList.contains('created')) {
@@ -2450,37 +2472,41 @@ function createDropFromAI(btn) {
   
   const msgDiv = btn.closest('.ask-ai-message');
   if (!msgDiv) {
-    console.error('Could not find message div');
+    console.error('[createDropFromAI] Could not find message div');
     return;
   }
   
   const bubble = msgDiv.querySelector('.ask-ai-bubble');
   if (!bubble) {
-    console.error('Could not find bubble');
+    console.error('[createDropFromAI] Could not find bubble');
     return;
   }
   
   const text = bubble.textContent;
   const isUserMessage = msgDiv.classList.contains('user');
   
-  console.log('Creating drop:', text.substring(0, 50) + '...');
+  console.log('[createDropFromAI] Creating drop:', text.substring(0, 50) + '...');
   
+  const now = new Date();
   const drop = {
     id: Date.now(),
     text: text,
     category: 'inbox',
-    timestamp: new Date().toISOString(),
-    date: new Date().toLocaleDateString('ru-RU'),
-    time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
-    isMedia: false
+    timestamp: now.toISOString(),
+    date: now.toLocaleDateString('ru-RU'),
+    time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+    isMedia: false,
+    source: 'chat_manual',
+    creator: isUserMessage ? 'user' : 'aski',
+    sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null
   };
   
   ideas.unshift(drop);
   save(drop);
-  render();
+  // NO render() - causes 2-3 second delays!
   counts();
   
-  // Update button to show "created" state
+  // Update button to show "created" state IMMEDIATELY
   btn.classList.add('created');
   btn.innerHTML = `
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -2488,7 +2514,7 @@ function createDropFromAI(btn) {
   `;
   btn.blur(); // Remove focus to prevent red outline
   
-  console.log('Drop created successfully');
+  console.log('[createDropFromAI] Drop created successfully, id:', drop.id);
   
   // Sync with Syntrise if enabled
   if (typeof syncDropToSyntrise === 'function') {
