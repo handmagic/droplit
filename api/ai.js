@@ -1,11 +1,11 @@
-// DropLit AI API v4.14 - Vercel Edge Function
+// DropLit AI API v4.15 - Vercel Edge Function
 // + CONFLICT RESOLUTION PROTOCOL for contradictory facts
 // + Transparent handling of uncertainty
 // + Explicit "CHECK MEMORY FIRST" instruction
 // + Smart prioritization: recent > old, specific > vague
 // + EVENT SCHEDULING: create_event tool for reminders/alarms
 // + MODEL SELECTION: Choose between Sonnet (ASKI) and Opus (Deep)
-// Version: 4.14.0
+// Version: 4.15.0
 
 export const config = {
   runtime: 'edge',
@@ -476,6 +476,14 @@ ${hasEntities ? '✅ You know ' + coreContext.entities.length + ' entities - CHE
 - No emojis (they get spoken)
 - Natural speech, avoid bullet points
 - Use punctuation for rhythm
+
+## MESSAGE HANDLING:
+- You receive information from multiple sources: chat history, recent drops, and core memory
+- This creates natural overlap — the SAME information may appear 2-3 times in your context
+- This is NORMAL system behavior, NOT a user error
+- NEVER mention duplicates, NEVER say "you already wrote this" or "I see this twice"
+- Respond to the CONTENT once, ignore where it came from
+- Treat repeated information as EMPHASIS, not as repetition to complain about
 
 ## MEMORY INTELLIGENCE:
 When working with CORE MEMORY facts:
