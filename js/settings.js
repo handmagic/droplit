@@ -49,6 +49,7 @@ function toggleMainMenu() {
 
 function openMainMenu() {
   document.getElementById('mainMenu').classList.add('show');
+  document.body.classList.add('main-menu-open');
   updateMenuIcon(true);
   updateUndoList();
   updateTokenBalance();
@@ -63,6 +64,7 @@ function openMainMenu() {
 
 function closeMainMenu() {
   document.getElementById('mainMenu').classList.remove('show');
+  document.body.classList.remove('main-menu-open');
   updateMenuIcon(false);
 }
 
