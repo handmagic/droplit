@@ -828,7 +828,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.82 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.83 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -842,7 +842,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.82 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.83 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1497,7 +1497,7 @@ function saveIdea(t){
       const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
       const deviceId = DEVICE_ID || 'Not set';
       const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
-      alert(`DropLit Debug v0.9.82\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      alert(`DropLit Debug v0.9.83\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
@@ -2029,7 +2029,48 @@ function confirmDel(){
   }
   closeDelModal();
 }
-function startEdit(id){if(editId)cancelEdit(editId);editId=id;activeCardId=id;document.body.classList.add('editing-mode');render();setTimeout(()=>{const card=document.querySelector('[data-id="'+id+'"]');const ta=card?.querySelector('.card-ta');if(ta){card.scrollIntoView({behavior:'smooth',block:'center'});ta.focus();}},100);}
+function startEdit(id){
+  if(editId)cancelEdit(editId);
+  editId=id;
+  activeCardId=id;
+  document.body.classList.add('editing-mode');
+  
+  // Update only this card without full render
+  const card = document.querySelector('[data-id="'+id+'"]');
+  if(card){
+    card.classList.add('editing', 'active');
+    const i = ideas.find(x=>x.id===id);
+    if(i){
+      // Add textarea if not exists
+      let ta = card.querySelector('.card-ta');
+      if(!ta){
+        const textEl = card.querySelector('.card-text');
+        if(textEl){
+          ta = document.createElement('textarea');
+          ta.className = 'card-ta';
+          ta.value = i.text || '';
+          textEl.after(ta);
+        }
+      } else {
+        ta.value = i.text || '';
+      }
+      // Add edit actions if not exists
+      let actions = card.querySelector('.card-edit-actions');
+      if(!actions){
+        const actDiv = document.createElement('div');
+        actDiv.className = 'card-edit-actions';
+        actDiv.innerHTML = '<button class="act primary" onclick="saveEdit('+id+')">Save</button><button class="act secondary" onclick="cancelEdit('+id+')">Cancel</button>';
+        card.appendChild(actDiv);
+      }
+      setTimeout(()=>{
+        if(ta){
+          card.scrollIntoView({behavior:'smooth',block:'center'});
+          ta.focus();
+        }
+      },100);
+    }
+  }
+}
 function saveEdit(id){
   const card=document.querySelector('[data-id="'+id+'"]'),ta=card?.querySelector('.card-ta');
   if(ta){
@@ -2046,15 +2087,53 @@ function saveEdit(id){
           syncDropToServer(i, 'update');
         }
         toast('Saved','success');
+        
+        // Update card text without full render
+        const textEl = card.querySelector('.card-text');
+        if(textEl) textEl.innerHTML = renderMarkdown(t);
+        
+        // Update category badge
+        const catEl = card.querySelector('.card-cat');
+        if(catEl){
+          catEl.className = 'card-cat ' + i.category;
+          catEl.textContent = CATS[i.category]?.single || 'INBOX';
+        }
+        
+        // Update char count
+        const charsEl = card.querySelector('.card-chars');
+        if(charsEl) charsEl.textContent = t.length;
       }
     }
   }
+  
+  // Clean up edit UI
   editId=null;
   document.body.classList.remove('editing-mode');
-  render();
-  counts();
+  if(card){
+    card.classList.remove('editing');
+    const ta = card.querySelector('.card-ta');
+    if(ta) ta.remove();
+    const actions = card.querySelector('.card-edit-actions');
+    if(actions) actions.remove();
+  }
+  
+  // Update counts in background
+  requestAnimationFrame(counts);
 }
-function cancelEdit(id){editId=null;document.body.classList.remove('editing-mode');render();}
+function cancelEdit(id){
+  editId=null;
+  document.body.classList.remove('editing-mode');
+  
+  // Clean up edit UI without full render
+  const card = document.querySelector('[data-id="'+id+'"]');
+  if(card){
+    card.classList.remove('editing');
+    const ta = card.querySelector('.card-ta');
+    if(ta) ta.remove();
+    const actions = card.querySelector('.card-edit-actions');
+    if(actions) actions.remove();
+  }
+}
 function openSendModal(id){sendId=id;document.getElementById('sendModal').classList.add('show');}
 function closeSendModal(){stopAllAudio();document.getElementById('sendModal').classList.remove('show');sendId=null;}
 function sendAI(){const i=ideas.find(x=>x.id===sendId);if(i){navigator.clipboard.writeText(i.text);window.open('https://claude.ai','_blank');toast('Copied to clipboard!','success');}closeSendModal();}
@@ -4128,7 +4207,8 @@ document.getElementById('timeRow').addEventListener('click',e=>{
   if(b.dataset.time!=='all')b.classList.add('active');
   curTime=b.dataset.time;curCat='all';activeCardId=null;
   document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
-  render();counts();
+  render();
+  // counts already calculated, no need to recalculate
 });
 
 document.getElementById('cats').addEventListener('click',e=>{
@@ -4136,6 +4216,7 @@ document.getElementById('cats').addEventListener('click',e=>{
   if(c.classList.contains('active')){c.classList.remove('active');curCat='all';}
   else{document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));c.classList.add('active');curCat=c.dataset.category;}
   activeCardId=null;render();
+  // counts already calculated
 });
 
 // ============================================
@@ -4427,6 +4508,55 @@ function autoSaveMessageAsDrop(text, isUser) {
   
   console.log('[AutoDrop] Saved:', isUser ? 'User' : 'ASKI', 'session:', currentChatSessionId?.slice(-8));
   return drop;
+}
+
+// ============================================
+// MAIN MENU FUNCTIONS
+// ============================================
+function toggleMainMenu() {
+  const menu = document.getElementById('mainMenu');
+  if (!menu) return;
+  
+  if (menu.classList.contains('show')) {
+    closeMainMenu();
+  } else {
+    openMainMenu();
+  }
+}
+
+function openMainMenu() {
+  const menu = document.getElementById('mainMenu');
+  const btn = document.getElementById('menuToggleBtn');
+  
+  if (!menu) return;
+  
+  menu.classList.add('show');
+  
+  if (btn) {
+    const iconOpen = btn.querySelector('.menu-icon-open');
+    const iconClose = btn.querySelector('.menu-icon-close');
+    if (iconOpen) iconOpen.style.display = 'none';
+    if (iconClose) iconClose.style.display = 'block';
+  }
+  
+  // Sync AutoDrop toggle state
+  updateAutoDropIndicator();
+}
+
+function closeMainMenu() {
+  const menu = document.getElementById('mainMenu');
+  const btn = document.getElementById('menuToggleBtn');
+  
+  if (!menu) return;
+  
+  menu.classList.remove('show');
+  
+  if (btn) {
+    const iconOpen = btn.querySelector('.menu-icon-open');
+    const iconClose = btn.querySelector('.menu-icon-close');
+    if (iconOpen) iconOpen.style.display = 'block';
+    if (iconClose) iconClose.style.display = 'none';
+  }
 }
 
 // Initialize on load
