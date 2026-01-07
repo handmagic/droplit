@@ -36,6 +36,87 @@
   <script src="js/notifications.js"></script>
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- UI Enhancement: Thin borders for AI Inspired look -->
+  <style>
+    :root {
+      --border-subtle: 0.5px solid rgba(128, 128, 128, 0.4);
+      --border-subtle-dark: 0.5px solid rgba(255, 255, 255, 0.15);
+    }
+    
+    /* FAB and round buttons */
+    .fab-main,
+    .fab-pill,
+    .btn-icon {
+      border: var(--border-subtle);
+    }
+    
+    /* Pill buttons */
+    .pill-s,
+    .pill-m,
+    .pill-l,
+    .pill-row button,
+    .time-btn,
+    .cat {
+      border: var(--border-subtle);
+    }
+    
+    /* Cards - only inactive state */
+    .card {
+      border: var(--border-subtle);
+    }
+    .card.active {
+      border-color: var(--color-primary, #8B5CF6);
+    }
+    
+    /* Modals and panels */
+    .modal,
+    .main-menu-content,
+    .ask-ai-panel,
+    .plus-menu,
+    .audio-recorder-content,
+    .ai-result-modal > div {
+      border: var(--border-subtle);
+    }
+    
+    /* Action buttons in cards */
+    .act,
+    .ask-ai-action-btn,
+    .marker-btn {
+      border: var(--border-subtle);
+    }
+    
+    /* Settings toggles */
+    .settings-toggle {
+      border: var(--border-subtle);
+    }
+    
+    /* Dark mode adjustments */
+    body.dark-mode .fab-main,
+    body.dark-mode .fab-pill,
+    body.dark-mode .btn-icon,
+    body.dark-mode .pill-s,
+    body.dark-mode .pill-m,
+    body.dark-mode .pill-l,
+    body.dark-mode .pill-row button,
+    body.dark-mode .time-btn,
+    body.dark-mode .cat,
+    body.dark-mode .card,
+    body.dark-mode .modal,
+    body.dark-mode .main-menu-content,
+    body.dark-mode .ask-ai-panel,
+    body.dark-mode .plus-menu,
+    body.dark-mode .act,
+    body.dark-mode .ask-ai-action-btn,
+    body.dark-mode .marker-btn,
+    body.dark-mode .settings-toggle {
+      border: var(--border-subtle-dark);
+    }
+    
+    body.dark-mode .card.active {
+      border-color: var(--color-primary, #8B5CF6);
+    }
+  </style>
 </head>
 <body>
   <!-- Insights Banner -->
@@ -828,7 +909,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.79 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.80 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -842,7 +923,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.79 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.80 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1497,7 +1578,7 @@ function saveIdea(t){
       const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
       const deviceId = DEVICE_ID || 'Not set';
       const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
-      alert(`DropLit Debug v0.9.79\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      alert(`DropLit Debug v0.9.80\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
@@ -2275,12 +2356,13 @@ function renderInternal(forceFullRender = false) {
   if (!list.length) {
     wrap.innerHTML = '';
     empty.style.display = 'flex';
+    lastRenderHash = ''; // Reset hash when empty
     return;
   }
   empty.style.display = 'none';
   
-  // Check if we need full re-render
-  const newHash = list.map(i => i.id + ':' + (i.timestamp || '') + ':' + (i.markers?.join('') || '')).join('|') + '|' + sortAsc + '|' + rollUpMode;
+  // Check if we need full re-render - include filter state in hash
+  const newHash = curTime + '|' + curCat + '|' + sortAsc + '|' + rollUpMode + '|' + list.map(i => i.id + ':' + (i.timestamp || '') + ':' + (i.markers?.join('') || '')).join('|');
   
   if (!forceFullRender && newHash === lastRenderHash) {
     // Data unchanged, just update active states
