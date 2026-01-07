@@ -45,8 +45,8 @@ body { font-family: var(--font-main); background: var(--color-bg); color: var(--
 .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--color-bg); position: relative; padding-top: var(--safe-top); }
 
  /* Header */
-.header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--color-bg-card); position: relative; padding-top: max(10px, env(safe-area-inset-top)); z-index: 100; }
-.header::after { content: ''; position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; background: linear-gradient(to bottom, rgba(0,0,0,0.04), transparent); pointer-events: none; z-index: 99; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--color-bg-card); position: relative; padding-top: max(10px, env(safe-area-inset-top)); z-index: 500; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+.header::after { display: none; }
 body.filters-visible .header::after { display: none; }
 .logo-btn { width: 48px; height: 48px; border: none; background: var(--color-bg-soft); border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; color: var(--color-text-soft); }
 .logo-btn:active { opacity: 0.7; transform: scale(0.95); }
@@ -58,7 +58,7 @@ body.filters-visible .logo-btn svg { transform: rotate(180deg); }
    ============================================ */
 .filters-wrap { 
   position: relative;
-  z-index: 99;
+  z-index: 400;
   height: 0;
   overflow: visible;
 }
@@ -69,13 +69,13 @@ body.filters-visible .logo-btn svg { transform: rotate(180deg); }
   left: 0;
   right: 0;
   background: var(--color-bg-card); 
-  padding: 4px 10px 8px 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  padding: 0 10px 8px 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   transform: translateY(-100%);
   opacity: 0;
   transition: transform 0.2s ease-out, opacity 0.15s ease-out;
   pointer-events: none;
-  z-index: 98;
+  z-index: 400;
 }
 
 body.filters-visible .filters { 
@@ -91,7 +91,13 @@ body.filters-visible .filters {
   right: 0; 
   bottom: -10px; 
   height: 10px; 
-  background: linear-gradient(to bottom, rgba(0,0,0,0.08), transparent); 
+  background: linear-gradient(to bottom, rgba(0,0,0,0.06), transparent); 
+  pointer-events: none;
+}
+
+/* Hide logo-btn when main-menu is open */
+body.main-menu-open .logo-btn {
+  opacity: 0.3;
   pointer-events: none;
 }
 	body.filters-visible .logo-btn { background: var(--color-bg-soft); }
@@ -386,9 +392,9 @@ body.font-large .card-header-content { height: 52px; }
 	/* FAB Container - bottom bar */
 .fab-container { position: fixed; bottom: 16px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 50; pointer-events: none; padding-bottom: env(safe-area-inset-bottom); }
 .fab-container > * { pointer-events: auto; }
-.fab-pill { height: 48px; min-width: 110px; padding: 0 16px; border: none; background: #FF6B4A; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: var(--font-main); font-size: 0.8rem; font-weight: 700; color: white; letter-spacing: 0.5px; text-transform: uppercase; box-shadow: 0 4px 20px rgba(255,107,74,0.4); transition: all 0.2s; }
+.fab-pill { height: 48px; min-width: 110px; padding: 0 16px; border: none; background: #FF6B4A; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: var(--font-main); font-size: 0.8rem; font-weight: 700; color: white; letter-spacing: 0.5px; text-transform: uppercase; box-shadow: 0 4px 16px rgba(0,0,0,0.15); transition: all 0.2s; }
 .fab-pill:active { transform: scale(0.95); }
-.fab-pill.create { background: #8B5CF6; box-shadow: 0 4px 20px rgba(139,92,246,0.4); }
+.fab-pill.create { background: #8B5CF6; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
 .select-mode .fab-container, .editing-mode .fab-container { display: none !important; }
 
 /* Ask AI Panel - Full Screen Slide Up */
@@ -740,7 +746,7 @@ body.chat-open .fab-camera, body.chat-open .fab-askai, body.chat-open .fab-recor
   right: 0; 
   bottom: 0; 
   background: rgba(0,0,0,0); 
-  z-index: 150; 
+  z-index: 450; 
   visibility: hidden; 
   pointer-events: none;
   transition: background 0.2s ease-out;
@@ -759,7 +765,8 @@ body.chat-open .fab-camera, body.chat-open .fab-askai, body.chat-open .fab-recor
   transform: translateY(-100%);
   transition: transform 0.2s ease-out;
   padding-bottom: 100px; 
-  margin-top: 0; 
+  margin-top: 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
 }
 .main-menu.show .main-menu-content { 
   transform: translateY(0); 
