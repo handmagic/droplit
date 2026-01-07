@@ -53,20 +53,35 @@ body.filters-visible .header::after { display: none; }
 .logo-btn svg { width: 22px; height: 22px; transition: transform 0.3s; }
 body.filters-visible .logo-btn svg { transform: rotate(180deg); }
 
-/* Filters toggle - INSTANT open/close, NO layout recalc */
+/* Filters toggle - ZERO HEIGHT wrapper, panel appears OVER content */
 .filters-wrap { 
-  position: relative; 
+  position: relative;
   z-index: 99;
+  height: 0;
   overflow: visible;
 }
-.filters-wrap::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 10px; background: linear-gradient(to bottom, rgba(0,0,0,0.08), transparent); pointer-events: none; opacity: 0; z-index: 100; }
-body.filters-visible .filters-wrap::after { opacity: 1; }
 
-/* Filters panel - visibility toggle only, no size changes */
+/* Filters panel - absolute positioned, overlays content */
 .filters { 
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   background: var(--color-bg-card); 
   padding: 4px 10px 8px 10px;
   display: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 99;
+}
+.filters::after { 
+  content: ''; 
+  position: absolute; 
+  left: 0; 
+  right: 0; 
+  bottom: -10px; 
+  height: 10px; 
+  background: linear-gradient(to bottom, rgba(0,0,0,0.08), transparent); 
+  pointer-events: none;
 }
 body.filters-visible .filters { 
   display: block;
