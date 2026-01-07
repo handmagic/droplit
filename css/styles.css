@@ -53,12 +53,24 @@ body.filters-visible .header::after { display: none; }
 .logo-btn svg { width: 22px; height: 22px; transition: transform 0.3s; }
 body.filters-visible .logo-btn svg { transform: rotate(180deg); }
 
-/* Filters toggle - hidden by default */
-.filters-wrap { position: relative; z-index: 99; contain: layout; }
-.filters-wrap::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 10px; background: linear-gradient(to bottom, rgba(0,0,0,0.08), transparent); pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 100; }
+/* Filters toggle - INSTANT open/close, NO layout recalc */
+.filters-wrap { 
+  position: relative; 
+  z-index: 99;
+  overflow: visible;
+}
+.filters-wrap::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 10px; background: linear-gradient(to bottom, rgba(0,0,0,0.08), transparent); pointer-events: none; opacity: 0; z-index: 100; }
 body.filters-visible .filters-wrap::after { opacity: 1; }
-.filters { max-height: 0; overflow: hidden; opacity: 0; transition: opacity 0.15s ease-out; padding: 0; background: var(--color-bg-card); }
-body.filters-visible .filters { max-height: 200px; opacity: 1; padding: 4px 10px 8px 10px; }
+
+/* Filters panel - visibility toggle only, no size changes */
+.filters { 
+  background: var(--color-bg-card); 
+  padding: 4px 10px 8px 10px;
+  display: none;
+}
+body.filters-visible .filters { 
+  display: block;
+}
 	body.filters-visible .logo-btn { background: var(--color-bg-soft); }
 .header-title { position: absolute; left: 50%; transform: translateX(-50%); font-family: var(--font-main); font-size: 1.1rem; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .title-drop { color: #FF6B4A; }
@@ -117,12 +129,12 @@ body.chat-open .header-add-btn { display: none; }
 .cat-add:active { border-color: var(--color-primary); color: var(--color-primary); }
 
 /* Ideas container */
-.ideas-wrap { flex: 1; overflow-y: auto; padding: 10px 10px 100px; -webkit-overflow-scrolling: touch; position: relative; z-index: 1; contain: layout style; }
+.ideas-wrap { flex: 1; overflow-y: auto; padding: 10px 10px 100px; -webkit-overflow-scrolling: touch; position: relative; z-index: 1; contain: layout; }
 .ideas { display: flex; flex-direction: column; gap: 2px; }
 .date-sep { display: flex; align-items: center; justify-content: center; padding: 16px 0 8px; font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
 /* Card */
-.card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px 14px 12px 12px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 4px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.card { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px 14px 12px 12px; box-shadow: var(--shadow-card); cursor: pointer; transition: all 0.15s; margin-bottom: 4px; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; content-visibility: auto; contain-intrinsic-size: 0 100px; }
 .card-header { display: flex; gap: 12px; margin-bottom: 15px; padding-top: 2px; }
 .card-avatar { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; background: var(--color-bg-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; transition: all 0.2s ease; cursor: pointer; }
 .card-avatar svg { width: 22px; height: 22px; color: var(--color-text-soft); transition: all 0.2s ease; }
