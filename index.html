@@ -4423,10 +4423,173 @@ function autoSaveMessageAsDrop(text, isUser) {
   
   ideas.unshift(drop);
   save(drop);
-  counts();  // NO render() - causes 2-3 sec delays!
+  counts();
+  
+  // Add drop to feed visually without full render
+  appendSingleDrop(drop);
+  
+  // Play sound for feedback
+  if (typeof playDropSound === 'function') {
+    playDropSound();
+  }
   
   console.log('[AutoDrop] Saved:', isUser ? 'User' : 'ASKI', 'session:', currentChatSessionId?.slice(-8), 'text:', text.substring(0, 30) + '...');
   return drop;
+}
+
+// ============================================
+// APPEND SINGLE DROP (no full render)
+// ============================================
+function appendSingleDrop(drop) {
+  const wrap = document.getElementById('ideasList');
+  const empty = document.getElementById('emptyState');
+  
+  if (!wrap) return;
+  
+  // Hide empty state if showing
+  if (empty) empty.style.display = 'none';
+  
+  // Build HTML for single drop
+  const html = buildDropCardHTML(drop);
+  
+  // Check if today's date separator exists
+  const td = new Date().toLocaleDateString('ru-RU');
+  let todaySep = wrap.querySelector('.date-sep');
+  
+  // Determine insert position based on sort order
+  if (sortAsc) {
+    // Ascending - add at end
+    wrap.insertAdjacentHTML('beforeend', html);
+    // Scroll to bottom
+    setTimeout(() => scrollToBottom(), 100);
+  } else {
+    // Descending (default) - add at top after date separator
+    if (todaySep && todaySep.textContent === 'Today') {
+      todaySep.insertAdjacentHTML('afterend', html);
+    } else {
+      // No today separator - add one
+      wrap.insertAdjacentHTML('afterbegin', '<div class="date-sep">Today</div>' + html);
+    }
+    // Scroll to top
+    setTimeout(() => scrollToTop(), 100);
+  }
+  
+  console.log('[appendSingleDrop] Added drop to feed:', drop.id);
+}
+
+// Build HTML for a single drop card
+function buildDropCardHTML(drop) {
+  const i = drop;
+  const isActive = false;
+  const isEditing = false;
+  const isSelected = false;
+  const isRollUp = rollUpMode;
+  const cc = i.isMedia ? 0 : (i.text?.length || 0);
+  const isTruncated = cc > 1000;
+  
+  const creator = i.creator || 'user';
+  const creatorName = creator === 'aski' ? 'ASKI' : creator === 'system' ? 'System' : 'User';
+  
+  const avatarSvg = creator === 'aski' 
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+  
+  let h = '';
+  h += '<div class="card' + (isRollUp ? ' roll-up' : '') + '" data-id="' + i.id + '" onclick="handleCardClick(' + i.id + ',event)" ontouchstart="cardTouchStart(' + i.id + ',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
+  h += '<div class="card-checkbox"></div>';
+  h += '<div class="card-header">';
+  h += '<div class="card-avatar ' + creator + '">' + avatarSvg + '</div>';
+  h += '<div class="card-header-content">';
+  h += '<div class="card-row1">';
+  h += '<span class="card-creator">' + creatorName + '</span>';
+  h += '<span class="card-time">' + (i.time || '') + '</span>';
+  h += '</div>';
+  h += '<div class="card-row2">';
+  h += '<span class="card-cat ' + i.category + '" onclick="openCatModal(' + i.id + ')">' + (CATS[i.category]?.single || 'INBOX') + '</span>';
+  h += '<span class="card-chars">' + cc + '</span>';
+  h += '<span class="new-badge">NEW</span>';
+  h += '</div>';
+  h += '</div>';
+  h += '</div>';
+  
+  if (i.text) {
+    h += '<div class="card-text' + (isTruncated ? ' truncated' : '') + '" id="text-' + i.id + '">' + (typeof renderMarkdown === 'function' ? renderMarkdown(i.text) : esc(i.text)) + '</div>';
+    if (isTruncated) h += '<div class="card-more show" onclick="toggleExpand(' + i.id + ',event)">Show more</div>';
+  }
+  
+  h += '<div class="card-edit"><textarea class="card-ta">' + esc(i.text || '') + '</textarea></div>';
+  h += '<div class="card-actions">';
+  h += '<button class="act ai" onclick="openAITools(' + i.id + ')">AI Tools</button>';
+  h += '<button class="act act-tts" onclick="speakDrop(' + i.id + ',event)">Read</button>';
+  h += '<button class="act" onclick="startEdit(' + i.id + ')">Edit</button>';
+  h += '<button class="act" onclick="openSendModal(' + i.id + ')">Share</button>';
+  h += '<button class="act" onclick="copyIdea(' + i.id + ')">Copy</button>';
+  h += '<button class="act danger" onclick="reqDel(' + i.id + ')">Del</button>';
+  h += '</div>';
+  h += '<div class="card-edit-actions"><button class="act primary" onclick="saveEdit(' + i.id + ')">Save</button><button class="act secondary" onclick="cancelEdit(' + i.id + ')">Cancel</button></div>';
+  h += '<div class="card-markers">';
+  for (const mk of Object.keys(MARKERS)) {
+    h += '<button class="marker-btn" onclick="toggleMarker(' + i.id + ',\'' + mk + '\',event)">' + MARKERS[mk] + '</button>';
+  }
+  h += '</div>';
+  const copyrightYear = new Date(i.timestamp || Date.now()).getFullYear();
+  h += '<div class="card-copyright">© ' + copyrightYear + ' ' + creatorName + '</div>';
+  h += '</div>';
+  
+  return h;
+}
+
+// ============================================
+// MAIN MENU FUNCTIONS
+// ============================================
+function toggleMainMenu() {
+  const menu = document.getElementById('mainMenu');
+  if (!menu) return;
+  
+  if (menu.classList.contains('show')) {
+    closeMainMenu();
+  } else {
+    openMainMenu();
+  }
+}
+
+function openMainMenu() {
+  const menu = document.getElementById('mainMenu');
+  const btn = document.getElementById('menuToggleBtn');
+  
+  if (!menu) return;
+  
+  menu.classList.add('show');
+  
+  // Toggle icon
+  if (btn) {
+    const iconOpen = btn.querySelector('.menu-icon-open');
+    const iconClose = btn.querySelector('.menu-icon-close');
+    if (iconOpen) iconOpen.style.display = 'none';
+    if (iconClose) iconClose.style.display = 'block';
+  }
+  
+  // Sync AutoDrop toggle state when menu opens
+  updateAutoDropIndicator();
+  
+  console.log('[Menu] Opened, AutoDrop synced');
+}
+
+function closeMainMenu() {
+  const menu = document.getElementById('mainMenu');
+  const btn = document.getElementById('menuToggleBtn');
+  
+  if (!menu) return;
+  
+  menu.classList.remove('show');
+  
+  // Toggle icon back
+  if (btn) {
+    const iconOpen = btn.querySelector('.menu-icon-open');
+    const iconClose = btn.querySelector('.menu-icon-close');
+    if (iconOpen) iconOpen.style.display = 'block';
+    if (iconClose) iconClose.style.display = 'none';
+  }
 }
 
 // Initialize on load
