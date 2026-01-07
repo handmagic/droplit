@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT SETTINGS v1.0
+// DROPLIT SETTINGS v1.1
 // Main Menu, Settings, Export/Import, Undo
 // ============================================
 
@@ -55,6 +55,10 @@ function openMainMenu() {
   initFontSize();
   // Initialize voice/TTS settings UI with saved values
   initVoiceSettings();
+  // Sync AutoDrop indicator
+  if (typeof updateAutoDropIndicator === 'function') {
+    updateAutoDropIndicator();
+  }
 }
 
 function closeMainMenu() {
