@@ -38,7 +38,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- Fullscreen Edit Panel - v0.9.92 -->
+  <!-- Fullscreen Edit Panel - v0.9.93 -->
   <div class="edit-panel" id="editPanel">
     <div class="edit-panel-header">
       <div class="edit-panel-avatar" id="editPanelAvatar">
@@ -46,6 +46,7 @@
       </div>
       <div class="edit-panel-info">
         <div class="edit-panel-row1">
+          <span class="edit-panel-badge" id="editPanelBadge"></span>
           <span class="edit-panel-creator" id="editPanelCreator">User</span>
         </div>
         <div class="edit-panel-row2">
@@ -54,13 +55,15 @@
           <span class="edit-panel-time" id="editPanelTime">00:00</span>
         </div>
       </div>
-      <div class="edit-panel-mode-toggle">
-        <button class="edit-mode-btn active" id="editModeBtn" onclick="setEditMode('edit')">Edit</button>
-        <button class="edit-mode-btn" id="previewModeBtn" onclick="setEditMode('preview')">Preview</button>
-      </div>
       <div class="edit-panel-actions">
         <button class="edit-panel-btn save" onclick="saveEditPanel()">Save</button>
         <button class="edit-panel-btn cancel" onclick="cancelEditPanel()">Cancel</button>
+      </div>
+    </div>
+    <div class="edit-panel-toolbar">
+      <div class="edit-panel-tools">
+        <button class="pill-s active" id="editToolEdit" onclick="setEditMode('edit')">Edit</button>
+        <button class="pill-s" id="editToolPreview" onclick="setEditMode('preview')">Preview</button>
       </div>
     </div>
     <div class="edit-panel-body">
@@ -859,7 +862,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.92 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.93 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -873,7 +876,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.92 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.93 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2070,6 +2073,7 @@ function startEdit(id){
   // Get elements
   const panel = document.getElementById('editPanel');
   const avatar = document.getElementById('editPanelAvatar');
+  const badge = document.getElementById('editPanelBadge');
   const creator = document.getElementById('editPanelCreator');
   const cat = document.getElementById('editPanelCat');
   const chars = document.getElementById('editPanelChars');
@@ -2082,10 +2086,19 @@ function startEdit(id){
   const isAski = i.creator === 'aski';
   avatar.className = 'edit-panel-avatar' + (isAski ? ' aski' : '');
   
-  // Set creator name with verified badge
+  // Set badge (before name)
+  // ASKI = public (blue), verified user = green, new user = red
+  if(isAski) {
+    badge.className = 'edit-panel-badge public';
+    badge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+  } else {
+    badge.className = 'edit-panel-badge verified';
+    badge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+  }
+  
+  // Set creator name
   const creatorName = isAski ? 'ASKI' : (i.creator || 'User');
-  const verifiedBadge = '<svg class="verified" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
-  creator.innerHTML = creatorName + verifiedBadge;
+  creator.textContent = creatorName;
   
   // Set category
   const category = i.category || 'inbox';
@@ -2121,8 +2134,8 @@ function startEdit(id){
 // Switch between Edit and Preview modes
 function setEditMode(mode) {
   const panel = document.getElementById('editPanel');
-  const editBtn = document.getElementById('editModeBtn');
-  const previewBtn = document.getElementById('previewModeBtn');
+  const editBtn = document.getElementById('editToolEdit');
+  const previewBtn = document.getElementById('editToolPreview');
   const textarea = document.getElementById('editPanelTextarea');
   const preview = document.getElementById('editPanelPreview');
   
