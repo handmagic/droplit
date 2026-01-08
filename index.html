@@ -2369,44 +2369,48 @@ function startEditMic() {
   // Stop any playing audio
   stopEditPanelAudio();
   
-  // Save cursor position
+  // Save original text and cursor position
+  const originalText = textarea.value;
   const cursorPos = textarea.selectionStart;
   
-  // Create recognition
+  // Create recognition - same settings as chat.js
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   editPanelRecognition = new SpeechRecognition();
-  editPanelRecognition.continuous = true;
-  editPanelRecognition.interimResults = true;
-  editPanelRecognition.lang = navigator.language || 'en-US';
+  editPanelRecognition.continuous = false;
+  editPanelRecognition.interimResults = false; // Like chat.js - final result only
+  editPanelRecognition.lang = navigator.language || 'ru-RU';
   
   // Update button state
   if (micBtn) micBtn.classList.add('recording');
   
-  let finalTranscript = '';
-  
   editPanelRecognition.onresult = (event) => {
-    let interim = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      if (event.results[i].isFinal) {
-        finalTranscript += event.results[i][0].transcript;
-      } else {
-        interim += event.results[i][0].transcript;
-      }
+    const transcript = event.results[0][0].transcript;
+    
+    if (transcript.trim()) {
+      // Insert at cursor position
+      const before = originalText.substring(0, cursorPos);
+      const after = originalText.substring(cursorPos);
+      
+      // Add space before if needed
+      const needSpaceBefore = before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n');
+      const spaceBefore = needSpaceBefore ? ' ' : '';
+      
+      textarea.value = before + spaceBefore + transcript + after;
+      
+      // Update char count
+      document.getElementById('editPanelChars').textContent = textarea.value.length;
+      
+      // Move cursor to end of inserted text
+      const newCursorPos = cursorPos + spaceBefore.length + transcript.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+      textarea.focus();
     }
-    
-    // Insert at cursor position
-    const before = textarea.value.substring(0, cursorPos);
-    const after = textarea.value.substring(cursorPos);
-    textarea.value = before + finalTranscript + interim + after;
-    
-    // Update char count
-    document.getElementById('editPanelChars').textContent = textarea.value.length;
   };
   
   editPanelRecognition.onerror = (event) => {
     console.error('Speech recognition error:', event.error);
     stopEditMic();
-    if (event.error !== 'aborted') {
+    if (event.error !== 'aborted' && event.error !== 'no-speech') {
       toast('Voice input error', 'error');
     }
   };
