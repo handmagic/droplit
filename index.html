@@ -828,7 +828,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.87 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.88 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -842,7 +842,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.87 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.88 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1497,7 +1497,7 @@ function saveIdea(t){
       const userId = currentUser ? currentUser.id.substring(0, 8) + '...' : 'Not logged in';
       const deviceId = DEVICE_ID || 'Not set';
       const syncStatus = syncEnabled ? 'Enabled' : 'Disabled';
-      alert(`DropLit Debug v0.9.87\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
+      alert(`DropLit Debug v0.9.88\n\n=== DROPS ===\nTotal: ${total}\nString IDs: ${stringIds}\nMerged: ${merged}\nAudio: ${audio}\n\n=== SYNC ===\nUser ID: ${userId}\nDevice ID: ${deviceId}\nSync: ${syncStatus}\n\n=== STORAGE ===\nLocalStorage: ${(localStorage.getItem('droplit_ideas')?.length / 1024).toFixed(1)} KB`);
       return;
     }
     
@@ -2035,116 +2035,75 @@ function startEdit(id){
   activeCardId=id;
   document.body.classList.add('editing-mode');
   
-  // Update only this card without full render
   const card = document.querySelector('[data-id="'+id+'"]');
-  if(card){
-    card.classList.add('editing', 'active');
-    card.classList.remove('roll-up'); // Always show full when editing
-    const i = ideas.find(x=>x.id===id);
-    if(i){
-      // Add textarea if not exists
-      let ta = card.querySelector('.card-ta');
-      if(!ta){
-        const textEl = card.querySelector('.card-text');
-        if(textEl){
-          ta = document.createElement('textarea');
-          ta.className = 'card-ta';
-          ta.value = i.text || '';
-          // Start with 0 height for animation
-          ta.style.maxHeight = '0';
-          ta.style.opacity = '0';
-          ta.style.transition = 'opacity 0.2s ease-out, max-height 0.25s ease-out';
-          textEl.after(ta);
-          
-          // Animate in
-          requestAnimationFrame(() => {
-            ta.style.maxHeight = '300px';
-            ta.style.opacity = '1';
-          });
-        }
-      } else {
+  if(!card) return;
+  
+  card.classList.add('editing', 'active');
+  card.classList.remove('roll-up');
+  
+  const i = ideas.find(x=>x.id===id);
+  if(!i) return;
+  
+  // Step 1: Create hidden input to trigger keyboard FIRST
+  let hiddenInput = document.getElementById('hiddenKeyboardTrigger');
+  if(!hiddenInput){
+    hiddenInput = document.createElement('input');
+    hiddenInput.id = 'hiddenKeyboardTrigger';
+    hiddenInput.style.cssText = 'position:fixed;top:50%;left:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+    document.body.appendChild(hiddenInput);
+  }
+  
+  // Focus hidden input to open keyboard
+  hiddenInput.focus();
+  
+  // Step 2: Wait for keyboard to stabilize (500ms), then show textarea
+  setTimeout(() => {
+    // Now create textarea
+    let ta = card.querySelector('.card-ta');
+    if(!ta){
+      const textEl = card.querySelector('.card-text');
+      if(textEl){
+        ta = document.createElement('textarea');
+        ta.className = 'card-ta';
         ta.value = i.text || '';
-      }
-      
-      // Add edit actions if not exists
-      let actions = card.querySelector('.card-edit-actions');
-      if(!actions){
-        const actDiv = document.createElement('div');
-        actDiv.className = 'card-edit-actions';
-        actDiv.innerHTML = '<button class="act primary" onclick="saveEdit('+id+')">Save</button><button class="act secondary" onclick="cancelEdit('+id+')">Cancel</button>';
-        // Start hidden for animation
-        actDiv.style.opacity = '0';
-        actDiv.style.transition = 'opacity 0.2s ease-out';
-        card.appendChild(actDiv);
-        
-        // Animate in
-        requestAnimationFrame(() => {
-          actDiv.style.opacity = '1';
-        });
-      }
-      
-      // Position above keyboard when it opens
-      setTimeout(() => {
-        if(ta){
-          ta.focus();
-          // Update baseline height before keyboard opens
-          lastViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        }
-      }, 150);
-    }
-  }
-}
-
-// Position edit card so buttons are visible above keyboard
-let lastViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-
-function positionEditAboveKeyboard(card, forceScroll = false) {
-  if (!card) return;
-  
-  const actions = card.querySelector('.card-edit-actions');
-  if (!actions) return;
-  
-  // Use visualViewport if available (better for mobile keyboards)
-  if (window.visualViewport) {
-    const viewportHeight = window.visualViewport.height;
-    const actionsRect = actions.getBoundingClientRect();
-    
-    // Target: buttons bottom at viewportHeight + 10px (slightly into keyboard area)
-    const targetBottom = viewportHeight + 10;
-    const scrollBy = actionsRect.bottom - targetBottom;
-    
-    // Scroll if buttons are not in position
-    if (forceScroll || Math.abs(scrollBy) > 5) {
-      window.scrollBy({ top: scrollBy, behavior: 'smooth' });
-    }
-  } else {
-    // Fallback: just scroll card to center
-    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-}
-
-// Re-position ONLY when keyboard OPENS (viewport gets smaller)
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', () => {
-    if (editId) {
-      const currentHeight = window.visualViewport.height;
-      const keyboardOpened = currentHeight < lastViewportHeight - 50; // Significant decrease = keyboard opened
-      
-      lastViewportHeight = currentHeight;
-      
-      // Only reposition when keyboard opens, not when it closes
-      if (keyboardOpened) {
-        const card = document.querySelector('[data-id="'+editId+'"]');
-        if (card) {
-          setTimeout(() => positionEditAboveKeyboard(card, true), 50);
-        }
+        textEl.after(ta);
       }
     } else {
-      // Not editing - just update last height
-      lastViewportHeight = window.visualViewport.height;
+      ta.value = i.text || '';
     }
-  });
+    
+    // Create edit actions
+    let actions = card.querySelector('.card-edit-actions');
+    if(!actions){
+      const actDiv = document.createElement('div');
+      actDiv.className = 'card-edit-actions';
+      actDiv.innerHTML = '<button class="act primary" onclick="saveEdit('+id+')">Save</button><button class="act secondary" onclick="cancelEdit('+id+')">Cancel</button>';
+      card.appendChild(actDiv);
+    }
+    
+    // Step 3: Transfer focus to real textarea
+    if(ta){
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+    }
+    
+    // Step 4: Scroll card to center of visible area (one time, no tracking)
+    setTimeout(() => {
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const cardRect = card.getBoundingClientRect();
+      const cardCenter = cardRect.top + cardRect.height / 2;
+      const targetCenter = vh / 2;
+      const scrollBy = cardCenter - targetCenter;
+      
+      if(Math.abs(scrollBy) > 10){
+        window.scrollBy({ top: scrollBy, behavior: 'smooth' });
+      }
+    }, 50);
+    
+  }, 500); // Wait for keyboard
 }
+
+// No resize listener needed - we do one-time positioning after delay
 function saveEdit(id){
   const card=document.querySelector('[data-id="'+id+'"]'),ta=card?.querySelector('.card-ta');
   if(ta){
