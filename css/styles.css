@@ -1359,8 +1359,8 @@ body.font-large .balance-value { font-size: 2rem; }
 	.streaming-indicator.tool-active { width: auto; height: auto; background: rgba(139,92,246,0.15); color: #8B5CF6; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; animation: none; margin-left: 8px; font-weight: 500; }
 
 /* ============================================
-   FULLSCREEN EDIT PANEL - v0.9.91
-   Simple flex + interactive-widget
+   FULLSCREEN EDIT PANEL - v0.9.93
+   With toolbar row for tools
    ============================================ */
 
 .edit-panel {
@@ -1378,7 +1378,7 @@ body.font-large .balance-value { font-size: 2rem; }
   display: flex;
 }
 
-/* Header - flex item, not positioned */
+/* Header - clean white */
 .edit-panel-header {
   flex-shrink: 0;
   display: flex;
@@ -1386,8 +1386,7 @@ body.font-large .balance-value { font-size: 2rem; }
   gap: 12px;
   padding: 10px 16px;
   padding-top: max(10px, env(safe-area-inset-top));
-  background: var(--color-bg);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background: var(--color-bg-card);
 }
 
 /* Avatar */
@@ -1426,18 +1425,40 @@ body.font-large .balance-value { font-size: 2rem; }
 .edit-panel-row1 { display: flex; align-items: center; gap: 6px; }
 .edit-panel-row2 { display: flex; align-items: center; gap: 8px; }
 
+/* Verified badge - before name */
+.edit-panel-badge {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.edit-panel-badge svg {
+  width: 10px;
+  height: 10px;
+}
+.edit-panel-badge.verified {
+  background: #10B981;
+  color: white;
+}
+.edit-panel-badge.public {
+  background: #3B82F6;
+  color: white;
+}
+.edit-panel-badge.new-user {
+  background: #EF4444;
+  color: white;
+}
+
 .edit-panel-creator {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-text);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.edit-panel-creator .verified {
-  width: 14px;
-  height: 14px;
-  color: #3B82F6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .edit-panel-cat {
@@ -1467,7 +1488,7 @@ body.font-large .balance-value { font-size: 2rem; }
   font-weight: 500;
 }
 
-/* Buttons */
+/* Action buttons - Save/Cancel */
 .edit-panel-actions {
   display: flex;
   align-items: center;
@@ -1488,6 +1509,49 @@ body.font-large .balance-value { font-size: 2rem; }
 .edit-panel-btn:active { transform: scale(0.97); }
 .edit-panel-btn.save { background: var(--color-primary); color: white; }
 .edit-panel-btn.cancel { background: var(--color-bg-btn); color: var(--color-text-soft); }
+
+/* Toolbar row - like filters panel */
+.edit-panel-toolbar {
+  flex-shrink: 0;
+  padding: 8px 16px 12px 16px;
+  background: var(--color-bg-card);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.edit-panel-tools {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.edit-panel-tools::-webkit-scrollbar { display: none; }
+
+/* Tool buttons - pill-s style */
+.edit-panel-tools .pill-s {
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-card);
+  font-family: var(--font-main);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.edit-panel-tools .pill-s:active { transform: scale(0.97); }
+
+/* Active tool button - highlighted */
+.edit-panel-tools .pill-s.active {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: white;
+}
 
 /* Body - takes remaining space */
 .edit-panel-body {
@@ -1511,48 +1575,6 @@ body.font-large .balance-value { font-size: 2rem; }
   resize: none;
   outline: none;
 }
-
-/* Font sizes */
-body.font-small .edit-panel-textarea { font-size: 0.95rem; }
-body.font-large .edit-panel-textarea { font-size: 1.2rem; }
-body.font-small .edit-panel-avatar { width: 44px; height: 44px; min-width: 44px; }
-body.font-large .edit-panel-avatar { width: 52px; height: 52px; min-width: 52px; }
-
-/* Dark mode */
-body.dark .edit-panel-header { background: var(--color-bg); }
-
-/* catModal above edit panel */
-body.editing-mode #catModal { z-index: 1200; }
-
-/* Edit/Preview Mode Toggle */
-.edit-panel-mode-toggle {
-  display: flex;
-  background: var(--color-bg-soft);
-  border-radius: var(--radius-full);
-  padding: 3px;
-  gap: 2px;
-  flex-shrink: 0;
-}
-.edit-mode-btn {
-  height: 30px;
-  padding: 0 12px;
-  border: none;
-  border-radius: var(--radius-full);
-  font-family: var(--font-main);
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  cursor: pointer;
-  background: transparent;
-  color: var(--color-text-muted);
-  transition: all 0.15s;
-}
-.edit-mode-btn.active {
-  background: var(--color-bg-card);
-  color: var(--color-text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-.edit-mode-btn:active { transform: scale(0.97); }
 
 /* Preview container */
 .edit-panel-preview {
@@ -1618,6 +1640,22 @@ body.editing-mode #catModal { z-index: 1200; }
 }
 .edit-panel-preview a:hover { text-decoration: underline; }
 
-/* Font size variants for preview */
+/* Font sizes */
+body.font-small .edit-panel-textarea { font-size: 0.95rem; }
+body.font-large .edit-panel-textarea { font-size: 1.2rem; }
 body.font-small .edit-panel-preview { font-size: 0.95rem; }
 body.font-large .edit-panel-preview { font-size: 1.2rem; }
+body.font-small .edit-panel-avatar { width: 44px; height: 44px; min-width: 44px; }
+body.font-large .edit-panel-avatar { width: 52px; height: 52px; min-width: 52px; }
+
+/* Dark mode */
+body.dark .edit-panel-header { background: var(--color-bg-card); }
+body.dark .edit-panel-toolbar { background: var(--color-bg-card); }
+body.dark .edit-panel-tools .pill-s.active {
+  background: var(--color-bg-soft);
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+}
+
+/* catModal above edit panel */
+body.editing-mode #catModal { z-index: 1200; }
