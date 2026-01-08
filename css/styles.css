@@ -1399,7 +1399,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px;
+  padding: 10px 16px 6px 16px;
   padding-top: max(10px, env(safe-area-inset-top));
   background: var(--color-bg-card);
 }
@@ -1511,10 +1511,10 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   flex-shrink: 0;
 }
 
-/* Voice buttons (speak, mic) - smaller than close */
+/* Voice buttons (speak, mic) - same size as close */
 .edit-panel-voice-btn {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border: none;
   background: var(--color-bg-soft);
   border-radius: 50%;
@@ -1526,7 +1526,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   transition: all 0.15s;
 }
 .edit-panel-voice-btn:active { transform: scale(0.95); opacity: 0.7; }
-.edit-panel-voice-btn svg { width: 18px; height: 18px; }
+.edit-panel-voice-btn svg { width: 22px; height: 22px; }
 
 /* Voice button active states */
 .edit-panel-voice-btn.speaking {
@@ -1569,7 +1569,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 /* Toolbar - two rows like filters panel */
 .edit-panel-toolbar {
   flex-shrink: 0;
-  padding: 8px 16px 12px 16px;
+  padding: 6px 16px 12px 16px;
   background: var(--color-bg-card);
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   display: flex;
@@ -1774,15 +1774,15 @@ body.font-small .edit-panel-chars, body.font-small .edit-panel-time { font-size:
 body.font-normal .edit-panel-chars, body.font-normal .edit-panel-time { font-size: 0.7rem; }
 body.font-large .edit-panel-chars, body.font-large .edit-panel-time { font-size: 0.8rem; }
 
-/* Voice buttons scaling */
-body.font-small .edit-panel-voice-btn { width: 36px; height: 36px; }
-body.font-small .edit-panel-voice-btn svg { width: 16px; height: 16px; }
-body.font-large .edit-panel-voice-btn { width: 44px; height: 44px; }
-body.font-large .edit-panel-voice-btn svg { width: 20px; height: 20px; }
-
+/* Voice and close buttons scaling */
+body.font-small .edit-panel-voice-btn,
 body.font-small .edit-panel-close-btn { width: 44px; height: 44px; }
+body.font-small .edit-panel-voice-btn svg,
 body.font-small .edit-panel-close-btn svg { width: 20px; height: 20px; }
+
+body.font-large .edit-panel-voice-btn,
 body.font-large .edit-panel-close-btn { width: 52px; height: 52px; }
+body.font-large .edit-panel-voice-btn svg,
 body.font-large .edit-panel-close-btn svg { width: 24px; height: 24px; }
 
 /* Dark mode */
