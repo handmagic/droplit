@@ -1065,6 +1065,13 @@ body.font-large .balance-value { font-size: 2rem; }
 .pill-m.danger { background: var(--color-error); color: white; border-color: transparent; }
 .pill-m.active { background: rgba(139,92,246,0.15); border-color: #8B5CF6; color: #8B5CF6; }
 
+/* Font size scaling for pills */
+body.font-small .pill-s { height: 30px; padding: 0 12px; font-size: 0.65rem; }
+body.font-large .pill-s { height: 38px; padding: 0 16px; font-size: 0.8rem; }
+
+body.font-small .pill-m { height: 36px; padding: 0 14px; font-size: 0.7rem; }
+body.font-large .pill-m { height: 44px; padding: 0 18px; font-size: 0.85rem; }
+
 /* Pills - Large (48px) for TYPE-A modals */
 .pill-l { height: 48px; padding: 0 24px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); width: 100%; }
 .pill-l:active { transform: scale(0.98); }
@@ -1077,12 +1084,20 @@ body.font-large .balance-value { font-size: 2rem; }
 .pill-l.danger { background: var(--color-error); color: white; border-color: transparent; }
 .pill-l:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
+/* Font size scaling for pill-l */
+body.font-small .pill-l { height: 42px; padding: 0 20px; font-size: 0.8rem; }
+body.font-large .pill-l { height: 54px; padding: 0 28px; font-size: 0.95rem; }
+
 /* Pills - XL (56px) for main CTA */
 .pill-xl { height: 56px; padding: 0 32px; border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 1rem; font-weight: 700; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.15s; background: var(--color-bg-btn); color: var(--color-text-soft); width: 100%; }
 .pill-xl:active { transform: scale(0.98); }
 .pill-xl.magic { background: linear-gradient(135deg, #8B5CF6, #EC4899); color: white; border-color: transparent; }
 .pill-xl.ai { background: linear-gradient(135deg, #8B5CF6, #6366F1); color: white; border-color: transparent; }
 .pill-xl.pri { background: var(--color-primary); color: white; border-color: transparent; }
+
+/* Font size scaling for pill-xl */
+body.font-small .pill-xl { height: 50px; padding: 0 28px; font-size: 0.9rem; }
+body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 
 /* Centered Section Divider */
 .section-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0 12px 0; }
@@ -1359,7 +1374,7 @@ body.font-large .balance-value { font-size: 2rem; }
 	.streaming-indicator.tool-active { width: auto; height: auto; background: rgba(139,92,246,0.15); color: #8B5CF6; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; animation: none; margin-left: 8px; font-weight: 500; }
 
 /* ============================================
-   FULLSCREEN EDIT PANEL - v0.9.93
+   FULLSCREEN EDIT PANEL - v0.9.94
    With toolbar row for tools
    ============================================ */
 
@@ -1642,11 +1657,26 @@ body.font-large .balance-value { font-size: 2rem; }
 
 /* Font sizes */
 body.font-small .edit-panel-textarea { font-size: 0.95rem; }
+body.font-normal .edit-panel-textarea { font-size: 1.05rem; }
 body.font-large .edit-panel-textarea { font-size: 1.2rem; }
 body.font-small .edit-panel-preview { font-size: 0.95rem; }
+body.font-normal .edit-panel-preview { font-size: 1.05rem; }
 body.font-large .edit-panel-preview { font-size: 1.2rem; }
 body.font-small .edit-panel-avatar { width: 44px; height: 44px; min-width: 44px; }
 body.font-large .edit-panel-avatar { width: 52px; height: 52px; min-width: 52px; }
+
+/* Edit panel metadata scaling (like card) */
+body.font-small .edit-panel-creator { font-size: 0.8rem; }
+body.font-normal .edit-panel-creator { font-size: 0.85rem; }
+body.font-large .edit-panel-creator { font-size: 0.95rem; }
+
+body.font-small .edit-panel-cat { font-size: 0.55rem; padding: 2px 6px; }
+body.font-normal .edit-panel-cat { font-size: 0.6rem; padding: 3px 8px; }
+body.font-large .edit-panel-cat { font-size: 0.7rem; padding: 4px 10px; }
+
+body.font-small .edit-panel-chars, body.font-small .edit-panel-time { font-size: 0.65rem; }
+body.font-normal .edit-panel-chars, body.font-normal .edit-panel-time { font-size: 0.7rem; }
+body.font-large .edit-panel-chars, body.font-large .edit-panel-time { font-size: 0.8rem; }
 
 /* Dark mode */
 body.dark .edit-panel-header { background: var(--color-bg-card); }
