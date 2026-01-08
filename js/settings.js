@@ -701,7 +701,7 @@ function setFontSize(size) {
   // Save preference
   localStorage.setItem('droplit_fontsize', size);
   
-  toast('Font size: ' + size.charAt(0).toUpperCase() + size.slice(1), 'success');
+  // No toast - instant feedback via button state
 }
 
 function initFontSize() {
