@@ -1359,11 +1359,10 @@ body.font-large .balance-value { font-size: 2rem; }
 	.streaming-indicator.tool-active { width: auto; height: auto; background: rgba(139,92,246,0.15); color: #8B5CF6; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; animation: none; margin-left: 8px; font-weight: 500; }
 
 /* ============================================
-   FULLSCREEN EDIT PANEL - v0.9.90
-   Жёсткая структура с absolute positioning
+   FULLSCREEN EDIT PANEL - v0.9.91
+   Simple flex + interactive-widget
    ============================================ */
 
-/* Main container - covers entire screen */
 .edit-panel {
   position: fixed;
   top: 0;
@@ -1372,28 +1371,23 @@ body.font-large .balance-value { font-size: 2rem; }
   bottom: 0;
   z-index: 1100;
   display: none;
-  overflow: hidden;
+  flex-direction: column;
   background: var(--color-bg-card);
-  touch-action: none; /* Prevent scroll on panel itself */
 }
 .edit-panel.show {
-  display: block;
+  display: flex;
 }
 
-/* Header - absolute to top of panel */
+/* Header - flex item, not positioned */
 .edit-panel-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
   padding-top: max(10px, env(safe-area-inset-top));
   background: var(--color-bg);
-  z-index: 2;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 /* Avatar */
@@ -1429,36 +1423,21 @@ body.font-large .balance-value { font-size: 2rem; }
   justify-content: center;
   gap: 4px;
 }
-
-.edit-panel-row1 {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.edit-panel-row2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.edit-panel-row1 { display: flex; align-items: center; gap: 6px; }
+.edit-panel-row2 { display: flex; align-items: center; gap: 8px; }
 
 .edit-panel-creator {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: flex;
   align-items: center;
   gap: 4px;
 }
-
 .edit-panel-creator .verified {
   width: 14px;
   height: 14px;
   color: #3B82F6;
-  flex-shrink: 0;
 }
 
 .edit-panel-cat {
@@ -1468,7 +1447,6 @@ body.font-large .balance-value { font-size: 2rem; }
   font-weight: 700;
   text-transform: uppercase;
   cursor: pointer;
-  letter-spacing: 0.02em;
 }
 .edit-panel-cat:active { opacity: 0.8; }
 .edit-panel-cat.tasks { background: var(--cat-tasks-bg); color: var(--cat-tasks-text); }
@@ -1483,26 +1461,19 @@ body.font-large .balance-value { font-size: 2rem; }
 .edit-panel-cat.photo { background: var(--cat-photo-bg); color: var(--cat-photo-text); }
 .edit-panel-cat.audio { background: var(--cat-audio-bg); color: var(--cat-audio-text); }
 
-.edit-panel-chars {
+.edit-panel-chars, .edit-panel-time {
   font-size: 0.7rem;
   color: var(--color-text-muted);
   font-weight: 500;
 }
 
-.edit-panel-time {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-  font-weight: 500;
-}
-
-/* Action buttons */
+/* Buttons */
 .edit-panel-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
-
 .edit-panel-btn {
   height: 36px;
   padding: 0 16px;
@@ -1513,87 +1484,42 @@ body.font-large .balance-value { font-size: 2rem; }
   font-weight: 700;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s;
 }
-.edit-panel-btn:active {
-  transform: scale(0.97);
-}
-.edit-panel-btn.save {
-  background: var(--color-primary);
-  color: white;
-}
-.edit-panel-btn.cancel {
-  background: var(--color-bg-btn);
-  color: var(--color-text-soft);
-}
+.edit-panel-btn:active { transform: scale(0.97); }
+.edit-panel-btn.save { background: var(--color-primary); color: white; }
+.edit-panel-btn.cancel { background: var(--color-bg-btn); color: var(--color-text-soft); }
 
-/* Body - absolute positioned below header */
+/* Body - takes remaining space */
 .edit-panel-body {
-  position: absolute;
-  top: 68px;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding-top: env(safe-area-inset-top);
-  overflow: hidden;
-  background: var(--color-bg-card);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Textarea - fills entire body */
+/* Textarea */
 .edit-panel-textarea {
+  flex: 1;
   width: 100%;
-  height: 100%;
   padding: 16px;
-  padding-bottom: 100px; /* Extra space at bottom for keyboard */
   border: none;
   font-family: var(--font-main);
   font-size: 1.05rem;
   line-height: 1.6;
   color: var(--color-text);
-  resize: none;
   background: var(--color-bg-card);
+  resize: none;
   outline: none;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y; /* Allow vertical scroll in textarea */
 }
 
-/* Font size variants */
+/* Font sizes */
 body.font-small .edit-panel-textarea { font-size: 0.95rem; }
-body.font-normal .edit-panel-textarea { font-size: 1.05rem; }
 body.font-large .edit-panel-textarea { font-size: 1.2rem; }
-
-body.font-small .edit-panel-creator { font-size: 0.8rem; }
-body.font-normal .edit-panel-creator { font-size: 0.85rem; }
-body.font-large .edit-panel-creator { font-size: 0.95rem; }
-
-body.font-small .edit-panel-cat { font-size: 0.55rem; padding: 2px 6px; }
-body.font-normal .edit-panel-cat { font-size: 0.6rem; padding: 3px 8px; }
-body.font-large .edit-panel-cat { font-size: 0.7rem; padding: 4px 10px; }
-
 body.font-small .edit-panel-avatar { width: 44px; height: 44px; min-width: 44px; }
-body.font-normal .edit-panel-avatar { width: 48px; height: 48px; min-width: 48px; }
 body.font-large .edit-panel-avatar { width: 52px; height: 52px; min-width: 52px; }
 
-body.font-small .edit-panel-body { top: 64px; }
-body.font-normal .edit-panel-body { top: 68px; }
-body.font-large .edit-panel-body { top: 72px; }
-
 /* Dark mode */
-body.dark .edit-panel { background: var(--color-bg-card); }
 body.dark .edit-panel-header { background: var(--color-bg); }
-body.dark .edit-panel-body { background: var(--color-bg-card); }
-body.dark .edit-panel-textarea { background: var(--color-bg-card); }
 
-/* Block body scroll when edit panel is open */
-body.edit-panel-open {
-  overflow: hidden !important;
-  position: fixed !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* Category modal z-index override when edit panel is open */
-body.edit-panel-open .overlay#catModal {
-  z-index: 1200;
-}
+/* catModal above edit panel */
+body.editing-mode #catModal { z-index: 1200; }
