@@ -170,7 +170,8 @@ body.font-large .card-header-content { height: 52px; }
 .card-creator { font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; display: flex; align-items: center; }
 .card-time { font-size: 0.7rem; color: var(--color-text-muted); font-weight: 500; margin-left: auto; white-space: nowrap; }
 .card.active { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
-.card.editing { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); }
+.card.editing { box-shadow: 0 0 0 2px #8B5CF6, var(--shadow-card); transition: box-shadow 0.2s ease-out; }
+.card.editing.roll-up { max-height: none; } /* Never roll-up when editing */
 .card.selected { box-shadow: 0 0 0 2px var(--color-merge), var(--shadow-card); background: #F5F3FF; }
 /* Checkbox removed in v0.8.2 */
 .card-checkbox { display: none !important; }
@@ -321,7 +322,7 @@ body.font-large .card-header-content { height: 52px; }
 .card-edit { display: none; margin-top: 10px; }
 .card.editing .card-text { display: none; }
 .card.editing .card-edit { display: block; }
-.card-ta { width: 100%; min-height: 180px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 1.05rem; line-height: 1.5; color: var(--color-text); resize: vertical; background: var(--color-bg); user-select: text; -webkit-user-select: text; -webkit-touch-callout: default; }
+.card-ta { width: 100%; min-height: 180px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-family: var(--font-main); font-size: 1.05rem; line-height: 1.5; color: var(--color-text); resize: vertical; background: var(--color-bg); user-select: text; -webkit-user-select: text; -webkit-touch-callout: default; overflow: hidden; }
 .card-ta:focus { outline: none; border-color: var(--color-primary); }
 
 .card-actions { display: none; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--color-border); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; white-space: nowrap; }
@@ -1106,6 +1107,9 @@ body.font-large .balance-value { font-size: 2rem; }
 .card.roll-up .card-actions,
 .card.roll-up .card-markers { display: none !important; }
 .card.roll-up .card-copyright { display: none !important; }
+/* Editing overrides roll-up */
+.card.roll-up.editing .card-ta,
+.card.roll-up.editing .card-edit-actions { display: flex !important; }
 .card.roll-up.active { padding: 12px 14px 12px 12px; }
 .card.roll-up.active .card-header { margin-bottom: 15px; padding-top: 2px; }
 .card.roll-up.active .card-text,
