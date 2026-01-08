@@ -38,6 +38,32 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <!-- Fullscreen Edit Panel - v0.9.88 -->
+  <div class="edit-panel" id="editPanel">
+    <div class="edit-panel-header">
+      <div class="edit-panel-avatar" id="editPanelAvatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div class="edit-panel-info">
+        <div class="edit-panel-row1">
+          <span class="edit-panel-creator" id="editPanelCreator">User</span>
+        </div>
+        <div class="edit-panel-row2">
+          <span class="edit-panel-cat" id="editPanelCat" onclick="openCatModalFromEdit()">INBOX</span>
+          <span class="edit-panel-chars" id="editPanelChars">0</span>
+          <span class="edit-panel-time" id="editPanelTime">00:00</span>
+        </div>
+      </div>
+      <div class="edit-panel-actions">
+        <button class="edit-panel-btn save" onclick="saveEditPanel()">Save</button>
+        <button class="edit-panel-btn cancel" onclick="cancelEditPanel()">Cancel</button>
+      </div>
+    </div>
+    <div class="edit-panel-body">
+      <textarea class="edit-panel-textarea" id="editPanelTextarea" placeholder="Enter your text..."></textarea>
+    </div>
+  </div>
+
   <!-- Insights Banner -->
   <div class="insights-banner" id="insightsBanner">
     <div class="insights-banner-icon">🎂</div>
@@ -828,7 +854,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.83 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.88 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -842,7 +868,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.83 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.88 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1902,7 +1928,7 @@ function openCatModal(id){
   document.getElementById('catModal').classList.add('show');
 }
 function closeCatModal(){stopAllAudio();document.getElementById('catModal').classList.remove('show');catChangeId=null;}
-function changeCat(c){if(catChangeId){const i=ideas.find(x=>x.id===catChangeId);if(i){saveUndo('category',{id:i.id,previousCategory:i.category,newCategory:c});i.category=c;save();render();counts();toast('Moved to '+CATS[c].name,'success');}}closeCatModal();}
+function changeCat(c){if(catChangeId){const i=ideas.find(x=>x.id===catChangeId);if(i){saveUndo('category',{id:i.id,previousCategory:i.category,newCategory:c});i.category=c;save();render();counts();toast('Moved to '+CATS[c].name,'success');if(editId===catChangeId)updateEditPanelCategory(c);}}closeCatModal();}
 function openCreatorModal(id, e) {
   if(e) e.stopPropagation();
   const item = ideas.find(x => x.id === id);
@@ -2030,109 +2056,131 @@ function confirmDel(){
   closeDelModal();
 }
 function startEdit(id){
-  if(editId)cancelEdit(editId);
-  editId=id;
-  activeCardId=id;
+  if(editId) cancelEditPanel();
+  editId = id;
+  
+  const i = ideas.find(x => x.id === id);
+  if(!i) return;
+  
+  // Get elements
+  const panel = document.getElementById('editPanel');
+  const avatar = document.getElementById('editPanelAvatar');
+  const creator = document.getElementById('editPanelCreator');
+  const cat = document.getElementById('editPanelCat');
+  const chars = document.getElementById('editPanelChars');
+  const time = document.getElementById('editPanelTime');
+  const textarea = document.getElementById('editPanelTextarea');
+  
+  if(!panel || !textarea) return;
+  
+  // Set avatar style
+  const isAski = i.creator === 'aski';
+  avatar.className = 'edit-panel-avatar' + (isAski ? ' aski' : '');
+  
+  // Set creator name with verified badge
+  const creatorName = isAski ? 'ASKI' : (i.creator || 'User');
+  const verifiedBadge = '<svg class="verified" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+  creator.innerHTML = creatorName + verifiedBadge;
+  
+  // Set category
+  const category = i.category || 'inbox';
+  cat.className = 'edit-panel-cat ' + category;
+  cat.textContent = CATS[category]?.single || 'INBOX';
+  cat.setAttribute('data-id', id);
+  
+  // Set chars and time
+  chars.textContent = (i.text || '').length;
+  time.textContent = i.time || '';
+  
+  // Set textarea content
+  textarea.value = i.text || '';
+  
+  // Update char count on input
+  textarea.oninput = function() {
+    chars.textContent = this.value.length;
+  };
+  
+  // Show panel
+  panel.classList.add('show');
   document.body.classList.add('editing-mode');
   
-  // Update only this card without full render
-  const card = document.querySelector('[data-id="'+id+'"]');
-  if(card){
-    card.classList.add('editing', 'active');
-    const i = ideas.find(x=>x.id===id);
-    if(i){
-      // Add textarea if not exists
-      let ta = card.querySelector('.card-ta');
-      if(!ta){
-        const textEl = card.querySelector('.card-text');
-        if(textEl){
-          ta = document.createElement('textarea');
-          ta.className = 'card-ta';
-          ta.value = i.text || '';
-          textEl.after(ta);
-        }
-      } else {
-        ta.value = i.text || '';
-      }
-      // Add edit actions if not exists
-      let actions = card.querySelector('.card-edit-actions');
-      if(!actions){
-        const actDiv = document.createElement('div');
-        actDiv.className = 'card-edit-actions';
-        actDiv.innerHTML = '<button class="act primary" onclick="saveEdit('+id+')">Save</button><button class="act secondary" onclick="cancelEdit('+id+')">Cancel</button>';
-        card.appendChild(actDiv);
-      }
-      setTimeout(()=>{
-        if(ta){
-          card.scrollIntoView({behavior:'smooth',block:'center'});
-          ta.focus();
-        }
-      },100);
-    }
-  }
+  // Focus textarea
+  setTimeout(() => {
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  }, 50);
 }
-function saveEdit(id){
-  const card=document.querySelector('[data-id="'+id+'"]'),ta=card?.querySelector('.card-ta');
-  if(ta){
-    const t=ta.value.trim();
-    if(t){
-      const i=ideas.find(x=>x.id===id);
-      if(i&&t!==i.text){
-        saveUndo('edit',{id:i.id,previousText:i.text});
-        i.text=t;
-        i.category=detectCat(t);
+
+// Save from fullscreen edit panel
+function saveEditPanel() {
+  if(!editId) return;
+  
+  const textarea = document.getElementById('editPanelTextarea');
+  
+  if(textarea) {
+    const t = textarea.value.trim();
+    if(t) {
+      const i = ideas.find(x => x.id === editId);
+      if(i && t !== i.text) {
+        saveUndo('edit', {id: i.id, previousText: i.text});
+        i.text = t;
+        i.category = detectCat(t);
         save();
-        // Sync update to Supabase (v0.9.58)
-        if (syncEnabled && currentUser) {
+        
+        // Sync update to Supabase
+        if(syncEnabled && currentUser) {
           syncDropToServer(i, 'update');
         }
-        toast('Saved','success');
-        
-        // Update card text without full render
-        const textEl = card.querySelector('.card-text');
-        if(textEl) textEl.innerHTML = renderMarkdown(t);
-        
-        // Update category badge
-        const catEl = card.querySelector('.card-cat');
-        if(catEl){
-          catEl.className = 'card-cat ' + i.category;
-          catEl.textContent = CATS[i.category]?.single || 'INBOX';
-        }
-        
-        // Update char count
-        const charsEl = card.querySelector('.card-chars');
-        if(charsEl) charsEl.textContent = t.length;
+        toast('Saved', 'success');
       }
     }
   }
   
-  // Clean up edit UI
-  editId=null;
-  document.body.classList.remove('editing-mode');
-  if(card){
-    card.classList.remove('editing');
-    const ta = card.querySelector('.card-ta');
-    if(ta) ta.remove();
-    const actions = card.querySelector('.card-edit-actions');
-    if(actions) actions.remove();
-  }
+  // Close panel
+  closeEditPanel();
   
-  // Update counts in background
-  requestAnimationFrame(counts);
+  // Re-render to show changes
+  render();
+  counts();
 }
-function cancelEdit(id){
-  editId=null;
-  document.body.classList.remove('editing-mode');
-  
-  // Clean up edit UI without full render
-  const card = document.querySelector('[data-id="'+id+'"]');
-  if(card){
-    card.classList.remove('editing');
-    const ta = card.querySelector('.card-ta');
-    if(ta) ta.remove();
-    const actions = card.querySelector('.card-edit-actions');
-    if(actions) actions.remove();
+
+// Cancel from fullscreen edit panel
+function cancelEditPanel() {
+  closeEditPanel();
+}
+
+// Close fullscreen edit panel
+function closeEditPanel() {
+  const panel = document.getElementById('editPanel');
+  if(panel) {
+    panel.classList.remove('show');
   }
+  editId = null;
+  document.body.classList.remove('editing-mode');
+}
+
+// Open category modal from edit panel
+function openCatModalFromEdit() {
+  if(editId) {
+    openCatModal(editId);
+  }
+}
+
+// Update category badge in edit panel after change
+function updateEditPanelCategory(category) {
+  const cat = document.getElementById('editPanelCat');
+  if(cat && editId) {
+    cat.className = 'edit-panel-cat ' + category;
+    cat.textContent = CATS[category]?.single || 'INBOX';
+  }
+}
+
+// Legacy wrappers for compatibility
+function saveEdit(id) {
+  if(editId === id) saveEditPanel();
+}
+function cancelEdit(id) {
+  if(editId === id || !id) cancelEditPanel();
 }
 function openSendModal(id){sendId=id;document.getElementById('sendModal').classList.add('show');}
 function closeSendModal(){stopAllAudio();document.getElementById('sendModal').classList.remove('show');sendId=null;}
