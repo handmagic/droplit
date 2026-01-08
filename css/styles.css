@@ -1523,3 +1523,101 @@ body.dark .edit-panel-header { background: var(--color-bg); }
 
 /* catModal above edit panel */
 body.editing-mode #catModal { z-index: 1200; }
+
+/* Edit/Preview Mode Toggle */
+.edit-panel-mode-toggle {
+  display: flex;
+  background: var(--color-bg-soft);
+  border-radius: var(--radius-full);
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.edit-mode-btn {
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font-main);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-text-muted);
+  transition: all 0.15s;
+}
+.edit-mode-btn.active {
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.edit-mode-btn:active { transform: scale(0.97); }
+
+/* Preview container */
+.edit-panel-preview {
+  display: none;
+  flex: 1;
+  width: 100%;
+  padding: 16px;
+  overflow-y: auto;
+  font-family: var(--font-main);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: var(--color-bg-card);
+}
+
+/* Show preview, hide textarea in preview mode */
+.edit-panel.preview-mode .edit-panel-textarea { display: none; }
+.edit-panel.preview-mode .edit-panel-preview { display: block; }
+
+/* Markdown preview styles */
+.edit-panel-preview h1 { font-size: 1.5em; font-weight: 700; margin: 16px 0 8px 0; color: var(--color-text); }
+.edit-panel-preview h2 { font-size: 1.3em; font-weight: 700; margin: 14px 0 6px 0; color: var(--color-text); }
+.edit-panel-preview h3 { font-size: 1.15em; font-weight: 600; margin: 12px 0 6px 0; color: var(--color-text); }
+.edit-panel-preview h4 { font-size: 1em; font-weight: 600; margin: 10px 0 4px 0; color: var(--color-text); }
+.edit-panel-preview p { margin: 8px 0; }
+.edit-panel-preview strong { font-weight: 600; }
+.edit-panel-preview em { font-style: italic; }
+.edit-panel-preview code { 
+  background: var(--color-bg-soft); 
+  padding: 2px 6px; 
+  border-radius: 4px; 
+  font-family: 'SF Mono', 'Menlo', monospace; 
+  font-size: 0.9em; 
+}
+.edit-panel-preview pre { 
+  background: var(--color-bg-soft); 
+  padding: 12px; 
+  border-radius: 8px; 
+  overflow-x: auto; 
+  margin: 12px 0; 
+}
+.edit-panel-preview pre code { background: none; padding: 0; }
+.edit-panel-preview blockquote { 
+  border-left: 3px solid var(--color-primary); 
+  padding-left: 12px; 
+  margin: 12px 0; 
+  color: var(--color-text-soft);
+  font-style: italic;
+}
+.edit-panel-preview ul, .edit-panel-preview ol { 
+  margin: 8px 0; 
+  padding-left: 24px; 
+}
+.edit-panel-preview li { margin: 4px 0; }
+.edit-panel-preview hr { 
+  border: none; 
+  border-top: 1px solid var(--color-border); 
+  margin: 16px 0; 
+}
+.edit-panel-preview a { 
+  color: var(--color-primary); 
+  text-decoration: none; 
+}
+.edit-panel-preview a:hover { text-decoration: underline; }
+
+/* Font size variants for preview */
+body.font-small .edit-panel-preview { font-size: 0.95rem; }
+body.font-large .edit-panel-preview { font-size: 1.2rem; }
