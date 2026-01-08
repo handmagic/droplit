@@ -38,7 +38,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- Fullscreen Edit Panel - v0.9.94 -->
+  <!-- Fullscreen Edit Panel - v0.9.95 -->
   <div class="edit-panel" id="editPanel">
     <div class="edit-panel-header">
       <div class="edit-panel-avatar" id="editPanelAvatar">
@@ -55,15 +55,31 @@
           <span class="edit-panel-time" id="editPanelTime">00:00</span>
         </div>
       </div>
-      <div class="edit-panel-actions">
-        <button class="edit-panel-btn save" onclick="saveEditPanel()">Save</button>
-        <button class="edit-panel-btn cancel" onclick="cancelEditPanel()">Cancel</button>
+      <div class="edit-panel-header-btns">
+        <button class="edit-panel-voice-btn" id="editPanelSpeakBtn" onclick="speakEditText()" title="Listen to text">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        </button>
+        <button class="edit-panel-voice-btn" id="editPanelMicBtn" onclick="toggleEditMic()" title="Dictate at cursor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+        </button>
+        <button class="edit-panel-close-btn" onclick="cancelEditPanel()" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     </div>
     <div class="edit-panel-toolbar">
-      <div class="edit-panel-tools">
+      <div class="edit-panel-tools-main">
         <button class="pill-s active" id="editToolEdit" onclick="setEditMode('edit')">Edit</button>
         <button class="pill-s" id="editToolPreview" onclick="setEditMode('preview')">Preview</button>
+        <button class="pill-s" id="editToolUndo" onclick="undoEditPanel()">Undo</button>
+        <button class="pill-s pri" onclick="saveEditPanel()">Save</button>
+        <button class="pill-s sec" onclick="cancelEditPanel()">Cancel</button>
+      </div>
+      <div class="edit-panel-tools-ai">
+        <button class="pill-s ai" onclick="aiEditOrganize()">Organize</button>
+        <button class="pill-s ai" onclick="aiEditEnhance()">Enhance</button>
+        <button class="pill-s ai" onclick="aiEditSummarize()">Summarize</button>
+        <button class="pill-s ai" onclick="aiEditExpand()">Expand</button>
       </div>
     </div>
     <div class="edit-panel-body">
@@ -862,7 +878,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.94 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.95 by Syntrise</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -876,7 +892,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.94 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.95 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2193,6 +2209,8 @@ function saveEditPanel() {
 
 // Cancel from fullscreen edit panel
 function cancelEditPanel() {
+  // Stop any playing audio
+  stopEditPanelAudio();
   closeEditPanel();
 }
 
@@ -2205,6 +2223,270 @@ function closeEditPanel() {
   }
   editId = null;
   document.body.classList.remove('editing-mode');
+  // Stop recording if active
+  stopEditMic();
+  // Stop audio
+  stopEditPanelAudio();
+}
+
+// ============================================
+// EDIT PANEL VOICE FUNCTIONS
+// ============================================
+
+let editPanelRecognition = null;
+let editPanelAudio = null;
+let editPanelSpeaking = false;
+
+// Stop all audio in edit panel
+function stopEditPanelAudio() {
+  // Stop any playing audio element
+  if (editPanelAudio) {
+    editPanelAudio.pause();
+    editPanelAudio.currentTime = 0;
+    editPanelAudio = null;
+  }
+  // Stop browser speech synthesis
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  // Stop TTS if function exists
+  if (typeof window.stopTTS === 'function') {
+    window.stopTTS();
+  }
+  // Update button state
+  editPanelSpeaking = false;
+  const speakBtn = document.getElementById('editPanelSpeakBtn');
+  if (speakBtn) speakBtn.classList.remove('speaking');
+}
+
+// Speak text from edit panel (all or selected)
+async function speakEditText() {
+  const textarea = document.getElementById('editPanelTextarea');
+  const speakBtn = document.getElementById('editPanelSpeakBtn');
+  if (!textarea) return;
+  
+  // If already speaking, stop
+  if (editPanelSpeaking) {
+    stopEditPanelAudio();
+    return;
+  }
+  
+  // Get text - selected or all
+  let text = '';
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  
+  if (start !== end) {
+    // Has selection - speak only selected
+    text = textarea.value.substring(start, end);
+  } else {
+    // No selection - speak all
+    text = textarea.value;
+  }
+  
+  if (!text.trim()) {
+    toast('No text to read', 'warning');
+    return;
+  }
+  
+  // Update button state
+  editPanelSpeaking = true;
+  if (speakBtn) speakBtn.classList.add('speaking');
+  
+  try {
+    // Try OpenAI TTS first if available
+    const apiKey = localStorage.getItem('openai_tts_key');
+    const voice = localStorage.getItem('aski_voice') || 'nova';
+    
+    if (apiKey) {
+      // Use OpenAI TTS
+      const response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'tts-1',
+          input: text.substring(0, 4096), // API limit
+          voice: voice
+        })
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        editPanelAudio = new Audio(url);
+        editPanelAudio.onended = () => {
+          stopEditPanelAudio();
+          URL.revokeObjectURL(url);
+        };
+        editPanelAudio.onerror = () => {
+          stopEditPanelAudio();
+          URL.revokeObjectURL(url);
+        };
+        editPanelAudio.play();
+        return;
+      }
+    }
+    
+    // Fallback to browser speech synthesis
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onend = () => stopEditPanelAudio();
+    utterance.onerror = () => stopEditPanelAudio();
+    window.speechSynthesis.speak(utterance);
+    
+  } catch (e) {
+    console.error('TTS error:', e);
+    stopEditPanelAudio();
+    toast('Failed to read text', 'error');
+  }
+}
+
+// Toggle microphone for STT at cursor position
+function toggleEditMic() {
+  const micBtn = document.getElementById('editPanelMicBtn');
+  
+  if (editPanelRecognition) {
+    // Stop recording
+    stopEditMic();
+  } else {
+    // Start recording
+    startEditMic();
+  }
+}
+
+// Start microphone recording
+function startEditMic() {
+  const textarea = document.getElementById('editPanelTextarea');
+  const micBtn = document.getElementById('editPanelMicBtn');
+  
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    toast('Speech recognition not supported', 'warning');
+    return;
+  }
+  
+  // Stop any playing audio
+  stopEditPanelAudio();
+  
+  // Save cursor position
+  const cursorPos = textarea.selectionStart;
+  
+  // Create recognition
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  editPanelRecognition = new SpeechRecognition();
+  editPanelRecognition.continuous = true;
+  editPanelRecognition.interimResults = true;
+  editPanelRecognition.lang = navigator.language || 'en-US';
+  
+  // Update button state
+  if (micBtn) micBtn.classList.add('recording');
+  
+  let finalTranscript = '';
+  
+  editPanelRecognition.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript;
+      } else {
+        interim += event.results[i][0].transcript;
+      }
+    }
+    
+    // Insert at cursor position
+    const before = textarea.value.substring(0, cursorPos);
+    const after = textarea.value.substring(cursorPos);
+    textarea.value = before + finalTranscript + interim + after;
+    
+    // Update char count
+    document.getElementById('editPanelChars').textContent = textarea.value.length;
+  };
+  
+  editPanelRecognition.onerror = (event) => {
+    console.error('Speech recognition error:', event.error);
+    stopEditMic();
+    if (event.error !== 'aborted') {
+      toast('Voice input error', 'error');
+    }
+  };
+  
+  editPanelRecognition.onend = () => {
+    stopEditMic();
+  };
+  
+  editPanelRecognition.start();
+  toast('Listening...', 'info');
+}
+
+// Stop microphone recording
+function stopEditMic() {
+  const micBtn = document.getElementById('editPanelMicBtn');
+  
+  if (editPanelRecognition) {
+    editPanelRecognition.stop();
+    editPanelRecognition = null;
+  }
+  
+  if (micBtn) micBtn.classList.remove('recording');
+}
+
+// Undo in edit panel
+function undoEditPanel() {
+  const textarea = document.getElementById('editPanelTextarea');
+  if (!textarea || !editId) return;
+  
+  // Get original text
+  const original = ideas.find(x => x.id === editId);
+  if (original && original.text !== textarea.value) {
+    textarea.value = original.text || '';
+    document.getElementById('editPanelChars').textContent = textarea.value.length;
+    toast('Restored original', 'info');
+  }
+}
+
+// ============================================
+// AI EDIT TOOLS (Placeholders)
+// ============================================
+
+async function aiEditOrganize() {
+  const textarea = document.getElementById('editPanelTextarea');
+  if (!textarea || !textarea.value.trim()) {
+    toast('No text to organize', 'warning');
+    return;
+  }
+  toast('Organize: Coming soon!', 'info');
+  // TODO: Call AI API with organize prompt
+}
+
+async function aiEditEnhance() {
+  const textarea = document.getElementById('editPanelTextarea');
+  if (!textarea || !textarea.value.trim()) {
+    toast('No text to enhance', 'warning');
+    return;
+  }
+  toast('Enhance: Coming soon!', 'info');
+  // TODO: Call AI API with enhance prompt
+}
+
+async function aiEditSummarize() {
+  const textarea = document.getElementById('editPanelTextarea');
+  if (!textarea || !textarea.value.trim()) {
+    toast('No text to summarize', 'warning');
+    return;
+  }
+  toast('Summarize: Coming soon!', 'info');
+  // TODO: Call AI API with summarize prompt
+}
+
+async function aiEditExpand() {
+  const textarea = document.getElementById('editPanelTextarea');
+  if (!textarea || !textarea.value.trim()) {
+    toast('No text to expand', 'warning');
+    return;
+  }
+  toast('Expand: Coming soon!', 'info');
+  // TODO: Call AI API with expand prompt
 }
 
 // Open category modal from edit panel
