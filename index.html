@@ -38,35 +38,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- Edit Modal Overlay - v0.9.84 -->
-  <div class="edit-modal-overlay" id="editModalOverlay" onclick="handleEditOverlayClick(event)">
-    <div class="edit-modal" id="editModal">
-      <div class="edit-modal-header">
-        <div class="edit-modal-avatar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </div>
-        <div class="edit-modal-info">
-          <div class="edit-modal-creator" id="editModalCreator">
-            <span id="editModalCreatorName">User</span>
-            <svg class="verified" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <div class="edit-modal-meta">
-            <span class="edit-modal-cat" id="editModalCat">INBOX</span>
-            <span id="editModalChars">0</span>
-            <span class="edit-modal-time" id="editModalTime">00:00</span>
-          </div>
-        </div>
-      </div>
-      <div class="edit-modal-body">
-        <textarea class="edit-modal-textarea" id="editModalTextarea" placeholder="Enter your text..."></textarea>
-      </div>
-      <div class="edit-modal-actions">
-        <button class="edit-modal-btn save" onclick="saveEditModal()">SAVE</button>
-        <button class="edit-modal-btn cancel" onclick="cancelEditModal()">CANCEL</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Insights Banner -->
   <div class="insights-banner" id="insightsBanner">
     <div class="insights-banner-icon">🎂</div>
@@ -2059,199 +2030,213 @@ function confirmDel(){
   closeDelModal();
 }
 function startEdit(id){
-  if(editId)cancelEditModal();
+  if(editId)cancelEdit(editId);
   editId=id;
   activeCardId=id;
   document.body.classList.add('editing-mode');
   
-  const i = ideas.find(x=>x.id===id);
-  if(!i) return;
-  
-  // Fill Edit Modal with card data
-  const overlay = document.getElementById('editModalOverlay');
-  const modal = document.getElementById('editModal');
-  const textarea = document.getElementById('editModalTextarea');
-  const creatorName = document.getElementById('editModalCreatorName');
-  const catEl = document.getElementById('editModalCat');
-  const charsEl = document.getElementById('editModalChars');
-  const timeEl = document.getElementById('editModalTime');
-  
-  if(!overlay || !modal || !textarea) return;
-  
-  // Set content
-  textarea.value = i.text || '';
-  creatorName.textContent = i.creator === 'aski' ? 'ASKI' : (i.creator || 'User');
-  
-  // Set category with styling
-  const cat = i.category || 'inbox';
-  catEl.textContent = CATS[cat]?.single || 'INBOX';
-  catEl.className = 'edit-modal-cat ' + cat;
-  
-  // Set char count and time
-  charsEl.textContent = (i.text || '').length;
-  timeEl.textContent = i.time || '';
-  
-  // Update char count on input
-  textarea.oninput = function() {
-    charsEl.textContent = this.value.length;
-  };
-  
-  // Show modal
-  overlay.classList.add('show');
-  
-  // Position modal above keyboard
-  positionEditModal();
-  
-  // Focus textarea after animation
-  setTimeout(() => {
-    textarea.focus();
-    // Move cursor to end
-    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-  }, 150);
-}
-
-// Position Edit Modal so bottom is at visualViewport.height (above keyboard)
-function positionEditModal() {
-  const modal = document.getElementById('editModal');
-  if (!modal) return;
-  
-  // Use visualViewport if available (accounts for keyboard)
-  if (window.visualViewport) {
-    const vh = window.visualViewport.height;
-    const vTop = window.visualViewport.offsetTop;
-    
-    // Position modal at bottom of visible viewport
-    modal.style.bottom = 'auto';
-    modal.style.top = 'auto';
-    
-    // Calculate available space above keyboard
-    const availableHeight = vh - 20; // 20px margin from top
-    const modalHeight = Math.min(availableHeight, 450); // Max 450px
-    
-    // Position: bottom of modal at visualViewport bottom
-    modal.style.position = 'fixed';
-    modal.style.bottom = (window.innerHeight - vh - vTop) + 'px';
-    modal.style.maxHeight = modalHeight + 'px';
-  } else {
-    // Fallback - position at bottom
-    modal.style.bottom = '0';
-    modal.style.maxHeight = '450px';
+  // Update only this card without full render
+  const card = document.querySelector('[data-id="'+id+'"]');
+  if(card){
+    card.classList.add('editing', 'active');
+    card.classList.remove('roll-up'); // Always show full when editing
+    const i = ideas.find(x=>x.id===id);
+    if(i){
+      // Add textarea if not exists
+      let ta = card.querySelector('.card-ta');
+      if(!ta){
+        const textEl = card.querySelector('.card-text');
+        if(textEl){
+          ta = document.createElement('textarea');
+          ta.className = 'card-ta';
+          ta.value = i.text || '';
+          // Start with 0 height for animation
+          ta.style.maxHeight = '0';
+          ta.style.opacity = '0';
+          ta.style.transition = 'opacity 0.2s ease-out, max-height 0.25s ease-out';
+          textEl.after(ta);
+          
+          // Animate in
+          requestAnimationFrame(() => {
+            ta.style.maxHeight = '300px';
+            ta.style.opacity = '1';
+          });
+        }
+      } else {
+        ta.value = i.text || '';
+      }
+      
+      // Add edit actions if not exists
+      let actions = card.querySelector('.card-edit-actions');
+      if(!actions){
+        const actDiv = document.createElement('div');
+        actDiv.className = 'card-edit-actions';
+        actDiv.innerHTML = '<button class="act primary" onclick="saveEdit('+id+')">Save</button><button class="act secondary" onclick="cancelEdit('+id+')">Cancel</button>';
+        // Start hidden for animation
+        actDiv.style.opacity = '0';
+        actDiv.style.transition = 'opacity 0.2s ease-out';
+        card.appendChild(actDiv);
+        
+        // Animate in
+        requestAnimationFrame(() => {
+          actDiv.style.opacity = '1';
+        });
+      }
+      
+      // Focus textarea - keyboard will trigger resize event
+      setTimeout(() => {
+        if(ta){
+          ta.focus();
+          // Don't scroll here - wait for keyboard to open via resize event
+        }
+      }, 150);
+    }
   }
 }
 
-// Handle overlay click (close on backdrop tap)
-function handleEditOverlayClick(event) {
-  if (event.target.id === 'editModalOverlay') {
-    cancelEditModal();
+// Position edit card so buttons are exactly 10px above keyboard (same as margin-top in CSS)
+const EDIT_BUTTONS_MARGIN = 10; // Same as .card-edit-actions margin-top
+let editPositionTimeout = null;
+
+function positionEditAboveKeyboard(card) {
+  if (!card) return;
+  
+  const actions = card.querySelector('.card-edit-actions');
+  if (!actions) return;
+  
+  // Use visualViewport (accounts for keyboard)
+  const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const actionsRect = actions.getBoundingClientRect();
+  
+  // Target: bottom of buttons should be at (viewportHeight - 10px)
+  const targetBottom = vh - EDIT_BUTTONS_MARGIN;
+  const currentBottom = actionsRect.bottom;
+  
+  // Only scroll if buttons are not in the right position
+  if (Math.abs(currentBottom - targetBottom) > 5) {
+    const scrollBy = currentBottom - targetBottom;
+    window.scrollBy({ top: scrollBy, behavior: 'smooth' });
   }
 }
 
-// Listen for viewport resize (keyboard open/close)
+// Re-position when keyboard opens/closes - with debounce to wait for stability
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', () => {
     if (editId) {
-      positionEditModal();
-    }
-  });
-  window.visualViewport.addEventListener('scroll', () => {
-    if (editId) {
-      positionEditModal();
+      // Clear previous timeout
+      if (editPositionTimeout) clearTimeout(editPositionTimeout);
+      
+      // Wait for keyboard to stabilize (50ms without changes)
+      editPositionTimeout = setTimeout(() => {
+        const card = document.querySelector('[data-id="'+editId+'"]');
+        if (card) {
+          positionEditAboveKeyboard(card);
+        }
+      }, 50);
     }
   });
 }
-// Save from Edit Modal
-function saveEditModal() {
-  if (!editId) return;
-  
-  const textarea = document.getElementById('editModalTextarea');
-  const overlay = document.getElementById('editModalOverlay');
-  
-  if (textarea) {
-    const t = textarea.value.trim();
-    if (t) {
-      const i = ideas.find(x => x.id === editId);
-      if (i && t !== i.text) {
-        saveUndo('edit', {id: i.id, previousText: i.text});
-        i.text = t;
-        i.category = detectCat(t);
+function saveEdit(id){
+  const card=document.querySelector('[data-id="'+id+'"]'),ta=card?.querySelector('.card-ta');
+  if(ta){
+    const t=ta.value.trim();
+    if(t){
+      const i=ideas.find(x=>x.id===id);
+      if(i&&t!==i.text){
+        saveUndo('edit',{id:i.id,previousText:i.text});
+        i.text=t;
+        i.category=detectCat(t);
         save();
-        
-        // Sync update to Supabase
+        // Sync update to Supabase (v0.9.58)
         if (syncEnabled && currentUser) {
           syncDropToServer(i, 'update');
         }
-        toast('Saved', 'success');
+        toast('Saved','success');
         
-        // Update the original card in the list
-        const card = document.querySelector('[data-id="'+editId+'"]');
-        if (card) {
-          const textEl = card.querySelector('.card-text');
-          if (textEl) textEl.innerHTML = renderMarkdown(t);
-          
-          const catEl = card.querySelector('.card-cat');
-          if (catEl) {
-            catEl.className = 'card-cat ' + i.category;
-            catEl.textContent = CATS[i.category]?.single || 'INBOX';
-          }
-          
-          const charsEl = card.querySelector('.card-chars');
-          if (charsEl) charsEl.textContent = t.length;
+        // Update card text without full render
+        const textEl = card.querySelector('.card-text');
+        if(textEl) textEl.innerHTML = renderMarkdown(t);
+        
+        // Update category badge
+        const catEl = card.querySelector('.card-cat');
+        if(catEl){
+          catEl.className = 'card-cat ' + i.category;
+          catEl.textContent = CATS[i.category]?.single || 'INBOX';
         }
+        
+        // Update char count
+        const charsEl = card.querySelector('.card-chars');
+        if(charsEl) charsEl.textContent = t.length;
       }
     }
   }
   
-  // Close modal
-  closeEditModal();
+  // Clean up edit UI with animation
+  editId=null;
+  document.body.classList.remove('editing-mode');
+  if(card){
+    // Remove editing class but KEEP active
+    card.classList.remove('editing');
+    // Remove roll-up to show full card
+    card.classList.remove('roll-up');
+    
+    // Animate out textarea and actions
+    const taEl = card.querySelector('.card-ta');
+    const actions = card.querySelector('.card-edit-actions');
+    
+    if(taEl) {
+      taEl.style.transition = 'opacity 0.15s ease-out, max-height 0.2s ease-out';
+      taEl.style.opacity = '0';
+      taEl.style.maxHeight = '0';
+      setTimeout(() => taEl.remove(), 200);
+    }
+    if(actions) {
+      actions.style.transition = 'opacity 0.15s ease-out';
+      actions.style.opacity = '0';
+      setTimeout(() => actions.remove(), 150);
+    }
+    
+    // Smooth scroll to keep card visible
+    setTimeout(() => {
+      card.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 100);
+  }
   
   // Update counts in background
   requestAnimationFrame(counts);
 }
-
-// Legacy wrapper for saveEdit(id)
-function saveEdit(id) {
-  if (editId === id) {
-    saveEditModal();
-  }
-}
-
-// Cancel from Edit Modal  
-function cancelEditModal() {
-  closeEditModal();
-}
-
-// Legacy wrapper for cancelEdit(id)
-function cancelEdit(id) {
-  if (editId === id || !id) {
-    cancelEditModal();
-  }
-}
-
-// Close Edit Modal with animation
-function closeEditModal() {
-  const overlay = document.getElementById('editModalOverlay');
-  const modal = document.getElementById('editModal');
-  const card = editId ? document.querySelector('[data-id="'+editId+'"]') : null;
-  
-  // Hide modal with animation
-  if (overlay) {
-    overlay.classList.remove('show');
-  }
-  
-  // Clean up state
-  const prevEditId = editId;
-  editId = null;
+function cancelEdit(id){
+  editId=null;
   document.body.classList.remove('editing-mode');
   
-  // Keep card active after closing
-  if (card) {
+  // Clean up edit UI without full render, STAY active
+  const card = document.querySelector('[data-id="'+id+'"]');
+  if(card){
+    // Remove editing but KEEP active
     card.classList.remove('editing');
+    // Remove roll-up to show full card
     card.classList.remove('roll-up');
+    
+    // Animate out textarea and actions
+    const ta = card.querySelector('.card-ta');
+    const actions = card.querySelector('.card-edit-actions');
+    
+    if(ta) {
+      ta.style.transition = 'opacity 0.15s ease-out, max-height 0.2s ease-out';
+      ta.style.opacity = '0';
+      ta.style.maxHeight = '0';
+      setTimeout(() => ta.remove(), 200);
+    }
+    if(actions) {
+      actions.style.transition = 'opacity 0.15s ease-out';
+      actions.style.opacity = '0';
+      setTimeout(() => actions.remove(), 150);
+    }
     
     // Smooth scroll to keep card visible
     setTimeout(() => {
-      card.scrollIntoView({behavior: 'smooth', block: 'center'});
-    }, 200);
+      card.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 100);
   }
 }
 function openSendModal(id){sendId=id;document.getElementById('sendModal').classList.add('show');}
