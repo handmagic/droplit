@@ -1374,8 +1374,8 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 	.streaming-indicator.tool-active { width: auto; height: auto; background: rgba(139,92,246,0.15); color: #8B5CF6; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px; animation: none; margin-left: 8px; font-weight: 500; }
 
 /* ============================================
-   FULLSCREEN EDIT PANEL - v0.9.94
-   With toolbar row for tools
+   FULLSCREEN EDIT PANEL - v0.9.95
+   Voice-first text editor with STT/TTS
    ============================================ */
 
 .edit-panel {
@@ -1503,36 +1503,106 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   font-weight: 500;
 }
 
-/* Action buttons - Save/Cancel */
-.edit-panel-actions {
+/* Header right buttons - voice and close */
+.edit-panel-header-btns {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
-.edit-panel-btn {
-  height: 36px;
-  padding: 0 16px;
-  border: none;
-  border-radius: var(--radius-full);
-  font-family: var(--font-main);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.edit-panel-btn:active { transform: scale(0.97); }
-.edit-panel-btn.save { background: var(--color-primary); color: white; }
-.edit-panel-btn.cancel { background: var(--color-bg-btn); color: var(--color-text-soft); }
 
-/* Toolbar row - like filters panel */
+/* Voice buttons (speak, mic) - smaller than close */
+.edit-panel-voice-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: var(--color-bg-soft);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-soft);
+  transition: all 0.15s;
+}
+.edit-panel-voice-btn:active { transform: scale(0.95); opacity: 0.7; }
+.edit-panel-voice-btn svg { width: 18px; height: 18px; }
+
+/* Voice button active states */
+.edit-panel-voice-btn.speaking {
+  background: var(--color-primary);
+  color: white;
+  animation: pulse-speak 1.5s ease-in-out infinite;
+}
+.edit-panel-voice-btn.recording {
+  background: #EF4444;
+  color: white;
+  animation: pulse-record 1s ease-in-out infinite;
+}
+
+@keyframes pulse-speak {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
+}
+@keyframes pulse-record {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
+/* Close button - same size as menu toggle */
+.edit-panel-close-btn {
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: var(--color-bg-soft);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-soft);
+  transition: all 0.15s;
+}
+.edit-panel-close-btn:active { transform: scale(0.95); opacity: 0.7; }
+.edit-panel-close-btn svg { width: 22px; height: 22px; }
+
+/* Toolbar - two rows like filters panel */
 .edit-panel-toolbar {
   flex-shrink: 0;
   padding: 8px 16px 12px 16px;
   background: var(--color-bg-card);
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
+/* Main tools row - static, always visible */
+.edit-panel-tools-main {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.edit-panel-tools-main .pill-s {
+  flex-shrink: 0;
+}
+
+/* AI tools row - scrollable */
+.edit-panel-tools-ai {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 2px;
+}
+.edit-panel-tools-ai::-webkit-scrollbar { display: none; }
+.edit-panel-tools-ai .pill-s {
+  flex-shrink: 0;
+}
+
+/* Legacy support - single row */
 .edit-panel-tools {
   display: flex;
   gap: 8px;
@@ -1544,7 +1614,9 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 .edit-panel-tools::-webkit-scrollbar { display: none; }
 
 /* Tool buttons - pill-s style */
-.edit-panel-tools .pill-s {
+.edit-panel-tools .pill-s,
+.edit-panel-tools-main .pill-s,
+.edit-panel-tools-ai .pill-s {
   flex-shrink: 0;
   height: 32px;
   padding: 0 14px;
@@ -1559,12 +1631,36 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   transition: all 0.15s;
   white-space: nowrap;
 }
-.edit-panel-tools .pill-s:active { transform: scale(0.97); }
+.edit-panel-tools .pill-s:active,
+.edit-panel-tools-main .pill-s:active,
+.edit-panel-tools-ai .pill-s:active { transform: scale(0.97); }
 
 /* Active tool button - highlighted */
-.edit-panel-tools .pill-s.active {
+.edit-panel-tools .pill-s.active,
+.edit-panel-tools-main .pill-s.active {
   background: var(--color-text);
   border-color: var(--color-text);
+  color: white;
+}
+
+/* Primary button in toolbar */
+.edit-panel-tools-main .pill-s.pri {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+/* Secondary button in toolbar */
+.edit-panel-tools-main .pill-s.sec {
+  background: var(--color-bg-btn);
+  border-color: var(--color-border);
+  color: var(--color-text-soft);
+}
+
+/* AI tools buttons */
+.edit-panel-tools-ai .pill-s.ai {
+  background: linear-gradient(135deg, #8B5CF6, #6366F1);
+  border-color: transparent;
   color: white;
 }
 
@@ -1678,14 +1774,28 @@ body.font-small .edit-panel-chars, body.font-small .edit-panel-time { font-size:
 body.font-normal .edit-panel-chars, body.font-normal .edit-panel-time { font-size: 0.7rem; }
 body.font-large .edit-panel-chars, body.font-large .edit-panel-time { font-size: 0.8rem; }
 
+/* Voice buttons scaling */
+body.font-small .edit-panel-voice-btn { width: 36px; height: 36px; }
+body.font-small .edit-panel-voice-btn svg { width: 16px; height: 16px; }
+body.font-large .edit-panel-voice-btn { width: 44px; height: 44px; }
+body.font-large .edit-panel-voice-btn svg { width: 20px; height: 20px; }
+
+body.font-small .edit-panel-close-btn { width: 44px; height: 44px; }
+body.font-small .edit-panel-close-btn svg { width: 20px; height: 20px; }
+body.font-large .edit-panel-close-btn { width: 52px; height: 52px; }
+body.font-large .edit-panel-close-btn svg { width: 24px; height: 24px; }
+
 /* Dark mode */
 body.dark .edit-panel-header { background: var(--color-bg-card); }
 body.dark .edit-panel-toolbar { background: var(--color-bg-card); }
-body.dark .edit-panel-tools .pill-s.active {
+body.dark .edit-panel-tools .pill-s.active,
+body.dark .edit-panel-tools-main .pill-s.active {
   background: var(--color-bg-soft);
   border-color: var(--color-text-muted);
   color: var(--color-text);
 }
+body.dark .edit-panel-voice-btn { background: var(--color-bg-soft); }
+body.dark .edit-panel-close-btn { background: var(--color-bg-soft); }
 
 /* catModal above edit panel */
 body.editing-mode #catModal { z-index: 1200; }
