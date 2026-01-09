@@ -930,6 +930,11 @@
           <button class="pill-l pri" onclick="setupEncryption()" style="width: 100%;" id="setupEncryptionBtn">🔑 Setup Encryption</button>
         </div>
         
+        <!-- Reset Encryption (for testing) -->
+        <div style="padding: 6px 0;">
+          <button class="pill-m sec" onclick="resetEncryption()" style="width: 100%; font-size: 0.8rem;">🔄 Reset Encryption</button>
+        </div>
+        
         <div class="menu-about" onclick="closeMainMenu(); openAbout();" style="cursor: pointer;">
           <div class="menu-about-logo">
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
@@ -5030,10 +5035,11 @@ function showPrivacyStatus() {
     try {
       const ps = DropLitPrivacy.getStatus();
       status += "=== COMPONENTS ===\n";
-      status += "Encryption: " + (ps.encryption ? "✅" : "❌") + "\n";
-      status += "Embeddings: " + (ps.embeddings ? "✅" : "❌") + "\n";
-      status += "ZK Search: " + (ps.zkSearch ? "✅" : "❌") + "\n";
-      status += "Audit Trail: " + (ps.audit ? "✅" : "❌") + "\n";
+      status += "Encryption: " + (ps.layers?.encryption ? "✅" : "❌") + "\n";
+      status += "Embeddings: " + (ps.layers?.embeddings ? "✅" : "❌") + "\n";
+      status += "ZK Search: " + (ps.layers?.zkSearch ? "✅" : "❌") + "\n";
+      status += "Audit Trail: " + (ps.layers?.audit ? "✅" : "❌") + "\n";
+      status += "\nInitialized: " + (ps.initialized ? "✅" : "❌") + "\n";
     } catch(e) {
       status += "Status Error: " + e.message + "\n";
     }
@@ -5164,6 +5170,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         const hasKey = await DropLitKeys.hasStoredKey(currentUser.id);
         if (hasKey) {
           console.log("[Privacy] User has key, auto-initializing...");
+          localStorage.setItem("droplit_has_key_" + currentUser.id, "true");
           await initializePrivacySystem();
         }
       } catch (e) {
@@ -5172,6 +5179,49 @@ document.addEventListener("DOMContentLoaded", async function() {
     }
   }, 2000);
 });
+
+// Reset encryption (for testing/troubleshooting)
+async function resetEncryption() {
+  if (!currentUser) {
+    alert("Please log in first.");
+    return;
+  }
+  
+  const confirmed = confirm(
+    "⚠️ RESET ENCRYPTION ⚠️\n\n" +
+    "This will delete your encryption key.\n" +
+    "You will need to set up encryption again.\n\n" +
+    "Are you sure?"
+  );
+  
+  if (!confirmed) return;
+  
+  try {
+    // Delete key from IndexedDB
+    if (typeof DropLitKeys !== "undefined") {
+      await DropLitKeys.deleteKey(currentUser.id);
+    }
+    
+    // Clear localStorage flag
+    localStorage.removeItem("droplit_has_key_" + currentUser.id);
+    
+    // Reset privacy state
+    window.DROPLIT_PRIVACY_ENABLED = false;
+    
+    // Update button
+    const btn = document.getElementById("setupEncryptionBtn");
+    if (btn) {
+      btn.textContent = "🔑 Setup Encryption";
+      btn.classList.remove("sec");
+      btn.classList.add("pri");
+    }
+    
+    alert("✅ Encryption reset complete.\n\nYou can now set up encryption again.");
+    
+  } catch (error) {
+    alert("Reset failed: " + error.message);
+  }
+}
 
 </script>
 </body>
