@@ -1439,7 +1439,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   justify-content: space-between; /* Row1 top, Row2 bottom */
   height: 48px; /* Same as avatar height */
 }
-.edit-panel-row1 { display: flex; align-items: center; gap: 6px; }
+.edit-panel-row1 { display: flex; align-items: center; gap: 6px; padding-top: 5px; }
 .edit-panel-row2 { display: flex; align-items: center; gap: 8px; }
 
 /* Verified badge - before name */
@@ -1626,11 +1626,11 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   padding: 0 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
-  background: var(--color-bg-card);
+  background: var(--color-bg-soft); /* Gray like other buttons */
   font-family: var(--font-main);
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: var(--color-text-soft);
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
@@ -1639,11 +1639,11 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 .edit-panel-tools-main .pill-s:active,
 .edit-panel-tools-ai .pill-s:active { transform: scale(0.97); }
 
-/* Active tool button - highlighted */
+/* Active tool button - coral for Edit/Preview toggle */
 .edit-panel-tools .pill-s.active,
 .edit-panel-tools-main .pill-s.active {
-  background: var(--color-text);
-  border-color: var(--color-text);
+  background: #FF6B4A; /* Coral */
+  border-color: #FF6B4A;
   color: white;
 }
 
@@ -1654,9 +1654,9 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   color: white;
 }
 
-/* Secondary button in toolbar */
+/* Secondary button in toolbar (same as default) */
 .edit-panel-tools-main .pill-s.sec {
-  background: var(--color-bg-btn);
+  background: var(--color-bg-soft);
   border-color: var(--color-border);
   color: var(--color-text-soft);
 }
@@ -1799,9 +1799,9 @@ body.dark .edit-panel-header { background: var(--color-bg-card); }
 body.dark .edit-panel-toolbar { background: var(--color-bg-card); }
 body.dark .edit-panel-tools .pill-s.active,
 body.dark .edit-panel-tools-main .pill-s.active {
-  background: var(--color-bg-soft);
-  border-color: var(--color-text-muted);
-  color: var(--color-text);
+  background: #FF6B4A; /* Coral - same as light mode */
+  border-color: #FF6B4A;
+  color: white;
 }
 body.dark .edit-panel-voice-btn { background: var(--color-bg-soft); }
 body.dark .edit-panel-close-btn { background: var(--color-bg-soft); }
