@@ -1397,11 +1397,13 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 .edit-panel-header {
   flex-shrink: 0;
   display: flex;
-  align-items: flex-end; /* Align to bottom */
+  align-items: center; /* Center vertically */
   gap: 12px;
   padding: 10px 16px 8px 16px;
   padding-top: max(10px, env(safe-area-inset-top));
   background: var(--color-bg-card);
+  position: relative;
+  z-index: 3; /* Above toolbar */
 }
 
 /* Avatar */
@@ -1428,13 +1430,14 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   color: white;
 }
 
-/* Info section */
+/* Info section - row1 top, row2 aligned with avatar bottom */
 .edit-panel-info {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  justify-content: space-between; /* Row1 top, Row2 bottom */
+  height: 48px; /* Same as avatar height */
 }
 .edit-panel-row1 { display: flex; align-items: center; gap: 6px; }
 .edit-panel-row2 { display: flex; align-items: center; gap: 8px; }
@@ -1568,14 +1571,15 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 /* Toolbar - two rows like filters panel */
 .edit-panel-toolbar {
   flex-shrink: 0;
-  padding: 8px 16px; /* Symmetrical: 8px top and bottom */
+  padding: 4px 12px 8px 12px; /* 4px top, 12px sides, 8px bottom */
+  margin-top: -1px; /* Eliminate any subpixel gap */
   background: var(--color-bg-card);
   box-shadow: 0 4px 16px rgba(0,0,0,0.08); /* Same as main header */
   position: relative;
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 8px; /* Same as padding for harmony */
+  gap: 8px;
 }
 
 /* Main tools row - static, always visible */
@@ -1762,7 +1766,9 @@ body.font-small .edit-panel-preview { font-size: 0.95rem; }
 body.font-normal .edit-panel-preview { font-size: 1.05rem; }
 body.font-large .edit-panel-preview { font-size: 1.2rem; }
 body.font-small .edit-panel-avatar { width: 44px; height: 44px; min-width: 44px; }
+body.font-small .edit-panel-info { height: 44px; }
 body.font-large .edit-panel-avatar { width: 52px; height: 52px; min-width: 52px; }
+body.font-large .edit-panel-info { height: 52px; }
 
 /* Edit panel metadata scaling (like card) */
 body.font-small .edit-panel-creator { font-size: 0.8rem; }
