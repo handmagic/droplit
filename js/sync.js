@@ -1,6 +1,6 @@
 // ============================================
-// DROPLIT SYNC v1.0
-// Syntrise Core Integration & Supabase Context
+// DROPLIT SYNC v2.0
+// Privacy System + Syntrise Core Integration
 // ============================================
 
 // ============================================
@@ -279,14 +279,421 @@ async function syncToCloud() {
 
 
 // ============================================
+// PRIVACY SYSTEM INTEGRATION v1.0
+// ============================================
+
+/**
+ * Check if privacy system is available and initialized
+ */
+function isPrivacyReady() {
+  return window.DROPLIT_PRIVACY_ENABLED === true && 
+         typeof DropLitPrivacy !== 'undefined' &&
+         DropLitPrivacy.isInitialized();
+}
+
+/**
+ * Sync drop with encryption to Supabase
+ * @param {Object} drop - Drop object to sync
+ * @returns {Promise<Object>} - Sync result
+ */
+async function syncDropEncrypted(drop) {
+  if (!supabaseClient || !currentUser) {
+    console.log('⚠️ Supabase not ready for encrypted sync');
+    return { success: false, error: 'not_ready' };
+  }
+  
+  try {
+    // Check if privacy system is ready
+    if (!isPrivacyReady()) {
+      console.log('📤 Privacy not enabled, syncing unencrypted');
+      return await syncDropUnencrypted(drop);
+    }
+    
+    // Process drop through privacy pipeline
+    console.log('🔐 Processing drop for encrypted sync...');
+    const processed = await DropLitPrivacy.processForStorage(drop);
+    
+    if (!processed.success) {
+      console.warn('⚠️ Privacy processing failed, fallback to unencrypted');
+      return await syncDropUnencrypted(drop);
+    }
+    
+    const privacyDrop = processed.drop;
+    
+    // Prepare data for Supabase
+    const supabaseData = {
+      user_id: currentUser.id,
+      external_id: String(drop.id),
+      content: privacyDrop._encrypted ? null : drop.text,  // null if encrypted
+      category: drop.category || 'inbox',
+      source: drop.source || 'droplit',
+      metadata: {
+        date: drop.date,
+        time: drop.time,
+        creator: drop.creator || 'user',
+        isMedia: drop.isMedia || false
+      },
+      
+      // Encryption fields
+      encrypted_content: privacyDrop.encryptedContent || null,
+      encryption_nonce: privacyDrop.encryptionNonce || null,
+      encryption_version: privacyDrop._encrypted ? 1 : 0,
+      privacy_level: privacyDrop.privacyLevel || 'standard'
+    };
+    
+    // Upsert to Supabase
+    const { data, error } = await supabaseClient
+      .from('drops')
+      .upsert(supabaseData, {
+        onConflict: 'user_id,external_id',
+        returning: 'minimal'
+      });
+    
+    if (error) {
+      console.error('❌ Supabase encrypted sync error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    // Sync ZK search tokens if available
+    if (privacyDrop.searchTokens && privacyDrop.searchTokens.length > 0) {
+      await syncSearchTokens(drop.id, privacyDrop.searchTokens);
+    }
+    
+    // Log to audit trail
+    if (typeof DropLitAudit !== 'undefined') {
+      await DropLitAudit.logOperation('drop_sync', 'drop', String(drop.id), {
+        encrypted: privacyDrop._encrypted,
+        privacyLevel: privacyDrop.privacyLevel,
+        hasTokens: privacyDrop.searchTokens?.length > 0
+      });
+    }
+    
+    console.log('✅ Encrypted sync complete:', drop.id);
+    return { success: true, encrypted: true };
+    
+  } catch (error) {
+    console.error('❌ Encrypted sync error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Sync drop without encryption (fallback)
+ */
+async function syncDropUnencrypted(drop) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('drops')
+      .upsert({
+        user_id: currentUser.id,
+        external_id: String(drop.id),
+        content: drop.text,
+        category: drop.category || 'inbox',
+        source: drop.source || 'droplit',
+        metadata: {
+          date: drop.date,
+          time: drop.time,
+          creator: drop.creator || 'user',
+          isMedia: drop.isMedia || false
+        },
+        encryption_version: 0,
+        privacy_level: 'standard'
+      }, {
+        onConflict: 'user_id,external_id',
+        returning: 'minimal'
+      });
+    
+    if (error) {
+      console.error('❌ Supabase sync error:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('✅ Unencrypted sync complete:', drop.id);
+    return { success: true, encrypted: false };
+    
+  } catch (error) {
+    console.error('❌ Sync error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Sync ZK search tokens to Supabase
+ */
+async function syncSearchTokens(dropId, tokens) {
+  if (!supabaseClient || !currentUser) return;
+  
+  try {
+    // First get the Supabase drop ID
+    const { data: dropData } = await supabaseClient
+      .from('drops')
+      .select('id')
+      .eq('user_id', currentUser.id)
+      .eq('external_id', String(dropId))
+      .single();
+    
+    if (!dropData) {
+      console.warn('⚠️ Drop not found for tokens sync:', dropId);
+      return;
+    }
+    
+    // Upsert tokens
+    const { error } = await supabaseClient
+      .from('drop_search_tokens')
+      .upsert({
+        drop_id: dropData.id,
+        user_id: currentUser.id,
+        tokens: tokens,
+        token_count: tokens.length
+      }, {
+        onConflict: 'drop_id'
+      });
+    
+    if (error) {
+      console.warn('⚠️ Token sync error:', error.message);
+    } else {
+      console.log('🔑 Tokens synced:', tokens.length);
+    }
+    
+  } catch (e) {
+    console.warn('⚠️ Token sync failed:', e.message);
+  }
+}
+
+/**
+ * Batch sync all drops with privacy
+ */
+async function syncAllDropsWithPrivacy(options = {}) {
+  const { onProgress } = options;
+  
+  if (!supabaseClient || !currentUser) {
+    return { success: false, error: 'Not authenticated' };
+  }
+  
+  const textDrops = ideas.filter(drop => drop.text && !drop.isMedia);
+  
+  if (!textDrops.length) {
+    return { success: true, synced: 0, message: 'No drops to sync' };
+  }
+  
+  console.log(`🔄 Starting privacy sync for ${textDrops.length} drops...`);
+  
+  let synced = 0;
+  let errors = [];
+  const total = textDrops.length;
+  
+  for (let i = 0; i < textDrops.length; i++) {
+    const drop = textDrops[i];
+    
+    try {
+      const result = await syncDropEncrypted(drop);
+      
+      if (result.success) {
+        synced++;
+      } else {
+        errors.push(`Drop ${drop.id}: ${result.error}`);
+      }
+      
+      // Report progress
+      if (onProgress) {
+        onProgress({
+          current: i + 1,
+          total: total,
+          synced: synced,
+          percent: Math.round(((i + 1) / total) * 100)
+        });
+      }
+      
+      // Small delay to avoid rate limiting
+      if (i < textDrops.length - 1) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      
+    } catch (e) {
+      errors.push(`Drop ${drop.id}: ${e.message}`);
+    }
+  }
+  
+  console.log(`✅ Privacy sync complete: ${synced}/${total}`);
+  
+  return {
+    success: errors.length === 0,
+    synced: synced,
+    total: total,
+    errors: errors.length > 0 ? errors : null
+  };
+}
+
+/**
+ * Privacy-aware search using ZK tokens
+ */
+async function searchDropsPrivate(query, options = {}) {
+  const { limit = 20 } = options;
+  
+  // If privacy system is ready, use it
+  if (isPrivacyReady()) {
+    try {
+      const drops = ideas.filter(d => d.text && !d.isMedia);
+      const results = await DropLitPrivacy.search(query, drops, { topK: limit });
+      return results;
+    } catch (e) {
+      console.warn('⚠️ Privacy search failed, fallback to basic:', e.message);
+    }
+  }
+  
+  // Fallback to basic search
+  const queryLower = query.toLowerCase();
+  return ideas
+    .filter(d => d.text && d.text.toLowerCase().includes(queryLower))
+    .slice(0, limit);
+}
+
+/**
+ * Get ASKI context with privacy awareness
+ */
+async function getContextForAski(userMessage, options = {}) {
+  const { maxDrops = 15 } = options;
+  
+  // If privacy system is ready, use semantic search
+  if (isPrivacyReady()) {
+    try {
+      const drops = ideas.filter(d => d.text && !d.isMedia);
+      const context = await DropLitPrivacy.getAskiContext(userMessage, drops, { maxDrops });
+      return context;
+    } catch (e) {
+      console.warn('⚠️ Privacy context failed, fallback:', e.message);
+    }
+  }
+  
+  // Fallback to Supabase context
+  const supabaseContext = await getSupabaseContext(userMessage, {
+    limit: maxDrops,
+    recentHours: 24
+  });
+  
+  return formatContextForAI(supabaseContext);
+}
+
+/**
+ * Initialize privacy system after auth
+ */
+async function initPrivacyAfterAuth() {
+  if (typeof DropLitPrivacy === 'undefined') {
+    console.log('⚠️ Privacy modules not loaded');
+    return false;
+  }
+  
+  if (!currentUser) {
+    console.log('⚠️ No user for privacy init');
+    return false;
+  }
+  
+  try {
+    // Check if user has encryption key
+    const hasKey = await DropLitKeys.hasStoredKey(currentUser.id);
+    
+    if (hasKey) {
+      // Load existing key and initialize
+      const key = await DropLitKeys.loadKey(currentUser.id);
+      if (key) {
+        await DropLitPrivacy.init({
+          masterKey: key,
+          config: {
+            enableEncryption: true,
+            enableLocalEmbeddings: true,  // Will lazy-load ML model
+            enableZKSearch: true,
+            enableAudit: true
+          },
+          onProgress: (msg, pct) => {
+            console.log(`[Privacy] ${msg} ${pct ? pct + '%' : ''}`);
+          }
+        });
+        
+        window.DROPLIT_PRIVACY_ENABLED = true;
+        console.log('🔐 Privacy system initialized');
+        return true;
+      }
+    }
+    
+    console.log('ℹ️ No encryption key found. Privacy features available after setup.');
+    return false;
+    
+  } catch (error) {
+    console.error('❌ Privacy init error:', error);
+    return false;
+  }
+}
+
+/**
+ * Show privacy setup UI
+ */
+function showPrivacySetup() {
+  if (typeof DropLitEncryptionUI !== 'undefined') {
+    DropLitEncryptionUI.showSetupModal();
+  } else {
+    toast('Privacy setup not available', 'error');
+  }
+}
+
+/**
+ * Get privacy status for debug info
+ */
+function getPrivacyStatus() {
+  const status = {
+    modulesLoaded: typeof DropLitPrivacy !== 'undefined',
+    enabled: window.DROPLIT_PRIVACY_ENABLED === true,
+    initialized: false,
+    hasKey: false,
+    encryptionReady: false,
+    embeddingsReady: false,
+    zkSearchReady: false,
+    auditReady: false
+  };
+  
+  if (typeof DropLitPrivacy !== 'undefined' && DropLitPrivacy.isInitialized()) {
+    status.initialized = true;
+    const fullStatus = DropLitPrivacy.getStatus();
+    status.encryptionReady = fullStatus.encryption;
+    status.embeddingsReady = fullStatus.embeddings;
+    status.zkSearchReady = fullStatus.zkSearch;
+    status.auditReady = fullStatus.audit;
+  }
+  
+  if (typeof DropLitKeys !== 'undefined' && currentUser) {
+    // This is async but we'll check sync for quick status
+    status.hasKey = localStorage.getItem(`droplit_has_key_${currentUser.id}`) === 'true';
+  }
+  
+  return status;
+}
+
+
+// ============================================
 // EXPORTS
 // ============================================
 window.DropLitSync = {
+  // Legacy
   syncDropToCore,
   getSyntriseContext,
   getSupabaseContext,
   formatContextForAI,
   syncAllDropsToCore,
   syncToCloud,
-  SYNTRISE_CONFIG
+  SYNTRISE_CONFIG,
+  
+  // Privacy-enabled
+  syncDropEncrypted,
+  syncDropUnencrypted,
+  syncAllDropsWithPrivacy,
+  searchDropsPrivate,
+  getContextForAski,
+  initPrivacyAfterAuth,
+  showPrivacySetup,
+  getPrivacyStatus,
+  isPrivacyReady
 };
+
+// Also expose key functions globally for easy access
+window.syncDropEncrypted = syncDropEncrypted;
+window.initPrivacyAfterAuth = initPrivacyAfterAuth;
+window.getPrivacyStatus = getPrivacyStatus;
