@@ -77,6 +77,9 @@ async function setupEncryptionWithPassword(userId, password) {
     encryptionKey = keyData.key;
     encryptionReady = true;
     
+    // Set localStorage flag
+    localStorage.setItem('droplit_has_key_' + userId, 'true');
+    
     // Migrate existing drops
     await migrateLocalDrops();
     
@@ -96,6 +99,9 @@ async function setupEncryptionRandom(userId) {
     const keyData = await window.DropLitKeys.retrieveKey(userId);
     encryptionKey = keyData.key;
     encryptionReady = true;
+    
+    // Set localStorage flag
+    localStorage.setItem('droplit_has_key_' + userId, 'true');
     
     // Migrate existing drops
     await migrateLocalDrops();
