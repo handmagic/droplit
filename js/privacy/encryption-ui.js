@@ -190,6 +190,29 @@ function setupModalEventListeners(userId) {
         showToast('🔐 Encryption enabled successfully!', 'success');
         closeEncryptionModal();
         
+        // Set flag that user has key
+        localStorage.setItem('droplit_has_key_' + userId, 'true');
+        
+        // Initialize privacy system
+        if (typeof initializePrivacySystem === 'function') {
+          await initializePrivacySystem();
+        } else if (typeof window.initializePrivacySystem === 'function') {
+          await window.initializePrivacySystem();
+        } else {
+          // Dispatch event for external handlers
+          window.dispatchEvent(new CustomEvent('encryption-ready', { 
+            detail: { userId: userId, method: selectedMethod }
+          }));
+        }
+        
+        // Update button if exists
+        const btn = document.getElementById('setupEncryptionBtn');
+        if (btn) {
+          btn.textContent = '✅ Encryption Active';
+          btn.classList.remove('pri');
+          btn.classList.add('sec');
+        }
+        
         // Refresh UI
         if (typeof render === 'function') render();
         
