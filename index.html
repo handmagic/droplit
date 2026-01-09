@@ -36,6 +36,33 @@
   <script src="js/notifications.js"></script>
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- ============================================
+       DROPLIT PRIVACY SYSTEM v1.0
+       E2E Encryption + Local AI + ZK Search
+       ============================================ -->
+  
+  <!-- Crypto Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tweetnacl-util@0.15.1/nacl-util.min.js"></script>
+  
+  <!-- Privacy System Modules (load in order) -->
+  <script src="js/privacy/crypto-keys.js"></script>
+  <script src="js/privacy/drop-encryption.js"></script>
+  <script src="js/privacy/local-embeddings.js"></script>
+  <script src="js/privacy/zk-search.js"></script>
+  <script src="js/privacy/audit-trail.js"></script>
+  <script src="js/privacy/sync-encrypted.js"></script>
+  <script src="js/privacy/encryption-ui.js"></script>
+  <script src="js/privacy/privacy-integration.js"></script>
+  
+  <script>
+    // Privacy System Version
+    window.DROPLIT_PRIVACY_VERSION = '1.0.0';
+    window.DROPLIT_PRIVACY_ENABLED = false; // Will be enabled after setup
+    console.log('[DropLit] Privacy modules loaded v' + window.DROPLIT_PRIVACY_VERSION);
+  </script>
+
 </head>
 <body>
   <!-- Fullscreen Edit Panel - v0.9.95 -->
