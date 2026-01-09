@@ -62,6 +62,21 @@
     window.DROPLIT_PRIVACY_ENABLED = false; // Will be enabled after setup
     console.log('[DropLit] Privacy modules loaded v' + window.DROPLIT_PRIVACY_VERSION);
   </script>
+  
+  <!-- Eruda Mobile Console (Debug) -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda@3.0.1/eruda.min.js"></script>
+  <script>
+    // Eruda will be initialized by button click
+    window.ERUDA_LOADED = false;
+    function toggleEruda() {
+      if (!window.ERUDA_LOADED) {
+        eruda.init();
+        window.ERUDA_LOADED = true;
+        console.log('[DropLit] Eruda console initialized');
+      }
+      eruda.show();
+    }
+  </script>
 
 </head>
 <body>
@@ -898,6 +913,16 @@
         <!-- Debug button -->
         <div style="padding: 12px 0;">
           <button class="pill-l sec" onclick="showDebugInfo()" style="width: 100%;">🔧 Debug & Sync Info</button>
+        </div>
+        
+        <!-- Mobile Console (Eruda) -->
+        <div style="padding: 12px 0;">
+          <button class="pill-l sec" onclick="toggleEruda()" style="width: 100%;">📱 Mobile Console</button>
+        </div>
+        
+        <!-- Privacy Status -->
+        <div style="padding: 12px 0;">
+          <button class="pill-l sec" onclick="showPrivacyStatus()" style="width: 100%;">🔐 Privacy Status</button>
         </div>
         
         <div class="menu-about" onclick="closeMainMenu(); openAbout();" style="cursor: pointer;">
@@ -4976,6 +5001,52 @@ function closeMainMenu() {
 document.addEventListener('DOMContentLoaded', function() {
   updateAutoDropIndicator();
 });
+
+
+// ============================================
+// PRIVACY STATUS FUNCTION
+// ============================================
+
+function showPrivacyStatus() {
+  let status = "🔐 PRIVACY STATUS\n\n";
+  
+  // Check modules loaded
+  const modulesLoaded = typeof DropLitPrivacy !== "undefined";
+  status += "Modules Loaded: " + (modulesLoaded ? "✅ Yes" : "❌ No") + "\n";
+  
+  // Check if enabled
+  const enabled = window.DROPLIT_PRIVACY_ENABLED === true;
+  status += "Privacy Enabled: " + (enabled ? "✅ Yes" : "❌ No") + "\n";
+  
+  // Check version
+  status += "Version: " + (window.DROPLIT_PRIVACY_VERSION || "N/A") + "\n\n";
+  
+  if (modulesLoaded && typeof DropLitPrivacy.getStatus === "function") {
+    try {
+      const ps = DropLitPrivacy.getStatus();
+      status += "=== COMPONENTS ===\n";
+      status += "Encryption: " + (ps.encryption ? "✅" : "❌") + "\n";
+      status += "Embeddings: " + (ps.embeddings ? "✅" : "❌") + "\n";
+      status += "ZK Search: " + (ps.zkSearch ? "✅" : "❌") + "\n";
+      status += "Audit Trail: " + (ps.audit ? "✅" : "❌") + "\n";
+    } catch(e) {
+      status += "Status Error: " + e.message + "\n";
+    }
+  } else {
+    status += "Privacy system not initialized.\n";
+    status += "Setup encryption in Settings.\n";
+  }
+  
+  // Check if user has key
+  if (currentUser && typeof DropLitKeys !== "undefined") {
+    status += "\n=== USER ===\n";
+    status += "User ID: " + currentUser.id.slice(0,8) + "...\n";
+    const hasKeyFlag = localStorage.getItem("droplit_has_key_" + currentUser.id);
+    status += "Has Key: " + (hasKeyFlag === "true" ? "✅ Yes" : "❌ No") + "\n";
+  }
+  
+  alert(status);
+}
 
 </script>
 </body>
