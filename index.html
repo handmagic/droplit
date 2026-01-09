@@ -925,6 +925,11 @@
           <button class="pill-l sec" onclick="showPrivacyStatus()" style="width: 100%;">🔐 Privacy Status</button>
         </div>
         
+        <!-- Setup Encryption -->
+        <div style="padding: 12px 0;">
+          <button class="pill-l pri" onclick="setupEncryption()" style="width: 100%;" id="setupEncryptionBtn">🔑 Setup Encryption</button>
+        </div>
+        
         <div class="menu-about" onclick="closeMainMenu(); openAbout();" style="cursor: pointer;">
           <div class="menu-about-logo">
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
@@ -5047,6 +5052,126 @@ function showPrivacyStatus() {
   
   alert(status);
 }
+
+// ============================================
+// SETUP ENCRYPTION FUNCTION
+// ============================================
+
+async function setupEncryption() {
+  // Check if user is logged in
+  if (!currentUser) {
+    alert("Please log in first to setup encryption.");
+    return;
+  }
+  
+  // Check if encryption UI module is loaded
+  if (typeof DropLitEncryptionUI === "undefined") {
+    alert("Encryption module not loaded. Please refresh the page.");
+    return;
+  }
+  
+  // Check if user already has a key
+  try {
+    const hasKey = await DropLitKeys.hasStoredKey(currentUser.id);
+    if (hasKey) {
+      // User already has encryption - offer to view status or reset
+      const action = confirm(
+        "🔐 Encryption is already set up!\n\n" +
+        "Your data is protected.\n\n" +
+        "Press OK to initialize privacy system.\n" +
+        "Press Cancel to close."
+      );
+      
+      if (action) {
+        // Initialize privacy system with existing key
+        await initializePrivacySystem();
+      }
+      return;
+    }
+  } catch (e) {
+    console.error("Error checking key:", e);
+  }
+  
+  // Close main menu first
+  closeMainMenu();
+  
+  // Show encryption setup modal
+  DropLitEncryptionUI.showEncryptionSetupModal(currentUser.id);
+}
+
+// Initialize privacy system after key setup
+async function initializePrivacySystem() {
+  if (!currentUser) {
+    alert("Please log in first.");
+    return;
+  }
+  
+  try {
+    // Get the stored key
+    const keyData = await DropLitKeys.retrieveKey(currentUser.id);
+    
+    if (!keyData) {
+      alert("No encryption key found. Please setup encryption first.");
+      return;
+    }
+    
+    // Mark that user has key (for status display)
+    localStorage.setItem("droplit_has_key_" + currentUser.id, "true");
+    
+    // Initialize privacy system
+    if (typeof DropLitPrivacy !== "undefined") {
+      const result = await DropLitPrivacy.init({
+        masterKey: keyData.key,
+        config: {
+          enableEncryption: true,
+          enableLocalEmbeddings: true,
+          enableZKSearch: true,
+          enableAudit: true
+        },
+        onProgress: (msg, pct) => {
+          console.log("[Privacy Init]", msg, pct ? pct + "%" : "");
+        }
+      });
+      
+      if (result.success) {
+        window.DROPLIT_PRIVACY_ENABLED = true;
+        toast("🔐 Privacy system activated!", "success");
+        
+        // Update button to show status
+        const btn = document.getElementById("setupEncryptionBtn");
+        if (btn) {
+          btn.textContent = "✅ Encryption Active";
+          btn.classList.remove("pri");
+          btn.classList.add("sec");
+        }
+      } else {
+        alert("Privacy initialization failed: " + (result.error || "Unknown error"));
+      }
+    }
+    
+  } catch (error) {
+    console.error("Privacy init error:", error);
+    alert("Error initializing privacy: " + error.message);
+  }
+}
+
+// Auto-initialize privacy on page load if user has key
+document.addEventListener("DOMContentLoaded", async function() {
+  // Wait a bit for auth to complete
+  setTimeout(async () => {
+    if (currentUser && typeof DropLitKeys !== "undefined") {
+      try {
+        const hasKey = await DropLitKeys.hasStoredKey(currentUser.id);
+        if (hasKey) {
+          console.log("[Privacy] User has key, auto-initializing...");
+          await initializePrivacySystem();
+        }
+      } catch (e) {
+        console.log("[Privacy] Auto-init skipped:", e.message);
+      }
+    }
+  }, 2000);
+});
 
 </script>
 </body>
