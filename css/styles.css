@@ -1397,9 +1397,9 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 .edit-panel-header {
   flex-shrink: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-end; /* Align to bottom */
   gap: 12px;
-  padding: 10px 16px 6px 16px;
+  padding: 10px 16px 8px 16px;
   padding-top: max(10px, env(safe-area-inset-top));
   background: var(--color-bg-card);
 }
@@ -1428,13 +1428,12 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   color: white;
 }
 
-/* Info section - aligned to bottom of avatar */
+/* Info section */
 .edit-panel-info {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* Align to bottom */
   gap: 2px;
 }
 .edit-panel-row1 { display: flex; align-items: center; gap: 6px; }
@@ -1569,14 +1568,14 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 /* Toolbar - two rows like filters panel */
 .edit-panel-toolbar {
   flex-shrink: 0;
-  padding: 6px 16px 12px 16px;
+  padding: 8px 16px; /* Symmetrical: 8px top and bottom */
   background: var(--color-bg-card);
   box-shadow: 0 4px 16px rgba(0,0,0,0.08); /* Same as main header */
   position: relative;
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 8px; /* Same as padding for harmony */
 }
 
 /* Main tools row - static, always visible */
@@ -1597,7 +1596,6 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding-bottom: 2px;
 }
 .edit-panel-tools-ai::-webkit-scrollbar { display: none; }
 .edit-panel-tools-ai .pill-s {
@@ -1674,6 +1672,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   flex-direction: column;
   position: relative;
   z-index: 1;
+  background: var(--color-bg-card);
 }
 
 /* Textarea */
