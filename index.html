@@ -749,6 +749,168 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+    /* File Export Modal */
+    .export-file-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      border-radius: 16px;
+      max-width: 360px;
+      width: 92%;
+      z-index: 10001;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .export-file-header {
+      background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .export-file-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .export-file-header p {
+      margin: 6px 0 0;
+      font-size: 12px;
+      opacity: 0.85;
+    }
+    .export-file-body {
+      padding: 20px;
+    }
+    .export-format-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .export-format-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 6px;
+      border: 2px solid #E5E7EB;
+      border-radius: 12px;
+      background: #fff;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .export-format-btn:hover {
+      border-color: #3B82F6;
+      background: #EFF6FF;
+    }
+    .export-format-btn.active {
+      border-color: #3B82F6;
+      background: #3B82F6;
+      color: white;
+    }
+    .export-format-btn .format-icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+    .export-format-btn .format-name {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .export-field {
+      margin-bottom: 16px;
+    }
+    .export-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    .export-field input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .export-field input[type="text"]:focus {
+      outline: none;
+      border-color: #3B82F6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .export-scope-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .export-scope-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .export-scope-option:hover {
+      background: #F9FAFB;
+    }
+    .export-scope-option.active {
+      border-color: #3B82F6;
+      background: #EFF6FF;
+    }
+    .export-scope-option input {
+      margin: 0;
+    }
+    .export-scope-option span {
+      font-size: 13px;
+      color: #374151;
+    }
+    .export-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .export-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #374151;
+    }
+    .export-option input {
+      margin: 0;
+      width: 16px;
+      height: 16px;
+    }
+    .export-file-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .export-file-actions button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: none;
+    }
+    .export-btn-cancel {
+      background: #F3F4F6;
+      color: #374151;
+    }
+    .export-btn-download {
+      background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+      color: white;
+    }
     /* Plan-specific card gradients */
     .account-card.plan-free { background: linear-gradient(135deg, #64748B, #475569); }
     .account-card.plan-beta { background: linear-gradient(135deg, #8B5CF6, #6366F1); }
@@ -1207,6 +1369,13 @@
             <div class="info">
               <div class="title">Translate</div>
               <div class="desc">Translate to another language</div>
+            </div>
+          </button>
+          <button class="ai-tool-btn" onclick="closeAITools();openFileExportModal(aiToolsDropId)">
+            <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></span>
+            <div class="info">
+              <div class="title">Export</div>
+              <div class="desc">Save as TXT, PDF, DOCX, CSV</div>
             </div>
           </button>
         </div>
@@ -1674,6 +1843,11 @@
           <button class="pill-l sec" onclick="toggleEruda()" style="width: 100%;">📱 Mobile Console</button>
         </div>
         
+        <!-- Export Drops -->
+        <div style="padding: 12px 0;">
+          <button class="pill-l sec" onclick="closeMainMenu();openFileExportModal()" style="width: 100%;">📤 Export Drops</button>
+        </div>
+        
         <!-- Privacy Status -->
         <div style="padding: 12px 0;">
           <button class="pill-l sec" onclick="showPrivacyStatus()" style="width: 100%;">🔐 Privacy Status</button>
@@ -1694,7 +1868,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.96 • Syntrise Inc. © 2026</div>
+          <div class="menu-about-ver">v0.9.97 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1708,14 +1882,95 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.96 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.97 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
   <div class="overlay" id="delModal"><div class="modal"><div class="modal-title">Delete this idea?</div><div class="modal-text">This action cannot be undone.</div><div class="modal-actions"><button class="modal-btn sec" onclick="closeDelModal()">Cancel</button><button class="modal-btn danger" onclick="confirmDel()">Delete</button></div></div></div>
   <div class="overlay" id="creatorModal"><div class="modal type-b creator-modal"><div class="modal-header" id="creatorModalHeader"><div class="creator-modal-avatar" id="creatorModalAvatar"></div><div class="creator-modal-info"><h3 id="creatorModalName">Creator</h3><span class="creator-modal-role" id="creatorModalRole"></span></div></div><div class="modal-body"><div class="creator-info"><div class="creator-info-row"><span class="creator-info-label">Created</span><span class="creator-info-value" id="creatorModalDate">—</span></div><div class="creator-info-row"><span class="creator-info-label">Copyright</span><span class="creator-info-value" id="creatorModalCopyright">© 2025</span></div></div></div><div class="modal-actions"><button class="modal-btn" id="creatorFilterBtn" onclick="filterByCreator()">Show only</button><button class="modal-btn sec" onclick="closeCreatorModal()">Close</button></div></div></div>
-  <div class="overlay" id="settingsModal"><div class="modal type-b"><div class="modal-header"><h3>Settings</h3></div><div class="modal-body"><div class="modal-text" style="margin-bottom:0;">Syntrise CORE:<br>Sync your ideas to cloud</div></div><div class="modal-actions"><button class="modal-btn sec" onclick="syncToCloud()">Sync</button><button class="modal-btn sec" onclick="exportAll()">Export</button><button class="modal-btn pri" onclick="closeSettings()">Done</button></div></div></div>
+  <div class="overlay" id="settingsModal"><div class="modal type-b"><div class="modal-header"><h3>Settings</h3></div><div class="modal-body"><div class="modal-text" style="margin-bottom:0;">Syntrise CORE:<br>Sync your ideas to cloud</div></div><div class="modal-actions"><button class="modal-btn sec" onclick="syncToCloud()">Sync</button><button class="modal-btn sec" onclick="closeSettings();openFileExportModal()">Export</button><button class="modal-btn pri" onclick="closeSettings()">Done</button></div></div></div>
   <div class="overlay" id="addCatModal"><div class="modal"><div class="modal-title">Add Category</div><div class="modal-text">Custom categories coming in a future update!</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAddCatModal()">OK</button></div></div></div>
+  
+  <!-- File Export Modal -->
+  <div class="overlay" id="fileExportOverlay" onclick="if(event.target===this)closeFileExportModal()">
+    <div class="export-file-modal">
+      <div class="export-file-header">
+        <h3>📤 Export</h3>
+        <p>Save your drops as a file</p>
+      </div>
+      <div class="export-file-body">
+        <div class="export-field">
+          <label>Format</label>
+          <div class="export-format-grid">
+            <button class="export-format-btn active" data-format="txt" onclick="selectExportFormat('txt')">
+              <span class="format-icon">📄</span>
+              <span class="format-name">TXT</span>
+            </button>
+            <button class="export-format-btn" data-format="md" onclick="selectExportFormat('md')">
+              <span class="format-icon">📝</span>
+              <span class="format-name">MD</span>
+            </button>
+            <button class="export-format-btn" data-format="csv" onclick="selectExportFormat('csv')">
+              <span class="format-icon">📊</span>
+              <span class="format-name">CSV</span>
+            </button>
+            <button class="export-format-btn" data-format="docx" onclick="selectExportFormat('docx')">
+              <span class="format-icon">📘</span>
+              <span class="format-name">DOCX</span>
+            </button>
+            <button class="export-format-btn" data-format="pdf" onclick="selectExportFormat('pdf')">
+              <span class="format-icon">📕</span>
+              <span class="format-name">PDF</span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="export-field">
+          <label>Filename</label>
+          <input type="text" id="exportFilename" value="droplit-export" placeholder="Enter filename">
+        </div>
+        
+        <div class="export-field">
+          <label>What to export</label>
+          <div class="export-scope-options">
+            <label class="export-scope-option" onclick="selectExportScope('current')">
+              <input type="radio" name="exportScope" value="current">
+              <span>Current drop only</span>
+            </label>
+            <label class="export-scope-option active" onclick="selectExportScope('all')">
+              <input type="radio" name="exportScope" value="all" checked>
+              <span>All drops (<span id="exportDropCount">0</span>)</span>
+            </label>
+            <label class="export-scope-option" onclick="selectExportScope('filtered')">
+              <input type="radio" name="exportScope" value="filtered">
+              <span>Current filter (<span id="exportFilteredCount">0</span>)</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="export-options">
+          <label class="export-option">
+            <input type="checkbox" id="exportIncludeDate" checked>
+            <span>Include date</span>
+          </label>
+          <label class="export-option">
+            <input type="checkbox" id="exportIncludeCategory" checked>
+            <span>Include category</span>
+          </label>
+          <label class="export-option">
+            <input type="checkbox" id="exportIncludeMeta">
+            <span>Include metadata</span>
+          </label>
+        </div>
+        
+        <div class="export-file-actions">
+          <button class="export-btn-cancel" onclick="closeFileExportModal()">Cancel</button>
+          <button class="export-btn-download" onclick="executeFileExport()">Export</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <div class="overlay" id="mergeModal"><div class="modal type-b"><div class="modal-header"><h3>Merge Preview</h3></div><div class="modal-body"><div class="merge-options"><label class="merge-toggle"><input type="checkbox" id="mergeSimple" onchange="updateMergePreview()"><span>Simple merge (no headers)</span></label></div><div class="merge-preview" id="mergePreview"></div></div><div class="modal-actions"><button class="pill-m sec" onclick="closeMergeModal()">Cancel</button><button class="pill-m sec" onclick="copyMerged()">Copy</button><button class="pill-m merge" onclick="saveMerged()">Save Merge</button></div></div></div>
   <div class="overlay image-viewer" id="imageViewer" onclick="handleImageViewerClick(event)">
     <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
@@ -3664,7 +3919,7 @@ function render(){
         h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">Read</button>';
         h+='<button class="act" onclick="startEdit('+i.id+')">Edit</button>';
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
-        h+='<button class="act" onclick="saveAsMd('+i.id+')">Save MD</button>';
+        h+='<button class="act" onclick="openFileExportModal('+i.id+')">Export</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
         h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       }
@@ -5460,6 +5715,445 @@ async function updateTokenBalance() {
   //   document.getElementById('tokenBalance').textContent = 'N/A';
   // }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// FILE EXPORT SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+let exportState = {
+  format: 'txt',
+  scope: 'all',
+  currentDropId: null
+};
+
+function openFileExportModal(dropId = null) {
+  exportState.currentDropId = dropId;
+  
+  // Update counts
+  const allDrops = JSON.parse(localStorage.getItem('ideas') || '[]');
+  document.getElementById('exportDropCount').textContent = allDrops.length;
+  
+  // Count filtered drops
+  const currentFilter = window.currentFilter || 'all';
+  const filteredDrops = currentFilter === 'all' ? allDrops : allDrops.filter(d => d.category === currentFilter);
+  document.getElementById('exportFilteredCount').textContent = filteredDrops.length;
+  
+  // If called from a specific drop, pre-select "current"
+  if (dropId) {
+    selectExportScope('current');
+    document.querySelector('input[value="current"]').checked = true;
+  } else {
+    selectExportScope('all');
+    document.querySelector('input[value="all"]').checked = true;
+  }
+  
+  // Generate default filename
+  const date = new Date().toISOString().split('T')[0];
+  document.getElementById('exportFilename').value = `droplit-${date}`;
+  
+  document.getElementById('fileExportOverlay').classList.add('show');
+}
+
+function closeFileExportModal() {
+  document.getElementById('fileExportOverlay').classList.remove('show');
+}
+
+function selectExportFormat(format) {
+  exportState.format = format;
+  document.querySelectorAll('.export-format-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.format === format);
+  });
+}
+
+function selectExportScope(scope) {
+  exportState.scope = scope;
+  document.querySelectorAll('.export-scope-option').forEach(opt => {
+    const input = opt.querySelector('input');
+    opt.classList.toggle('active', input.value === scope);
+  });
+}
+
+function getExportDrops() {
+  const allDrops = JSON.parse(localStorage.getItem('ideas') || '[]');
+  const currentFilter = window.currentFilter || 'all';
+  
+  switch (exportState.scope) {
+    case 'current':
+      if (exportState.currentDropId) {
+        return allDrops.filter(d => d.id === exportState.currentDropId);
+      }
+      return [];
+    case 'filtered':
+      return currentFilter === 'all' ? allDrops : allDrops.filter(d => d.category === currentFilter);
+    case 'all':
+    default:
+      return allDrops;
+  }
+}
+
+async function executeFileExport() {
+  const drops = getExportDrops();
+  if (drops.length === 0) {
+    toast('No drops to export', 'warning');
+    return;
+  }
+  
+  const filename = document.getElementById('exportFilename').value || 'droplit-export';
+  const includeDate = document.getElementById('exportIncludeDate').checked;
+  const includeCategory = document.getElementById('exportIncludeCategory').checked;
+  const includeMeta = document.getElementById('exportIncludeMeta').checked;
+  
+  try {
+    let content, blob, ext;
+    
+    switch (exportState.format) {
+      case 'txt':
+        content = generateTXT(drops, includeDate, includeCategory);
+        blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        ext = 'txt';
+        break;
+        
+      case 'md':
+        content = generateMarkdown(drops, includeDate, includeCategory, includeMeta);
+        blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+        ext = 'md';
+        break;
+        
+      case 'csv':
+        content = generateCSV(drops, includeDate, includeCategory, includeMeta);
+        blob = new Blob(['\ufeff' + content], { type: 'text/csv;charset=utf-8' }); // BOM for Excel
+        ext = 'csv';
+        break;
+        
+      case 'docx':
+        blob = await generateDOCX(drops, includeDate, includeCategory);
+        ext = 'docx';
+        break;
+        
+      case 'pdf':
+        blob = await generatePDF(drops, includeDate, includeCategory);
+        ext = 'pdf';
+        break;
+        
+      default:
+        throw new Error('Unknown format');
+    }
+    
+    // Download file
+    downloadBlob(blob, `${filename}.${ext}`);
+    closeFileExportModal();
+    toast(`Exported ${drops.length} drops as ${ext.toUpperCase()}`, 'success');
+    
+  } catch (error) {
+    console.error('Export error:', error);
+    toast('Export failed: ' + error.message, 'error');
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ─────────────────────────────────────────────────────────────
+// TXT Export
+// ─────────────────────────────────────────────────────────────
+function generateTXT(drops, includeDate, includeCategory) {
+  let output = 'DROPLIT EXPORT\n';
+  output += '═'.repeat(50) + '\n\n';
+  
+  drops.forEach((drop, i) => {
+    if (includeCategory) {
+      output += `[${(drop.category || 'inbox').toUpperCase()}] `;
+    }
+    if (includeDate) {
+      output += `${drop.date || ''} ${drop.time || ''}\n`;
+    }
+    output += drop.text || drop.content || '';
+    output += '\n\n' + '─'.repeat(50) + '\n\n';
+  });
+  
+  output += `\nExported: ${new Date().toLocaleString()}\n`;
+  output += `Total: ${drops.length} drops\n`;
+  
+  return output;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Markdown Export
+// ─────────────────────────────────────────────────────────────
+function generateMarkdown(drops, includeDate, includeCategory, includeMeta) {
+  let output = '# DropLit Export\n\n';
+  output += `> Exported: ${new Date().toLocaleString()}\n\n`;
+  output += '---\n\n';
+  
+  drops.forEach((drop, i) => {
+    output += `## ${i + 1}. `;
+    
+    if (includeCategory) {
+      output += `[${(drop.category || 'inbox').toUpperCase()}] `;
+    }
+    
+    // Title from first line or truncated
+    const firstLine = (drop.text || drop.content || '').split('\n')[0].slice(0, 50);
+    output += firstLine + (firstLine.length >= 50 ? '...' : '') + '\n\n';
+    
+    if (includeDate && (drop.date || drop.time)) {
+      output += `📅 *${drop.date || ''} ${drop.time || ''}*\n\n`;
+    }
+    
+    output += drop.text || drop.content || '';
+    output += '\n\n';
+    
+    if (includeMeta) {
+      output += `\n<details>\n<summary>Metadata</summary>\n\n`;
+      output += `- ID: ${drop.id}\n`;
+      output += `- Creator: ${drop.creator || 'user'}\n`;
+      output += `- Source: ${drop.source || 'unknown'}\n`;
+      if (drop.marker) output += `- Marker: ${drop.marker}\n`;
+      output += `\n</details>\n`;
+    }
+    
+    output += '\n---\n\n';
+  });
+  
+  output += `\n**Total:** ${drops.length} drops\n`;
+  
+  return output;
+}
+
+// ─────────────────────────────────────────────────────────────
+// CSV Export
+// ─────────────────────────────────────────────────────────────
+function generateCSV(drops, includeDate, includeCategory, includeMeta) {
+  const escape = (str) => {
+    if (!str) return '';
+    const s = String(str).replace(/"/g, '""');
+    return s.includes(',') || s.includes('\n') || s.includes('"') ? `"${s}"` : s;
+  };
+  
+  // Headers
+  let headers = ['Text'];
+  if (includeDate) headers.unshift('Date', 'Time');
+  if (includeCategory) headers.unshift('Category');
+  if (includeMeta) headers.push('ID', 'Creator', 'Source', 'Marker');
+  
+  let output = headers.join(',') + '\n';
+  
+  // Data rows
+  drops.forEach(drop => {
+    let row = [escape(drop.text || drop.content || '')];
+    
+    if (includeDate) {
+      row.unshift(escape(drop.date || ''), escape(drop.time || ''));
+    }
+    if (includeCategory) {
+      row.unshift(escape(drop.category || 'inbox'));
+    }
+    if (includeMeta) {
+      row.push(
+        escape(drop.id),
+        escape(drop.creator || 'user'),
+        escape(drop.source || ''),
+        escape(drop.marker || '')
+      );
+    }
+    
+    output += row.join(',') + '\n';
+  });
+  
+  return output;
+}
+
+// ─────────────────────────────────────────────────────────────
+// DOCX Export (using docx.js CDN)
+// ─────────────────────────────────────────────────────────────
+async function generateDOCX(drops, includeDate, includeCategory) {
+  // Load docx library if not loaded
+  if (!window.docx) {
+    await loadScript('https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js');
+  }
+  
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = window.docx;
+  
+  const children = [];
+  
+  // Title
+  children.push(new Paragraph({
+    children: [new TextRun({ text: 'DropLit Export', bold: true, size: 48 })],
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 400 }
+  }));
+  
+  // Subtitle with date
+  children.push(new Paragraph({
+    children: [new TextRun({ text: `Exported: ${new Date().toLocaleString()}`, italics: true, size: 20, color: '666666' })],
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 600 }
+  }));
+  
+  // Each drop
+  drops.forEach((drop, i) => {
+    // Header
+    let headerText = `${i + 1}. `;
+    if (includeCategory) {
+      headerText += `[${(drop.category || 'inbox').toUpperCase()}] `;
+    }
+    if (includeDate && drop.date) {
+      headerText += `${drop.date} ${drop.time || ''}`;
+    }
+    
+    children.push(new Paragraph({
+      children: [new TextRun({ text: headerText, bold: true, size: 24 })],
+      heading: HeadingLevel.HEADING_2,
+      spacing: { before: 400, after: 200 }
+    }));
+    
+    // Content - split by newlines
+    const lines = (drop.text || drop.content || '').split('\n');
+    lines.forEach(line => {
+      children.push(new Paragraph({
+        children: [new TextRun({ text: line, size: 22 })],
+        spacing: { after: 100 }
+      }));
+    });
+    
+    // Separator
+    children.push(new Paragraph({
+      children: [new TextRun({ text: '─'.repeat(50), color: 'CCCCCC', size: 16 })],
+      spacing: { before: 200, after: 200 }
+    }));
+  });
+  
+  // Footer
+  children.push(new Paragraph({
+    children: [new TextRun({ text: `Total: ${drops.length} drops`, bold: true, size: 20 })],
+    alignment: AlignmentType.RIGHT,
+    spacing: { before: 400 }
+  }));
+  
+  const doc = new Document({
+    sections: [{
+      properties: {
+        page: {
+          size: { width: 12240, height: 15840 }, // US Letter
+          margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+        }
+      },
+      children
+    }]
+  });
+  
+  return await Packer.toBlob(doc);
+}
+
+// ─────────────────────────────────────────────────────────────
+// PDF Export (using jsPDF CDN)
+// ─────────────────────────────────────────────────────────────
+async function generatePDF(drops, includeDate, includeCategory) {
+  // Load jsPDF if not loaded
+  if (!window.jspdf) {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  }
+  
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  let y = 20;
+  const pageHeight = 280;
+  const margin = 20;
+  const lineHeight = 7;
+  
+  // Title
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DropLit Export', 105, y, { align: 'center' });
+  y += 10;
+  
+  // Subtitle
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(100);
+  doc.text(`Exported: ${new Date().toLocaleString()}`, 105, y, { align: 'center' });
+  y += 15;
+  
+  doc.setTextColor(0);
+  
+  // Each drop
+  drops.forEach((drop, i) => {
+    // Check if new page needed
+    if (y > pageHeight - 40) {
+      doc.addPage();
+      y = 20;
+    }
+    
+    // Header
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    let headerText = `${i + 1}. `;
+    if (includeCategory) {
+      headerText += `[${(drop.category || 'inbox').toUpperCase()}] `;
+    }
+    if (includeDate && drop.date) {
+      headerText += `${drop.date} ${drop.time || ''}`;
+    }
+    doc.text(headerText, margin, y);
+    y += lineHeight;
+    
+    // Content
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    const text = drop.text || drop.content || '';
+    const lines = doc.splitTextToSize(text, 170);
+    
+    lines.forEach(line => {
+      if (y > pageHeight) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(line, margin, y);
+      y += lineHeight - 1;
+    });
+    
+    // Separator
+    y += 5;
+    doc.setDrawColor(200);
+    doc.line(margin, y, 190, y);
+    y += 10;
+  });
+  
+  // Footer
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Total: ${drops.length} drops`, 190, y, { align: 'right' });
+  
+  return doc.output('blob');
+}
+
+// Helper: load external script
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// END FILE EXPORT SYSTEM
+// ═══════════════════════════════════════════════════════════════
 
 function toast(m,t='info'){
   const w=document.getElementById('toastWrap'),el=document.createElement('div');
