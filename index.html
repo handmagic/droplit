@@ -521,6 +521,107 @@
       font-size: 14px;
       margin-top: 16px;
     }
+    
+    /* ============================================
+       ACCOUNT CARD STYLES
+       ============================================ */
+    .account-card {
+      margin: 16px 16px 0 16px;
+      padding: 16px;
+      background: linear-gradient(135deg, #8B5CF6, #6366F1);
+      border-radius: 16px;
+      color: white;
+    }
+    .account-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .account-avatar {
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .account-avatar svg {
+      width: 24px;
+      height: 24px;
+      color: white;
+    }
+    .account-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .account-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .account-name {
+      font-size: 16px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .account-email {
+      font-size: 12px;
+      opacity: 0.8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .account-logout-btn {
+      width: 36px;
+      height: 36px;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .account-logout-btn:hover {
+      background: rgba(255,255,255,0.25);
+    }
+    .account-logout-btn svg {
+      color: white;
+    }
+    .account-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.2);
+      margin: 12px 0;
+    }
+    .account-balance {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .account-balance .balance-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .account-balance .balance-label {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+    .account-balance .balance-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .account-balance .balance-hint {
+      font-size: 11px;
+      opacity: 0.7;
+    }
   </style>
 
   <!-- Fullscreen Edit Panel - v0.9.95 -->
@@ -1104,11 +1205,28 @@
         <button class="pill-s sec" onclick="closeMainMenu()">Close</button>
       </div>
       
-      <!-- Balance Card -->
-      <div class="balance-card">
-        <div class="balance-label">AI Token Balance</div>
-        <div class="balance-value" id="tokenBalance">—</div>
-        <div class="balance-hint">Tokens refresh monthly • <span id="tokenUsage">Loading...</span></div>
+      <!-- Account Card -->
+      <div class="account-card">
+        <div class="account-header">
+          <div class="account-avatar" id="accountAvatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="account-info">
+            <div class="account-name" id="accountName">Not signed in</div>
+            <div class="account-email" id="accountEmail">—</div>
+          </div>
+          <button class="account-logout-btn" id="accountLogoutBtn" onclick="handleLogout()" title="Sign out">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+        <div class="account-divider"></div>
+        <div class="account-balance">
+          <div class="balance-row">
+            <span class="balance-label">AI Tokens</span>
+            <span class="balance-value" id="tokenBalance">—</span>
+          </div>
+          <div class="balance-hint"><span id="tokenUsage">Loading...</span></div>
+        </div>
       </div>
       
       <!-- Search Section -->
@@ -5441,6 +5559,116 @@ function toggleMainMenu() {
   }
 }
 
+// ============================================
+// ACCOUNT UI FUNCTIONS
+// ============================================
+
+function updateAccountUI() {
+  const nameEl = document.getElementById('accountName');
+  const emailEl = document.getElementById('accountEmail');
+  const avatarEl = document.getElementById('accountAvatar');
+  const logoutBtn = document.getElementById('accountLogoutBtn');
+  
+  if (!nameEl || !emailEl) return;
+  
+  if (typeof currentUser !== 'undefined' && currentUser) {
+    // Get display name
+    const meta = currentUser.user_metadata || {};
+    const displayName = meta.full_name || meta.name || currentUser.email?.split('@')[0] || 'User';
+    const email = currentUser.email || '—';
+    
+    nameEl.textContent = displayName;
+    emailEl.textContent = email;
+    
+    // Set avatar image if available
+    if (avatarEl && meta.avatar_url) {
+      avatarEl.innerHTML = `<img src="${meta.avatar_url}" alt="Avatar">`;
+    }
+    
+    if (logoutBtn) logoutBtn.style.display = 'flex';
+    
+  } else {
+    nameEl.textContent = 'Not signed in';
+    emailEl.textContent = 'Tap to sign in';
+    
+    // Reset avatar to default
+    if (avatarEl) {
+      avatarEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+    }
+    
+    if (logoutBtn) logoutBtn.style.display = 'none';
+  }
+}
+
+async function handleLogout() {
+  if (!confirm('Sign out of DropLit?')) return;
+  
+  try {
+    // Clear local auth data
+    if (typeof supabase !== 'undefined' && supabase.createClient) {
+      const client = supabase.createClient(
+        'https://ughfdhmyflotgsysvrrc.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM4NTY2ODIsImV4cCI6MjA0OTQzMjY4Mn0.SZCDy5bvvixhLaGdOBVoQ8bebVbW0z6FvLXoFiOHqSQ'
+      );
+      await client.auth.signOut();
+    }
+    
+    // Clear local storage auth-related items
+    localStorage.removeItem('sb-ughfdhmyflotgsysvrrc-auth-token');
+    
+    // Reset currentUser
+    if (typeof currentUser !== 'undefined') {
+      window.currentUser = null;
+    }
+    
+    // Update UI
+    updateAccountUI();
+    
+    // Close menu
+    closeMainMenu();
+    
+    // Show toast
+    if (typeof toast === 'function') {
+      toast('Signed out', 'info');
+    }
+    
+    // Reload to show onboarding
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
+    
+  } catch (err) {
+    console.error('[Account] Logout error:', err);
+    if (typeof toast === 'function') {
+      toast('Error signing out', 'error');
+    }
+  }
+}
+
+// Update account UI when menu opens
+document.addEventListener('DOMContentLoaded', function() {
+  // Initial update
+  setTimeout(updateAccountUI, 500);
+  
+  // Update when auth state changes
+  if (typeof supabase !== 'undefined') {
+    try {
+      const client = supabase.createClient(
+        'https://ughfdhmyflotgsysvrrc.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM4NTY2ODIsImV4cCI6MjA0OTQzMjY4Mn0.SZCDy5bvvixhLaGdOBVoQ8bebVbW0z6FvLXoFiOHqSQ'
+      );
+      client.auth.onAuthStateChange((event, session) => {
+        if (session?.user) {
+          window.currentUser = session.user;
+        } else {
+          window.currentUser = null;
+        }
+        updateAccountUI();
+      });
+    } catch (e) {}
+  }
+});
+
 function openMainMenu() {
   const menu = document.getElementById('mainMenu');
   const btn = document.getElementById('menuToggleBtn');
@@ -5458,6 +5686,9 @@ function openMainMenu() {
   
   // Sync AutoDrop toggle state
   updateAutoDropIndicator();
+  
+  // Update account info
+  updateAccountUI();
 }
 
 function closeMainMenu() {
