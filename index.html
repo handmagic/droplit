@@ -650,20 +650,40 @@
       0%, 100% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
     }
-    /* Security indicator */
+    /* Security indicator in card (keep but smaller) */
     .account-security {
+      display: none; /* Hide old one, using banner now */
+    }
+    /* Security Banner - green bar above account card */
+    .security-banner {
       display: flex;
       align-items: center;
-      gap: 6px;
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(255,255,255,0.15);
-      font-size: 11px;
-      opacity: 0.8;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      font-weight: 500;
     }
-    .account-security svg {
-      color: #6DD890;
-      flex-shrink: 0;
+    .security-banner-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .security-banner-info {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     /* Plan-specific card gradients */
     .account-card.plan-free { background: linear-gradient(135deg, #64748B, #475569); }
@@ -678,6 +698,10 @@
     @keyframes owner-gradient {
       0%, 100% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
+    }
+    /* Header layout fix */
+    .header-title {
+      flex: 1;
     }
     /* Header Lock Indicator */
     .header-lock {
@@ -1343,6 +1367,15 @@
       <div class="main-menu-header">
         <h2><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg> Menu</h2>
         <button class="pill-s sec" onclick="closeMainMenu()">Close</button>
+      </div>
+      
+      <!-- Security Status Banner -->
+      <div class="security-banner" id="securityBanner" style="display:none;">
+        <div class="security-banner-content">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>Защищённый режим</span>
+        </div>
+        <button class="security-banner-info" onclick="showSecurityInfo()">ⓘ</button>
       </div>
       
       <!-- Account Card -->
@@ -5712,7 +5745,7 @@ function toggleMainMenu() {
 
 function updateSecurityIndicator() {
   const lockBtn = document.getElementById('headerLock');
-  if (!lockBtn) return;
+  const securityBanner = document.getElementById('securityBanner');
   
   // Check multiple sources for encryption status
   const encEnabled = 
@@ -5720,8 +5753,15 @@ function updateSecurityIndicator() {
     window.DROPLIT_PRIVACY_ENABLED === true ||
     (typeof DropLitEncryptedSync !== 'undefined' && DropLitEncryptedSync.isEnabled && DropLitEncryptedSync.isEnabled());
   
-  lockBtn.style.display = encEnabled ? 'flex' : 'none';
-  console.log('[Security] Lock visible:', encEnabled);
+  if (lockBtn) {
+    lockBtn.style.display = encEnabled ? 'flex' : 'none';
+  }
+  
+  if (securityBanner) {
+    securityBanner.style.display = encEnabled ? 'flex' : 'none';
+  }
+  
+  console.log('[Security] Encryption enabled:', encEnabled);
 }
 
 function showSecurityInfo() {
@@ -5858,10 +5898,21 @@ async function updateAccountUI() {
     
     if (logoutBtn) logoutBtn.style.display = 'none';
     if (securityEl) securityEl.style.display = 'none';
+    
+    // Reset token display for logged out
+    const tokenBalanceEl = document.getElementById('tokenBalance');
+    const tokenUsageEl = document.getElementById('tokenUsage');
+    if (tokenBalanceEl) tokenBalanceEl.textContent = '—';
+    if (tokenUsageEl) tokenUsageEl.textContent = 'Sign in to view';
   }
   
   // Update header lock indicator
   updateSecurityIndicator();
+  
+  // Update token balance if logged in
+  if (typeof currentUser !== 'undefined' && currentUser) {
+    updateTokenBalance();
+  }
 }
 
 async function handleLogout() {
