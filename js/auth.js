@@ -61,6 +61,12 @@ async function initSupabase() {
       console.log('🔄 Auth state:', event);
       
       if (event === 'SIGNED_IN' && session?.user) {
+        // Prevent duplicate handling across modules
+        if (window._dropLitAuthHandled) {
+          console.log('🔄 Auth already handled by another module');
+          return;
+        }
+        
         currentUser = session.user;
         console.log('✅ Signed in:', currentUser.email || currentUser.id.substring(0, 8));
         updateSyncUI('synced', 'Connected');
