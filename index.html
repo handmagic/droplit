@@ -1635,7 +1635,9 @@ function saveIdea(t){
   ideas.push(idea);save(idea);
   playDropSound(); // Play signature sound
   resetToShowAll();
-  toast('Saved to '+CATS[c].name,'success');
+  // Show encryption indicator if privacy enabled
+  const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
+  toast(encIcon + 'Saved to '+CATS[c].name,'success');
 }
 
 function resetToShowAll(){
@@ -1727,7 +1729,8 @@ function savePhoto(dataUrl,geo){
   ideas.push(idea);
   save();
   playDropSound(); // Play signature sound
-  toast('Photo saved!','success');
+  const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
+  toast(encIcon + 'Photo saved!','success');
   try{
     resetToShowAll();
   }catch(err){
@@ -1789,7 +1792,8 @@ function saveTextNote(){
   ideas.push(idea);
   save();
   playDropSound();
-  toast('Note saved!','success');
+  const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
+  toast(encIcon + 'Note saved!','success');
   closeTextInput();
   resetToShowAll();
 }
