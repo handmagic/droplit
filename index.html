@@ -5759,9 +5759,10 @@ function openFileExportModal(dropId = null) {
     });
   }
   
-  // Generate default filename
-  const date = new Date().toISOString().split('T')[0];
-  document.getElementById('exportFilename').value = `droplit-${date}`;
+  // Generate default filename with full timestamp
+  const now = new Date();
+  const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  document.getElementById('exportFilename').value = `droplit-${timestamp}`;
   
   document.getElementById('fileExportOverlay').classList.add('show');
 }
@@ -5812,8 +5813,6 @@ function getExportDrops() {
 }
 
 async function executeFileExport() {
-  alert('Export clicked! ideas=' + (ideas || []).length);
-  
   console.log('[Export] executeFileExport called');
   console.log('[Export] exportState:', JSON.stringify(exportState));
   console.log('[Export] ideas length:', (ideas || []).length);
@@ -5837,13 +5836,15 @@ async function executeFileExport() {
     switch (exportState.format) {
       case 'txt':
         content = generateTXT(drops, includeDate, includeCategory);
-        blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        // Add UTF-8 BOM for proper encoding
+        blob = new Blob(['\ufeff' + content], { type: 'text/plain;charset=utf-8' });
         ext = 'txt';
         break;
         
       case 'md':
         content = generateMarkdown(drops, includeDate, includeCategory, includeMeta);
-        blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+        // Add UTF-8 BOM for proper encoding
+        blob = new Blob(['\ufeff' + content], { type: 'text/markdown;charset=utf-8' });
         ext = 'md';
         break;
         
@@ -5854,11 +5855,13 @@ async function executeFileExport() {
         break;
         
       case 'docx':
+        toast('Generating DOCX...', 'info');
         blob = await generateDOCX(drops, includeDate, includeCategory);
         ext = 'docx';
         break;
         
       case 'pdf':
+        toast('Generating PDF...', 'info');
         blob = await generatePDF(drops, includeDate, includeCategory);
         ext = 'pdf';
         break;
@@ -5897,17 +5900,26 @@ function generateTXT(drops, includeDate, includeCategory) {
   output += '═'.repeat(50) + '\n\n';
   
   drops.forEach((drop, i) => {
+    // Header line
+    let header = `#${i + 1}`;
     if (includeCategory) {
-      output += `[${(drop.category || 'inbox').toUpperCase()}] `;
+      header += ` [${(drop.category || 'inbox').toUpperCase()}]`;
     }
-    if (includeDate) {
-      output += `${drop.date || ''} ${drop.time || ''}\n`;
+    if (includeDate && (drop.date || drop.time)) {
+      header += ` ${drop.date || ''} ${drop.time || ''}`;
     }
-    output += drop.text || drop.content || '';
-    output += '\n\n' + '─'.repeat(50) + '\n\n';
+    output += header + '\n\n';
+    
+    // Content - preserve original formatting
+    const text = drop.text || drop.content || '';
+    output += text;
+    
+    // Ensure proper spacing
+    if (!text.endsWith('\n')) output += '\n';
+    output += '\n' + '─'.repeat(50) + '\n\n';
   });
   
-  output += `\nExported: ${new Date().toLocaleString()}\n`;
+  output += `Exported: ${new Date().toLocaleString()}\n`;
   output += `Total: ${drops.length} drops\n`;
   
   return output;
@@ -5918,40 +5930,47 @@ function generateTXT(drops, includeDate, includeCategory) {
 // ─────────────────────────────────────────────────────────────
 function generateMarkdown(drops, includeDate, includeCategory, includeMeta) {
   let output = '# DropLit Export\n\n';
-  output += `> Exported: ${new Date().toLocaleString()}\n\n`;
+  output += `> Exported: ${new Date().toLocaleString()}  \n`;
+  output += `> Total drops: ${drops.length}\n\n`;
   output += '---\n\n';
   
   drops.forEach((drop, i) => {
+    // Header
     output += `## ${i + 1}. `;
-    
     if (includeCategory) {
-      output += `[${(drop.category || 'inbox').toUpperCase()}] `;
+      const cat = (drop.category || 'inbox').toUpperCase();
+      output += `\`${cat}\` `;
     }
     
-    // Title from first line or truncated
-    const firstLine = (drop.text || drop.content || '').split('\n')[0].slice(0, 50);
-    output += firstLine + (firstLine.length >= 50 ? '...' : '') + '\n\n';
+    // First line as title
+    const text = drop.text || drop.content || '';
+    const firstLine = text.split('\n')[0].slice(0, 60);
+    output += firstLine + (firstLine.length >= 60 ? '...' : '') + '\n\n';
     
+    // Date/time
     if (includeDate && (drop.date || drop.time)) {
       output += `📅 *${drop.date || ''} ${drop.time || ''}*\n\n`;
     }
     
-    output += drop.text || drop.content || '';
-    output += '\n\n';
+    // Content - preserve all formatting including empty lines
+    output += text + '\n';
     
+    // Metadata
     if (includeMeta) {
-      output += `\n<details>\n<summary>Metadata</summary>\n\n`;
-      output += `- ID: ${drop.id}\n`;
-      output += `- Creator: ${drop.creator || 'user'}\n`;
-      output += `- Source: ${drop.source || 'unknown'}\n`;
-      if (drop.marker) output += `- Marker: ${drop.marker}\n`;
-      output += `\n</details>\n`;
+      output += '\n<details>\n<summary>📋 Metadata</summary>\n\n';
+      output += `| Field | Value |\n`;
+      output += `|-------|-------|\n`;
+      output += `| ID | \`${drop.id}\` |\n`;
+      output += `| Category | ${drop.category || 'inbox'} |\n`;
+      output += `| Creator | ${drop.creator || 'user'} |\n`;
+      output += `| Source | ${drop.source || 'unknown'} |\n`;
+      if (drop.marker) output += `| Marker | ${drop.marker} |\n`;
+      if (drop.timestamp) output += `| Timestamp | ${drop.timestamp} |\n`;
+      output += '\n</details>\n';
     }
     
     output += '\n---\n\n';
   });
-  
-  output += `\n**Total:** ${drops.length} drops\n`;
   
   return output;
 }
@@ -6003,165 +6022,219 @@ function generateCSV(drops, includeDate, includeCategory, includeMeta) {
 // DOCX Export (using docx.js CDN)
 // ─────────────────────────────────────────────────────────────
 async function generateDOCX(drops, includeDate, includeCategory) {
-  // Load docx library if not loaded
-  if (!window.docx) {
-    await loadScript('https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js');
-  }
-  
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = window.docx;
-  
-  const children = [];
-  
-  // Title
-  children.push(new Paragraph({
-    children: [new TextRun({ text: 'DropLit Export', bold: true, size: 48 })],
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 400 }
-  }));
-  
-  // Subtitle with date
-  children.push(new Paragraph({
-    children: [new TextRun({ text: `Exported: ${new Date().toLocaleString()}`, italics: true, size: 20, color: '666666' })],
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 600 }
-  }));
-  
-  // Each drop
-  drops.forEach((drop, i) => {
-    // Header
-    let headerText = `${i + 1}. `;
-    if (includeCategory) {
-      headerText += `[${(drop.category || 'inbox').toUpperCase()}] `;
-    }
-    if (includeDate && drop.date) {
-      headerText += `${drop.date} ${drop.time || ''}`;
+  try {
+    // Load docx library if not loaded
+    if (typeof docx === 'undefined' && !window.docx) {
+      console.log('[Export] Loading docx library...');
+      await loadScript('https://unpkg.com/docx@8.5.0/build/index.umd.js');
+      // Wait a bit for library to initialize
+      await new Promise(r => setTimeout(r, 100));
     }
     
+    // Try to get docx from different possible locations
+    const docxLib = window.docx || (typeof docx !== 'undefined' ? docx : null);
+    
+    if (!docxLib) {
+      throw new Error('DOCX library not loaded');
+    }
+    
+    console.log('[Export] docx library loaded, keys:', Object.keys(docxLib).slice(0, 10));
+    
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docxLib;
+    
+    if (!Document || !Packer || !Paragraph) {
+      throw new Error('DOCX components not found: ' + JSON.stringify({
+        Document: !!Document,
+        Packer: !!Packer,
+        Paragraph: !!Paragraph
+      }));
+    }
+    
+    const children = [];
+    
+    // Title
     children.push(new Paragraph({
-      children: [new TextRun({ text: headerText, bold: true, size: 24 })],
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 400, after: 200 }
+      children: [new TextRun({ text: 'DropLit Export', bold: true, size: 48 })],
+      alignment: AlignmentType?.CENTER || 'center',
+      spacing: { after: 400 }
     }));
     
-    // Content - split by newlines
-    const lines = (drop.text || drop.content || '').split('\n');
-    lines.forEach(line => {
+    // Subtitle with date
+    children.push(new Paragraph({
+      children: [new TextRun({ 
+        text: `Exported: ${new Date().toLocaleString()}`, 
+        italics: true, 
+        size: 20, 
+        color: '666666' 
+      })],
+      alignment: AlignmentType?.CENTER || 'center',
+      spacing: { after: 600 }
+    }));
+    
+    // Each drop
+    drops.forEach((drop, i) => {
+      // Header
+      let headerText = `${i + 1}. `;
+      if (includeCategory) {
+        headerText += `[${(drop.category || 'inbox').toUpperCase()}] `;
+      }
+      if (includeDate && drop.date) {
+        headerText += `${drop.date} ${drop.time || ''}`;
+      }
+      
       children.push(new Paragraph({
-        children: [new TextRun({ text: line, size: 22 })],
-        spacing: { after: 100 }
+        children: [new TextRun({ text: headerText, bold: true, size: 26 })],
+        heading: HeadingLevel?.HEADING_2,
+        spacing: { before: 400, after: 200 }
+      }));
+      
+      // Content - split by paragraphs (double newline) and lines
+      const text = drop.text || drop.content || '';
+      const paragraphs = text.split(/\n\n+/);
+      
+      paragraphs.forEach(para => {
+        const lines = para.split('\n');
+        const runs = [];
+        lines.forEach((line, idx) => {
+          if (idx > 0) runs.push(new TextRun({ break: 1 }));
+          runs.push(new TextRun({ text: line, size: 22 }));
+        });
+        
+        children.push(new Paragraph({
+          children: runs,
+          spacing: { after: 200 }
+        }));
+      });
+      
+      // Separator line
+      children.push(new Paragraph({
+        children: [new TextRun({ text: '─'.repeat(40), color: 'CCCCCC', size: 16 })],
+        spacing: { before: 200, after: 300 }
       }));
     });
     
-    // Separator
+    // Footer
     children.push(new Paragraph({
-      children: [new TextRun({ text: '─'.repeat(50), color: 'CCCCCC', size: 16 })],
-      spacing: { before: 200, after: 200 }
+      children: [new TextRun({ text: `Total: ${drops.length} drops`, bold: true, size: 20 })],
+      alignment: AlignmentType?.RIGHT || 'right',
+      spacing: { before: 400 }
     }));
-  });
-  
-  // Footer
-  children.push(new Paragraph({
-    children: [new TextRun({ text: `Total: ${drops.length} drops`, bold: true, size: 20 })],
-    alignment: AlignmentType.RIGHT,
-    spacing: { before: 400 }
-  }));
-  
-  const doc = new Document({
-    sections: [{
-      properties: {
-        page: {
-          size: { width: 12240, height: 15840 }, // US Letter
-          margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
-        }
-      },
-      children
-    }]
-  });
-  
-  return await Packer.toBlob(doc);
+    
+    const doc = new Document({
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 12240, height: 15840 },
+            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+          }
+        },
+        children
+      }]
+    });
+    
+    const blob = await Packer.toBlob(doc);
+    console.log('[Export] DOCX blob created, size:', blob.size);
+    return blob;
+    
+  } catch (error) {
+    console.error('[Export] DOCX generation error:', error);
+    throw new Error('DOCX: ' + error.message);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
 // PDF Export (using jsPDF CDN)
 // ─────────────────────────────────────────────────────────────
 async function generatePDF(drops, includeDate, includeCategory) {
-  // Load jsPDF if not loaded
-  if (!window.jspdf) {
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-  }
-  
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  
-  let y = 20;
-  const pageHeight = 280;
-  const margin = 20;
-  const lineHeight = 7;
-  
-  // Title
-  doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  doc.text('DropLit Export', 105, y, { align: 'center' });
-  y += 10;
-  
-  // Subtitle
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'italic');
-  doc.setTextColor(100);
-  doc.text(`Exported: ${new Date().toLocaleString()}`, 105, y, { align: 'center' });
-  y += 15;
-  
-  doc.setTextColor(0);
-  
-  // Each drop
-  drops.forEach((drop, i) => {
-    // Check if new page needed
-    if (y > pageHeight - 40) {
-      doc.addPage();
-      y = 20;
+  try {
+    // Load jsPDF if not loaded
+    if (!window.jspdf) {
+      console.log('[Export] Loading jsPDF...');
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
     }
     
-    // Header
-    doc.setFontSize(12);
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    let y = 20;
+    const pageHeight = 280;
+    const margin = 20;
+    const lineHeight = 7;
+    
+    // Note: jsPDF has limited Unicode support - Cyrillic may show as "?"
+    // For full Unicode, use TXT/MD export instead
+    
+    // Title
+    doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
-    let headerText = `${i + 1}. `;
-    if (includeCategory) {
-      headerText += `[${(drop.category || 'inbox').toUpperCase()}] `;
-    }
-    if (includeDate && drop.date) {
-      headerText += `${drop.date} ${drop.time || ''}`;
-    }
-    doc.text(headerText, margin, y);
-    y += lineHeight;
+    doc.text('DropLit Export', 105, y, { align: 'center' });
+    y += 10;
     
-    // Content
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    const text = drop.text || drop.content || '';
-    const lines = doc.splitTextToSize(text, 170);
+    // Subtitle
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100);
+    doc.text('Exported: ' + new Date().toLocaleString(), 105, y, { align: 'center' });
+    y += 5;
+    doc.text('Note: Non-Latin characters may display as "?"', 105, y, { align: 'center' });
+    y += 15;
     
-    lines.forEach(line => {
-      if (y > pageHeight) {
+    doc.setTextColor(0);
+    
+    // Each drop
+    drops.forEach((drop, i) => {
+      // Check if new page needed
+      if (y > pageHeight - 40) {
         doc.addPage();
         y = 20;
       }
-      doc.text(line, margin, y);
-      y += lineHeight - 1;
+      
+      // Header
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      let headerText = (i + 1) + '. ';
+      if (includeCategory) {
+        headerText += '[' + (drop.category || 'inbox').toUpperCase() + '] ';
+      }
+      if (includeDate && drop.date) {
+        headerText += (drop.date || '') + ' ' + (drop.time || '');
+      }
+      doc.text(headerText, margin, y);
+      y += lineHeight;
+      
+      // Content - sanitize for PDF (replace non-Latin with placeholder if needed)
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      const text = drop.text || drop.content || '';
+      const lines = doc.splitTextToSize(text, 170);
+      
+      lines.forEach(line => {
+        if (y > pageHeight) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(line, margin, y);
+        y += lineHeight - 1;
+      });
+      
+      // Separator
+      y += 5;
+      doc.setDrawColor(200);
+      doc.line(margin, y, 190, y);
+      y += 10;
     });
     
-    // Separator
-    y += 5;
-    doc.setDrawColor(200);
-    doc.line(margin, y, 190, y);
-    y += 10;
-  });
-  
-  // Footer
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Total: ${drops.length} drops`, 190, y, { align: 'right' });
-  
-  return doc.output('blob');
+    // Footer
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total: ' + drops.length + ' drops', 190, y, { align: 'right' });
+    
+    return doc.output('blob');
+    
+  } catch (error) {
+    console.error('[Export] PDF generation error:', error);
+    throw new Error('PDF: ' + error.message);
+  }
 }
 
 // Helper: load external script
