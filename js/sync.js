@@ -309,39 +309,59 @@ async function syncDropEncrypted(drop) {
       return await syncDropUnencrypted(drop);
     }
     
-    // Process drop through privacy pipeline
     console.log('🔐 Processing drop for encrypted sync...');
-    const processed = await DropLitPrivacy.processForStorage(drop);
     
-    if (!processed.success) {
-      console.warn('⚠️ Privacy processing failed, fallback to unencrypted');
+    // Step 1: Process through privacy pipeline (embeddings, ZK tokens, audit)
+    let searchTokens = null;
+    try {
+      const processed = await DropLitPrivacy.processForStorage(drop);
+      if (processed && processed.searchTokens) {
+        searchTokens = processed.searchTokens;
+      }
+    } catch (privErr) {
+      console.warn('⚠️ Privacy processing failed:', privErr.message);
+    }
+    
+    // Step 2: Get encryption key
+    let key = null;
+    try {
+      const keyData = await DropLitKeys.retrieveKey(currentUser.id);
+      if (keyData && keyData.key) {
+        key = keyData.key;
+      }
+    } catch (keyErr) {
+      console.warn('⚠️ Failed to get encryption key:', keyErr.message);
+    }
+    
+    // Step 3: Encrypt and prepare for sync
+    let supabaseData = null;
+    let isEncrypted = false;
+    
+    if (key && typeof DropLitEncryption !== 'undefined') {
+      try {
+        // Use prepareDropForSync which handles encryption and formatting
+        const prepared = await DropLitEncryption.prepareDropForSync(drop, key);
+        
+        if (prepared) {
+          supabaseData = {
+            user_id: currentUser.id,
+            ...prepared
+          };
+          isEncrypted = true;
+          console.log('🔐 Drop encrypted successfully');
+        }
+      } catch (encErr) {
+        console.warn('⚠️ Encryption failed:', encErr.message);
+      }
+    }
+    
+    // Fallback to unencrypted if encryption failed
+    if (!supabaseData) {
+      console.log('📤 Using unencrypted sync (encryption unavailable)');
       return await syncDropUnencrypted(drop);
     }
     
-    const privacyDrop = processed.drop;
-    
-    // Prepare data for Supabase
-    const supabaseData = {
-      user_id: currentUser.id,
-      external_id: String(drop.id),
-      content: privacyDrop._encrypted ? null : drop.text,  // null if encrypted
-      category: drop.category || 'inbox',
-      source: drop.source || 'droplit',
-      metadata: {
-        date: drop.date,
-        time: drop.time,
-        creator: drop.creator || 'user',
-        isMedia: drop.isMedia || false
-      },
-      
-      // Encryption fields
-      encrypted_content: privacyDrop.encryptedContent || null,
-      encryption_nonce: privacyDrop.encryptionNonce || null,
-      encryption_version: privacyDrop._encrypted ? 1 : 0,
-      privacy_level: privacyDrop.privacyLevel || 'standard'
-    };
-    
-    // Upsert to Supabase
+    // Step 4: Upsert to Supabase
     const { data, error } = await supabaseClient
       .from('drops')
       .upsert(supabaseData, {
@@ -354,22 +374,22 @@ async function syncDropEncrypted(drop) {
       return { success: false, error: error.message };
     }
     
-    // Sync ZK search tokens if available
-    if (privacyDrop.searchTokens && privacyDrop.searchTokens.length > 0) {
-      await syncSearchTokens(drop.id, privacyDrop.searchTokens);
+    // Step 5: Sync ZK search tokens if available
+    if (searchTokens && searchTokens.length > 0) {
+      await syncSearchTokens(drop.id, searchTokens);
     }
     
-    // Log to audit trail
+    // Step 6: Log to audit trail
     if (typeof DropLitAudit !== 'undefined') {
-      await DropLitAudit.logOperation('drop_sync', 'drop', String(drop.id), {
-        encrypted: privacyDrop._encrypted,
-        privacyLevel: privacyDrop.privacyLevel,
-        hasTokens: privacyDrop.searchTokens?.length > 0
-      });
+      try {
+        await DropLitAudit.logSync('push', 1);
+      } catch (auditErr) {
+        console.warn('⚠️ Audit log failed:', auditErr.message);
+      }
     }
     
     console.log('✅ Encrypted sync complete:', drop.id);
-    return { success: true, encrypted: true };
+    return { success: true, encrypted: isEncrypted };
     
   } catch (error) {
     console.error('❌ Encrypted sync error:', error);
@@ -682,6 +702,7 @@ window.DropLitSync = {
   SYNTRISE_CONFIG,
   
   // Privacy-enabled
+  syncDropToServer,
   syncDropEncrypted,
   syncDropUnencrypted,
   syncAllDropsWithPrivacy,
@@ -693,7 +714,67 @@ window.DropLitSync = {
   isPrivacyReady
 };
 
+// ============================================
+// MAIN SYNC ENTRY POINT (called from save())
+// ============================================
+
+/**
+ * Sync drop to server - automatically chooses encrypted or unencrypted
+ * This is the main function called from save() in index.html
+ * 
+ * @param {Object} drop - Drop object to sync
+ * @param {string} action - 'create', 'update', or 'delete'
+ * @returns {Promise<Object>} - Sync result
+ */
+async function syncDropToServer(drop, action = 'create') {
+  // Check if we can sync
+  if (!supabaseClient) {
+    console.log('⚠️ Supabase client not available');
+    return { success: false, error: 'no_client' };
+  }
+  
+  if (!currentUser) {
+    console.log('⚠️ User not logged in, skipping sync');
+    return { success: false, error: 'not_logged_in' };
+  }
+  
+  console.log(`📤 syncDropToServer: ${action} drop ${drop.id}`);
+  
+  try {
+    // Handle delete action
+    if (action === 'delete') {
+      const { error } = await supabaseClient
+        .from('drops')
+        .update({ is_deleted: true })
+        .eq('external_id', String(drop.id))
+        .eq('user_id', currentUser.id);
+      
+      if (error) {
+        console.error('❌ Delete sync error:', error);
+        return { success: false, error: error.message };
+      }
+      
+      console.log('✅ Drop marked as deleted:', drop.id);
+      return { success: true, action: 'delete' };
+    }
+    
+    // Check if privacy is enabled
+    if (isPrivacyReady()) {
+      console.log('🔐 Privacy enabled, using encrypted sync');
+      return await syncDropEncrypted(drop);
+    } else {
+      console.log('📤 Using standard sync (privacy not enabled)');
+      return await syncDropUnencrypted(drop);
+    }
+    
+  } catch (error) {
+    console.error('❌ syncDropToServer error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 // Also expose key functions globally for easy access
+window.syncDropToServer = syncDropToServer;
 window.syncDropEncrypted = syncDropEncrypted;
 window.initPrivacyAfterAuth = initPrivacyAfterAuth;
 window.getPrivacyStatus = getPrivacyStatus;
