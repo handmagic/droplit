@@ -36,8 +36,8 @@
   <script src="js/notifications.js"></script>
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Onboarding System - DISABLED TO STOP AUTH LOOP -->
-  <!-- <script src="js/onboarding.js"></script> -->
+  <!-- Onboarding System -->
+  <script src="js/onboarding.js"></script>
 
   <!-- ============================================
        DROPLIT PRIVACY SYSTEM v1.0
@@ -5811,6 +5811,8 @@ function getExportDrops() {
 }
 
 async function executeFileExport() {
+  alert('Export clicked! ideas=' + (window.ideas || []).length);
+  
   console.log('[Export] executeFileExport called');
   console.log('[Export] exportState:', JSON.stringify(exportState));
   console.log('[Export] window.ideas length:', (window.ideas || []).length);
