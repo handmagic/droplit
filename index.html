@@ -622,6 +622,63 @@
       font-size: 11px;
       opacity: 0.7;
     }
+    /* Plan badge and name row */
+    .account-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .account-plan-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.25);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .account-plan-badge.plan-free { background: rgba(100,116,139,0.5); }
+    .account-plan-badge.plan-beta { background: rgba(139,92,246,0.5); }
+    .account-plan-badge.plan-pro { background: rgba(14,165,233,0.5); }
+    .account-plan-badge.plan-business { background: rgba(245,158,11,0.5); }
+    .account-plan-badge.plan-owner { 
+      background: linear-gradient(90deg, #8B5CF6, #EC4899, #F59E0B);
+      background-size: 200% 100%;
+      animation: badge-shimmer 2s ease infinite;
+    }
+    @keyframes badge-shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    /* Security indicator */
+    .account-security {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      font-size: 11px;
+      opacity: 0.8;
+    }
+    .account-security svg {
+      color: #6DD890;
+      flex-shrink: 0;
+    }
+    /* Plan-specific card gradients */
+    .account-card.plan-free { background: linear-gradient(135deg, #64748B, #475569); }
+    .account-card.plan-beta { background: linear-gradient(135deg, #8B5CF6, #6366F1); }
+    .account-card.plan-pro { background: linear-gradient(135deg, #0EA5E9, #06B6D4); }
+    .account-card.plan-business { background: linear-gradient(135deg, #F59E0B, #D97706); }
+    .account-card.plan-owner { 
+      background: linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B, #10B981);
+      background-size: 300% 300%;
+      animation: owner-gradient 5s ease infinite;
+    }
+    @keyframes owner-gradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
   </style>
 
   <!-- Fullscreen Edit Panel - v0.9.95 -->
@@ -1206,13 +1263,16 @@
       </div>
       
       <!-- Account Card -->
-      <div class="account-card">
+      <div class="account-card" id="accountCard">
         <div class="account-header">
           <div class="account-avatar" id="accountAvatar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
           <div class="account-info">
-            <div class="account-name" id="accountName">Not signed in</div>
+            <div class="account-name-row">
+              <span class="account-name" id="accountName">Not signed in</span>
+              <span class="account-plan-badge" id="accountPlanBadge">FREE</span>
+            </div>
             <div class="account-email" id="accountEmail">—</div>
           </div>
           <button class="account-logout-btn" id="accountLogoutBtn" onclick="handleLogout()" title="Sign out">
@@ -1226,6 +1286,10 @@
             <span class="balance-value" id="tokenBalance">—</span>
           </div>
           <div class="balance-hint"><span id="tokenUsage">Loading...</span></div>
+        </div>
+        <div class="account-security" id="accountSecurity">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>AES-256-GCM • Только вы видите данные</span>
         </div>
       </div>
       
@@ -1502,7 +1566,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.95 by Syntrise</div>
+          <div class="menu-about-ver">v0.9.96 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1516,7 +1580,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.95 by Syntrise</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Long press card to select & merge.</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.96 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -5564,12 +5628,40 @@ function toggleMainMenu() {
 // ============================================
 
 function updateAccountUI() {
+  const cardEl = document.getElementById('accountCard');
   const nameEl = document.getElementById('accountName');
   const emailEl = document.getElementById('accountEmail');
   const avatarEl = document.getElementById('accountAvatar');
   const logoutBtn = document.getElementById('accountLogoutBtn');
+  const badgeEl = document.getElementById('accountPlanBadge');
+  const securityEl = document.getElementById('accountSecurity');
   
   if (!nameEl || !emailEl) return;
+  
+  // Get user plan from localStorage or default
+  const userPlan = localStorage.getItem('droplit_user_plan') || 'beta';
+  
+  // Plan display config
+  const planConfig = {
+    'free': { label: 'FREE', class: 'plan-free' },
+    'beta': { label: '🧪 BETA', class: 'plan-beta' },
+    'pro': { label: '⭐ PRO', class: 'plan-pro' },
+    'business': { label: '💼 BUSINESS', class: 'plan-business' },
+    'owner': { label: '👑 OWNER', class: 'plan-owner' }
+  };
+  
+  const plan = planConfig[userPlan] || planConfig['beta'];
+  
+  // Update card gradient
+  if (cardEl) {
+    cardEl.className = 'account-card ' + plan.class;
+  }
+  
+  // Update badge
+  if (badgeEl) {
+    badgeEl.textContent = plan.label;
+    badgeEl.className = 'account-plan-badge ' + plan.class;
+  }
   
   if (typeof currentUser !== 'undefined' && currentUser) {
     // Get display name
@@ -5587,6 +5679,12 @@ function updateAccountUI() {
     
     if (logoutBtn) logoutBtn.style.display = 'flex';
     
+    // Show security indicator if encryption is enabled
+    if (securityEl) {
+      const encEnabled = localStorage.getItem('droplit_encryption_enabled') === 'true' || window.DROPLIT_PRIVACY_ENABLED;
+      securityEl.style.display = encEnabled ? 'flex' : 'none';
+    }
+    
   } else {
     nameEl.textContent = 'Not signed in';
     emailEl.textContent = 'Tap to sign in';
@@ -5597,6 +5695,7 @@ function updateAccountUI() {
     }
     
     if (logoutBtn) logoutBtn.style.display = 'none';
+    if (securityEl) securityEl.style.display = 'none';
   }
 }
 
