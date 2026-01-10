@@ -5714,8 +5714,14 @@ function updateSecurityIndicator() {
   const lockBtn = document.getElementById('headerLock');
   if (!lockBtn) return;
   
-  const encEnabled = localStorage.getItem('droplit_encryption_enabled') === 'true' || window.DROPLIT_PRIVACY_ENABLED;
+  // Check multiple sources for encryption status
+  const encEnabled = 
+    localStorage.getItem('droplit_encryption_enabled') === 'true' || 
+    window.DROPLIT_PRIVACY_ENABLED === true ||
+    (typeof DropLitEncryptedSync !== 'undefined' && DropLitEncryptedSync.isEnabled && DropLitEncryptedSync.isEnabled());
+  
   lockBtn.style.display = encEnabled ? 'flex' : 'none';
+  console.log('[Security] Lock visible:', encEnabled);
 }
 
 function showSecurityInfo() {
@@ -5853,6 +5859,9 @@ async function updateAccountUI() {
     if (logoutBtn) logoutBtn.style.display = 'none';
     if (securityEl) securityEl.style.display = 'none';
   }
+  
+  // Update header lock indicator
+  updateSecurityIndicator();
 }
 
 async function handleLogout() {
