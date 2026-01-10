@@ -822,7 +822,8 @@ function recorderCreateDrop() {
         audioBitrate: duration > 0 ? Math.round((recorderBlob.size * 8) / duration) : 0,
         duration: duration,
         waveform: [],
-        notes: ''
+        notes: '',
+        encrypted: window.DROPLIT_PRIVACY_ENABLED || false
       };
       
       ideas.unshift(drop);
@@ -1010,7 +1011,8 @@ async function saveAudioDrop(blob) {
       audioBitrate: Math.round((blob.size * 8) / duration),
       duration: duration,
       waveform: [],
-      notes: ''
+      notes: '',
+      encrypted: window.DROPLIT_PRIVACY_ENABLED || false
     };
     
     ideas.unshift(drop);
@@ -2127,7 +2129,8 @@ async function handleStreamingResponse(response) {
       isMedia: false,
       source: 'aski_tool',
       creator: 'aski',
-      sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null
+      sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null,
+      encrypted: window.DROPLIT_PRIVACY_ENABLED || false
     };
     ideas.unshift(newIdea);
     save(newIdea);
@@ -2392,7 +2395,8 @@ async function sendAskAIMessage() {
             date: now.toLocaleDateString('ru-RU'),
             time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
             timestamp: now.toISOString(),
-            aiGenerated: true
+            aiGenerated: true,
+            encrypted: window.DROPLIT_PRIVACY_ENABLED || false
           };
           
           ideas.unshift(newIdea);
@@ -2498,7 +2502,8 @@ function createDropFromAI(btn) {
     isMedia: false,
     source: 'chat_manual',
     creator: isUserMessage ? 'user' : 'aski',
-    sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null
+    sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null,
+    encrypted: window.DROPLIT_PRIVACY_ENABLED || false
   };
   
   ideas.unshift(drop);
