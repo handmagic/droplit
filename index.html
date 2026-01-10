@@ -650,40 +650,104 @@
       0%, 100% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
     }
-    /* Security indicator in card (keep but smaller) */
-    .account-security {
-      display: none; /* Hide old one, using banner now */
-    }
-    /* Security Banner - green bar above account card */
-    .security-banner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: linear-gradient(135deg, #10B981, #059669);
-      color: white;
-      padding: 10px 16px;
-      border-radius: 12px;
-      margin-bottom: 12px;
-      font-size: 13px;
-      font-weight: 500;
-    }
-    .security-banner-content {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .security-banner-info {
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 14px;
+    /* Security Pill Button */
+    .security-pill {
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 8px;
+      width: 100%;
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-top: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .security-pill:active {
+      transform: scale(0.98);
+    }
+    .security-pill svg {
+      flex-shrink: 0;
+    }
+    /* Security Info Modal - matching app style */
+    .security-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 10000;
+    }
+    .security-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      border-radius: 16px;
+      max-width: 320px;
+      width: 90%;
+      z-index: 10001;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .security-modal-header {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .security-modal-header-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+    .security-modal-header-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .security-modal-header-status {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+    .security-modal-body {
+      padding: 20px;
+      color: #333;
+    }
+    .security-modal-details {
+      font-size: 13px;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .security-modal-warning {
+      font-size: 12px;
+      color: #92400E;
+      background: #FEF3C7;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .security-modal-actions {
+      display: flex;
+      justify-content: center;
+    }
+    .security-modal-btn {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     /* Plan-specific card gradients */
     .account-card.plan-free { background: linear-gradient(135deg, #64748B, #475569); }
@@ -700,8 +764,23 @@
       50% { background-position: 100% 50%; }
     }
     /* Header layout fix */
+    .header {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      position: relative !important;
+    }
     .header-title {
-      flex: 1;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
     }
     /* Header Lock Indicator */
     .header-lock {
@@ -710,10 +789,9 @@
       justify-content: center;
       background: none;
       border: none;
-      padding: 6px;
-      margin-right: 4px;
+      padding: 8px;
       cursor: pointer;
-      opacity: 0.7;
+      opacity: 0.8;
       transition: opacity 0.2s;
     }
     .header-lock:hover, .header-lock:active {
@@ -862,13 +940,15 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="header-title"><span class="title-drop">Drop</span><span class="title-lit">Lit</span></div>
-      <button class="header-lock" id="headerLock" onclick="showSecurityInfo()" title="Encryption status" style="display:none;">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      </button>
-      <button class="btn-icon" id="menuToggleBtn" onclick="toggleMainMenu()">
-        <svg class="menu-icon-open" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        <svg class="menu-icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <div class="header-right">
+        <button class="header-lock" id="headerLock" onclick="showSecurityInfo()" title="Encryption status" style="display:none;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </button>
+        <button class="btn-icon" id="menuToggleBtn" onclick="toggleMainMenu()">
+          <svg class="menu-icon-open" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <svg class="menu-icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
     </header>
     <div class="network-banner" id="netBanner">No internet</div>
     <div class="warning" id="warning">Speech recognition not supported. Use Chrome.</div>
@@ -1369,15 +1449,6 @@
         <button class="pill-s sec" onclick="closeMainMenu()">Close</button>
       </div>
       
-      <!-- Security Status Banner -->
-      <div class="security-banner" id="securityBanner" style="display:none;">
-        <div class="security-banner-content">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <span>Защищённый режим</span>
-        </div>
-        <button class="security-banner-info" onclick="showSecurityInfo()">ⓘ</button>
-      </div>
-      
       <!-- Account Card -->
       <div class="account-card" id="accountCard">
         <div class="account-header">
@@ -1403,11 +1474,13 @@
           </div>
           <div class="balance-hint"><span id="tokenUsage">Loading...</span></div>
         </div>
-        <div class="account-security" id="accountSecurity">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <span>AES-256-GCM • Только вы видите данные</span>
-        </div>
       </div>
+      
+      <!-- Security Status Pill -->
+      <button class="security-pill" id="securityBanner" onclick="showSecurityInfo()" style="display:none;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>ЗАЩИЩЁННЫЙ РЕЖИМ</span>
+      </button>
       
       <!-- Search Section -->
       <div class="menu-section" style="border-bottom: none;">
@@ -5774,19 +5847,25 @@ function showSecurityInfo() {
   modal.innerHTML = `
     <div class="security-modal-overlay" onclick="closeSecurityInfo()"></div>
     <div class="security-modal">
-      <div class="security-modal-icon">🔐</div>
-      <div class="security-modal-title">AES-256-GCM: ON</div>
-      <div class="security-modal-status">Безопасный режим включён</div>
-      <div class="security-modal-details">
-        • Все данные зашифрованы на устройстве<br>
-        • Ключи хранятся только у вас<br>
-        • Syntrise Inc. не имеет доступа к вашим данным<br>
-        • Данные не передаются третьим лицам
+      <div class="security-modal-header">
+        <div class="security-modal-header-icon">🔐</div>
+        <h3 class="security-modal-header-title">AES-256-GCM</h3>
+        <div class="security-modal-header-status">Шифрование активно</div>
       </div>
-      <div class="security-modal-warning">
-        ⚠️ Утеря пароля или ключа приведёт к потере данных
+      <div class="security-modal-body">
+        <div class="security-modal-details">
+          • Все данные зашифрованы на устройстве<br>
+          • Ключи хранятся только у вас<br>
+          • Syntrise Inc. не имеет доступа<br>
+          • Данные не передаются третьим лицам
+        </div>
+        <div class="security-modal-warning">
+          ⚠️ Утеря пароля или ключа приведёт к потере данных. Сохраните резервную копию!
+        </div>
+        <div class="security-modal-actions">
+          <button class="security-modal-btn" onclick="closeSecurityInfo()">Понятно</button>
+        </div>
       </div>
-      <button class="security-modal-btn" onclick="closeSecurityInfo()">Понятно</button>
     </div>
   `;
   document.body.appendChild(modal);
@@ -5813,7 +5892,6 @@ async function updateAccountUI() {
   const avatarEl = document.getElementById('accountAvatar');
   const logoutBtn = document.getElementById('accountLogoutBtn');
   const badgeEl = document.getElementById('accountPlanBadge');
-  const securityEl = document.getElementById('accountSecurity');
   
   if (!nameEl || !emailEl) return;
   
@@ -5875,12 +5953,6 @@ async function updateAccountUI() {
       badgeEl.className = 'account-plan-badge ' + plan.class;
     }
     
-    // Show security indicator if encryption is enabled
-    if (securityEl) {
-      const encEnabled = localStorage.getItem('droplit_encryption_enabled') === 'true' || window.DROPLIT_PRIVACY_ENABLED;
-      securityEl.style.display = encEnabled ? 'flex' : 'none';
-    }
-    
   } else {
     nameEl.textContent = 'Not signed in';
     emailEl.textContent = 'Tap to sign in';
@@ -5897,7 +5969,6 @@ async function updateAccountUI() {
     }
     
     if (logoutBtn) logoutBtn.style.display = 'none';
-    if (securityEl) securityEl.style.display = 'none';
     
     // Reset token display for logged out
     const tokenBalanceEl = document.getElementById('tokenBalance');
