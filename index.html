@@ -5731,12 +5731,12 @@ function openFileExportModal(dropId = null) {
   
   console.log('[Export] Opening modal, dropId:', dropId);
   
-  // Use global ideas array (already decrypted)
-  const allDrops = window.ideas || [];
+  // Use local ideas array (already decrypted in memory)
+  const allDrops = ideas || [];
   document.getElementById('exportDropCount').textContent = allDrops.length;
   
-  // Count filtered drops
-  const currentFilter = window.currentFilter || 'all';
+  // Count filtered drops using curCat (current category filter)
+  const currentFilter = curCat || 'all';
   const filteredDrops = currentFilter === 'all' ? allDrops : allDrops.filter(d => d.category === currentFilter);
   document.getElementById('exportFilteredCount').textContent = filteredDrops.length;
   
@@ -5786,9 +5786,10 @@ function selectExportScope(scope) {
 }
 
 function getExportDrops() {
-  // Use global ideas array (already decrypted), not localStorage which may be encrypted
-  const allDrops = window.ideas || [];
-  const currentFilter = window.currentFilter || 'all';
+  // Use local ideas array (already decrypted in memory)
+  // ideas is defined at top level: let ideas = ...
+  const allDrops = ideas || [];
+  const currentFilter = curCat || 'all';
   
   console.log('[Export] scope:', exportState.scope, 'currentDropId:', exportState.currentDropId);
   console.log('[Export] allDrops count:', allDrops.length);
@@ -5811,11 +5812,11 @@ function getExportDrops() {
 }
 
 async function executeFileExport() {
-  alert('Export clicked! ideas=' + (window.ideas || []).length);
+  alert('Export clicked! ideas=' + (ideas || []).length);
   
   console.log('[Export] executeFileExport called');
   console.log('[Export] exportState:', JSON.stringify(exportState));
-  console.log('[Export] window.ideas length:', (window.ideas || []).length);
+  console.log('[Export] ideas length:', (ideas || []).length);
   
   const drops = getExportDrops();
   console.log('[Export] getExportDrops returned:', drops.length, 'drops');
