@@ -69,29 +69,33 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 14px;
-      height: 14px;
-      margin-left: 4px;
+      width: 18px;
+      height: 18px;
+      margin-left: 5px;
+      margin-right: 2px;
       vertical-align: middle;
     }
     .encrypted-lock svg {
-      width: 12px;
-      height: 12px;
-      stroke: #388E3C;
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
+      width: 15px;
+      height: 15px;
+      fill: #2E7D32;
+      stroke: #2E7D32;
+      stroke-width: 1;
     }
     /* Slightly larger in active card */
     .card.active .encrypted-lock svg {
-      width: 14px;
-      height: 14px;
+      width: 17px;
+      height: 17px;
     }
-    /* Roll-up mode - same size */
+    /* Roll-up mode */
     .card.roll-up .encrypted-lock svg {
-      width: 11px;
-      height: 11px;
+      width: 13px;
+      height: 13px;
+    }
+    /* Edit panel */
+    .edit-panel .encrypted-lock svg {
+      width: 16px;
+      height: 16px;
     }
   </style>
   
@@ -125,6 +129,7 @@
         </div>
         <div class="edit-panel-row2">
           <span class="edit-panel-cat" id="editPanelCat" onclick="openCatModalFromEdit()">INBOX</span>
+          <span class="encrypted-lock" id="editPanelLock" style="display:none;" title="Encrypted"><svg viewBox="0 0 24 24"><path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none" stroke-width="2"/></svg></span>
           <span class="edit-panel-chars" id="editPanelChars">0</span>
           <span class="edit-panel-time" id="editPanelTime">00:00</span>
         </div>
@@ -2230,6 +2235,12 @@ function startEdit(id){
   chars.textContent = (i.text || '').length;
   time.textContent = i.time || '';
   
+  // Show/hide encrypted lock
+  const lock = document.getElementById('editPanelLock');
+  if(lock) {
+    lock.style.display = i.encrypted ? 'inline-flex' : 'none';
+  }
+  
   // Set textarea content
   textarea.value = i.text || '';
   
@@ -2857,9 +2868,9 @@ function render(){
       // Row 2: Category + params + NEW
       h+='<div class="card-row2">';
       h+='<span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
-      // Encrypted lock icon (shows if privacy enabled and drop is encrypted)
-      if(window.DROPLIT_PRIVACY_ENABLED && (i.synced || i.encrypted)){
-        h+='<span class="encrypted-lock" title="Encrypted"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>';
+      // Encrypted lock icon (shows if drop is encrypted)
+      if(i.encrypted){
+        h+='<span class="encrypted-lock" title="Encrypted"><svg viewBox="0 0 24 24"><path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none" stroke-width="2"/></svg></span>';
       }
       // Counter: text=chars, audio=duration, image=dimensions
       if(i.category==='audio'){
