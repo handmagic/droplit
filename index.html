@@ -679,6 +679,86 @@
       0%, 100% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
     }
+    /* Header Lock Indicator */
+    .header-lock {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      padding: 6px;
+      margin-right: 4px;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    .header-lock:hover, .header-lock:active {
+      opacity: 1;
+    }
+    .header-lock svg {
+      color: #10B981;
+    }
+    /* Security Info Modal */
+    .security-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #1a1a2e;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 320px;
+      width: 90%;
+      z-index: 10001;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .security-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 10000;
+    }
+    .security-modal-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .security-modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #10B981;
+      margin-bottom: 8px;
+    }
+    .security-modal-status {
+      font-size: 14px;
+      color: #fff;
+      opacity: 0.9;
+      margin-bottom: 16px;
+    }
+    .security-modal-details {
+      font-size: 12px;
+      color: #aaa;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .security-modal-warning {
+      font-size: 11px;
+      color: #F59E0B;
+      background: rgba(245,158,11,0.1);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .security-modal-btn {
+      background: #10B981;
+      color: #fff;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
   </style>
 
   <!-- Fullscreen Edit Panel - v0.9.95 -->
@@ -758,6 +838,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="header-title"><span class="title-drop">Drop</span><span class="title-lit">Lit</span></div>
+      <button class="header-lock" id="headerLock" onclick="showSecurityInfo()" title="Encryption status" style="display:none;">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </button>
       <button class="btn-icon" id="menuToggleBtn" onclick="toggleMainMenu()">
         <svg class="menu-icon-open" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         <svg class="menu-icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -5622,6 +5705,56 @@ function toggleMainMenu() {
     openMainMenu();
   }
 }
+
+// ============================================
+// SECURITY INDICATOR FUNCTIONS
+// ============================================
+
+function updateSecurityIndicator() {
+  const lockBtn = document.getElementById('headerLock');
+  if (!lockBtn) return;
+  
+  const encEnabled = localStorage.getItem('droplit_encryption_enabled') === 'true' || window.DROPLIT_PRIVACY_ENABLED;
+  lockBtn.style.display = encEnabled ? 'flex' : 'none';
+}
+
+function showSecurityInfo() {
+  // Remove existing
+  const existing = document.getElementById('securityInfoModal');
+  if (existing) existing.remove();
+  
+  const modal = document.createElement('div');
+  modal.id = 'securityInfoModal';
+  modal.innerHTML = `
+    <div class="security-modal-overlay" onclick="closeSecurityInfo()"></div>
+    <div class="security-modal">
+      <div class="security-modal-icon">🔐</div>
+      <div class="security-modal-title">AES-256-GCM: ON</div>
+      <div class="security-modal-status">Безопасный режим включён</div>
+      <div class="security-modal-details">
+        • Все данные зашифрованы на устройстве<br>
+        • Ключи хранятся только у вас<br>
+        • Syntrise Inc. не имеет доступа к вашим данным<br>
+        • Данные не передаются третьим лицам
+      </div>
+      <div class="security-modal-warning">
+        ⚠️ Утеря пароля или ключа приведёт к потере данных
+      </div>
+      <button class="security-modal-btn" onclick="closeSecurityInfo()">Понятно</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function closeSecurityInfo() {
+  const modal = document.getElementById('securityInfoModal');
+  if (modal) modal.remove();
+}
+
+// Update indicator on load
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(updateSecurityIndicator, 500);
+});
 
 // ============================================
 // ACCOUNT UI FUNCTIONS
