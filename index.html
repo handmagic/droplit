@@ -1933,16 +1933,16 @@
         <div class="export-field">
           <label>What to export</label>
           <div class="export-scope-options">
-            <label class="export-scope-option" onclick="selectExportScope('current')">
-              <input type="radio" name="exportScope" value="current">
+            <label class="export-scope-option">
+              <input type="radio" name="exportScope" value="current" onchange="selectExportScope('current')">
               <span>Current drop only</span>
             </label>
-            <label class="export-scope-option active" onclick="selectExportScope('all')">
-              <input type="radio" name="exportScope" value="all" checked>
+            <label class="export-scope-option active">
+              <input type="radio" name="exportScope" value="all" checked onchange="selectExportScope('all')">
               <span>All drops (<span id="exportDropCount">0</span>)</span>
             </label>
-            <label class="export-scope-option" onclick="selectExportScope('filtered')">
-              <input type="radio" name="exportScope" value="filtered">
+            <label class="export-scope-option">
+              <input type="radio" name="exportScope" value="filtered" onchange="selectExportScope('filtered')">
               <span>Current filter (<span id="exportFilteredCount">0</span>)</span>
             </label>
           </div>
@@ -5731,8 +5731,8 @@ function openFileExportModal(dropId = null) {
   
   console.log('[Export] Opening modal, dropId:', dropId);
   
-  // Update counts
-  const allDrops = JSON.parse(localStorage.getItem('ideas') || '[]');
+  // Use global ideas array (already decrypted)
+  const allDrops = window.ideas || [];
   document.getElementById('exportDropCount').textContent = allDrops.length;
   
   // Count filtered drops
@@ -5786,7 +5786,8 @@ function selectExportScope(scope) {
 }
 
 function getExportDrops() {
-  const allDrops = JSON.parse(localStorage.getItem('ideas') || '[]');
+  // Use global ideas array (already decrypted), not localStorage which may be encrypted
+  const allDrops = window.ideas || [];
   const currentFilter = window.currentFilter || 'all';
   
   console.log('[Export] scope:', exportState.scope, 'currentDropId:', exportState.currentDropId);
@@ -5795,7 +5796,6 @@ function getExportDrops() {
   switch (exportState.scope) {
     case 'current':
       if (exportState.currentDropId) {
-        // Compare as numbers since IDs are timestamps
         const targetId = Number(exportState.currentDropId);
         const found = allDrops.filter(d => Number(d.id) === targetId);
         console.log('[Export] Looking for ID:', targetId, 'found:', found.length);
@@ -5811,10 +5811,12 @@ function getExportDrops() {
 }
 
 async function executeFileExport() {
-  console.log('[Export] Executing, state:', JSON.stringify(exportState));
+  console.log('[Export] executeFileExport called');
+  console.log('[Export] exportState:', JSON.stringify(exportState));
+  console.log('[Export] window.ideas length:', (window.ideas || []).length);
   
   const drops = getExportDrops();
-  console.log('[Export] Got drops:', drops.length);
+  console.log('[Export] getExportDrops returned:', drops.length, 'drops');
   
   if (drops.length === 0) {
     toast('No drops to export', 'warning');
