@@ -165,6 +165,12 @@ async function doSetup(userId) {
       }
       closeEncryptionModal();
       localStorage.setItem('droplit_has_key_' + userId, 'true');
+      localStorage.setItem('droplit_encryption_enabled', 'true');
+      
+      // Update header lock indicator
+      if (typeof updateSecurityIndicator === 'function') {
+        updateSecurityIndicator();
+      }
       
       // Initialize privacy system
       if (typeof initializePrivacySystem === 'function') {
