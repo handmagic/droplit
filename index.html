@@ -5729,6 +5729,8 @@ let exportState = {
 function openFileExportModal(dropId = null) {
   exportState.currentDropId = dropId;
   
+  console.log('[Export] Opening modal, dropId:', dropId);
+  
   // Update counts
   const allDrops = JSON.parse(localStorage.getItem('ideas') || '[]');
   document.getElementById('exportDropCount').textContent = allDrops.length;
@@ -5740,11 +5742,21 @@ function openFileExportModal(dropId = null) {
   
   // If called from a specific drop, pre-select "current"
   if (dropId) {
-    selectExportScope('current');
-    document.querySelector('input[value="current"]').checked = true;
+    exportState.scope = 'current';
+    document.querySelectorAll('.export-scope-option').forEach(opt => {
+      const input = opt.querySelector('input');
+      const isCurrentOption = input.value === 'current';
+      input.checked = isCurrentOption;
+      opt.classList.toggle('active', isCurrentOption);
+    });
   } else {
-    selectExportScope('all');
-    document.querySelector('input[value="all"]').checked = true;
+    exportState.scope = 'all';
+    document.querySelectorAll('.export-scope-option').forEach(opt => {
+      const input = opt.querySelector('input');
+      const isAllOption = input.value === 'all';
+      input.checked = isAllOption;
+      opt.classList.toggle('active', isAllOption);
+    });
   }
   
   // Generate default filename
@@ -5777,10 +5789,17 @@ function getExportDrops() {
   const allDrops = JSON.parse(localStorage.getItem('ideas') || '[]');
   const currentFilter = window.currentFilter || 'all';
   
+  console.log('[Export] scope:', exportState.scope, 'currentDropId:', exportState.currentDropId);
+  console.log('[Export] allDrops count:', allDrops.length);
+  
   switch (exportState.scope) {
     case 'current':
       if (exportState.currentDropId) {
-        return allDrops.filter(d => d.id === exportState.currentDropId);
+        // Compare as numbers since IDs are timestamps
+        const targetId = Number(exportState.currentDropId);
+        const found = allDrops.filter(d => Number(d.id) === targetId);
+        console.log('[Export] Looking for ID:', targetId, 'found:', found.length);
+        return found;
       }
       return [];
     case 'filtered':
@@ -5792,7 +5811,11 @@ function getExportDrops() {
 }
 
 async function executeFileExport() {
+  console.log('[Export] Executing, state:', JSON.stringify(exportState));
+  
   const drops = getExportDrops();
+  console.log('[Export] Got drops:', drops.length);
+  
   if (drops.length === 0) {
     toast('No drops to export', 'warning');
     return;
