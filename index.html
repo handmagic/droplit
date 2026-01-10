@@ -5627,7 +5627,7 @@ function toggleMainMenu() {
 // ACCOUNT UI FUNCTIONS
 // ============================================
 
-function updateAccountUI() {
+async function updateAccountUI() {
   const cardEl = document.getElementById('accountCard');
   const nameEl = document.getElementById('accountName');
   const emailEl = document.getElementById('accountEmail');
@@ -5638,9 +5638,6 @@ function updateAccountUI() {
   
   if (!nameEl || !emailEl) return;
   
-  // Get user plan from localStorage or default
-  const userPlan = localStorage.getItem('droplit_user_plan') || 'beta';
-  
   // Plan display config
   const planConfig = {
     'free': { label: 'FREE', class: 'plan-free' },
@@ -5649,19 +5646,6 @@ function updateAccountUI() {
     'business': { label: '💼 BUSINESS', class: 'plan-business' },
     'owner': { label: '👑 OWNER', class: 'plan-owner' }
   };
-  
-  const plan = planConfig[userPlan] || planConfig['beta'];
-  
-  // Update card gradient
-  if (cardEl) {
-    cardEl.className = 'account-card ' + plan.class;
-  }
-  
-  // Update badge
-  if (badgeEl) {
-    badgeEl.textContent = plan.label;
-    badgeEl.className = 'account-plan-badge ' + plan.class;
-  }
   
   if (typeof currentUser !== 'undefined' && currentUser) {
     // Get display name
@@ -5679,6 +5663,39 @@ function updateAccountUI() {
     
     if (logoutBtn) logoutBtn.style.display = 'flex';
     
+    // Fetch plan from database
+    let userPlan = localStorage.getItem('droplit_user_plan') || 'beta';
+    
+    try {
+      if (typeof supabase !== 'undefined') {
+        const client = supabase.createClient(
+          'https://ughfdhmyflotgsysvrrc.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE'
+        );
+        const { data } = await client.rpc('get_token_balance', { p_user_id: currentUser.id });
+        if (data && data.tier) {
+          userPlan = data.tier;
+          localStorage.setItem('droplit_user_plan', userPlan);
+          console.log('[Account] Plan from DB:', userPlan);
+        }
+      }
+    } catch (e) {
+      console.log('[Account] Could not fetch plan from DB:', e);
+    }
+    
+    const plan = planConfig[userPlan] || planConfig['beta'];
+    
+    // Update card gradient
+    if (cardEl) {
+      cardEl.className = 'account-card ' + plan.class;
+    }
+    
+    // Update badge
+    if (badgeEl) {
+      badgeEl.textContent = plan.label;
+      badgeEl.className = 'account-plan-badge ' + plan.class;
+    }
+    
     // Show security indicator if encryption is enabled
     if (securityEl) {
       const encEnabled = localStorage.getItem('droplit_encryption_enabled') === 'true' || window.DROPLIT_PRIVACY_ENABLED;
@@ -5689,7 +5706,13 @@ function updateAccountUI() {
     nameEl.textContent = 'Not signed in';
     emailEl.textContent = 'Tap to sign in';
     
-    // Reset avatar to default
+    // Reset to default
+    if (cardEl) cardEl.className = 'account-card plan-free';
+    if (badgeEl) {
+      badgeEl.textContent = 'FREE';
+      badgeEl.className = 'account-plan-badge plan-free';
+    }
+    
     if (avatarEl) {
       avatarEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
     }
