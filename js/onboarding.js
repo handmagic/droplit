@@ -370,6 +370,13 @@
       console.log('[Onboarding] Auth state:', event);
       
       if (event === 'SIGNED_IN' && session?.user) {
+        // Prevent multiple handling - use global flag
+        if (window._dropLitAuthHandled) {
+          console.log('[Onboarding] Auth already handled, skipping');
+          return;
+        }
+        window._dropLitAuthHandled = true;
+        
         // User just signed in
         const user = session.user;
         
@@ -412,12 +419,12 @@
         // Hide onboarding
         hideOnboardingModal();
         
-        // Show success
+        // Show success toast only once
         if (typeof toast === 'function') {
           toast('Welcome to DropLit! 🎉', 'success');
         }
         
-        // Check if encryption is set up
+        // Check if encryption is set up (only once)
         setTimeout(() => {
           if (typeof DropLitKeys !== 'undefined' && typeof DropLitEncryptionUI !== 'undefined') {
             DropLitKeys.hasStoredKey(user.id).then(hasKey => {
@@ -435,6 +442,8 @@
         }, 500);
         
       } else if (event === 'SIGNED_OUT') {
+        // Reset auth handled flag
+        window._dropLitAuthHandled = false;
         // User signed out - show onboarding
         showOnboardingModal();
       }
