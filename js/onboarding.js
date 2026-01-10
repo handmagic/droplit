@@ -34,21 +34,31 @@
   async function checkInviteCode(code) {
     if (!supabaseClient) {
       if (!initSupabase()) {
+        console.error('[Onboarding] No Supabase client');
         return { valid: false, error: 'Database not available' };
       }
     }
     
     const normalizedCode = code.trim().toUpperCase();
+    console.log('[Onboarding] Checking code:', normalizedCode);
     
     try {
+      // Use maybeSingle() - doesn't error if no rows found
       const { data, error } = await supabaseClient
         .from('beta_invites')
         .select('*')
         .eq('code', normalizedCode)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
       
-      if (error || !data) {
+      console.log('[Onboarding] Response:', { data, error });
+      
+      if (error) {
+        console.error('[Onboarding] Supabase error:', error);
+        return { valid: false, error: error.message || 'Database error' };
+      }
+      
+      if (!data) {
         return { valid: false, error: 'Invalid invite code' };
       }
       
@@ -70,7 +80,7 @@
       
     } catch (err) {
       console.error('[Onboarding] Check invite error:', err);
-      return { valid: false, error: 'Connection error' };
+      return { valid: false, error: 'Error: ' + (err.message || 'Connection failed') };
     }
   }
   
