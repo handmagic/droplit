@@ -1,336 +1,444 @@
-// ============================================
-// DROPLIT AUTH v2.0
-// Supabase authentication with OAuth support
-// ============================================
+/**
+ * DROPLIT — Encryption UI Components
+ * Version: 1.1.0 — Mobile-First Redesign
+ * Date: January 10, 2026
+ */
 
-// ============================================
-// SUPABASE CONFIG
-// ============================================
-const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE';
+// ═══════════════════════════════════════════════════════════════════════════
+// KEY SETUP MODAL
+// ═══════════════════════════════════════════════════════════════════════════
 
-let supabaseClient = null;
-let currentUser = null;
-let syncEnabled = true;
-let isSyncing = false;
-let lastSyncTime = null;
-
-// Device ID for tracking
-const DEVICE_ID = localStorage.getItem('droplit_device_id') || (() => {
-  const id = 'dev_' + Math.random().toString(36).substr(2, 9);
-  localStorage.setItem('droplit_device_id', id);
-  return id;
-})();
-
-console.log('📱 Device ID:', DEVICE_ID);
-
-// ============================================
-// INITIALIZE SUPABASE
-// ============================================
-async function initSupabase() {
-  try {
-    if (typeof window.supabase === 'undefined') {
-      console.log('⚠️ Supabase SDK not loaded');
-      updateSyncUI('offline', 'No SDK');
-      return false;
-    }
-    
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('✅ Supabase client initialized');
-    
-    // Check for existing session
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    
-    if (session && session.user) {
-      currentUser = session.user;
-      console.log('✅ Session found:', currentUser.email || currentUser.id.substring(0, 8) + '...');
-      updateSyncUI('synced', 'Connected');
-      
-      // Pull data in background
-      pullFromServer();
-      
-    } else {
-      // No session - DON'T auto-login!
-      // Let onboarding.js handle showing the modal
-      console.log('ℹ️ No session - waiting for user to sign in');
-      updateSyncUI('offline', 'Not signed in');
-    }
-    
-    // Listen for auth changes
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-      console.log('🔄 Auth state:', event);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        // Prevent duplicate handling across modules
-        if (window._dropLitAuthHandled) {
-          console.log('🔄 Auth already handled by another module');
-          return;
-        }
+function showEncryptionSetupModal(userId) {
+  // Remove existing modal if any
+  const existing = document.getElementById('encryption-setup-modal');
+  if (existing) existing.remove();
+  
+  // Create modal
+  const modal = document.createElement('div');
+  modal.id = 'encryption-setup-modal';
+  modal.innerHTML = `
+    <div class="enc-modal-overlay" onclick="DropLitEncryptionUI.closeEncryptionModal()"></div>
+    <div class="enc-modal-container">
+      <div class="enc-modal-content">
         
-        currentUser = session.user;
-        console.log('✅ Signed in:', currentUser.email || currentUser.id.substring(0, 8));
-        updateSyncUI('synced', 'Connected');
-        pullFromServer();
+        <div class="enc-header">
+          <div class="enc-icon">🔐</div>
+          <h2>Secure Your Data</h2>
+          <p>Choose how to protect your drops</p>
+        </div>
         
-      } else if (event === 'SIGNED_OUT') {
-        currentUser = null;
-        console.log('👋 Signed out');
-        updateSyncUI('offline', 'Not signed in');
-      }
+        <div class="enc-options">
+          <label class="enc-option" data-method="password">
+            <input type="radio" name="enc-method" value="password">
+            <div class="enc-option-body">
+              <span class="enc-option-icon">🔑</span>
+              <div class="enc-option-text">
+                <strong>Password</strong>
+                <small>Access on any device</small>
+              </div>
+            </div>
+          </label>
+          
+          <label class="enc-option" data-method="random">
+            <input type="radio" name="enc-method" value="random">
+            <div class="enc-option-body">
+              <span class="enc-option-icon">🎲</span>
+              <div class="enc-option-text">
+                <strong>Device Key</strong>
+                <small>This device only</small>
+              </div>
+            </div>
+          </label>
+        </div>
+        
+        <div class="enc-password-form" id="encPasswordForm" style="display:none;">
+          <input type="password" id="encPassword" placeholder="Password (min 8 chars)" autocomplete="new-password">
+          <input type="password" id="encPasswordConfirm" placeholder="Confirm password" autocomplete="new-password">
+          <div class="enc-strength" id="encStrength"></div>
+        </div>
+        
+        <div class="enc-warning" id="encWarning"></div>
+        
+        <button class="enc-btn-primary" id="encSetupBtn" disabled onclick="DropLitEncryptionUI.doSetup('${userId}')">
+          Enable Encryption
+        </button>
+        
+        <p class="enc-footer">Your data is encrypted before leaving your device</p>
+        
+      </div>
+    </div>
+  `;
+  
+  // Add styles
+  addEncryptionStyles();
+  
+  // Add to body
+  document.body.appendChild(modal);
+  
+  // Setup listeners
+  setupModalListeners();
+}
+
+function setupModalListeners() {
+  const options = document.querySelectorAll('.enc-option');
+  const passwordForm = document.getElementById('encPasswordForm');
+  const warning = document.getElementById('encWarning');
+  const btn = document.getElementById('encSetupBtn');
+  const pwd = document.getElementById('encPassword');
+  const pwdConfirm = document.getElementById('encPasswordConfirm');
+  
+  let selectedMethod = null;
+  
+  // Option click
+  options.forEach(opt => {
+    opt.addEventListener('click', () => {
+      options.forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      opt.querySelector('input').checked = true;
+      selectedMethod = opt.dataset.method;
       
-      // Update account UI if function exists
-      if (typeof updateAccountUI === 'function') {
-        updateAccountUI();
+      if (selectedMethod === 'password') {
+        passwordForm.style.display = 'block';
+        warning.innerHTML = '⚠️ Lost password = lost data';
+        btn.disabled = true;
+        pwd.focus();
+      } else {
+        passwordForm.style.display = 'none';
+        warning.innerHTML = '⚠️ Clearing browser data deletes key';
+        btn.disabled = false;
       }
     });
+  });
+  
+  // Password validation
+  const validate = () => {
+    if (selectedMethod !== 'password') return;
     
-    return true;
-  } catch (error) {
-    console.error('❌ Supabase init error:', error);
-    updateSyncUI('error', 'Error');
-    return false;
-  }
+    const p = pwd.value;
+    const c = pwdConfirm.value;
+    
+    // Strength indicator
+    let strength = 0;
+    if (p.length >= 8) strength++;
+    if (p.length >= 12) strength++;
+    if (/[A-Z]/.test(p) && /[a-z]/.test(p)) strength++;
+    if (/[0-9]/.test(p)) strength++;
+    if (/[^A-Za-z0-9]/.test(p)) strength++;
+    
+    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981'];
+    const labels = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+    const idx = Math.min(strength, 4);
+    
+    document.getElementById('encStrength').innerHTML = p.length > 0 ? 
+      `<div style="height:3px;background:#333;border-radius:2px;"><div style="height:100%;width:${(strength/5)*100}%;background:${colors[idx]};border-radius:2px;transition:0.3s;"></div></div><small style="color:${colors[idx]}">${labels[idx] || 'Too short'}</small>` : '';
+    
+    // Enable button
+    btn.disabled = !(p.length >= 8 && p === c);
+  };
+  
+  pwd.addEventListener('input', validate);
+  pwdConfirm.addEventListener('input', validate);
 }
 
-// ============================================
-// SIGN OUT
-// ============================================
-async function signOut() {
-  if (!supabaseClient) return false;
+async function doSetup(userId) {
+  const btn = document.getElementById('encSetupBtn');
+  const method = document.querySelector('.enc-option.selected')?.dataset.method;
+  
+  if (!method) return;
+  
+  btn.disabled = true;
+  btn.textContent = 'Setting up...';
   
   try {
-    await supabaseClient.auth.signOut();
-    currentUser = null;
-    console.log('👋 Signed out');
-    return true;
-  } catch (error) {
-    console.error('❌ Sign out error:', error);
-    return false;
-  }
-}
-
-// ============================================
-// PULL DROPS FROM SERVER
-// ============================================
-async function pullFromServer() {
-  if (!currentUser || !supabaseClient) return;
-  
-  try {
-    const { data, error } = await supabaseClient
-      .from('drops')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+    let result;
     
-    if (error) throw error;
-    
-    if (data && data.length > 0) {
-      console.log(`📥 Pulled ${data.length} drops from server`);
+    if (method === 'password') {
+      const pwd = document.getElementById('encPassword').value;
+      result = await window.DropLitEncryptedSync.setupEncryptionWithPassword(userId, pwd);
+    } else {
+      result = await window.DropLitEncryptedSync.setupEncryptionRandom(userId);
     }
     
-    lastSyncTime = new Date();
-    
-  } catch (error) {
-    console.error('❌ Pull error:', error);
-  }
-}
-
-// ============================================
-// SYNC SINGLE DROP TO SERVER
-// ============================================
-async function syncDropToServer(idea, action = 'create') {
-  if (!syncEnabled || !currentUser || !supabaseClient) {
-    console.log('⏸️ Sync disabled or not connected');
-    return false;
-  }
-  
-  // Skip media drops for MVP (unless they have encrypted content)
-  if ((idea.isMedia || idea.image || idea.audioData) && !idea.encrypted) {
-    console.log('⏸️ Skipping unencrypted media drop sync');
-    return true;
-  }
-  
-  try {
-    updateSyncUI('syncing', 'Saving...');
-    
-    // Prepare drop data for Supabase
-    let dropData = {
-      user_id: currentUser.id,
-      external_id: String(idea.id),
-      content: idea.text || '',
-      category: idea.category || 'inbox',
-      tags: idea.tags || [],
-      markers: idea.markers || [],
-      source: 'droplit',
-      language: 'ru',
-      is_media: !!(idea.isMedia || idea.image || idea.audioData),
-      has_local_media: !!(idea.image || idea.audioData),
-      is_merged: idea.isMerged || false,
-      ai_generated: idea.aiGenerated || false,
-      transcription: idea.transcription || null,
-      original_text: idea.originalText || null,
-      notes: idea.notes || null,
-      local_id: String(idea.id),
-      device_id: DEVICE_ID,
-      metadata: {
-        date: idea.date,
-        time: idea.time,
-        timestamp: idea.timestamp,
-        encrypted: idea.encrypted || false
+    if (result.success) {
+      if (typeof toast === 'function') {
+        toast('🔐 Encryption enabled!', 'success');
       }
-    };
-    
-    // If privacy system is active, encrypt before sync
-    if (window.DROPLIT_PRIVACY_ENABLED && typeof window.DropLitEncryptedSync !== 'undefined') {
-      try {
-        dropData = await window.DropLitEncryptedSync.prepareDropForSync(idea);
-        console.log('🔐 Drop encrypted for sync');
-      } catch (encErr) {
-        console.warn('⚠️ Encryption failed, syncing unencrypted:', encErr);
+      closeEncryptionModal();
+      localStorage.setItem('droplit_has_key_' + userId, 'true');
+      localStorage.setItem('droplit_encryption_enabled', 'true');
+      
+      // Update header lock indicator
+      if (typeof updateSecurityIndicator === 'function') {
+        updateSecurityIndicator();
       }
+      
+      // Initialize privacy system
+      if (typeof initializePrivacySystem === 'function') {
+        await initializePrivacySystem();
+      } else if (typeof window.initializePrivacySystem === 'function') {
+        await window.initializePrivacySystem();
+      }
+      
+      // Refresh
+      if (typeof render === 'function') render();
+      
+    } else {
+      throw new Error(result.error || 'Setup failed');
     }
     
-    console.log('📤 Syncing drop:', dropData.external_id);
-    
-    const { error, data } = await supabaseClient
-      .from('drops')
-      .upsert(dropData, { 
-        onConflict: 'external_id',
-        ignoreDuplicates: false 
-      })
-      .select();
-    
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
+  } catch (err) {
+    console.error('[EncryptionUI] Error:', err);
+    if (typeof toast === 'function') {
+      toast('Error: ' + err.message, 'error');
+    } else {
+      alert('Error: ' + err.message);
     }
-    
-    console.log(`☁️ Synced drop ${String(idea.id).substring(0, 8)}... (${action})`);
-    updateSyncUI('synced', 'Synced');
-    lastSyncTime = new Date();
-    
-    return true;
-  } catch (error) {
-    console.error('❌ Sync error:', error);
-    updateSyncUI('error', 'Sync failed');
-    return false;
+    btn.disabled = false;
+    btn.textContent = 'Enable Encryption';
   }
 }
 
-// ============================================
-// DELETE DROP FROM SERVER
-// ============================================
-async function deleteDropFromServer(ideaId) {
-  if (!syncEnabled || !currentUser || !supabaseClient) return false;
-  
-  try {
-    updateSyncUI('syncing', 'Deleting...');
-    
-    const { error } = await supabaseClient
-      .from('drops')
-      .delete()
-      .eq('external_id', String(ideaId))
-      .eq('user_id', currentUser.id);
-    
-    if (error) throw error;
-    
-    console.log(`🗑️ Deleted drop ${String(ideaId).substring(0, 8)}...`);
-    updateSyncUI('synced', 'Synced');
-    
-    return true;
-  } catch (error) {
-    console.error('❌ Delete sync error:', error);
-    updateSyncUI('error', 'Delete failed');
-    return false;
-  }
+function closeEncryptionModal() {
+  const modal = document.getElementById('encryption-setup-modal');
+  if (modal) modal.remove();
 }
 
-// ============================================
-// MANUAL SYNC
-// ============================================
-async function manualSync() {
-  if (isSyncing) return;
+// ═══════════════════════════════════════════════════════════════════════════
+// STYLES — Mobile-First, Centered
+// ═══════════════════════════════════════════════════════════════════════════
+
+function addEncryptionStyles() {
+  if (document.getElementById('encryption-modal-styles')) return;
   
-  if (!currentUser) {
-    if (typeof toast === 'function') toast('Not signed in', 'warning');
-    return;
-  }
-  
-  isSyncing = true;
-  if (typeof toast === 'function') toast('Syncing...', 'info');
-  
-  try {
-    // Sync all local text drops
-    const textDrops = (typeof ideas !== 'undefined' ? ideas : []).filter(i => !i.isMedia && !i.image && !i.audioData);
-    let synced = 0;
-    
-    for (const idea of textDrops) {
-      const success = await syncDropToServer(idea, 'sync');
-      if (success) synced++;
+  const style = document.createElement('style');
+  style.id = 'encryption-modal-styles';
+  style.textContent = `
+    /* Modal Container */
+    #encryption-setup-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
     }
     
-    lastSyncTime = new Date();
-    updateLastSyncInfo();
-    if (typeof toast === 'function') toast(`Synced ${synced} drops`, 'success');
+    /* Overlay */
+    .enc-modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+    }
     
-  } catch (error) {
-    console.error('❌ Manual sync error:', error);
-    if (typeof toast === 'function') toast('Sync failed', 'error');
-  }
+    /* Container - handles scrolling */
+    .enc-modal-container {
+      position: relative;
+      width: 100%;
+      max-width: 360px;
+      max-height: calc(100vh - 32px);
+      max-height: calc(100dvh - 32px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Content */
+    .enc-modal-content {
+      background: #1a1a2e;
+      border-radius: 16px;
+      padding: 24px 20px;
+      box-sizing: border-box;
+    }
+    
+    /* Header */
+    .enc-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .enc-icon {
+      font-size: 40px;
+      margin-bottom: 8px;
+    }
+    .enc-header h2 {
+      margin: 0 0 4px;
+      font-size: 20px;
+      color: #fff;
+    }
+    .enc-header p {
+      margin: 0;
+      font-size: 14px;
+      color: #888;
+    }
+    
+    /* Options */
+    .enc-options {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .enc-option {
+      flex: 1;
+      cursor: pointer;
+    }
+    .enc-option input {
+      display: none;
+    }
+    .enc-option-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 8px;
+      background: #252542;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      transition: 0.2s;
+    }
+    .enc-option:hover .enc-option-body {
+      border-color: #444;
+    }
+    .enc-option.selected .enc-option-body {
+      border-color: #8B5CF6;
+      background: rgba(139,92,246,0.15);
+    }
+    .enc-option-icon {
+      font-size: 24px;
+    }
+    .enc-option-text {
+      text-align: center;
+    }
+    .enc-option-text strong {
+      display: block;
+      font-size: 14px;
+      color: #fff;
+    }
+    .enc-option-text small {
+      font-size: 11px;
+      color: #888;
+    }
+    
+    /* Password Form */
+    .enc-password-form {
+      margin-bottom: 16px;
+    }
+    .enc-password-form input {
+      width: 100%;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      background: #252542;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    .enc-password-form input:focus {
+      outline: none;
+      border-color: #8B5CF6;
+    }
+    .enc-password-form input::placeholder {
+      color: #666;
+    }
+    .enc-strength {
+      min-height: 20px;
+    }
+    .enc-strength small {
+      font-size: 11px;
+    }
+    
+    /* Warning */
+    .enc-warning {
+      text-align: center;
+      font-size: 12px;
+      color: #f97316;
+      margin-bottom: 16px;
+      min-height: 16px;
+    }
+    
+    /* Button */
+    .enc-btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #8B5CF6, #6366F1);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .enc-btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .enc-btn-primary:not(:disabled):active {
+      transform: scale(0.98);
+    }
+    
+    /* Footer */
+    .enc-footer {
+      text-align: center;
+      font-size: 11px;
+      color: #666;
+      margin: 16px 0 0;
+    }
+  `;
   
-  isSyncing = false;
+  document.head.appendChild(style);
 }
 
-// ============================================
-// UI HELPERS
-// ============================================
-function updateLastSyncInfo() {
-  const el = document.getElementById('lastSyncInfo');
-  if (!el) return;
+// ═══════════════════════════════════════════════════════════════════════════
+// ENCRYPTION INDICATOR (simplified)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function updateEncryptionIndicator() {
+  const indicator = document.getElementById('encryption-indicator');
+  if (!indicator) return;
   
-  if (lastSyncTime) {
-    el.textContent = 'Last sync: ' + lastSyncTime.toLocaleTimeString();
+  const isActive = window.DROPLIT_PRIVACY_ENABLED === true;
+  indicator.className = 'encryption-indicator ' + (isActive ? 'active' : 'inactive');
+  indicator.innerHTML = isActive ? '🔐 On' : '🔓 Off';
+}
+
+function createEncryptionBadge(privacyLevel, isEncrypted) {
+  const badge = document.createElement('span');
+  badge.className = 'encryption-badge';
+  
+  if (!isEncrypted) {
+    badge.classList.add('unencrypted');
+    badge.textContent = '🔓';
   } else {
-    el.textContent = 'Last sync: —';
+    badge.classList.add('encrypted');
+    badge.textContent = '🔐';
   }
+  
+  return badge;
 }
 
-function updateSyncUI(status, text) {
-  if (status === 'synced') {
-    lastSyncTime = new Date();
-    updateLastSyncInfo();
-  }
-}
-
-// ============================================
-// INITIALIZE ON LOAD
-// ============================================
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(initSupabase, 300);
-});
-
-// ============================================
+// ═══════════════════════════════════════════════════════════════════════════
 // EXPORTS
-// ============================================
-window.DropLitAuth = {
-  initSupabase,
-  signOut,
-  syncDropToServer,
-  deleteDropFromServer,
-  manualSync,
-  pullFromServer,
-  getSupabase: () => supabaseClient,
-  getCurrentUser: () => currentUser,
-  getDeviceId: () => DEVICE_ID,
-  isAuthenticated: () => !!currentUser
+// ═══════════════════════════════════════════════════════════════════════════
+
+window.DropLitEncryptionUI = {
+  showEncryptionSetupModal,
+  closeEncryptionModal,
+  doSetup,
+  updateEncryptionIndicator,
+  createEncryptionBadge,
+  addEncryptionStyles
 };
 
-// Also expose currentUser globally
-window.currentUser = currentUser;
-
-// Keep currentUser in sync
-Object.defineProperty(window, 'currentUser', {
-  get: () => currentUser,
-  set: (val) => { currentUser = val; }
+// Listen for events
+window.addEventListener('encryption-setup-needed', (e) => {
+  showEncryptionSetupModal(e.detail.userId);
 });
+
+console.log('[EncryptionUI] Module loaded v1.1.0');
