@@ -36,8 +36,8 @@
   <script src="js/notifications.js"></script>
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Onboarding System -->
-  <script src="js/onboarding.js"></script>
+  <!-- Onboarding System - DISABLED TO STOP AUTH LOOP -->
+  <!-- <script src="js/onboarding.js"></script> -->
 
   <!-- ============================================
        DROPLIT PRIVACY SYSTEM v1.0
@@ -6582,11 +6582,8 @@ async function updateAccountUI() {
     let userPlan = localStorage.getItem('droplit_user_plan') || 'beta';
     
     try {
-      if (typeof supabase !== 'undefined') {
-        const client = supabase.createClient(
-          'https://ughfdhmyflotgsysvrrc.supabase.co',
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE'
-        );
+      const client = getSupabaseClient();
+      if (client) {
         const { data } = await client.rpc('get_token_balance', { p_user_id: currentUser.id });
         if (data && data.tier) {
           userPlan = data.tier;
@@ -6648,22 +6645,17 @@ async function handleLogout() {
   if (!confirm('Sign out of DropLit?')) return;
   
   try {
-    // Clear local auth data
-    if (typeof supabase !== 'undefined' && supabase.createClient) {
-      const client = supabase.createClient(
-        'https://ughfdhmyflotgsysvrrc.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE'
-      );
-      await client.auth.signOut();
+    // Use global client
+    if (window._supabaseClient) {
+      await window._supabaseClient.auth.signOut();
     }
     
     // Clear local storage auth-related items
     localStorage.removeItem('sb-ughfdhmyflotgsysvrrc-auth-token');
     
     // Reset currentUser
-    if (typeof currentUser !== 'undefined') {
-      window.currentUser = null;
-    }
+    window.currentUser = null;
+    window._authListenerSetup = false;
     
     // Update UI
     updateAccountUI();
@@ -6689,28 +6681,23 @@ async function handleLogout() {
   }
 }
 
-// Update account UI when menu opens
-document.addEventListener('DOMContentLoaded', function() {
-  // Initial update
-  setTimeout(updateAccountUI, 500);
-  
-  // Update when auth state changes
-  if (typeof supabase !== 'undefined') {
-    try {
-      const client = supabase.createClient(
-        'https://ughfdhmyflotgsysvrrc.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE'
-      );
-      client.auth.onAuthStateChange((event, session) => {
-        if (session?.user) {
-          window.currentUser = session.user;
-        } else {
-          window.currentUser = null;
-        }
-        updateAccountUI();
-      });
-    } catch (e) {}
+// Create single global Supabase client
+function getSupabaseClient() {
+  if (!window._supabaseClient && typeof supabase !== 'undefined') {
+    window._supabaseClient = supabase.createClient(
+      'https://ughfdhmyflotgsysvrrc.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE'
+    );
+    console.log('[Auth] Global Supabase client created');
   }
+  return window._supabaseClient;
+}
+
+// Update account UI when menu opens - NO AUTH LISTENER
+document.addEventListener('DOMContentLoaded', function() {
+  // Initial update only
+  setTimeout(updateAccountUI, 500);
+  console.log('[Auth] DOMContentLoaded - NO auth listener (disabled to stop loop)');
 });
 
 function openMainMenu() {
