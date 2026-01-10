@@ -21,7 +21,15 @@
   
   function initSupabase() {
     if (typeof supabase !== 'undefined' && supabase.createClient) {
-      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // Use global client if exists
+      if (window._supabaseClient) {
+        supabaseClient = window._supabaseClient;
+        console.log('[Onboarding] Using existing global Supabase client');
+      } else {
+        window._supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        supabaseClient = window._supabaseClient;
+        console.log('[Onboarding] Created global Supabase client');
+      }
       return true;
     }
     return false;
@@ -362,9 +370,18 @@
   // ============================================
   
   function setupAuthListener() {
+    // Prevent multiple listeners - use global flag
+    if (window._authListenerSetup) {
+      console.log('[Onboarding] Auth listener already setup, skipping');
+      return;
+    }
+    
     if (!supabaseClient) {
       if (!initSupabase()) return;
     }
+    
+    window._authListenerSetup = true;
+    console.log('[Onboarding] Setting up auth listener');
     
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       console.log('[Onboarding] Auth state:', event);
@@ -442,7 +459,7 @@
         }, 500);
         
       } else if (event === 'SIGNED_OUT') {
-        // Reset auth handled flag
+        // Reset auth handled flag but NOT listener flag
         window._dropLitAuthHandled = false;
         // User signed out - show onboarding
         showOnboardingModal();
