@@ -303,12 +303,20 @@
   
   function proceedToAuth() {
     const btn = document.getElementById('onboardingContinueBtn');
+    const codeInput = document.getElementById('onboardingInviteCode');
+    
     if (btn && !btn.disabled) {
       // Store invite ID for after auth
       const inviteId = btn.dataset.inviteId;
       if (inviteId) {
         localStorage.setItem('droplit_pending_invite', inviteId);
       }
+      
+      // Store invite code text for plan assignment
+      if (codeInput && codeInput.value) {
+        localStorage.setItem('droplit_pending_invite_code', codeInput.value.trim().toUpperCase());
+      }
+      
       showOnboardingStep(2);
     }
   }
@@ -367,10 +375,34 @@
         
         // Check and use pending invite
         const pendingInvite = localStorage.getItem('droplit_pending_invite');
+        const pendingInviteCode = localStorage.getItem('droplit_pending_invite_code');
+        
         if (pendingInvite) {
           await useInviteCode(pendingInvite, user.id);
           localStorage.removeItem('droplit_pending_invite');
         }
+        
+        // Assign user plan based on invite code
+        let userPlan = 'beta'; // default for beta testers
+        if (pendingInviteCode) {
+          // Owner codes
+          if (pendingInviteCode === 'ALEX2026' || pendingInviteCode === 'OWNER') {
+            userPlan = 'owner';
+          }
+          // Pro codes (future)
+          else if (pendingInviteCode.startsWith('PRO')) {
+            userPlan = 'pro';
+          }
+          // Business codes (future)
+          else if (pendingInviteCode.startsWith('BIZ')) {
+            userPlan = 'business';
+          }
+          localStorage.removeItem('droplit_pending_invite_code');
+        }
+        
+        // Store user plan
+        localStorage.setItem('droplit_user_plan', userPlan);
+        console.log('[Onboarding] User plan set to:', userPlan);
         
         // Update global currentUser
         if (typeof window.currentUser !== 'undefined') {
