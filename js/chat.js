@@ -836,7 +836,8 @@ function recorderCreateDrop() {
       createBtn.textContent = 'CREATED!';
       createBtn.style.background = '#10B981';
       createBtn.style.color = 'white';
-      toast('Audio saved!', 'success');
+      const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
+      toast(encIcon + 'Audio saved!', 'success');
       
       // Reset
       recorderBlob = null;
@@ -1021,7 +1022,8 @@ async function saveAudioDrop(blob) {
     render();
     counts();
     
-    toast('Audio saved! ' + formatDuration(duration));
+    const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
+    toast(encIcon + 'Audio saved! ' + formatDuration(duration));
     return drop;
     
   } catch (error) {
