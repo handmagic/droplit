@@ -105,17 +105,25 @@
     .pill-s.delete { background: rgba(239,68,68,0.3); color: #ff8a8a; }
     .pill-s.delete:active { background: rgba(239,68,68,0.5); }
     
-    /* Dropdown Tools Menu */
+    /* Dropdown Tools Menu with animation */
     .pv-tools-menu {
-      display: none;
+      display: flex;
       flex-direction: column;
       gap: 8px;
-      padding: 10px 12px;
+      padding: 0 12px;
       background: rgba(0,0,0,0.9);
       border-bottom: 1px solid rgba(255,255,255,0.1);
       flex-shrink: 0;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.25s ease-out, opacity 0.2s ease-out, padding 0.25s ease-out;
     }
-    .pv-tools-menu.show { display: flex; }
+    .pv-tools-menu.show { 
+      max-height: 150px;
+      opacity: 1;
+      padding: 10px 12px;
+    }
     
     .pv-tools-row {
       display: flex;
