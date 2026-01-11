@@ -1889,7 +1889,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.104 • Syntrise Inc. © 2026</div>
+          <div class="menu-about-ver">v0.9.105 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -2038,38 +2038,98 @@
     </div>
   </div>
   
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- PHOTO VIEWER v2.0 - Header-based design                        -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
   <div class="overlay image-viewer" id="imageViewer" onclick="handleImageViewerClick(event)">
-    <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
-    <div class="image-viewer-markers" id="imageViewerMarkers" onclick="openPhotoMarkers()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg></div>
-    <div class="image-viewer-ai" onclick="openPhotoAI()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></div>
-    <div class="image-counter" id="imageCounter">1 / 1</div>
-    <div class="image-viewer-nav prev" id="imgNavPrev" onclick="navigateImage(-1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg></div>
-    <div class="image-viewer-nav next" id="imgNavNext" onclick="navigateImage(1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg></div>
-    <div class="image-viewer-content" id="imageViewerContent">
+    <!-- Header Bar -->
+    <div class="img-viewer-header" onclick="event.stopPropagation()">
+      <button class="img-header-btn menu" id="imgMenuBtn" onclick="toggleImageMenu()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <div class="img-header-center" id="imgHeaderCenter" onclick="openCaptionModal()">
+        <div class="img-header-counter" id="imgHeaderCounter">1 / 1</div>
+        <div class="img-header-caption" id="imgHeaderCaption"></div>
+      </div>
+      <button class="img-header-btn close" onclick="closeImageViewer()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    
+    <!-- Tools Menu (expandable) -->
+    <div class="img-tools-menu" id="imgToolsMenu" onclick="event.stopPropagation()">
+      <div class="img-tools-row">
+        <button class="pill-s" onclick="shareImage()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
+          Share
+        </button>
+        <button class="pill-s" onclick="saveImageToGallery()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          Save
+        </button>
+        <button class="pill-s delete" onclick="deleteFromViewer()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          Delete
+        </button>
+        <button class="pill-s" id="imgMarkersBtn" onclick="openPhotoMarkers()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg>
+          <span id="imgMarkersLabel">Markers</span>
+        </button>
+      </div>
+      <div class="img-tools-row ai-tools">
+        <button class="pill-s ai" onclick="runPhotoAI('ocr')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+          OCR
+        </button>
+        <button class="pill-s ai" onclick="runPhotoAI('describe')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          Describe
+        </button>
+        <button class="pill-s" onclick="openCaptionEditModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          Edit Caption
+        </button>
+      </div>
+    </div>
+    
+    <!-- Photo Area -->
+    <div class="img-viewer-content" id="imageViewerContent">
       <img id="imageViewerImg" src="" alt="Full size">
     </div>
-    <div class="image-viewer-panel" onclick="event.stopPropagation()">
-      <div class="image-meta" id="imageMeta"></div>
-      <div class="image-caption-row">
-        <button class="caption-edit-btn" onclick="startEditCaption()">Edit</button>
-        <div class="image-caption-display" id="imageCaptionDisplay"></div>
+    
+    <!-- Navigation Arrows -->
+    <div class="img-viewer-nav prev" id="imgNavPrev" onclick="navigateImage(-1)">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+    <div class="img-viewer-nav next" id="imgNavNext" onclick="navigateImage(1)">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+  </div>
+
+  <!-- Caption/Info Modal -->
+  <div class="caption-modal" id="captionModal" onclick="if(event.target===this)closeCaptionModal()">
+    <div class="caption-modal-content" onclick="event.stopPropagation()">
+      <div class="caption-modal-header">
+        <h3>Photo Info</h3>
+        <button class="caption-modal-close" onclick="closeCaptionModal()">✕</button>
       </div>
-      <div class="image-notes-wrap" id="imageNotesWrap">
-        <textarea class="image-notes" id="imageNotes" placeholder="Add caption or notes..." rows="2"></textarea>
-        <div class="image-edit-actions" id="imageEditActions">
-          <button class="img-act" onclick="cancelEditCaption()">Cancel</button>
-          <button class="img-act primary" onclick="saveCaption()">Save</button>
-        </div>
+      <div class="caption-modal-meta" id="captionModalMeta"></div>
+      <div class="caption-modal-body">
+        <label>Caption / Notes</label>
+        <textarea id="captionModalText" placeholder="Add caption or notes..." rows="4"></textarea>
       </div>
-      <div class="image-actions" id="imageActions">
-        <button class="img-act" onclick="shareImage()">Share</button>
-        <button class="img-act" onclick="saveImageToGallery()">Download</button>
-        <button class="img-act delete" onclick="deleteFromViewer()">Delete</button>
+      <div class="caption-modal-actions">
+        <button class="pill-l sec" onclick="closeCaptionModal()">Cancel</button>
+        <button class="pill-l pri" onclick="saveCaptionFromModal()">Save</button>
       </div>
     </div>
   </div>
 
-  <!-- Photo AI Tools Modal -->
+  <!-- Photo AI Tools Modal (simplified) -->
   <div class="photo-ai-modal" id="photoAIModal" onclick="if(event.target===this)closePhotoAI()">
     <div class="photo-ai-content">
       <div class="photo-ai-header">
@@ -2089,13 +2149,6 @@
           <div class="info">
             <div class="title">Describe Image</div>
             <div class="desc">AI generates detailed description</div>
-          </div>
-        </button>
-        <button class="photo-ai-btn" onclick="startEditCaption(); closePhotoAI();">
-          <div class="icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></div>
-          <div class="info">
-            <div class="title">Edit Caption</div>
-            <div class="desc">Add or edit photo notes</div>
           </div>
         </button>
       </div>
@@ -4171,11 +4224,17 @@ function viewImage(id,e){
   currentMediaIndex=allMediaIds.indexOf(id);
   currentImageId=id;
   isEditingCaption=false;
+  imgMenuOpen=false; // Reset menu state
   
   // Reset zoom/pan
   resetTransform();
   
-  showImagePanel();
+  // Close menu if open
+  const menu = document.getElementById('imgToolsMenu');
+  const btn = document.getElementById('imgMenuBtn');
+  if(menu) menu.classList.remove('show');
+  if(btn) btn.classList.remove('active');
+  
   loadCurrentImage();
   updateNavigation();
   updatePhotoMarkersButton();
@@ -4209,48 +4268,110 @@ function loadCurrentImage(){
   tempImg.src=item.image;
   img.src=item.image;
   
-  // Meta info
-  let meta='<span>'+item.date+' '+item.time+'</span>';
-  if(item.geo){
-    meta+='<span>'+item.geo.lat.toFixed(4)+', '+item.geo.lng.toFixed(4)+'</span>';
-  }
-  document.getElementById('imageMeta').innerHTML=meta;
+  // Update header caption preview
+  updateHeaderCaption(item);
   
-  // Caption display
-  updateCaptionDisplay(item);
-  
-  // Reset to view mode
-  showImagePanel();
+  // Update markers button
+  updatePhotoMarkersButton();
 }
 
-function updateCaptionDisplay(item){
-  const display=document.getElementById('imageCaptionDisplay');
-  if(item.notes&&item.notes.trim()){
-    display.textContent=item.notes;
-    display.classList.remove('empty');
+// Update header caption preview (v2.0)
+function updateHeaderCaption(item){
+  const captionEl = document.getElementById('imgHeaderCaption');
+  if(!captionEl) return;
+  
+  if(item.notes && item.notes.trim()){
+    // Truncate to ~40 chars for header
+    const preview = item.notes.length > 40 ? item.notes.substring(0, 40) + '...' : item.notes;
+    captionEl.textContent = preview;
+    captionEl.classList.remove('empty');
   } else {
-    display.textContent='No caption';
-    display.classList.add('empty');
+    captionEl.textContent = 'Tap for info';
+    captionEl.classList.add('empty');
   }
 }
 
+// Toggle image tools menu
+let imgMenuOpen = false;
+function toggleImageMenu(){
+  const menu = document.getElementById('imgToolsMenu');
+  const btn = document.getElementById('imgMenuBtn');
+  imgMenuOpen = !imgMenuOpen;
+  
+  if(imgMenuOpen){
+    menu.classList.add('show');
+    btn.classList.add('active');
+  } else {
+    menu.classList.remove('show');
+    btn.classList.remove('active');
+  }
+}
+
+// Open caption/info modal
+function openCaptionModal(){
+  const item = ideas.find(x => x.id === currentImageId);
+  if(!item) return;
+  
+  // Populate modal
+  const metaEl = document.getElementById('captionModalMeta');
+  const textEl = document.getElementById('captionModalText');
+  
+  let meta = '<div class="meta-row"><strong>Date:</strong> ' + item.date + ' ' + item.time + '</div>';
+  if(item.geo){
+    meta += '<div class="meta-row"><strong>Location:</strong> ' + item.geo.lat.toFixed(4) + ', ' + item.geo.lng.toFixed(4) + '</div>';
+  }
+  if(item.category){
+    meta += '<div class="meta-row"><strong>Category:</strong> ' + item.category + '</div>';
+  }
+  metaEl.innerHTML = meta;
+  
+  textEl.value = item.notes || '';
+  
+  document.getElementById('captionModal').classList.add('show');
+}
+
+// Close caption modal
+function closeCaptionModal(){
+  document.getElementById('captionModal').classList.remove('show');
+}
+
+// Save caption from modal
+function saveCaptionFromModal(){
+  const item = ideas.find(x => x.id === currentImageId);
+  if(!item) return;
+  
+  const text = document.getElementById('captionModalText').value.trim();
+  item.notes = text;
+  save();
+  render();
+  
+  // Update header preview
+  updateHeaderCaption(item);
+  
+  closeCaptionModal();
+  toast('Caption saved!', 'success');
+}
+
+// Open caption edit modal (alias)
+function openCaptionEditModal(){
+  openCaptionModal();
+  // Focus on textarea
+  setTimeout(() => {
+    document.getElementById('captionModalText').focus();
+  }, 100);
+}
+
+// Legacy function - keep for compatibility
 function showImagePanel(){
   isEditingCaption=false;
-  
-  // Show caption row, hide edit area
-  const captionRow=document.querySelector('.image-caption-row');
-  const notesWrap=document.getElementById('imageNotesWrap');
-  
-  if(captionRow) captionRow.style.display='flex';
-  if(notesWrap) notesWrap.classList.remove('editing');
 }
 
 function updateNavigation(){
-  const counter=document.getElementById('imageCounter');
+  const counter=document.getElementById('imgHeaderCounter');
   const prevBtn=document.getElementById('imgNavPrev');
   const nextBtn=document.getElementById('imgNavNext');
   
-  counter.textContent=(currentMediaIndex+1)+' / '+allMediaIds.length;
+  if(counter) counter.textContent=(currentMediaIndex+1)+' / '+allMediaIds.length;
   
   if(allMediaIds.length>1){
     prevBtn.classList.toggle('show',currentMediaIndex>0);
@@ -4306,18 +4427,11 @@ function loadCurrentImageNoReset(){
   tempImg.src=item.image;
   img.src=item.image;
   
-  // Meta info
-  let meta='<span>'+item.date+' '+item.time+'</span>';
-  if(item.geo){
-    meta+='<span>'+item.geo.lat.toFixed(4)+', '+item.geo.lng.toFixed(4)+'</span>';
-  }
-  document.getElementById('imageMeta').innerHTML=meta;
+  // Update header caption preview
+  updateHeaderCaption(item);
   
-  // Caption display
-  updateCaptionDisplay(item);
-  
-  // Reset to view mode
-  showImagePanel();
+  // Update markers button
+  updatePhotoMarkersButton();
 }
 
 // ============================================
@@ -4636,35 +4750,18 @@ function getPinchDistance(touches){
 }
 
 // Caption editing
+// Legacy function - redirect to new modal
 function startEditCaption(){
-  isEditingCaption=true;
-  const item=ideas.find(x=>x.id===currentImageId);
-  
-  document.getElementById('imageNotes').value=item?.notes||'';
-  
-  // Show edit area, hide caption row
-  document.querySelector('.image-caption-row').style.display='none';
-  document.getElementById('imageNotesWrap').classList.add('editing');
-  
-  setTimeout(()=>{
-    document.getElementById('imageNotes').focus();
-  },100);
+  openCaptionEditModal();
 }
 
+// Legacy function - use modal save instead
 function saveCaption(){
-  const notes=document.getElementById('imageNotes').value.trim();
-  const item=ideas.find(x=>x.id===currentImageId);
-  if(item){
-    item.notes=notes;
-    save();
-    render();
-    updateCaptionDisplay(item);
-  }
-  showImagePanel();
+  saveCaptionFromModal();
 }
 
 function cancelEditCaption(){
-  showImagePanel();
+  closeCaptionModal();
 }
 
 function handleImageViewerClick(e){
@@ -4675,9 +4772,14 @@ function handleImageViewerClick(e){
 
 function closeImageViewer(){
   stopAllAudio();
-  if(isEditingCaption){
-    saveCaption();
+  
+  // Close menu if open
+  if(imgMenuOpen){
+    toggleImageMenu();
   }
+  
+  // Close caption modal if open
+  closeCaptionModal();
   
   // Reset zoom/pan state
   resetTransform();
