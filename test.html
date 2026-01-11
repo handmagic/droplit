@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Photo Viewer Test</title>
+  <title>Photo Viewer Test v2</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -13,7 +13,7 @@
     }
     
     /* ============================================
-       PHOTO VIEWER - NEW HEADER DESIGN
+       PHOTO VIEWER v2
        ============================================ */
     .photo-viewer {
       position: fixed;
@@ -33,6 +33,7 @@
       background: rgba(0,0,0,0.9);
       border-bottom: 1px solid rgba(255,255,255,0.1);
       flex-shrink: 0;
+      gap: 8px;
     }
     
     .pv-header-btn {
@@ -52,28 +53,64 @@
     .pv-header-btn:active { background: rgba(255,255,255,0.2); }
     .pv-header-btn.menu.active { background: rgba(139,92,246,0.5); }
     
-    .pv-header-center {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    .pv-counter {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.7);
+      flex-shrink: 0;
+      min-width: 50px;
     }
     
-    .pv-counter {
-      font-size: 0.85rem;
+    .pv-header-center {
+      flex: 1;
+      min-width: 0;
+      text-align: center;
+    }
+    
+    .pv-filename {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.8);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .pv-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    
+    /* Pill buttons (unified style) */
+    .pill-s {
+      height: 32px;
+      padding: 0 14px;
+      border: none;
+      background: rgba(255,255,255,0.15);
+      border-radius: 16px;
+      font-family: inherit;
+      font-size: 0.7rem;
       font-weight: 600;
       color: white;
-      background: rgba(255,255,255,0.15);
-      padding: 6px 16px;
-      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
     }
+    .pill-s:active { background: rgba(255,255,255,0.25); }
+    .pill-s.ai { background: linear-gradient(135deg, rgba(139,92,246,0.5), rgba(59,130,246,0.5)); }
+    .pill-s.ai:active { background: linear-gradient(135deg, rgba(139,92,246,0.7), rgba(59,130,246,0.7)); }
+    .pill-s.delete { background: rgba(239,68,68,0.3); color: #ff8a8a; }
+    .pill-s.delete:active { background: rgba(239,68,68,0.5); }
     
     /* Dropdown Tools Menu */
     .pv-tools-menu {
       display: none;
       flex-direction: column;
       gap: 8px;
-      padding: 12px;
+      padding: 10px 12px;
       background: rgba(0,0,0,0.9);
       border-bottom: 1px solid rgba(255,255,255,0.1);
       flex-shrink: 0;
@@ -88,38 +125,6 @@
       padding-bottom: 2px;
     }
     .pv-tools-row::-webkit-scrollbar { display: none; }
-    
-    .pv-btn {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 16px;
-      border: none;
-      background: rgba(255,255,255,0.12);
-      border-radius: 20px;
-      color: white;
-      font-size: 0.8rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s;
-      white-space: nowrap;
-    }
-    .pv-btn:active { background: rgba(255,255,255,0.2); }
-    .pv-btn svg { width: 16px; height: 16px; }
-    
-    .pv-btn.ai { 
-      background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(59,130,246,0.4)); 
-    }
-    .pv-btn.ai:active { 
-      background: linear-gradient(135deg, rgba(139,92,246,0.6), rgba(59,130,246,0.6)); 
-    }
-    
-    .pv-btn.delete { 
-      background: rgba(239,68,68,0.25); 
-      color: #ff8a8a; 
-    }
-    .pv-btn.delete:active { background: rgba(239,68,68,0.4); }
     
     /* Photo Area */
     .pv-content {
@@ -156,25 +161,123 @@
     .pv-nav.prev { left: 12px; }
     .pv-nav.next { right: 12px; }
     
-    /* Bottom Panel (placeholder) */
-    .pv-panel {
-      flex-shrink: 0;
+    /* ============================================
+       INFO MODAL
+       ============================================ */
+    .info-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+      z-index: 700;
+    }
+    .info-modal.show { opacity: 1; visibility: visible; }
+    
+    .info-modal-content {
       background: #fff;
-      border-radius: 16px 16px 0 0;
-      padding: 16px;
-      color: #333;
-    }
-    .pv-panel-meta {
-      font-size: 0.75rem;
-      color: #888;
-      margin-bottom: 8px;
-    }
-    .pv-panel-caption {
-      font-size: 0.9rem;
-      color: #333;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
     
-    /* Toast for testing */
+    .info-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    .info-modal-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #333;
+    }
+    .info-modal-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: #f0f0f0;
+      border-radius: 50%;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+    }
+    .info-modal-close:active { background: #e0e0e0; }
+    
+    .info-modal-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    
+    .info-section {
+      margin-bottom: 16px;
+    }
+    .info-section:last-child { margin-bottom: 0; }
+    
+    .info-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    
+    .info-value {
+      font-size: 0.95rem;
+      color: #333;
+      line-height: 1.4;
+    }
+    
+    .info-textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e5e5;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      resize: none;
+      min-height: 80px;
+    }
+    .info-textarea:focus {
+      outline: none;
+      border-color: #8B5CF6;
+    }
+    
+    .info-modal-actions {
+      display: flex;
+      gap: 10px;
+      padding: 16px 20px;
+      border-top: 1px solid #e5e5e5;
+    }
+    
+    .info-btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .info-btn.cancel { background: #f0f0f0; color: #666; }
+    .info-btn.save { background: #8B5CF6; color: white; }
+    
+    /* Toast */
     .toast {
       position: fixed;
       bottom: 100px;
@@ -202,49 +305,32 @@
           <path d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
       </button>
+      <span class="pv-counter">3 / 12</span>
       <div class="pv-header-center">
-        <span class="pv-counter" id="counter">3 / 12</span>
+        <div class="pv-filename">IMG_20260111_153042.jpg</div>
       </div>
-      <button class="pv-header-btn close" onclick="showToast('Close viewer')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
+      <div class="pv-header-right">
+        <button class="pill-s" onclick="openInfoModal()">Info</button>
+        <button class="pv-header-btn close" onclick="showToast('Close viewer')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
     
     <!-- Tools Menu (hidden by default) -->
     <div class="pv-tools-menu" id="toolsMenu">
       <div class="pv-tools-row">
-        <button class="pv-btn" onclick="showToast('Share')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
-          Share
-        </button>
-        <button class="pv-btn" onclick="showToast('Download')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-          Download
-        </button>
-        <button class="pv-btn" onclick="showToast('Markers')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg>
-          Markers
-        </button>
-        <button class="pv-btn delete" onclick="showToast('Delete')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-          Delete
-        </button>
+        <button class="pill-s" onclick="showToast('Share')">Share</button>
+        <button class="pill-s" onclick="showToast('Download')">Download</button>
+        <button class="pill-s" onclick="showToast('Markers')">Markers</button>
+        <button class="pill-s delete" onclick="showToast('Delete')">Delete</button>
       </div>
       <div class="pv-tools-row">
-        <button class="pv-btn ai" onclick="showToast('OCR - Extract Text')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-          OCR
-        </button>
-        <button class="pv-btn ai" onclick="showToast('Describe Image')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          Describe
-        </button>
-        <button class="pv-btn" onclick="showToast('Edit Caption')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-          Edit Caption
-        </button>
+        <button class="pill-s ai" onclick="showToast('OCR')">OCR</button>
+        <button class="pill-s ai" onclick="showToast('Describe')">Describe</button>
+        <button class="pill-s" onclick="openInfoModal()">Edit Caption</button>
       </div>
     </div>
     
@@ -258,11 +344,37 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
       </div>
     </div>
-    
-    <!-- Bottom Panel (old style placeholder) -->
-    <div class="pv-panel">
-      <div class="pv-panel-meta">📅 11.01.2026 • 15:30 • Photo</div>
-      <div class="pv-panel-caption">This is a test caption for the photo viewer.</div>
+  </div>
+  
+  <!-- INFO Modal -->
+  <div class="info-modal" id="infoModal" onclick="if(event.target===this)closeInfoModal()">
+    <div class="info-modal-content">
+      <div class="info-modal-header">
+        <h3>Photo Info</h3>
+        <button class="info-modal-close" onclick="closeInfoModal()">✕</button>
+      </div>
+      <div class="info-modal-body">
+        <div class="info-section">
+          <div class="info-label">Filename</div>
+          <div class="info-value">IMG_20260111_153042.jpg</div>
+        </div>
+        <div class="info-section">
+          <div class="info-label">Date & Time</div>
+          <div class="info-value">11 January 2026, 15:30</div>
+        </div>
+        <div class="info-section">
+          <div class="info-label">Category</div>
+          <div class="info-value">Photo</div>
+        </div>
+        <div class="info-section">
+          <div class="info-label">Caption / Notes</div>
+          <textarea class="info-textarea" placeholder="Add caption or notes...">This is a test caption for the photo viewer.</textarea>
+        </div>
+      </div>
+      <div class="info-modal-actions">
+        <button class="info-btn cancel" onclick="closeInfoModal()">Cancel</button>
+        <button class="info-btn save" onclick="saveInfo()">Save</button>
+      </div>
     </div>
   </div>
   
@@ -283,6 +395,19 @@
         menu.classList.remove('show');
         btn.classList.remove('active');
       }
+    }
+    
+    function openInfoModal() {
+      document.getElementById('infoModal').classList.add('show');
+    }
+    
+    function closeInfoModal() {
+      document.getElementById('infoModal').classList.remove('show');
+    }
+    
+    function saveInfo() {
+      showToast('Info saved!');
+      closeInfoModal();
     }
     
     function showToast(msg) {
