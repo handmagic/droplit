@@ -20,7 +20,7 @@
     header.onclick = function(e) { e.stopPropagation(); };
     header.innerHTML = `
       <button class="pv-header-btn menu" id="pvMenuBtn" onclick="togglePvMenu()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
       <span class="pv-counter" id="pvCounter">1 / 1</span>
       <div class="pv-header-center">
@@ -29,7 +29,7 @@
       <div class="pv-header-right">
         <button class="pv-pill" onclick="openPvInfo()">Info</button>
         <button class="pv-header-btn" onclick="closeImageViewer()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
     `;
