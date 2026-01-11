@@ -171,7 +171,7 @@
         </button>
         
         <p class="onboarding-footer">
-          Don't have a code? <a href="mailto:alex@syntrise.com">Request access</a>
+          Don't have a code? <a href="/cdn-cgi/l/email-protection#fc9d909984bc8f8592888e958f99d29f9391">Request access</a>
         </p>
       </div>
       
@@ -2114,6 +2114,7 @@
         <button class="pill-l ai" onclick="savePhotoAIToCaption()">Set as Caption</button>
         <button class="pill-l sec" onclick="savePhotoAIToNewDrop()">Create New Drop</button>
         <button class="pill-l sec" onclick="copyPhotoAIResult()">Copy to Clipboard</button>
+        <button class="pill-l sec" onclick="closePhotoAIResult()">Cancel</button>
       </div>
     </div>
   </div>
@@ -2123,11 +2124,14 @@
     <div class="photo-markers-content">
       <div class="photo-markers-title">Add Markers</div>
       <div class="photo-markers-grid" id="photoMarkersGrid"></div>
-      <button class="photo-markers-done" onclick="closePhotoMarkersModal()">Done</button>
+      <div class="photo-markers-actions">
+        <button class="pill-m sec" onclick="closePhotoMarkersModal()">Cancel</button>
+        <button class="pill-m pri" onclick="closePhotoMarkersModal()">Done</button>
+      </div>
     </div>
   </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
@@ -7977,13 +7981,4 @@ async function resetEncryption() {
     updateEncryptionButton(false);
     updateSecurityIndicator();
     
-    toast("✅ Encryption reset. You can set it up again.", "success");
-    
-  } catch (error) {
-    toast("Reset failed: " + error.message, "error");
-  }
-}
-
-</script>
-</body>
-</html>
+    toast("✅ Encryption reset. You
