@@ -171,7 +171,7 @@
         </button>
         
         <p class="onboarding-footer">
-          Don't have a code? <a href="mailto:alex@syntrise.com">Request access</a>
+          Don't have a code? <a href="/cdn-cgi/l/email-protection#244548415c64575d4a50564d57410a474b49">Request access</a>
         </p>
       </div>
       
@@ -2039,6 +2039,32 @@
   </div>
   
   <div class="overlay image-viewer" id="imageViewer" onclick="handleImageViewerClick(event)">
+    <!-- NEW: Header with dropdown menu -->
+    <div class="img-viewer-header" onclick="event.stopPropagation()">
+      <button class="img-header-btn menu" id="imgMenuBtn" onclick="toggleImgMenu()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <div class="img-header-center">
+        <span class="img-header-counter" id="imgHeaderCounter">1 / 1</span>
+      </div>
+      <button class="img-header-btn close" onclick="closeImageViewer()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <!-- NEW: Dropdown tools menu -->
+    <div class="img-tools-menu" id="imgToolsMenu" onclick="event.stopPropagation()">
+      <div class="img-tools-row">
+        <button class="pill-s" onclick="toast('Tool 1')">Tool 1</button>
+        <button class="pill-s" onclick="toast('Tool 2')">Tool 2</button>
+        <button class="pill-s" onclick="toast('Tool 3')">Tool 3</button>
+        <button class="pill-s" onclick="toast('Tool 4')">Tool 4</button>
+      </div>
+    </div>
+    <!-- OLD elements (keeping for now) -->
     <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
     <div class="image-viewer-markers" id="imageViewerMarkers" onclick="openPhotoMarkers()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg></div>
     <div class="image-viewer-ai" onclick="openPhotoAI()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></div>
@@ -2127,7 +2153,7 @@
     </div>
   </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
@@ -4247,10 +4273,13 @@ function showImagePanel(){
 
 function updateNavigation(){
   const counter=document.getElementById('imageCounter');
+  const headerCounter=document.getElementById('imgHeaderCounter');
   const prevBtn=document.getElementById('imgNavPrev');
   const nextBtn=document.getElementById('imgNavNext');
   
-  counter.textContent=(currentMediaIndex+1)+' / '+allMediaIds.length;
+  const counterText = (currentMediaIndex+1)+' / '+allMediaIds.length;
+  counter.textContent = counterText;
+  if (headerCounter) headerCounter.textContent = counterText;
   
   if(allMediaIds.length>1){
     prevBtn.classList.toggle('show',currentMediaIndex>0);
@@ -4673,11 +4702,34 @@ function handleImageViewerClick(e){
   }
 }
 
+// Toggle photo viewer tools menu
+let imgMenuOpen = false;
+function toggleImgMenu() {
+  const menu = document.getElementById('imgToolsMenu');
+  const btn = document.getElementById('imgMenuBtn');
+  imgMenuOpen = !imgMenuOpen;
+  
+  if (imgMenuOpen) {
+    menu.classList.add('show');
+    btn.classList.add('active');
+  } else {
+    menu.classList.remove('show');
+    btn.classList.remove('active');
+  }
+}
+
 function closeImageViewer(){
   stopAllAudio();
   if(isEditingCaption){
     saveCaption();
   }
+  
+  // Close tools menu if open
+  imgMenuOpen = false;
+  const menu = document.getElementById('imgToolsMenu');
+  const menuBtn = document.getElementById('imgMenuBtn');
+  if (menu) menu.classList.remove('show');
+  if (menuBtn) menuBtn.classList.remove('active');
   
   // Reset zoom/pan state
   resetTransform();
@@ -7977,13 +8029,4 @@ async function resetEncryption() {
     updateEncryptionButton(false);
     updateSecurityIndicator();
     
-    toast("✅ Encryption reset. You can set it up again.", "success");
-    
-  } catch (error) {
-    toast("Reset failed: " + error.message, "error");
-  }
-}
-
-</script>
-</body>
-</html>
+    toast("✅ Encryption reset. You
