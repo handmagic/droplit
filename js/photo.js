@@ -317,10 +317,10 @@ function initPhotoViewerV2() {
   toolsMenu.onclick = function(e) { e.stopPropagation(); };
   toolsMenu.innerHTML = 
     '<div class="pv-tools-row">' +
-      '<button class="pv-btn" onclick="shareImage()">Share</button>' +
-      '<button class="pv-btn" onclick="saveImageToGallery()">Download</button>' +
+      '<button class="pv-btn" onclick="closePvMenu();shareImage()">Share</button>' +
+      '<button class="pv-btn" onclick="closePvMenu();saveImageToGallery()">Download</button>' +
       '<button class="pv-btn" onclick="openPhotoMarkers()">Markers</button>' +
-      '<button class="pv-btn delete" onclick="deleteFromViewer()">Delete</button>' +
+      '<button class="pv-btn delete" onclick="closePvMenu();deleteFromViewer()">Delete</button>' +
     '</div>' +
     '<div class="pv-tools-row">' +
       '<button class="pv-btn ai" onclick="runPhotoAI(\'ocr\')">OCR</button>' +
