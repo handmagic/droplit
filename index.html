@@ -1876,7 +1876,7 @@
         
         <!-- Setup Encryption -->
         <div style="padding: 12px 0;">
-          <button class="pill-l pri" onclick="setupEncryption()" style="width: 100%;" id="setupEncryptionBtn">🔑 Setup Encryption</button>
+          <button class="pill-l sec" onclick="setupEncryption()" style="width: 100%;" id="setupEncryptionBtn">🔐 Encryption</button>
         </div>
         
         <!-- Reset Encryption (for testing) -->
@@ -1889,7 +1889,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.103 • Syntrise Inc. © 2026</div>
+          <div class="menu-about-ver">v0.9.104 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -7783,90 +7783,53 @@ function showPrivacyStatus() {
 }
 
 // ============================================
-// SETUP ENCRYPTION FUNCTION
+// SETUP ENCRYPTION FUNCTION (Simplified v0.9.103)
 // ============================================
 
 async function setupEncryption() {
   // Check if user is logged in
   if (!currentUser) {
-    alert("Please log in first to setup encryption.");
+    toast("Please sign in first", "error");
     return;
   }
   
   // Check if encryption UI module is loaded
   if (typeof DropLitEncryptionUI === "undefined") {
-    alert("Encryption module not loaded. Please refresh the page.");
+    toast("Encryption module not loaded. Refresh page.", "error");
     return;
   }
   
   // Check if user already has a key
   try {
     const hasKey = await DropLitKeys.hasStoredKey(currentUser.id);
+    
     if (hasKey) {
-      // User already has encryption - offer to view status or reset
-      const action = confirm(
-        "🔐 Encryption is already set up!\n\n" +
-        "Your data is protected.\n\n" +
-        "Press OK to initialize privacy system.\n" +
-        "Press Cancel to close."
-      );
-      
-      if (action) {
-        // Initialize privacy system with existing key
+      // User already has encryption key
+      if (window.DROPLIT_PRIVACY_ENABLED) {
+        // Already active - show status
+        showPrivacyStatus();
+      } else {
+        // Key exists but not initialized - initialize now
+        toast("🔐 Activating encryption...", "info");
         await initializePrivacySystem();
       }
       return;
     }
-  } catch (e) {
-    console.error("Error checking key:", e);
-  }
-  
-  // ════════════════════════════════════════════════════════════
-  // PROTECTION: Check if user might have existing encrypted data
-  // ════════════════════════════════════════════════════════════
-  try {
-    // Check markers that indicate previous encryption use
-    const hadKeyBefore = localStorage.getItem("droplit_had_encryption_" + currentUser.id) === "true";
-    const existingDrops = localStorage.getItem('ideas');
-    const hasLocalDrops = existingDrops && existingDrops.length > 50;
     
-    // If there's any indication of previous data
-    if (hadKeyBefore || hasLocalDrops) {
-      const warningResult = confirm(
-        "⚠️ IMPORTANT: Check Before Proceeding\n\n" +
-        "You may have existing encrypted data from a previous session.\n\n" +
-        "Creating a NEW encryption key will make old data UNREADABLE.\n\n" +
-        "📋 Your options:\n" +
-        "• Enter your PASSWORD to recover existing key\n" +
-        "• Use BACKUP KEY if you saved one\n" +
-        "• Create NEW key only if starting fresh\n\n" +
-        "Press OK to continue to setup.\n" +
-        "Press Cancel to close and review your data first."
-      );
-      
-      if (!warningResult) {
-        return;
-      }
-    }
-    
-    // Mark that this user has used encryption (for future warnings)
-    localStorage.setItem("droplit_had_encryption_" + currentUser.id, "true");
+    // No key exists - show setup dialog
+    closeMainMenu();
+    DropLitEncryptionUI.showEncryptionSetupModal(currentUser.id);
     
   } catch (e) {
-    console.warn("[Encryption] Protection check error:", e);
+    console.error("[Encryption] Setup error:", e);
+    toast("Encryption error: " + e.message, "error");
   }
-  
-  // Close main menu first
-  closeMainMenu();
-  
-  // Show encryption setup modal
-  DropLitEncryptionUI.showEncryptionSetupModal(currentUser.id);
 }
 
 // Initialize privacy system after key setup
 async function initializePrivacySystem() {
   if (!currentUser) {
-    alert("Please log in first.");
+    console.warn("[Privacy] No user for init");
     return;
   }
   
@@ -7875,12 +7838,10 @@ async function initializePrivacySystem() {
     const keyData = await DropLitKeys.retrieveKey(currentUser.id);
     
     if (!keyData) {
-      alert("No encryption key found. Please setup encryption first.");
+      console.warn("[Privacy] No key found");
+      updateEncryptionButton(false);
       return;
     }
-    
-    // Mark that user has key (for status display)
-    localStorage.setItem("droplit_has_key_" + currentUser.id, "true");
     
     // Initialize privacy system
     if (typeof DropLitPrivacy !== "undefined") {
@@ -7899,56 +7860,101 @@ async function initializePrivacySystem() {
       
       if (result.success) {
         window.DROPLIT_PRIVACY_ENABLED = true;
-        toast("🔐 Privacy system activated!", "success");
-        
-        // Update button to show status
-        const btn = document.getElementById("setupEncryptionBtn");
-        if (btn) {
-          btn.textContent = "✅ Encryption Active";
-          btn.classList.remove("pri");
-          btn.classList.add("sec");
+        localStorage.setItem("droplit_has_key_" + currentUser.id, "true");
+        updateEncryptionButton(true);
+        updateSecurityIndicator();
+        console.log("[Privacy] ✅ System activated");
+        // Only show toast if user triggered it manually (not auto-init)
+        if (document.visibilityState === 'visible') {
+          toast("🔐 Encryption active", "success");
         }
       } else {
-        alert("Privacy initialization failed: " + (result.error || "Unknown error"));
+        console.error("[Privacy] Init failed:", result.error);
+        updateEncryptionButton(false);
       }
+    } else {
+      // DropLitPrivacy not loaded - just mark as having key
+      window.DROPLIT_PRIVACY_ENABLED = true;
+      localStorage.setItem("droplit_has_key_" + currentUser.id, "true");
+      updateEncryptionButton(true);
+      updateSecurityIndicator();
+      console.log("[Privacy] ✅ Key active (lite mode)");
     }
     
   } catch (error) {
-    console.error("Privacy init error:", error);
-    alert("Error initializing privacy: " + error.message);
+    console.error("[Privacy] Init error:", error);
+    updateEncryptionButton(false);
   }
 }
 
 // Auto-initialize privacy on page load if user has key
 document.addEventListener("DOMContentLoaded", async function() {
-  // Wait a bit for auth to complete
+  // Wait for auth to complete
   setTimeout(async () => {
-    if (currentUser && typeof DropLitKeys !== "undefined") {
-      try {
-        const hasKey = await DropLitKeys.hasStoredKey(currentUser.id);
-        if (hasKey) {
-          console.log("[Privacy] User has key, auto-initializing...");
-          localStorage.setItem("droplit_has_key_" + currentUser.id, "true");
-          await initializePrivacySystem();
-        }
-      } catch (e) {
-        console.log("[Privacy] Auto-init skipped:", e.message);
-      }
-    }
-  }, 2000);
+    await autoInitEncryption();
+  }, 1500);
 });
+
+// Auto-init encryption if user has key
+async function autoInitEncryption() {
+  if (!currentUser) {
+    console.log("[Privacy] No user, skipping auto-init");
+    updateEncryptionButton(false);
+    return;
+  }
+  
+  if (typeof DropLitKeys === "undefined") {
+    console.log("[Privacy] DropLitKeys not loaded, skipping");
+    return;
+  }
+  
+  try {
+    const hasKey = await DropLitKeys.hasStoredKey(currentUser.id);
+    
+    if (hasKey) {
+      console.log("[Privacy] User has key, auto-initializing...");
+      await initializePrivacySystem();
+    } else {
+      console.log("[Privacy] No key found, encryption available but not active");
+      updateEncryptionButton(false);
+    }
+  } catch (e) {
+    console.log("[Privacy] Auto-init error:", e.message);
+    updateEncryptionButton(false);
+  }
+}
+
+// Update encryption button UI
+function updateEncryptionButton(isActive) {
+  const btn = document.getElementById("setupEncryptionBtn");
+  if (!btn) return;
+  
+  if (isActive) {
+    btn.textContent = "✅ Encrypted";
+    btn.classList.remove("pri");
+    btn.classList.add("sec");
+    btn.style.background = "linear-gradient(135deg, #10B981, #059669)";
+    btn.style.color = "white";
+  } else {
+    btn.textContent = "🔐 Encryption";
+    btn.classList.remove("pri");
+    btn.classList.add("sec");
+    btn.style.background = "";
+    btn.style.color = "";
+  }
+}
 
 // Reset encryption (for testing/troubleshooting)
 async function resetEncryption() {
   if (!currentUser) {
-    alert("Please log in first.");
+    toast("Please sign in first", "error");
     return;
   }
   
   const confirmed = confirm(
     "⚠️ RESET ENCRYPTION ⚠️\n\n" +
     "This will delete your encryption key.\n" +
-    "You will need to set up encryption again.\n\n" +
+    "Encrypted data will become unreadable.\n\n" +
     "Are you sure?"
   );
   
@@ -7960,24 +7966,21 @@ async function resetEncryption() {
       await DropLitKeys.deleteKey(currentUser.id);
     }
     
-    // Clear localStorage flag
+    // Clear localStorage flags
     localStorage.removeItem("droplit_has_key_" + currentUser.id);
+    localStorage.removeItem("droplit_had_encryption_" + currentUser.id);
     
     // Reset privacy state
     window.DROPLIT_PRIVACY_ENABLED = false;
     
-    // Update button
-    const btn = document.getElementById("setupEncryptionBtn");
-    if (btn) {
-      btn.textContent = "🔑 Setup Encryption";
-      btn.classList.remove("sec");
-      btn.classList.add("pri");
-    }
+    // Update UI
+    updateEncryptionButton(false);
+    updateSecurityIndicator();
     
-    alert("✅ Encryption reset complete.\n\nYou can now set up encryption again.");
+    toast("✅ Encryption reset. You can set it up again.", "success");
     
   } catch (error) {
-    alert("Reset failed: " + error.message);
+    toast("Reset failed: " + error.message, "error");
   }
 }
 
