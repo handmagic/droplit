@@ -24,23 +24,27 @@
       z-index: 600;
     }
     
-    /* Header Bar */
+    /* Header Bar - transparent, overlay */
     .pv-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
       display: flex;
       align-items: center;
       height: 56px;
       padding: 0 8px;
-      background: rgba(0,0,0,0.9);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      flex-shrink: 0;
+      padding-top: env(safe-area-inset-top, 0);
+      background: transparent;
       gap: 8px;
+      z-index: 10;
     }
     
     .pv-header-btn {
       width: 44px;
       height: 44px;
       border: none;
-      background: rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.5);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -49,16 +53,23 @@
       cursor: pointer;
       flex-shrink: 0;
       transition: background 0.15s;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
-    .pv-header-btn:active { background: rgba(255,255,255,0.2); }
-    .pv-header-btn.menu.active { background: rgba(139,92,246,0.5); }
+    .pv-header-btn:active { background: rgba(0,0,0,0.7); }
+    .pv-header-btn.menu.active { background: rgba(139,92,246,0.6); }
     
     .pv-counter {
       font-size: 0.75rem;
       font-weight: 600;
-      color: rgba(255,255,255,0.7);
+      color: white;
       flex-shrink: 0;
       min-width: 50px;
+      background: rgba(0,0,0,0.5);
+      padding: 4px 10px;
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
     
     .pv-header-center {
@@ -69,10 +80,17 @@
     
     .pv-filename {
       font-size: 0.8rem;
-      color: rgba(255,255,255,0.8);
+      color: white;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      background: rgba(0,0,0,0.5);
+      padding: 4px 12px;
+      border-radius: 12px;
+      display: inline-block;
+      max-width: 100%;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
     
     .pv-header-right {
@@ -82,12 +100,12 @@
       flex-shrink: 0;
     }
     
-    /* Pill buttons (unified style) */
+    /* Pill buttons (unified style) - with blur for transparent bg */
     .pill-s {
       height: 32px;
       padding: 0 14px;
       border: none;
-      background: rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.5);
       border-radius: 16px;
       font-family: inherit;
       font-size: 0.7rem;
@@ -98,26 +116,31 @@
       cursor: pointer;
       transition: background 0.15s;
       white-space: nowrap;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
-    .pill-s:active { background: rgba(255,255,255,0.25); }
-    .pill-s.ai { background: linear-gradient(135deg, rgba(139,92,246,0.5), rgba(59,130,246,0.5)); }
-    .pill-s.ai:active { background: linear-gradient(135deg, rgba(139,92,246,0.7), rgba(59,130,246,0.7)); }
-    .pill-s.delete { background: rgba(239,68,68,0.3); color: #ff8a8a; }
-    .pill-s.delete:active { background: rgba(239,68,68,0.5); }
+    .pill-s:active { background: rgba(0,0,0,0.7); }
+    .pill-s.ai { background: rgba(139,92,246,0.6); }
+    .pill-s.ai:active { background: rgba(139,92,246,0.8); }
+    .pill-s.delete { background: rgba(239,68,68,0.5); color: #fff; }
+    .pill-s.delete:active { background: rgba(239,68,68,0.7); }
     
-    /* Dropdown Tools Menu with animation */
+    /* Dropdown Tools Menu with animation - transparent, overlay */
     .pv-tools-menu {
+      position: absolute;
+      top: calc(56px + env(safe-area-inset-top, 0px));
+      left: 0;
+      right: 0;
       display: flex;
       flex-direction: column;
       gap: 8px;
       padding: 0 12px;
-      background: rgba(0,0,0,0.9);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      flex-shrink: 0;
+      background: transparent;
       max-height: 0;
       overflow: hidden;
       opacity: 0;
       transition: max-height 0.25s ease-out, opacity 0.2s ease-out, padding 0.25s ease-out;
+      z-index: 10;
     }
     .pv-tools-menu.show { 
       max-height: 150px;
@@ -134,14 +157,14 @@
     }
     .pv-tools-row::-webkit-scrollbar { display: none; }
     
-    /* Photo Area */
+    /* Photo Area - full screen */
     .pv-content {
-      flex: 1;
+      position: absolute;
+      inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      position: relative;
     }
     
     .pv-content img {
@@ -157,15 +180,18 @@
       transform: translateY(-50%);
       width: 44px;
       height: 44px;
-      background: rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.5);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
       cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 5;
     }
-    .pv-nav:active { background: rgba(255,255,255,0.25); }
+    .pv-nav:active { background: rgba(0,0,0,0.7); }
     .pv-nav.prev { left: 12px; }
     .pv-nav.next { right: 12px; }
     
@@ -344,13 +370,15 @@
     
     <!-- Photo Area -->
     <div class="pv-content">
-      <div class="pv-nav prev" onclick="showToast('Previous')">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg>
-      </div>
       <img src="https://picsum.photos/800/600" alt="Test photo">
-      <div class="pv-nav next" onclick="showToast('Next')">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
-      </div>
+    </div>
+    
+    <!-- Navigation Arrows (outside content for touch handling) -->
+    <div class="pv-nav prev" onclick="showToast('Previous')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+    <div class="pv-nav next" onclick="showToast('Next')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
     </div>
   </div>
   
