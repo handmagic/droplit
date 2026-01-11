@@ -1250,7 +1250,6 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 .photo-marker-btn { width: 56px; height: 56px; border: 2px solid var(--color-border); background: var(--color-bg); border-radius: 14px; font-size: 1.6rem; cursor: pointer; transition: all 0.15s; }
 .photo-marker-btn:active { transform: scale(0.9); }
 .photo-marker-btn.active { border-color: #8B5CF6; background: rgba(139,92,246,0.15); }
-.photo-markers-done { display: none; }
 .photo-markers-actions { display: flex; gap: 12px; width: 100%; }
 .photo-markers-actions .pill-m { flex: 1; }
 .image-viewer-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: var(--radius-full); display: none; align-items: center; justify-content: center; color: white; font-size: 1.2rem; cursor: pointer; z-index: 10; }
@@ -1898,11 +1897,9 @@ body.editing-mode #catModal { z-index: 1200; }
 .pv-filename:active { transform: scale(0.97); background: rgba(0,0,0,0.7); }
 
 .pv-markers {
+  font-size: 1.1rem;
   margin-top: 4px;
-  font-size: 1.2rem;
-  display: flex;
-  justify-content: center;
-  gap: 4px;
+  min-height: 1.2em;
 }
 
 .pv-filename-lock {
