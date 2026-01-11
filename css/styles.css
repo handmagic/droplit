@@ -1816,6 +1816,13 @@ body.editing-mode #catModal { z-index: 1200; }
    PHOTO VIEWER v2 - New Header & Tools
    ============================================ */
 
+/* Hide old Photo Viewer elements */
+.image-viewer-close { display: none !important; }
+.image-viewer-ai { display: none !important; }
+.image-viewer-panel { display: none !important; }
+.image-counter { display: none !important; }
+.image-viewer-markers { display: none !important; }
+
 /* New Header */
 .pv-header {
   position: absolute;
@@ -1852,30 +1859,6 @@ body.editing-mode #catModal { z-index: 1200; }
 .pv-header-btn:active { transform: scale(0.97); background: rgba(0,0,0,0.7); }
 .pv-header-btn.menu.active { background: rgba(139,92,246,0.6); }
 .pv-header-btn svg { width: 22px; height: 22px; }
-
-/* Counter - bottom center */
-.pv-counter {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  height: 32px;
-  padding: 0 14px;
-  border: 1px solid rgba(255,255,255,0.3);
-  background: rgba(0,0,0,0.5);
-  border-radius: var(--radius-full);
-  font-family: var(--font-main);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: white;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 25;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
 
 .pv-header-center {
   position: absolute;
@@ -1921,6 +1904,30 @@ body.editing-mode #catModal { z-index: 1200; }
   align-items: center;
 }
 
+/* Counter - bottom center */
+.pv-counter {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.5);
+  border-radius: var(--radius-full);
+  font-family: var(--font-main);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 25;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* Tools Menu - gap 0 from header */
 .pv-tools-menu {
   position: absolute;
@@ -1946,10 +1953,8 @@ body.editing-mode #catModal { z-index: 1200; }
 .pv-tools-row {
   display: flex;
   gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  flex-wrap: wrap;
 }
-.pv-tools-row::-webkit-scrollbar { display: none; }
 
 .pv-btn {
   flex-shrink: 0;
@@ -1980,105 +1985,110 @@ body.editing-mode #catModal { z-index: 1200; }
 /* Info Modal */
 .pv-info-modal {
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.8);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 20px;
+  z-index: 700;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.2s;
-  z-index: 700;
+  transition: opacity 0.25s, visibility 0.25s;
 }
-.pv-info-modal.show { opacity: 1; visibility: visible; }
+.pv-info-modal.show {
+  opacity: 1;
+  visibility: visible;
+}
 
 .pv-info-content {
-  background: var(--color-bg-card);
-  border-radius: 20px;
+  background: var(--color-bg);
+  border-radius: 20px 20px 0 0;
   width: 100%;
-  max-width: 400px;
-  max-height: 80vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  max-width: 500px;
+  max-height: 70vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+.pv-info-modal.show .pv-info-content {
+  transform: translateY(0);
 }
 
 .pv-info-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid var(--color-border);
 }
-.pv-info-header h3 { margin: 0; font-size: 1.1rem; }
+
+.pv-info-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
 
 .pv-info-close {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border: none;
-  background: var(--color-bg-tertiary);
+  background: var(--color-bg-soft);
   border-radius: 50%;
+  font-size: 1.3rem;
+  color: var(--color-text-soft);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.pv-info-body { padding: 16px 20px; overflow-y: auto; }
+.pv-info-body {
+  padding: 20px;
+}
 
-.pv-info-section { margin-bottom: 16px; }
+.pv-info-row {
+  margin-bottom: 16px;
+}
 
 .pv-info-label {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  color: var(--color-text-soft);
   text-transform: uppercase;
-  color: var(--color-text-secondary);
   margin-bottom: 4px;
 }
 
-.pv-info-value { font-size: 0.95rem; }
+.pv-info-value {
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
 
 .pv-info-textarea {
   width: 100%;
-  padding: 12px;
-  border: 2px solid var(--color-border);
-  border-radius: 12px;
-  font-family: inherit;
-  font-size: 0.95rem;
-  resize: none;
   min-height: 80px;
-  background: var(--color-bg);
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-soft);
   color: var(--color-text);
-  box-sizing: border-box;
+  font-family: var(--font-main);
+  font-size: 0.95rem;
+  resize: vertical;
 }
-.pv-info-textarea:focus { outline: none; border-color: var(--color-primary); }
 
 .pv-info-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   padding: 16px 20px;
   border-top: 1px solid var(--color-border);
 }
 
-.pv-info-btn {
+.pv-info-actions .pill-m {
   flex: 1;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
 }
-.pv-info-btn.cancel { background: var(--color-bg-tertiary); color: var(--color-text-secondary); }
-.pv-info-btn.save { background: var(--color-primary); color: white; }
-
-/* Hide old Photo Viewer elements */
-.image-viewer-close { display: none !important; }
-.image-viewer-ai { display: none !important; }
-.image-viewer-panel { display: none !important; }
-.image-counter { display: none !important; }
-.image-viewer-markers { display: none !important; }
 
 /* Photo Viewer font size scaling */
 body.font-small .pv-btn { height: 28px; padding: 0 12px; font-size: 0.75rem; }
