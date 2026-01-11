@@ -1856,14 +1856,14 @@ body.editing-mode #catModal { z-index: 1200; }
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  height: 34px;
+  height: 32px;
   padding: 0 14px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255,255,255,0.3);
   background: rgba(0,0,0,0.5);
   border-radius: var(--radius-full);
   font-family: var(--font-main);
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 600;
   color: white;
   display: inline-flex;
   align-items: center;
@@ -1882,14 +1882,14 @@ body.editing-mode #catModal { z-index: 1200; }
 }
 
 .pv-filename {
-  height: 34px;
+  height: 32px;
   padding: 0 14px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255,255,255,0.3);
   background: rgba(0,0,0,0.5);
   border-radius: var(--radius-full);
   font-family: var(--font-main);
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 600;
   color: white;
   text-transform: uppercase;
   cursor: pointer;
@@ -1950,14 +1950,14 @@ body.editing-mode #catModal { z-index: 1200; }
 
 .pv-btn {
   flex-shrink: 0;
-  height: 34px;
+  height: 32px;
   padding: 0 14px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255,255,255,0.3);
   background: rgba(0,0,0,0.5);
   border-radius: var(--radius-full);
   font-family: var(--font-main);
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 600;
   color: white;
   text-transform: uppercase;
   cursor: pointer;
@@ -2078,12 +2078,12 @@ body.editing-mode #catModal { z-index: 1200; }
 .image-viewer-markers { display: none !important; }
 
 /* Photo Viewer font size scaling */
-body.font-small .pv-btn { height: 30px; padding: 0 12px; font-size: 0.65rem; }
-body.font-large .pv-btn { height: 38px; padding: 0 16px; font-size: 0.8rem; }
-body.font-small .pv-filename { height: 30px; padding: 0 12px; font-size: 0.65rem; }
-body.font-large .pv-filename { height: 38px; padding: 0 16px; font-size: 0.8rem; }
-body.font-small .pv-counter { height: 30px; padding: 0 12px; font-size: 0.65rem; }
-body.font-large .pv-counter { height: 38px; padding: 0 16px; font-size: 0.8rem; }
+body.font-small .pv-btn { height: 28px; padding: 0 12px; font-size: 0.75rem; }
+body.font-large .pv-btn { height: 36px; padding: 0 16px; font-size: 0.9rem; }
+body.font-small .pv-filename { height: 28px; padding: 0 12px; font-size: 0.75rem; }
+body.font-large .pv-filename { height: 36px; padding: 0 16px; font-size: 0.9rem; }
+body.font-small .pv-counter { height: 28px; padding: 0 12px; font-size: 0.75rem; }
+body.font-large .pv-counter { height: 36px; padding: 0 16px; font-size: 0.9rem; }
 
 /* Navigation arrows - new style */
 .image-viewer-nav {
