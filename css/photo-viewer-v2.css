@@ -9,16 +9,16 @@
   display: flex;
   align-items: center;
   height: 56px;
-  padding: 0 8px;
-  padding-top: env(safe-area-inset-top, 0);
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top, 0px));
   background: transparent;
   gap: 8px;
   z-index: 25;
 }
 
 .pv-header-btn {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border: none;
   background: rgba(0,0,0,0.5);
   border-radius: 50%;
@@ -33,6 +33,7 @@
 }
 .pv-header-btn:active { background: rgba(0,0,0,0.7); }
 .pv-header-btn.menu.active { background: rgba(139,92,246,0.6); }
+.pv-header-btn svg { width: 22px; height: 22px; }
 
 .pv-counter {
   font-size: 0.75rem;
