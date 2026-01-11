@@ -1761,6 +1761,27 @@
           <div class="settings-toggle" id="autoDropToggle" onclick="toggleAutoDrop()"></div>
         </div>
         
+        <div class="section-divider"><span>Security</span></div>
+        
+        <div class="settings-item">
+          <div class="settings-item-left">
+            <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+            <span class="settings-item-label">Sensitive data protection</span>
+          </div>
+          <div class="settings-toggle active" id="sensitiveDataToggle" onclick="toggleSensitiveProtection()"></div>
+        </div>
+        
+        <div class="settings-item no-border" style="flex-direction: column; align-items: flex-start; gap: 8px; padding-top: 4px;">
+          <div style="font-size: 0.75rem; color: var(--color-text-muted); line-height: 1.4;">
+            Auto-detect credit cards, SSN, passwords and mask them before sending to AI.
+          </div>
+          <div class="pill-row" id="sensitiveActionSelector" style="margin-top: 4px;">
+            <button class="pill-m" data-action="mask" onclick="setSensitiveAction('mask')">Auto-mask</button>
+            <button class="pill-m active" data-action="warn" onclick="setSensitiveAction('warn')">Warn me</button>
+            <button class="pill-m" data-action="ignore" onclick="setSensitiveAction('ignore')">Ignore</button>
+          </div>
+        </div>
+        
         <div class="section-divider"><span>Display</span></div>
         
         <div class="settings-item">
@@ -1868,7 +1889,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.102 • Syntrise Inc. © 2026</div>
+          <div class="menu-about-ver">v0.9.103 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1984,6 +2005,7 @@
         
         <div class="export-file-actions">
           <button class="export-btn-cancel" onclick="closeFileExportModal()">Cancel</button>
+          <button class="export-btn-cancel" onclick="printDrops()" style="margin-right: 8px;">🖨️ Print</button>
           <button class="export-btn-download" onclick="executeFileExport()">Export</button>
         </div>
       </div>
@@ -1991,6 +2013,31 @@
   </div>
   
   <div class="overlay" id="mergeModal"><div class="modal type-b"><div class="modal-header"><h3>Merge Preview</h3></div><div class="modal-body"><div class="merge-options"><label class="merge-toggle"><input type="checkbox" id="mergeSimple" onchange="updateMergePreview()"><span>Simple merge (no headers)</span></label></div><div class="merge-preview" id="mergePreview"></div></div><div class="modal-actions"><button class="pill-m sec" onclick="closeMergeModal()">Cancel</button><button class="pill-m sec" onclick="copyMerged()">Copy</button><button class="pill-m merge" onclick="saveMerged()">Save Merge</button></div></div></div>
+  
+  <!-- Sensitive Data Warning Modal -->
+  <div class="overlay" id="sensitiveWarningModal" onclick="if(event.target===this)closeSensitiveWarning()">
+    <div class="modal type-b" style="max-width: 360px;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white;">
+        <h3>⚠️ Sensitive Data Detected</h3>
+      </div>
+      <div class="modal-body" style="padding: 16px;">
+        <p style="margin-bottom: 12px; color: var(--text-primary);">Found potentially sensitive information:</p>
+        <div id="sensitiveDataList" style="background: var(--bg-secondary); border-radius: 8px; padding: 12px; margin-bottom: 12px; font-family: monospace; font-size: 0.85rem; max-height: 150px; overflow-y: auto;"></div>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 8px;">
+          💡 AI assistants can see this data when processing your notes.
+        </p>
+        <p style="font-size: 0.8rem; color: var(--text-secondary);">
+          Masking replaces sensitive data with [****] placeholders.
+        </p>
+      </div>
+      <div class="modal-actions" style="flex-wrap: wrap; gap: 8px;">
+        <button class="modal-btn sec" onclick="closeSensitiveWarning()" style="flex: 1; min-width: 80px;">Cancel</button>
+        <button class="modal-btn" onclick="saveSensitiveAsMasked()" style="flex: 1; min-width: 100px; background: #10B981;">Mask & Save</button>
+        <button class="modal-btn" onclick="saveSensitiveAsIs()" style="flex: 1; min-width: 100px; background: #6366F1;">Save As Is</button>
+      </div>
+    </div>
+  </div>
+  
   <div class="overlay image-viewer" id="imageViewer" onclick="handleImageViewerClick(event)">
     <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
     <div class="image-viewer-markers" id="imageViewerMarkers" onclick="openPhotoMarkers()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg></div>
@@ -2809,23 +2856,26 @@ function saveTextNote(){
     return;
   }
   
-  const category=detectCat(text);
-  const idea={
-    id:Date.now(),
-    text:text,
-    category:category,
-    timestamp:new Date().toISOString(),
-    date:new Date().toLocaleDateString('ru-RU'),
-    time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
-    encrypted:window.DROPLIT_PRIVACY_ENABLED||false
-  };
-  ideas.push(idea);
-  save();
-  playDropSound();
-  const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
-  toast(encIcon + 'Note saved!','success');
-  closeTextInput();
-  resetToShowAll();
+  // Check for sensitive data before saving
+  checkSensitiveBeforeSave(text, (finalText) => {
+    const category=detectCat(finalText);
+    const idea={
+      id:Date.now(),
+      text:finalText,
+      category:category,
+      timestamp:new Date().toISOString(),
+      date:new Date().toLocaleDateString('ru-RU'),
+      time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+      encrypted:window.DROPLIT_PRIVACY_ENABLED||false
+    };
+    ideas.push(idea);
+    save();
+    playDropSound();
+    const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
+    toast(encIcon + 'Note saved!','success');
+    closeTextInput();
+    resetToShowAll();
+  });
 }
 
 // PASTE LINK
@@ -6835,6 +6885,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('#fontSizeSelector .pill-m').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.size === savedFontSize);
   });
+  
+  // Initialize sensitive data protection settings
+  initSensitiveSettings();
 });
 
 // ============================================
@@ -7040,6 +7093,373 @@ function toggleMainMenu() {
   } else {
     openMainMenu();
   }
+}
+
+// ============================================
+// SENSITIVE DATA PROTECTION SYSTEM v1.0
+// ============================================
+
+// Patterns for sensitive data detection (US/Global)
+const SENSITIVE_PATTERNS = {
+  // Credit Cards (Visa, MC, Amex, Discover)
+  creditCard: {
+    pattern: /\b(?:4[0-9]{3}|5[1-5][0-9]{2}|3[47][0-9]{2}|6(?:011|5[0-9]{2}))[- ]?[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{1,4}\b/g,
+    label: 'Credit Card',
+    icon: '💳'
+  },
+  // SSN (US Social Security Number)
+  ssn: {
+    pattern: /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g,
+    label: 'SSN',
+    icon: '🆔',
+    // Exclude dates like 123-45-6789
+    validate: (match) => {
+      const clean = match.replace(/[-\s]/g, '');
+      // SSN can't start with 000, 666, or 900-999
+      const area = parseInt(clean.substring(0, 3));
+      return area > 0 && area !== 666 && area < 900;
+    }
+  },
+  // CVV/CVC
+  cvv: {
+    pattern: /\b(?:CVV|CVC|CVV2|CVC2|security code)[:\s]*(\d{3,4})\b/gi,
+    label: 'CVV',
+    icon: '🔢'
+  },
+  // PIN codes (when explicitly mentioned)
+  pin: {
+    pattern: /\b(?:PIN|pin code|pincode)[:\s]*(\d{4,6})\b/gi,
+    label: 'PIN',
+    icon: '🔑'
+  },
+  // Passwords (when explicitly mentioned)
+  password: {
+    pattern: /\b(?:password|passwd|pwd|pass)[:\s]+(\S{4,})\b/gi,
+    label: 'Password',
+    icon: '🔒'
+  },
+  // API Keys / Tokens (common patterns)
+  apiKey: {
+    pattern: /\b(?:api[_-]?key|token|secret|auth)[:\s=]+['"]?([a-zA-Z0-9_-]{20,})['"]?\b/gi,
+    label: 'API Key/Token',
+    icon: '🗝️'
+  },
+  // Bank Account + Routing (US)
+  bankAccount: {
+    pattern: /\b(?:account|acct)[:\s#]*(\d{8,17})\b/gi,
+    label: 'Bank Account',
+    icon: '🏦'
+  }
+};
+
+// State for pending save
+let pendingSensitiveSave = null;
+
+// Detect sensitive data in text
+function detectSensitiveData(text) {
+  if (!text || typeof text !== 'string') return [];
+  
+  const detected = [];
+  
+  for (const [type, config] of Object.entries(SENSITIVE_PATTERNS)) {
+    const matches = text.match(config.pattern);
+    if (matches) {
+      for (const match of matches) {
+        // Run additional validation if exists
+        if (config.validate && !config.validate(match)) continue;
+        
+        detected.push({
+          type: type,
+          label: config.label,
+          icon: config.icon,
+          value: match,
+          masked: maskSensitiveValue(match, type)
+        });
+      }
+    }
+  }
+  
+  return detected;
+}
+
+// Mask a sensitive value
+function maskSensitiveValue(value, type) {
+  const clean = value.replace(/[-\s]/g, '');
+  
+  switch(type) {
+    case 'creditCard':
+      // Show last 4 digits
+      return '****-****-****-' + clean.slice(-4);
+    case 'ssn':
+      return '***-**-' + clean.slice(-4);
+    case 'cvv':
+    case 'pin':
+      return '****';
+    case 'password':
+    case 'apiKey':
+      return '[REDACTED]';
+    case 'bankAccount':
+      return '****' + clean.slice(-4);
+    default:
+      return '****';
+  }
+}
+
+// Mask all sensitive data in text
+function maskSensitiveInText(text) {
+  if (!text) return text;
+  
+  let masked = text;
+  
+  for (const [type, config] of Object.entries(SENSITIVE_PATTERNS)) {
+    masked = masked.replace(config.pattern, (match) => {
+      if (config.validate && !config.validate(match)) return match;
+      return maskSensitiveValue(match, type);
+    });
+  }
+  
+  return masked;
+}
+
+// Export for chat.js to use before sending to AI
+window.maskSensitiveForAI = maskSensitiveInText;
+window.detectSensitiveData = detectSensitiveData;
+window.isSensitiveProtectionEnabled = isSensitiveProtectionEnabled;
+
+// Check if sensitive protection is enabled
+function isSensitiveProtectionEnabled() {
+  return localStorage.getItem('droplit_sensitive_protection') !== 'false';
+}
+
+// Get sensitive action mode
+function getSensitiveAction() {
+  return localStorage.getItem('droplit_sensitive_action') || 'warn';
+}
+
+// Toggle sensitive protection
+function toggleSensitiveProtection() {
+  const toggle = document.getElementById('sensitiveDataToggle');
+  const enabled = !toggle.classList.contains('active');
+  
+  toggle.classList.toggle('active', enabled);
+  localStorage.setItem('droplit_sensitive_protection', enabled ? 'true' : 'false');
+  
+  toast(enabled ? '🛡️ Sensitive data protection ON' : '⚠️ Protection disabled', enabled ? 'success' : 'info');
+}
+
+// Set sensitive action mode
+function setSensitiveAction(action) {
+  localStorage.setItem('droplit_sensitive_action', action);
+  
+  document.querySelectorAll('#sensitiveActionSelector .pill-m').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.action === action);
+  });
+  
+  const labels = { mask: 'Auto-mask', warn: 'Warn me', ignore: 'Ignore' };
+  toast('Sensitive data: ' + labels[action], 'info');
+}
+
+// Initialize sensitive settings UI
+function initSensitiveSettings() {
+  const enabled = isSensitiveProtectionEnabled();
+  const action = getSensitiveAction();
+  
+  const toggle = document.getElementById('sensitiveDataToggle');
+  if (toggle) toggle.classList.toggle('active', enabled);
+  
+  document.querySelectorAll('#sensitiveActionSelector .pill-m').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.action === action);
+  });
+}
+
+// Show sensitive warning modal
+function showSensitiveWarning(detected, saveCallback) {
+  pendingSensitiveSave = saveCallback;
+  
+  const listEl = document.getElementById('sensitiveDataList');
+  listEl.innerHTML = detected.map(d => 
+    `<div style="margin-bottom: 6px;">${d.icon} <strong>${d.label}:</strong> <span style="color: #EF4444;">${d.value}</span></div>`
+  ).join('');
+  
+  document.getElementById('sensitiveWarningModal').classList.add('show');
+}
+
+// Close sensitive warning
+function closeSensitiveWarning() {
+  document.getElementById('sensitiveWarningModal').classList.remove('show');
+  pendingSensitiveSave = null;
+}
+
+// Save with masked data
+function saveSensitiveAsMasked() {
+  if (pendingSensitiveSave) {
+    pendingSensitiveSave(true); // true = mask
+  }
+  closeSensitiveWarning();
+}
+
+// Save as is (no masking)
+function saveSensitiveAsIs() {
+  if (pendingSensitiveSave) {
+    pendingSensitiveSave(false); // false = don't mask
+  }
+  closeSensitiveWarning();
+}
+
+// Check text for sensitive data before save
+// Returns: { proceed: boolean, text: string }
+function checkSensitiveBeforeSave(text, callback) {
+  if (!isSensitiveProtectionEnabled()) {
+    callback(text);
+    return;
+  }
+  
+  const detected = detectSensitiveData(text);
+  if (detected.length === 0) {
+    callback(text);
+    return;
+  }
+  
+  const action = getSensitiveAction();
+  
+  switch(action) {
+    case 'mask':
+      // Auto-mask and proceed
+      const masked = maskSensitiveInText(text);
+      toast('🛡️ Sensitive data auto-masked', 'success');
+      callback(masked);
+      break;
+      
+    case 'warn':
+      // Show warning modal
+      showSensitiveWarning(detected, (shouldMask) => {
+        if (shouldMask) {
+          callback(maskSensitiveInText(text));
+          toast('🛡️ Saved with masking', 'success');
+        } else {
+          callback(text);
+          toast('💾 Saved as is', 'info');
+        }
+      });
+      break;
+      
+    case 'ignore':
+    default:
+      callback(text);
+      break;
+  }
+}
+
+// ============================================
+// PRINT FUNCTION
+// ============================================
+
+function printDrops() {
+  // Get drops to print based on export scope
+  const scope = document.querySelector('input[name="exportScope"]:checked')?.value || 'all';
+  let dropsToPrint = [];
+  
+  if (scope === 'current' && exportState.dropId) {
+    const drop = ideas.find(d => d.id === exportState.dropId);
+    if (drop) dropsToPrint = [drop];
+  } else if (scope === 'filtered') {
+    dropsToPrint = filtered();
+  } else {
+    dropsToPrint = [...ideas].filter(d => d && d.text);
+  }
+  
+  if (dropsToPrint.length === 0) {
+    toast('Nothing to print', 'error');
+    return;
+  }
+  
+  // Create print content
+  const includeDate = document.getElementById('exportIncludeDate')?.checked ?? true;
+  const includeCategory = document.getElementById('exportIncludeCategory')?.checked ?? true;
+  
+  let content = `
+    <html>
+    <head>
+      <title>DropLit Export</title>
+      <style>
+        body { font-family: 'Times New Roman', serif; font-size: 14pt; line-height: 1.6; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .drop { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #ddd; }
+        .drop:last-child { border-bottom: none; }
+        .drop-meta { font-size: 11pt; color: #666; margin-bottom: 8px; }
+        .drop-text { white-space: pre-wrap; }
+        h1, h2, h3 { margin-top: 16px; margin-bottom: 8px; }
+        blockquote { border-left: 3px solid #ccc; padding-left: 12px; margin: 8px 0; color: #555; }
+        code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+        ul, ol { margin: 8px 0; padding-left: 24px; }
+        .footer { margin-top: 40px; text-align: center; font-size: 10pt; color: #999; font-style: italic; }
+        @media print { 
+          body { padding: 0; }
+          .footer { position: fixed; bottom: 20px; left: 0; right: 0; }
+        }
+      </style>
+    </head>
+    <body>
+      <h1 style="text-align: center; margin-bottom: 32px;">DropLit Notes</h1>
+  `;
+  
+  for (const drop of dropsToPrint) {
+    content += '<div class="drop">';
+    
+    if (includeDate || includeCategory) {
+      content += '<div class="drop-meta">';
+      if (includeCategory && drop.category) {
+        content += `[${drop.category.toUpperCase()}] `;
+      }
+      if (includeDate && drop.date) {
+        content += `${drop.date} ${drop.time || ''}`;
+      }
+      content += '</div>';
+    }
+    
+    // Simple markdown rendering for print
+    let text = drop.text || '';
+    text = text.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // Escape HTML
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    text = text.replace(/`(.*?)`/g, '<code>$1</code>');
+    text = text.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
+    text = text.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
+    text = text.replace(/^# (.*?)$/gm, '<h1>$1</h1>');
+    text = text.replace(/^> (.*?)$/gm, '<blockquote>$1</blockquote>');
+    text = text.replace(/^- (.*?)$/gm, '<li>$1</li>');
+    
+    content += `<div class="drop-text">${text}</div>`;
+    content += '</div>';
+  }
+  
+  content += `
+      <div class="footer">Created with DropLit.app</div>
+    </body>
+    </html>
+  `;
+  
+  // Open print window
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(content);
+    printWindow.document.close();
+    
+    // Wait for content to load, then print
+    printWindow.onload = function() {
+      printWindow.print();
+    };
+    
+    // Fallback if onload doesn't fire
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+    
+    toast('🖨️ Print dialog opened', 'success');
+  } else {
+    toast('Popup blocked. Please allow popups.', 'error');
+  }
+  
+  closeFileExportModal();
 }
 
 // ============================================
