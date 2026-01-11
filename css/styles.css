@@ -2046,3 +2046,9 @@ body.editing-mode #catModal { z-index: 1200; }
 }
 .pv-info-btn.cancel { background: var(--color-bg-tertiary); color: var(--color-text-secondary); }
 .pv-info-btn.save { background: var(--color-primary); color: white; }
+
+/* Hide old Photo Viewer elements */
+.image-viewer-close { display: none !important; }
+.image-viewer-ai { display: none !important; }
+.image-viewer-panel { display: none !important; }
+.image-counter { display: none !important; }
