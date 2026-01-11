@@ -319,12 +319,12 @@ function initPhotoViewerV2() {
     '<div class="pv-tools-row">' +
       '<button class="pv-btn" onclick="shareDrop(currentImageId)">Share</button>' +
       '<button class="pv-btn" onclick="downloadImage()">Download</button>' +
-      '<button class="pv-btn" onclick="openMarkerSelector()">Markers</button>' +
+      '<button class="pv-btn" onclick="openPhotoMarkers()">Markers</button>' +
       '<button class="pv-btn delete" onclick="confirmDeleteFromViewer()">Delete</button>' +
     '</div>' +
     '<div class="pv-tools-row">' +
-      '<button class="pv-btn ai" onclick="doPhotoAI(\'ocr\')">OCR</button>' +
-      '<button class="pv-btn ai" onclick="doPhotoAI(\'describe\')">Describe</button>' +
+      '<button class="pv-btn ai" onclick="runPhotoAI(\'ocr\')">OCR</button>' +
+      '<button class="pv-btn ai" onclick="runPhotoAI(\'describe\')">Describe</button>' +
       '<button class="pv-btn" onclick="openPvInfo()">Edit Caption</button>' +
     '</div>';
   
