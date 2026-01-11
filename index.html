@@ -171,7 +171,7 @@
         </button>
         
         <p class="onboarding-footer">
-          Don't have a code? <a href="/cdn-cgi/l/email-protection#3859545d40784b41564c4a514b5d165b5755">Request access</a>
+          Don't have a code? <a href="/cdn-cgi/l/email-protection#0f6e636a774f7c76617b7d667c6a216c6062">Request access</a>
         </p>
       </div>
       
@@ -1497,7 +1497,7 @@
           <div class="ask-ai-subtitle" id="askiSubtitle">AI Assistant</div>
         </div>
       </div>
-      <button class="pill-s ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()">AUTODROP</button>
+      <button class="pill-s ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()" style="position: relative; z-index: 10; min-width: 100px;">AUTODROP</button>
       <button class="ask-ai-close" onclick="closeAskAI()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     </div>
     <div class="ask-ai-messages" id="askAIMessages">
@@ -1558,7 +1558,7 @@
       </div>
       
       <!-- Account Card -->
-      <div class="account-card" id="accountCard">
+      <div class="account-card" id="accountCard" onclick="handleAccountCardClick()">
         <div class="account-header">
           <div class="account-avatar" id="accountAvatar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -7630,6 +7630,17 @@ async function updateAccountUI() {
   // Update token balance if logged in
   if (typeof currentUser !== 'undefined' && currentUser) {
     updateTokenBalance();
+  }
+}
+
+function handleAccountCardClick() {
+  // If not logged in, show onboarding modal
+  if (typeof currentUser === 'undefined' || !currentUser) {
+    const modal = document.getElementById('onboardingModal');
+    if (modal) {
+      modal.classList.add('show');
+      closeMainMenu();
+    }
   }
 }
 
