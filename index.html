@@ -171,7 +171,7 @@
         </button>
         
         <p class="onboarding-footer">
-          Don't have a code? <a href="/cdn-cgi/l/email-protection#2c4d4049546c5f5542585e455f49024f4341">Request access</a>
+          Don't have a code? <a href="/cdn-cgi/l/email-protection#82e3eee7fac2f1fbecf6f0ebf1e7ace1edef">Request access</a>
         </p>
       </div>
       
@@ -2039,12 +2039,10 @@
   </div>
   
   <div class="overlay image-viewer" id="imageViewer" onclick="handleImageViewerClick(event)">
-    <!-- NEW: Header with transparent design -->
+    <!-- NEW HEADER (v2) -->
     <div class="pv-header" onclick="event.stopPropagation()">
       <button class="pv-header-btn menu" id="pvMenuBtn" onclick="togglePvMenu()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
       <span class="pv-counter" id="pvCounter">1 / 1</span>
       <div class="pv-header-center">
@@ -2052,15 +2050,12 @@
       </div>
       <div class="pv-header-right">
         <button class="pv-pill" onclick="openPvInfo()">Info</button>
-        <button class="pv-header-btn close" onclick="closeImageViewer()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M18 6L6 18M6 6l12 12"/>
-          </svg>
+        <button class="pv-header-btn" onclick="closeImageViewer()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
     </div>
-    
-    <!-- NEW: Tools Menu (hidden by default) -->
+    <!-- NEW TOOLS MENU (v2) -->
     <div class="pv-tools-menu" id="pvToolsMenu" onclick="event.stopPropagation()">
       <div class="pv-tools-row">
         <button class="pv-btn" onclick="shareImage()">Share</button>
@@ -2074,8 +2069,7 @@
         <button class="pv-btn" onclick="openPvInfo()">Edit Caption</button>
       </div>
     </div>
-    
-    <!-- OLD elements (hidden via CSS) -->
+    <!-- OLD ELEMENTS BELOW -->
     <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
     <div class="image-viewer-markers" id="imageViewerMarkers" onclick="openPhotoMarkers()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg></div>
     <div class="image-viewer-ai" onclick="openPhotoAI()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></div>
@@ -2106,7 +2100,7 @@
     </div>
   </div>
 
-  <!-- Photo Info Modal (NEW) -->
+  <!-- NEW: Photo Info Modal (v2) -->
   <div class="pv-info-modal" id="pvInfoModal" onclick="if(event.target===this)closePvInfo()">
     <div class="pv-info-content">
       <div class="pv-info-header">
@@ -4248,7 +4242,7 @@ function viewImage(id,e){
   loadCurrentImage();
   updateNavigation();
   updatePhotoMarkersButton();
-  updatePvFilename(item);
+  updatePvHeader(item);
   
   document.getElementById('imageViewer').classList.add('show');
   
@@ -4317,13 +4311,10 @@ function showImagePanel(){
 
 function updateNavigation(){
   const counter=document.getElementById('imageCounter');
-  const pvCounter=document.getElementById('pvCounter');
   const prevBtn=document.getElementById('imgNavPrev');
   const nextBtn=document.getElementById('imgNavNext');
   
-  const counterText = (currentMediaIndex+1)+' / '+allMediaIds.length;
-  counter.textContent = counterText;
-  if(pvCounter) pvCounter.textContent = counterText;
+  counter.textContent=(currentMediaIndex+1)+' / '+allMediaIds.length;
   
   if(allMediaIds.length>1){
     prevBtn.classList.toggle('show',currentMediaIndex>0);
@@ -4361,9 +4352,8 @@ function navigateImage(direction){
     updateNavigation();
     updatePhotoMarkersButton();
     
-    // Update filename in new header
     const item = ideas.find(x => x.id === currentImageId);
-    if (item) updatePvFilename(item);
+    updatePvHeader(item);
   }, 100);
 }
 
@@ -4772,8 +4762,6 @@ function closeImageViewer(){
   allMediaIds=[];
   document.getElementById('imageViewer').classList.remove('show');
   document.getElementById('imageViewerImg').src='';
-  
-  // Close tools menu
   closePvMenu();
 }
 
@@ -4786,15 +4774,10 @@ let pvMenuOpen = false;
 function togglePvMenu() {
   const menu = document.getElementById('pvToolsMenu');
   const btn = document.getElementById('pvMenuBtn');
+  if (!menu || !btn) return;
   pvMenuOpen = !pvMenuOpen;
-  
-  if (pvMenuOpen) {
-    menu.classList.add('show');
-    btn.classList.add('active');
-  } else {
-    menu.classList.remove('show');
-    btn.classList.remove('active');
-  }
+  menu.classList.toggle('show', pvMenuOpen);
+  btn.classList.toggle('active', pvMenuOpen);
 }
 
 function closePvMenu() {
@@ -4810,9 +4793,7 @@ function openPvInfo() {
   const item = ideas.find(x => x.id === currentImageId);
   if (!item) return;
   
-  // Populate info modal
-  const filename = document.getElementById('pvFilename');
-  document.getElementById('pvInfoFilename').textContent = filename ? filename.textContent : 'Photo';
+  document.getElementById('pvInfoFilename').textContent = document.getElementById('pvFilename')?.textContent || 'Photo';
   document.getElementById('pvInfoDate').textContent = (item.date || '') + (item.time ? ' • ' + item.time : '');
   document.getElementById('pvInfoCategory').textContent = item.category || 'photo';
   document.getElementById('pvInfoCaption').value = item.notes || item.text || '';
@@ -4828,33 +4809,33 @@ function savePvInfo() {
   const item = ideas.find(x => x.id === currentImageId);
   if (!item) return;
   
-  const newCaption = document.getElementById('pvInfoCaption').value.trim();
-  item.notes = newCaption;
+  item.notes = document.getElementById('pvInfoCaption').value.trim();
   save();
   render();
-  
   toast('Caption saved');
   closePvInfo();
 }
 
-function updatePvFilename(item) {
-  const el = document.getElementById('pvFilename');
-  if (!el) return;
+function updatePvHeader(item) {
+  if (!item) return;
   
-  // Generate filename from timestamp or use date/time
-  if (item.timestamp) {
-    const d = new Date(item.timestamp);
-    const name = 'IMG_' + d.getFullYear() + 
-      String(d.getMonth()+1).padStart(2,'0') + 
-      String(d.getDate()).padStart(2,'0') + '_' +
-      String(d.getHours()).padStart(2,'0') + 
-      String(d.getMinutes()).padStart(2,'0') + 
-      String(d.getSeconds()).padStart(2,'0');
-    el.textContent = name;
-  } else if (item.date && item.time) {
-    el.textContent = item.date + ' ' + item.time;
-  } else {
-    el.textContent = 'Photo';
+  // Update counter
+  const counter = document.getElementById('pvCounter');
+  if (counter) counter.textContent = (currentMediaIndex+1) + ' / ' + allMediaIds.length;
+  
+  // Update filename
+  const filename = document.getElementById('pvFilename');
+  if (filename) {
+    if (item.timestamp) {
+      const d = new Date(item.timestamp);
+      filename.textContent = 'IMG_' + d.getFullYear() + 
+        String(d.getMonth()+1).padStart(2,'0') + 
+        String(d.getDate()).padStart(2,'0') + '_' +
+        String(d.getHours()).padStart(2,'0') + 
+        String(d.getMinutes()).padStart(2,'0');
+    } else {
+      filename.textContent = item.date || 'Photo';
+    }
   }
 }
 
