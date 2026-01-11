@@ -2030,10 +2030,10 @@
           Masking replaces sensitive data with [****] placeholders.
         </p>
       </div>
-      <div class="modal-actions" style="flex-wrap: wrap; gap: 8px;">
-        <button class="modal-btn sec" onclick="closeSensitiveWarning()" style="flex: 1; min-width: 80px;">Cancel</button>
-        <button class="modal-btn" onclick="saveSensitiveAsMasked()" style="flex: 1; min-width: 100px; background: #10B981;">Mask & Save</button>
-        <button class="modal-btn" onclick="saveSensitiveAsIs()" style="flex: 1; min-width: 100px; background: #6366F1;">Save As Is</button>
+      <div class="modal-actions" style="flex-direction: column; gap: 8px;">
+        <button class="modal-btn" onclick="saveSensitiveAsMasked()" style="width: 100%; background: #10B981;">🛡️ Mask & Save</button>
+        <button class="modal-btn" onclick="saveSensitiveAsIs()" style="width: 100%; background: #6366F1;">💾 Save As Is</button>
+        <button class="modal-btn sec" onclick="closeSensitiveWarning()" style="width: 100%;">Cancel</button>
       </div>
     </div>
   </div>
