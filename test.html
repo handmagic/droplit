@@ -3,562 +3,295 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TEST: Recorder + PLAY button</title>
+  <title>Photo Viewer Test</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-      background: #F5F5F4; 
-      padding: 20px;
+      font-family: 'Inter', -apple-system, sans-serif; 
+      background: #1a1a1a;
       min-height: 100vh;
     }
-    .container {
-      max-width: 400px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-    .header {
-      background: linear-gradient(135deg, #F59E0B, #D97706);
-      padding: 20px;
-      text-align: center;
-      color: white;
-      font-weight: 700;
-      font-size: 1.2rem;
-    }
-    .body { padding: 24px; }
-    .time {
-      text-align: center;
-      font-size: 3rem;
-      font-weight: 700;
-      margin: 20px 0;
-      font-variant-numeric: tabular-nums;
-    }
-    .main-btn {
-      width: 100%;
-      padding: 20px;
-      border: none;
-      border-radius: 12px;
-      font-size: 1.1rem;
-      font-weight: 700;
-      cursor: pointer;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-      transition: all 0.15s;
-    }
-    .main-btn.ready { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; }
-    .main-btn.recording { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; }
-    .main-btn.stopped { background: linear-gradient(135deg, #10B981, #059669); color: white; }
-    .main-btn.paused { background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; }
-    .main-btn:active { transform: scale(0.98); }
     
-    .actions {
+    /* ============================================
+       PHOTO VIEWER - NEW HEADER DESIGN
+       ============================================ */
+    .photo-viewer {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.98);
       display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
+      flex-direction: column;
+      z-index: 600;
     }
-    .act-btn {
-      flex: 1;
-      padding: 14px;
+    
+    /* Header Bar */
+    .pv-header {
+      display: flex;
+      align-items: center;
+      height: 56px;
+      padding: 0 8px;
+      background: rgba(0,0,0,0.9);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+    
+    .pv-header-btn {
+      width: 44px;
+      height: 44px;
       border: none;
-      border-radius: 12px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .pv-header-btn:active { background: rgba(255,255,255,0.2); }
+    .pv-header-btn.menu.active { background: rgba(139,92,246,0.5); }
+    
+    .pv-header-center {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .pv-counter {
       font-size: 0.85rem;
       font-weight: 600;
-      cursor: pointer;
-      text-transform: uppercase;
-      transition: all 0.15s;
-    }
-    .act-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-    .act-btn:active:not(:disabled) { transform: scale(0.95); }
-    .act-btn.delete { background: #FEE2E2; color: #991B1B; }
-    .act-btn.create { background: #D1FAE5; color: #065F46; }
-    .act-btn.share { background: #E0E7FF; color: #3730A3; }
-    
-    .stop-btn {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      background: #EF4444;
       color: white;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-      display: none;
+      background: rgba(255,255,255,0.15);
+      padding: 6px 16px;
+      border-radius: 20px;
     }
-    .stop-btn.show { display: block; }
     
-    .log {
-      margin-top: 20px;
+    /* Dropdown Tools Menu */
+    .pv-tools-menu {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
       padding: 12px;
-      background: #1a1a1a;
-      border-radius: 8px;
-      color: #0f0;
-      font-family: monospace;
-      font-size: 0.75rem;
-      max-height: 200px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
+      background: rgba(0,0,0,0.9);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      flex-shrink: 0;
     }
+    .pv-tools-menu.show { display: flex; }
+    
+    .pv-tools-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .pv-tools-row::-webkit-scrollbar { display: none; }
+    
+    .pv-btn {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border: none;
+      background: rgba(255,255,255,0.12);
+      border-radius: 20px;
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .pv-btn:active { background: rgba(255,255,255,0.2); }
+    .pv-btn svg { width: 16px; height: 16px; }
+    
+    .pv-btn.ai { 
+      background: linear-gradient(135deg, rgba(139,92,246,0.4), rgba(59,130,246,0.4)); 
+    }
+    .pv-btn.ai:active { 
+      background: linear-gradient(135deg, rgba(139,92,246,0.6), rgba(59,130,246,0.6)); 
+    }
+    
+    .pv-btn.delete { 
+      background: rgba(239,68,68,0.25); 
+      color: #ff8a8a; 
+    }
+    .pv-btn.delete:active { background: rgba(239,68,68,0.4); }
+    
+    /* Photo Area */
+    .pv-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .pv-content img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    
+    /* Navigation Arrows */
+    .pv-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      cursor: pointer;
+    }
+    .pv-nav:active { background: rgba(255,255,255,0.25); }
+    .pv-nav.prev { left: 12px; }
+    .pv-nav.next { right: 12px; }
+    
+    /* Bottom Panel (placeholder) */
+    .pv-panel {
+      flex-shrink: 0;
+      background: #fff;
+      border-radius: 16px 16px 0 0;
+      padding: 16px;
+      color: #333;
+    }
+    .pv-panel-meta {
+      font-size: 0.75rem;
+      color: #888;
+      margin-bottom: 8px;
+    }
+    .pv-panel-caption {
+      font-size: 0.9rem;
+      color: #333;
+    }
+    
+    /* Toast for testing */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 999;
+    }
+    .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
 
-  <button style="width:100%; max-width:400px; margin:20px auto; display:block; padding:20px; background:linear-gradient(135deg,#F59E0B,#D97706); color:white; border:none; border-radius:12px; font-size:1.1rem; font-weight:700; cursor:pointer;" onclick="openModal()">
-    OPEN RECORDER
-  </button>
-  
-  <div class="log" id="log">Log:</div>
-
-  <!-- MODAL -->
-  <div id="modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; padding:20px; z-index:100;" onclick="if(event.target===this)closeModal()">
-    <div class="container">
-    <div class="header">TEST: + MODAL</div>
-    <div class="body">
-      <div class="time" id="time">0:00</div>
-      
-      <button class="main-btn ready" id="mainBtn" onclick="toggleRecord()">
-        TAP TO RECORD
+  <div class="photo-viewer">
+    <!-- Header -->
+    <div class="pv-header">
+      <button class="pv-header-btn menu" id="menuBtn" onclick="toggleMenu()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
       </button>
-      
-      <button class="stop-btn" id="stopBtn" onclick="stopRecording()">
-        STOP RECORDING
+      <div class="pv-header-center">
+        <span class="pv-counter" id="counter">3 / 12</span>
+      </div>
+      <button class="pv-header-btn close" onclick="showToast('Close viewer')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
       </button>
-      
-      <div style="display:flex; gap:10px; margin-bottom:20px;">
-        <button class="stop-btn" id="rewindBtn" onclick="rewindAudio()" style="background:#6B7280; flex:1; display:none;">&lt;&lt; 10s</button>
-        <button class="stop-btn" id="playBtn" onclick="playAudio()" style="background:#3B82F6; flex:2; display:none;">PLAY</button>
-        <button class="stop-btn" id="forwardBtn" onclick="forwardAudio()" style="background:#6B7280; flex:1; display:none;">10s &gt;&gt;</button>
+    </div>
+    
+    <!-- Tools Menu (hidden by default) -->
+    <div class="pv-tools-menu" id="toolsMenu">
+      <div class="pv-tools-row">
+        <button class="pv-btn" onclick="showToast('Share')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
+          Share
+        </button>
+        <button class="pv-btn" onclick="showToast('Download')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          Download
+        </button>
+        <button class="pv-btn" onclick="showToast('Markers')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg>
+          Markers
+        </button>
+        <button class="pv-btn delete" onclick="showToast('Delete')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          Delete
+        </button>
       </div>
-      
-      <div class="actions">
-        <button class="act-btn delete" id="deleteBtn" onclick="deleteRecording()" disabled>DELETE</button>
-        <button class="act-btn create" id="createBtn" onclick="createDrop()" disabled>CREATE</button>
-        <button class="act-btn share" id="shareBtn" onclick="shareRecording()" disabled>SHARE</button>
+      <div class="pv-tools-row">
+        <button class="pv-btn ai" onclick="showToast('OCR - Extract Text')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+          OCR
+        </button>
+        <button class="pv-btn ai" onclick="showToast('Describe Image')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          Describe
+        </button>
+        <button class="pv-btn" onclick="showToast('Edit Caption')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          Edit Caption
+        </button>
       </div>
-      
-      <button style="width:100%; padding:14px; border:2px solid #D6D3D1; border-radius:12px; background:transparent; font-size:0.9rem; font-weight:600; color:#57534E; cursor:pointer;" onclick="closeModal()">CANCEL</button>
+    </div>
+    
+    <!-- Photo Area -->
+    <div class="pv-content">
+      <div class="pv-nav prev" onclick="showToast('Previous')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <img src="https://picsum.photos/800/600" alt="Test photo">
+      <div class="pv-nav next" onclick="showToast('Next')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+    
+    <!-- Bottom Panel (old style placeholder) -->
+    <div class="pv-panel">
+      <div class="pv-panel-meta">📅 11.01.2026 • 15:30 • Photo</div>
+      <div class="pv-panel-caption">This is a test caption for the photo viewer.</div>
     </div>
   </div>
-  </div><!-- close modal -->
   
-  <div class="log" id="log2">Console log (below):</div>
+  <div class="toast" id="toast"></div>
 
-<script>
-// ===== STATE =====
-let state = 'ready'; // ready, recording, paused, stopped
-
-function openModal() {
-  log('openModal');
-  document.getElementById('modal').style.display = 'flex';
-}
-
-function closeModal() {
-  log('closeModal');
-  document.getElementById('modal').style.display = 'none';
-}
-let mediaRecorder = null;
-let audioChunks = [];
-let audioBlob = null;
-let audioStream = null;
-let startTime = null;
-let timerInterval = null;
-let currentAudio = null;
-
-// ===== LOGGING =====
-function log(msg) {
-  const logEl = document.getElementById('log');
-  const time = new Date().toLocaleTimeString();
-  logEl.textContent += '\n[' + time + '] ' + msg;
-  logEl.scrollTop = logEl.scrollHeight;
-  console.log(msg);
-}
-
-// ===== UI UPDATE =====
-function updateUI() {
-  const mainBtn = document.getElementById('mainBtn');
-  const stopBtn = document.getElementById('stopBtn');
-  const playBtn = document.getElementById('playBtn');
-  const rewindBtn = document.getElementById('rewindBtn');
-  const forwardBtn = document.getElementById('forwardBtn');
-  const deleteBtn = document.getElementById('deleteBtn');
-  const createBtn = document.getElementById('createBtn');
-  const shareBtn = document.getElementById('shareBtn');
-  
-  // Main button
-  mainBtn.className = 'main-btn ' + state;
-  if (state === 'ready') {
-    mainBtn.textContent = 'TAP TO RECORD';
-  } else if (state === 'recording') {
-    mainBtn.textContent = 'TAP TO PAUSE';
-  } else if (state === 'paused') {
-    mainBtn.textContent = 'TAP TO RESUME';
-  } else if (state === 'stopped') {
-    mainBtn.textContent = 'TAP TO RE-RECORD';
-  }
-  
-  // Stop button - show during recording or paused
-  stopBtn.style.display = (state === 'recording' || state === 'paused') ? 'block' : 'none';
-  
-  // Play/rewind/forward buttons - show when stopped with recording
-  const hasRecording = state === 'stopped' && audioBlob !== null;
-  playBtn.style.display = hasRecording ? 'block' : 'none';
-  rewindBtn.style.display = hasRecording ? 'block' : 'none';
-  forwardBtn.style.display = hasRecording ? 'block' : 'none';
-  
-  // Action buttons - only enabled when stopped with recording
-  deleteBtn.disabled = !hasRecording;
-  createBtn.disabled = !hasRecording;
-  shareBtn.disabled = !hasRecording;
-  
-  log('UI updated: state=' + state + ', hasBlob=' + (audioBlob !== null));
-}
-
-// ===== TIMER =====
-function updateTimer() {
-  const elapsed = Date.now() - startTime;
-  const secs = Math.floor(elapsed / 1000);
-  const mins = Math.floor(secs / 60);
-  document.getElementById('time').textContent = mins + ':' + (secs % 60).toString().padStart(2, '0');
-}
-
-// ===== MAIN BUTTON =====
-function toggleRecord() {
-  log('toggleRecord called, state=' + state);
-  
-  if (state === 'ready' || state === 'stopped') {
-    startRecording();
-  } else if (state === 'recording') {
-    pauseRecording();
-  } else if (state === 'paused') {
-    resumeRecording();
-  }
-}
-
-function pauseRecording() {
-  log('pauseRecording');
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    mediaRecorder.pause();
-    state = 'paused';
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
-    updateUI();
-  }
-}
-
-function resumeRecording() {
-  log('resumeRecording');
-  if (mediaRecorder && mediaRecorder.state === 'paused') {
-    mediaRecorder.resume();
-    state = 'recording';
-    timerInterval = setInterval(updateTimer, 100);
-    updateUI();
-  }
-}
-
-// ===== START RECORDING =====
-async function startRecording() {
-  log('startRecording called');
-  
-  try {
-    // Reset
-    audioChunks = [];
-    audioBlob = null;
+  <script>
+    let menuOpen = false;
     
-    // Get microphone
-    log('Requesting microphone...');
-    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    log('Microphone granted');
-    
-    // Create recorder
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-    log('Using mimeType: ' + mimeType);
-    
-    mediaRecorder = new MediaRecorder(audioStream, { mimeType: mimeType });
-    
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) {
-        audioChunks.push(e.data);
-        log('Chunk received: ' + e.data.size + ' bytes');
-      }
-    };
-    
-    mediaRecorder.onstop = () => {
-      log('MediaRecorder stopped');
-      audioBlob = new Blob(audioChunks, { type: mimeType });
-      log('Blob created: ' + audioBlob.size + ' bytes, type=' + audioBlob.type);
+    function toggleMenu() {
+      const menu = document.getElementById('toolsMenu');
+      const btn = document.getElementById('menuBtn');
+      menuOpen = !menuOpen;
       
-      // Stop stream
-      audioStream.getTracks().forEach(t => t.stop());
-      
-      state = 'stopped';
-      updateUI();
-    };
-    
-    mediaRecorder.onerror = (e) => {
-      log('MediaRecorder ERROR: ' + e.error);
-    };
-    
-    // Start
-    mediaRecorder.start(100);
-    state = 'recording';
-    startTime = Date.now();
-    timerInterval = setInterval(updateTimer, 100);
-    
-    log('Recording started');
-    updateUI();
-    
-  } catch (err) {
-    log('ERROR: ' + err.message);
-    alert('Microphone error: ' + err.message);
-  }
-}
-
-// ===== STOP RECORDING =====
-function stopRecording() {
-  log('stopRecording called');
-  
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.stop();
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
-    log('Stop command sent');
-  } else {
-    log('No active recorder to stop');
-  }
-}
-
-// ===== DELETE =====
-function deleteRecording() {
-  log('deleteRecording called');
-  
-  audioBlob = null;
-  audioChunks = [];
-  state = 'ready';
-  document.getElementById('time').textContent = '0:00';
-  
-  updateUI();
-  log('Recording deleted');
-}
-
-// ===== CREATE DROP =====
-async function createDrop() {
-  log('createDrop called');
-  
-  if (!audioBlob) {
-    log('ERROR: No audioBlob!');
-    return;
-  }
-  
-  const createBtn = document.getElementById('createBtn');
-  const deleteBtn = document.getElementById('deleteBtn');
-  const shareBtn = document.getElementById('shareBtn');
-  
-  // Disable all buttons immediately
-  createBtn.disabled = true;
-  deleteBtn.disabled = true;
-  shareBtn.disabled = true;
-  createBtn.textContent = 'SAVING...';
-  
-  try {
-    log('Converting blob to base64...');
-    
-    // Convert to base64
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        log('FileReader completed');
-        resolve(reader.result);
-      };
-      reader.onerror = () => {
-        log('FileReader ERROR');
-        reject(new Error('FileReader failed'));
-      };
-      reader.readAsDataURL(audioBlob);
-    });
-    
-    log('Base64 length: ' + base64.length);
-    
-    // Simulate saving (in real app this would save to localStorage)
-    const drop = {
-      id: Date.now(),
-      audioData: base64,
-      duration: document.getElementById('time').textContent,
-      size: audioBlob.size
-    };
-    
-    log('Drop created: id=' + drop.id + ', duration=' + drop.duration);
-    
-    // Success
-    createBtn.textContent = 'CREATED!';
-    createBtn.style.background = '#10B981';
-    createBtn.style.color = 'white';
-    
-    // Reset state
-    audioBlob = null;
-    state = 'ready';
-    document.getElementById('time').textContent = '0:00';
-    
-    setTimeout(() => {
-      createBtn.textContent = 'CREATE';
-      createBtn.style.background = '#D1FAE5';
-      createBtn.style.color = '#065F46';
-      updateUI();
-    }, 1500);
-    
-  } catch (err) {
-    log('CREATE ERROR: ' + err.message);
-    createBtn.textContent = 'ERROR';
-    createBtn.style.background = '#FEE2E2';
-    createBtn.style.color = '#991B1B';
-    
-    setTimeout(() => {
-      createBtn.textContent = 'CREATE';
-      createBtn.style.background = '#D1FAE5';
-      createBtn.style.color = '#065F46';
-      updateUI();
-    }, 1500);
-  }
-}
-
-// ===== SHARE =====
-async function shareRecording() {
-  log('shareRecording called');
-  
-  if (!audioBlob) {
-    log('ERROR: No audioBlob!');
-    return;
-  }
-  
-  log('Blob size: ' + audioBlob.size + ', type: ' + audioBlob.type);
-  
-  // Create file
-  const fileName = 'audio.' + (audioBlob.type.includes('mp4') ? 'm4a' : 'webm');
-  const file = new File([audioBlob], fileName, { type: audioBlob.type });
-  log('File created: ' + fileName);
-  
-  // Check APIs
-  const hasShare = typeof navigator.share === 'function';
-  const hasCanShare = typeof navigator.canShare === 'function';
-  log('navigator.share: ' + hasShare);
-  log('navigator.canShare: ' + hasCanShare);
-  
-  if (hasCanShare) {
-    try {
-      const canShareFile = navigator.canShare({ files: [file] });
-      log('canShare({files}): ' + canShareFile);
-    } catch (e) {
-      log('canShare error: ' + e.message);
-    }
-  }
-  
-  // Try to share
-  if (hasShare) {
-    try {
-      log('Calling navigator.share...');
-      await navigator.share({
-        files: [file],
-        title: 'Audio Recording'
-      });
-      log('Share SUCCESS');
-    } catch (err) {
-      log('Share error: ' + err.name + ' - ' + err.message);
-      
-      if (err.name === 'AbortError') {
-        log('User cancelled');
+      if (menuOpen) {
+        menu.classList.add('show');
+        btn.classList.add('active');
       } else {
-        // Try without files
-        try {
-          log('Trying share without files...');
-          await navigator.share({
-            title: 'Audio Recording',
-            text: 'Audio ' + document.getElementById('time').textContent
-          });
-          log('Text share SUCCESS');
-        } catch (err2) {
-          log('Text share error: ' + err2.message);
-          downloadFile();
-        }
+        menu.classList.remove('show');
+        btn.classList.remove('active');
       }
     }
-  } else {
-    log('No share API, downloading...');
-    downloadFile();
-  }
-  
-  function downloadFile() {
-    log('Downloading file...');
-    const url = URL.createObjectURL(audioBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    log('Download triggered');
-  }
-}
+    
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1500);
+    }
+  </script>
 
-// ===== PLAY =====
-function playAudio() {
-  log('playAudio called');
-  if (!audioBlob) return;
-  
-  const playBtn = document.getElementById('playBtn');
-  
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
-    playBtn.textContent = 'PLAY';
-    log('Playback stopped');
-    return;
-  }
-  
-  const url = URL.createObjectURL(audioBlob);
-  currentAudio = new Audio(url);
-  currentAudio.onended = () => {
-    currentAudio = null;
-    playBtn.textContent = 'PLAY';
-    URL.revokeObjectURL(url);
-    log('Playback ended');
-  };
-  currentAudio.play();
-  playBtn.textContent = 'PAUSE';
-  log('Playing...');
-}
-
-function rewindAudio() {
-  log('rewindAudio');
-  if (currentAudio) {
-    currentAudio.currentTime = Math.max(0, currentAudio.currentTime - 10);
-  }
-}
-
-function forwardAudio() {
-  log('forwardAudio');
-  if (currentAudio) {
-    currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + 10);
-  }
-}
-
-// ===== INIT =====
-log('Audio Recorder TEST loaded');
-log('navigator.mediaDevices: ' + !!navigator.mediaDevices);
-log('MediaRecorder: ' + !!window.MediaRecorder);
-updateUI();
-</script>
 </body>
 </html>
