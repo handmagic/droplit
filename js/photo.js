@@ -274,114 +274,115 @@ window.DropLitPhoto = {
   updatePhotoMarkersButton
 };
 
-/* ============================================
-   PHOTO VIEWER v2 - New Header & Tools
-   ============================================ */
+// ============================================
+// PHOTO VIEWER v2 - New Header & Tools
+// ============================================
+
+let pvMenuOpen = false;
+let pvInitialized = false;
 
 function initPhotoViewerV2() {
-  var imageViewer = document.getElementById('imageViewer');
-  if (!imageViewer || document.getElementById('pvHeader')) return;
+  if (pvInitialized) return;
+  
+  const imageViewer = document.getElementById('imageViewer');
+  if (!imageViewer) return;
   
   // Create new header
-  var header = document.createElement('div');
+  const header = document.createElement('div');
   header.className = 'pv-header';
-  header.id = 'pvHeader';
   header.onclick = function(e) { e.stopPropagation(); };
   header.innerHTML = 
     '<button class="pv-header-btn menu" id="pvMenuBtn" onclick="togglePvMenu()">' +
       '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>' +
     '</button>' +
+    '<span class="pv-counter" id="pvCounter">1 / 1</span>' +
     '<div class="pv-header-center">' +
-      '<div class="pv-filename" id="pvFilename" onclick="openPvInfo()">' +
-        '<svg class="pv-filename-lock" id="pvFilenameLock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
-        '<span id="pvFilenameText">Photo</span>' +
-      '</div>' +
+      '<div class="pv-filename" id="pvFilename">Photo</div>' +
     '</div>' +
     '<div class="pv-header-right">' +
+      '<button class="pv-pill" onclick="openPvInfo()">Info</button>' +
       '<button class="pv-header-btn" onclick="closeImageViewer()">' +
         '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
       '</button>' +
     '</div>';
   
-  // Create counter (bottom center)
-  var counter = document.createElement('div');
-  counter.className = 'pv-counter';
-  counter.id = 'pvCounter';
-  counter.textContent = '1 / 1';
-  counter.onclick = function(e) { e.stopPropagation(); };
-  
   // Create tools menu
-  var toolsMenu = document.createElement('div');
+  const toolsMenu = document.createElement('div');
   toolsMenu.className = 'pv-tools-menu';
   toolsMenu.id = 'pvToolsMenu';
   toolsMenu.onclick = function(e) { e.stopPropagation(); };
   toolsMenu.innerHTML = 
     '<div class="pv-tools-row">' +
-      '<button class="pv-btn" onclick="shareDrop(currentImageId)">Share</button>' +
-      '<button class="pv-btn" onclick="downloadImage()">Download</button>' +
-      '<button class="pv-btn" onclick="openMarkerSelector()">Markers</button>' +
-      '<button class="pv-btn delete" onclick="confirmDeleteFromViewer()">Delete</button>' +
+      '<button class="pv-btn" onclick="shareImage()">Share</button>' +
+      '<button class="pv-btn" onclick="saveImageToGallery()">Download</button>' +
+      '<button class="pv-btn" onclick="openPhotoMarkers()">Markers</button>' +
+      '<button class="pv-btn delete" onclick="deleteFromViewer()">Delete</button>' +
     '</div>' +
     '<div class="pv-tools-row">' +
-      '<button class="pv-btn ai" onclick="doPhotoAI(\'ocr\')">OCR</button>' +
-      '<button class="pv-btn ai" onclick="doPhotoAI(\'describe\')">Describe</button>' +
+      '<button class="pv-btn ai" onclick="runPhotoAI(\'ocr\')">OCR</button>' +
+      '<button class="pv-btn ai" onclick="runPhotoAI(\'describe\')">Describe</button>' +
       '<button class="pv-btn" onclick="openPvInfo()">Edit Caption</button>' +
     '</div>';
   
+  // Insert at beginning of imageViewer
+  imageViewer.insertBefore(toolsMenu, imageViewer.firstChild);
+  imageViewer.insertBefore(header, imageViewer.firstChild);
+  
   // Create info modal
-  var infoModal = document.createElement('div');
+  const infoModal = document.createElement('div');
   infoModal.className = 'pv-info-modal';
   infoModal.id = 'pvInfoModal';
-  infoModal.onclick = function() { closePvInfo(); };
+  infoModal.onclick = function(e) { if(e.target === this) closePvInfo(); };
   infoModal.innerHTML = 
-    '<div class="pv-info-content" onclick="event.stopPropagation()">' +
+    '<div class="pv-info-content">' +
       '<div class="pv-info-header">' +
-        '<div class="pv-info-title">Photo Info</div>' +
-        '<button class="pv-info-close" onclick="closePvInfo()">×</button>' +
+        '<h3>Photo Info</h3>' +
+        '<button class="pv-info-close" onclick="closePvInfo()">✕</button>' +
       '</div>' +
       '<div class="pv-info-body">' +
-        '<div class="pv-info-row">' +
+        '<div class="pv-info-section">' +
           '<div class="pv-info-label">Filename</div>' +
-          '<div class="pv-info-value" id="pvInfoFilename">—</div>' +
+          '<div class="pv-info-value" id="pvInfoFilename">-</div>' +
         '</div>' +
-        '<div class="pv-info-row">' +
+        '<div class="pv-info-section">' +
           '<div class="pv-info-label">Date & Time</div>' +
-          '<div class="pv-info-value" id="pvInfoDate">—</div>' +
+          '<div class="pv-info-value" id="pvInfoDate">-</div>' +
         '</div>' +
-        '<div class="pv-info-row">' +
+        '<div class="pv-info-section">' +
           '<div class="pv-info-label">Category</div>' +
-          '<div class="pv-info-value" id="pvInfoCategory">—</div>' +
+          '<div class="pv-info-value" id="pvInfoCategory">-</div>' +
         '</div>' +
-        '<div class="pv-info-row">' +
-          '<div class="pv-info-label">Caption</div>' +
-          '<textarea class="pv-info-textarea" id="pvInfoCaption" placeholder="Add a caption..."></textarea>' +
+        '<div class="pv-info-section">' +
+          '<div class="pv-info-label">Caption / Notes</div>' +
+          '<textarea class="pv-info-textarea" id="pvInfoCaption" placeholder="Add caption or notes..."></textarea>' +
         '</div>' +
       '</div>' +
       '<div class="pv-info-actions">' +
-        '<button class="pill-m sec" onclick="closePvInfo()">Cancel</button>' +
-        '<button class="pill-m pri" onclick="savePvInfo()">Save</button>' +
+        '<button class="pv-info-btn cancel" onclick="closePvInfo()">Cancel</button>' +
+        '<button class="pv-info-btn save" onclick="savePvInfo()">Save</button>' +
       '</div>' +
     '</div>';
   
-  // Insert elements
-  imageViewer.insertBefore(toolsMenu, imageViewer.firstChild);
-  imageViewer.insertBefore(header, imageViewer.firstChild);
-  imageViewer.appendChild(counter);
+  // Add modal to body
   document.body.appendChild(infoModal);
+  
+  pvInitialized = true;
+  console.log('Photo Viewer v2: Initialized');
 }
 
 function togglePvMenu() {
-  var menu = document.getElementById('pvToolsMenu');
-  var btn = document.getElementById('pvMenuBtn');
-  if (menu) {
-    menu.classList.toggle('show');
-    if (btn) btn.classList.toggle('active', menu.classList.contains('show'));
-  }
+  const menu = document.getElementById('pvToolsMenu');
+  const btn = document.getElementById('pvMenuBtn');
+  if (!menu || !btn) return;
+  pvMenuOpen = !pvMenuOpen;
+  menu.classList.toggle('show', pvMenuOpen);
+  btn.classList.toggle('active', pvMenuOpen);
 }
 
 function closePvMenu() {
-  var menu = document.getElementById('pvToolsMenu');
-  var btn = document.getElementById('pvMenuBtn');
+  pvMenuOpen = false;
+  const menu = document.getElementById('pvToolsMenu');
+  const btn = document.getElementById('pvMenuBtn');
   if (menu) menu.classList.remove('show');
   if (btn) btn.classList.remove('active');
 }
@@ -392,7 +393,7 @@ function openPvInfo() {
   var item = ideas.find(function(x) { return x.id === currentImageId; });
   if (!item) return;
   
-  var filenameEl = document.getElementById('pvFilenameText');
+  var filenameEl = document.getElementById('pvFilename');
   document.getElementById('pvInfoFilename').textContent = filenameEl ? filenameEl.textContent : 'Photo';
   document.getElementById('pvInfoDate').textContent = (item.date || '') + (item.time ? ' • ' + item.time : '');
   document.getElementById('pvInfoCategory').textContent = item.category || 'photo';
@@ -408,18 +409,14 @@ function closePvInfo() {
 
 function savePvInfo() {
   if (typeof currentImageId === 'undefined' || typeof ideas === 'undefined') return;
-  var idx = ideas.findIndex(function(x) { return x.id === currentImageId; });
-  if (idx === -1) return;
+  var item = ideas.find(function(x) { return x.id === currentImageId; });
+  if (!item) return;
   
-  var caption = document.getElementById('pvInfoCaption').value.trim();
-  ideas[idx].notes = caption;
-  ideas[idx].text = caption;
-  
+  item.notes = document.getElementById('pvInfoCaption').value.trim();
   if (typeof save === 'function') save();
   if (typeof render === 'function') render();
-  
-  closePvInfo();
   if (typeof toast === 'function') toast('Caption saved');
+  closePvInfo();
 }
 
 function updatePvHeader(item) {
@@ -432,61 +429,55 @@ function updatePvHeader(item) {
   }
   
   // Update filename
-  var filenameText = document.getElementById('pvFilenameText');
-  if (filenameText) {
+  var filename = document.getElementById('pvFilename');
+  if (filename) {
     if (item.timestamp) {
       var d = new Date(item.timestamp);
-      filenameText.textContent = 'IMG_' + d.getFullYear() + 
+      filename.textContent = 'IMG_' + d.getFullYear() + 
         String(d.getMonth() + 1).padStart(2, '0') + 
         String(d.getDate()).padStart(2, '0') + '_' +
         String(d.getHours()).padStart(2, '0') + 
         String(d.getMinutes()).padStart(2, '0');
     } else {
-      filenameText.textContent = item.date || 'Photo';
+      filename.textContent = item.date || 'Photo';
     }
-  }
-  
-  // Update lock icon
-  var lockIcon = document.getElementById('pvFilenameLock');
-  if (lockIcon) {
-    var isEncrypted = item.encrypted || item.content_encrypted;
-    lockIcon.style.display = isEncrypted ? 'block' : 'none';
   }
 }
 
-// Initialize on load and hook into existing functions
-window.addEventListener('load', function() {
+// Initialize when DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPhotoViewerV2);
+} else {
   initPhotoViewerV2();
-  
-  var lastImageId = null;
-  
+}
+
+// Hook existing functions after they're defined
+window.addEventListener('load', function() {
   // Hook viewImage
   if (typeof window.viewImage === 'function') {
     var originalViewImage = window.viewImage;
     window.viewImage = function(id, e) {
       originalViewImage.apply(this, arguments);
       setTimeout(function() {
-        closePvMenu();
-        if (typeof ideas !== 'undefined') {
-          var item = ideas.find(function(x) { return x.id === id; });
-          if (item) updatePvHeader(item);
+        if (typeof ideas !== 'undefined' && typeof currentImageId !== 'undefined') {
+          var item = ideas.find(function(x) { return x.id === currentImageId; });
+          updatePvHeader(item);
         }
-      }, 200);
+      }, 50);
     };
   }
   
   // Hook navigateImage
   if (typeof window.navigateImage === 'function') {
     var originalNavigateImage = window.navigateImage;
-    window.navigateImage = function(dir) {
+    window.navigateImage = function(direction) {
       originalNavigateImage.apply(this, arguments);
       setTimeout(function() {
-        closePvMenu();
-        if (typeof currentImageId !== 'undefined' && typeof ideas !== 'undefined') {
+        if (typeof ideas !== 'undefined' && typeof currentImageId !== 'undefined') {
           var item = ideas.find(function(x) { return x.id === currentImageId; });
-          if (item) updatePvHeader(item);
+          updatePvHeader(item);
         }
-      }, 200);
+      }, 150);
     };
   }
   
@@ -495,19 +486,7 @@ window.addEventListener('load', function() {
     var originalCloseImageViewer = window.closeImageViewer;
     window.closeImageViewer = function() {
       closePvMenu();
-      closePvInfo();
       originalCloseImageViewer.apply(this, arguments);
     };
   }
-  
-  // Fallback polling for swipe navigation
-  setInterval(function() {
-    if (typeof currentImageId !== 'undefined' && currentImageId !== lastImageId) {
-      lastImageId = currentImageId;
-      if (typeof ideas !== 'undefined') {
-        var item = ideas.find(function(x) { return x.id === currentImageId; });
-        if (item) updatePvHeader(item);
-      }
-    }
-  }, 100);
 });
