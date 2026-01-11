@@ -1821,11 +1821,11 @@ body.editing-mode #catModal { z-index: 1200; }
   right: 0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   min-height: 68px;
   padding: 10px 16px;
   padding-top: max(10px, env(safe-area-inset-top, 0px));
   background: transparent;
-  gap: 8px;
   z-index: 25;
   box-sizing: border-box;
 }
@@ -1850,45 +1850,38 @@ body.editing-mode #catModal { z-index: 1200; }
 .pv-header-btn.menu.active { background: rgba(139,92,246,0.6); }
 .pv-header-btn svg { width: 22px; height: 22px; }
 
+/* Counter - bottom center */
 .pv-counter {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: white;
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 34px;
+  padding: 0 14px;
+  border: 2px solid rgba(255,255,255,0.3);
   background: rgba(0,0,0,0.5);
-  padding: 4px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-main);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  z-index: 25;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .pv-header-center {
-  flex: 1;
-  min-width: 0;
-  text-align: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 160px);
 }
 
 .pv-filename {
-  font-size: 0.8rem;
-  color: white;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background: rgba(0,0,0,0.5);
-  padding: 4px 12px;
-  border-radius: 12px;
-  display: inline-block;
-  max-width: 100%;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.pv-header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pv-pill {
   height: 34px;
   padding: 0 14px;
   border: 2px solid rgba(255,255,255,0.3);
@@ -1903,13 +1896,29 @@ body.editing-mode #catModal { z-index: 1200; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: all 0.15s;
 }
-.pv-pill:active { transform: scale(0.97); background: rgba(0,0,0,0.7); }
+.pv-filename:active { transform: scale(0.97); background: rgba(0,0,0,0.7); }
 
-/* Tools Menu */
+.pv-filename-lock {
+  width: 14px;
+  height: 14px;
+  opacity: 0.8;
+}
+
+.pv-header-right {
+  display: flex;
+  align-items: center;
+}
+
+/* Tools Menu - gap 0 from header */
 .pv-tools-menu {
   position: absolute;
   top: calc(68px + env(safe-area-inset-top, 0px));
@@ -1928,7 +1937,7 @@ body.editing-mode #catModal { z-index: 1200; }
 .pv-tools-menu.show { 
   max-height: 150px;
   opacity: 1;
-  padding: 10px 16px;
+  padding: 0 16px 10px;
 }
 
 .pv-tools-row {
@@ -2066,9 +2075,29 @@ body.editing-mode #catModal { z-index: 1200; }
 .image-viewer-ai { display: none !important; }
 .image-viewer-panel { display: none !important; }
 .image-counter { display: none !important; }
+.image-viewer-markers { display: none !important; }
 
 /* Photo Viewer font size scaling */
-body.font-small .pv-btn,
-body.font-small .pv-pill { height: 30px; padding: 0 12px; font-size: 0.65rem; }
-body.font-large .pv-btn,
-body.font-large .pv-pill { height: 38px; padding: 0 16px; font-size: 0.8rem; }
+body.font-small .pv-btn { height: 30px; padding: 0 12px; font-size: 0.65rem; }
+body.font-large .pv-btn { height: 38px; padding: 0 16px; font-size: 0.8rem; }
+body.font-small .pv-filename { height: 30px; padding: 0 12px; font-size: 0.65rem; }
+body.font-large .pv-filename { height: 38px; padding: 0 16px; font-size: 0.8rem; }
+body.font-small .pv-counter { height: 30px; padding: 0 12px; font-size: 0.65rem; }
+body.font-large .pv-counter { height: 38px; padding: 0 16px; font-size: 0.8rem; }
+
+/* Navigation arrows - new style */
+.image-viewer-nav {
+  width: 48px !important;
+  height: 48px !important;
+  background: rgba(0,0,0,0.5) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 50% !important;
+  transition: all 0.15s !important;
+}
+.image-viewer-nav:active {
+  transform: translateY(-50%) scale(0.97) !important;
+  background: rgba(0,0,0,0.7) !important;
+}
+.image-viewer-nav.prev { left: 16px !important; }
+.image-viewer-nav.next { right: 16px !important; }
