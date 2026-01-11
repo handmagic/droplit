@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT CHAT v1.3 - NOUS Persona - Model Selection - Markdown Support
+// DROPLIT CHAT v1.4 - Sensitive Data Protection
 // ASKI Chat, Voice Mode, Streaming
 // ============================================
 
@@ -2338,12 +2338,24 @@ async function sendAskAIMessage() {
     // Get selected AI model from settings
     const selectedModel = typeof getAIModel === 'function' ? getAIModel() : localStorage.getItem('aski_model') || 'sonnet';
     
+    // Mask sensitive data before sending to AI (v0.9.103)
+    let textForAI = text;
+    if (typeof window.isSensitiveProtectionEnabled === 'function' && window.isSensitiveProtectionEnabled()) {
+      if (typeof window.maskSensitiveForAI === 'function') {
+        const maskedText = window.maskSensitiveForAI(text);
+        if (maskedText !== text) {
+          textForAI = maskedText;
+          console.log('[Security] 🛡️ Sensitive data masked before AI');
+        }
+      }
+    }
+    
     const response = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'chat',
-        text: text,  // Clean text, no injection
+        text: textForAI,  // Masked text for AI (v0.9.103)
         history: askAIMessages.slice(-10),
         syntriseContext: syntriseContext, // Legacy
         dropContext: contextObject, // v2: Structured context for server
