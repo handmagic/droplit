@@ -453,6 +453,7 @@ if (document.readyState === 'loading') {
 
 // Hook existing functions after they're defined
 window.addEventListener('load', function() {
+  
   // Hook viewImage
   if (typeof window.viewImage === 'function') {
     var originalViewImage = window.viewImage;
@@ -465,20 +466,23 @@ window.addEventListener('load', function() {
         }
       }, 50);
     };
+    console.log('Photo Viewer v2: viewImage hooked');
   }
   
-  // Hook navigateImage
+  // Hook navigateImage - needs longer delay because original uses setTimeout(100)
   if (typeof window.navigateImage === 'function') {
     var originalNavigateImage = window.navigateImage;
     window.navigateImage = function(direction) {
       originalNavigateImage.apply(this, arguments);
+      // Wait for original setTimeout(100) + some buffer
       setTimeout(function() {
         if (typeof ideas !== 'undefined' && typeof currentImageId !== 'undefined') {
           var item = ideas.find(function(x) { return x.id === currentImageId; });
           updatePvHeader(item);
         }
-      }, 150);
+      }, 200);
     };
+    console.log('Photo Viewer v2: navigateImage hooked');
   }
   
   // Hook closeImageViewer
@@ -488,5 +492,19 @@ window.addEventListener('load', function() {
       closePvMenu();
       originalCloseImageViewer.apply(this, arguments);
     };
+    console.log('Photo Viewer v2: closeImageViewer hooked');
   }
+  
+  // Also hook swipe navigation - listen for currentImageId changes
+  var lastImageId = null;
+  setInterval(function() {
+    if (typeof currentImageId !== 'undefined' && currentImageId !== lastImageId && currentImageId !== null) {
+      lastImageId = currentImageId;
+      if (typeof ideas !== 'undefined') {
+        var item = ideas.find(function(x) { return x.id === currentImageId; });
+        updatePvHeader(item);
+      }
+    }
+  }, 100);
+  
 });
