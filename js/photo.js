@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT PHOTO v2.0 - Header-based Design
+// DROPLIT PHOTO v1.0
 // Photo AI Tools (OCR, Describe) and Photo Markers
 // ============================================
 
@@ -177,8 +177,11 @@ function copyPhotoAIResult() {
 
 function updateImageViewerCaption() {
   const item = ideas.find(x => x.id === currentImageId);
-  if (item && typeof updateHeaderCaption === 'function') {
-    updateHeaderCaption(item);
+  if (item) {
+    const captionDisplay = document.getElementById('imageCaptionDisplay');
+    if (captionDisplay) {
+      captionDisplay.textContent = item.notes || '';
+    }
   }
 }
 
@@ -237,18 +240,14 @@ function togglePhotoMarker(marker) {
 
 function updatePhotoMarkersButton() {
   const item = ideas.find(x => x.id === currentImageId);
-  const btn = document.getElementById('imgMarkersBtn');
-  const label = document.getElementById('imgMarkersLabel');
-  
+  const btn = document.getElementById('imageViewerMarkers');
   if (!btn) return;
   
   if (item && item.markers && item.markers.length > 0) {
-    // Show emoji markers
-    const emojis = item.markers.map(m => MARKERS[m] || '').join('');
-    if(label) label.textContent = emojis || 'Markers';
+    btn.innerHTML = item.markers.map(m => MARKERS[m] || '').join('');
     btn.classList.add('has-markers');
   } else {
-    if(label) label.textContent = 'Markers';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>';
     btn.classList.remove('has-markers');
   }
 }
