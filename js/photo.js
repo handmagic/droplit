@@ -295,16 +295,24 @@ function initPhotoViewerV2() {
     '<button class="pv-header-btn menu" id="pvMenuBtn" onclick="togglePvMenu()">' +
       '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>' +
     '</button>' +
-    '<span class="pv-counter" id="pvCounter">1 / 1</span>' +
     '<div class="pv-header-center">' +
-      '<div class="pv-filename" id="pvFilename">Photo</div>' +
+      '<div class="pv-filename" id="pvFilename" onclick="openPvInfo()">' +
+        '<svg class="pv-filename-lock" id="pvFilenameLock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+        '<span id="pvFilenameText">Photo</span>' +
+      '</div>' +
     '</div>' +
     '<div class="pv-header-right">' +
-      '<button class="pv-pill" onclick="openPvInfo()">Info</button>' +
       '<button class="pv-header-btn" onclick="closeImageViewer()">' +
         '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
       '</button>' +
     '</div>';
+  
+  // Create counter (bottom center)
+  const counter = document.createElement('div');
+  counter.className = 'pv-counter';
+  counter.id = 'pvCounter';
+  counter.textContent = '1 / 1';
+  counter.onclick = function(e) { e.stopPropagation(); };
   
   // Create tools menu
   const toolsMenu = document.createElement('div');
@@ -327,6 +335,9 @@ function initPhotoViewerV2() {
   // Insert at beginning of imageViewer
   imageViewer.insertBefore(toolsMenu, imageViewer.firstChild);
   imageViewer.insertBefore(header, imageViewer.firstChild);
+  
+  // Add counter to imageViewer (bottom center)
+  imageViewer.appendChild(counter);
   
   // Create info modal
   const infoModal = document.createElement('div');
@@ -393,7 +404,7 @@ function openPvInfo() {
   var item = ideas.find(function(x) { return x.id === currentImageId; });
   if (!item) return;
   
-  var filenameEl = document.getElementById('pvFilename');
+  var filenameEl = document.getElementById('pvFilenameText');
   document.getElementById('pvInfoFilename').textContent = filenameEl ? filenameEl.textContent : 'Photo';
   document.getElementById('pvInfoDate').textContent = (item.date || '') + (item.time ? ' • ' + item.time : '');
   document.getElementById('pvInfoCategory').textContent = item.category || 'photo';
@@ -429,18 +440,26 @@ function updatePvHeader(item) {
   }
   
   // Update filename
-  var filename = document.getElementById('pvFilename');
-  if (filename) {
+  var filenameText = document.getElementById('pvFilenameText');
+  if (filenameText) {
     if (item.timestamp) {
       var d = new Date(item.timestamp);
-      filename.textContent = 'IMG_' + d.getFullYear() + 
+      filenameText.textContent = 'IMG_' + d.getFullYear() + 
         String(d.getMonth() + 1).padStart(2, '0') + 
         String(d.getDate()).padStart(2, '0') + '_' +
         String(d.getHours()).padStart(2, '0') + 
         String(d.getMinutes()).padStart(2, '0');
     } else {
-      filename.textContent = item.date || 'Photo';
+      filenameText.textContent = item.date || 'Photo';
     }
+  }
+  
+  // Update lock icon
+  var lockIcon = document.getElementById('pvFilenameLock');
+  if (lockIcon) {
+    // Show lock if item is encrypted
+    var isEncrypted = item.encrypted || item.content_encrypted;
+    lockIcon.style.display = isEncrypted ? 'block' : 'none';
   }
 }
 
