@@ -273,3 +273,220 @@ window.DropLitPhoto = {
   togglePhotoMarker,
   updatePhotoMarkersButton
 };
+
+// ============================================
+// PHOTO VIEWER v2 - New Header & Tools
+// ============================================
+
+let pvMenuOpen = false;
+let pvInitialized = false;
+
+function initPhotoViewerV2() {
+  if (pvInitialized) return;
+  
+  const imageViewer = document.getElementById('imageViewer');
+  if (!imageViewer) return;
+  
+  // Create new header
+  const header = document.createElement('div');
+  header.className = 'pv-header';
+  header.onclick = function(e) { e.stopPropagation(); };
+  header.innerHTML = 
+    '<button class="pv-header-btn menu" id="pvMenuBtn" onclick="togglePvMenu()">' +
+      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>' +
+    '</button>' +
+    '<span class="pv-counter" id="pvCounter">1 / 1</span>' +
+    '<div class="pv-header-center">' +
+      '<div class="pv-filename" id="pvFilename">Photo</div>' +
+    '</div>' +
+    '<div class="pv-header-right">' +
+      '<button class="pv-pill" onclick="openPvInfo()">Info</button>' +
+      '<button class="pv-header-btn" onclick="closeImageViewer()">' +
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+      '</button>' +
+    '</div>';
+  
+  // Create tools menu
+  const toolsMenu = document.createElement('div');
+  toolsMenu.className = 'pv-tools-menu';
+  toolsMenu.id = 'pvToolsMenu';
+  toolsMenu.onclick = function(e) { e.stopPropagation(); };
+  toolsMenu.innerHTML = 
+    '<div class="pv-tools-row">' +
+      '<button class="pv-btn" onclick="shareImage()">Share</button>' +
+      '<button class="pv-btn" onclick="saveImageToGallery()">Download</button>' +
+      '<button class="pv-btn" onclick="openPhotoMarkers()">Markers</button>' +
+      '<button class="pv-btn delete" onclick="deleteFromViewer()">Delete</button>' +
+    '</div>' +
+    '<div class="pv-tools-row">' +
+      '<button class="pv-btn ai" onclick="runPhotoAI(\'ocr\')">OCR</button>' +
+      '<button class="pv-btn ai" onclick="runPhotoAI(\'describe\')">Describe</button>' +
+      '<button class="pv-btn" onclick="openPvInfo()">Edit Caption</button>' +
+    '</div>';
+  
+  // Insert at beginning of imageViewer
+  imageViewer.insertBefore(toolsMenu, imageViewer.firstChild);
+  imageViewer.insertBefore(header, imageViewer.firstChild);
+  
+  // Create info modal
+  const infoModal = document.createElement('div');
+  infoModal.className = 'pv-info-modal';
+  infoModal.id = 'pvInfoModal';
+  infoModal.onclick = function(e) { if(e.target === this) closePvInfo(); };
+  infoModal.innerHTML = 
+    '<div class="pv-info-content">' +
+      '<div class="pv-info-header">' +
+        '<h3>Photo Info</h3>' +
+        '<button class="pv-info-close" onclick="closePvInfo()">✕</button>' +
+      '</div>' +
+      '<div class="pv-info-body">' +
+        '<div class="pv-info-section">' +
+          '<div class="pv-info-label">Filename</div>' +
+          '<div class="pv-info-value" id="pvInfoFilename">-</div>' +
+        '</div>' +
+        '<div class="pv-info-section">' +
+          '<div class="pv-info-label">Date & Time</div>' +
+          '<div class="pv-info-value" id="pvInfoDate">-</div>' +
+        '</div>' +
+        '<div class="pv-info-section">' +
+          '<div class="pv-info-label">Category</div>' +
+          '<div class="pv-info-value" id="pvInfoCategory">-</div>' +
+        '</div>' +
+        '<div class="pv-info-section">' +
+          '<div class="pv-info-label">Caption / Notes</div>' +
+          '<textarea class="pv-info-textarea" id="pvInfoCaption" placeholder="Add caption or notes..."></textarea>' +
+        '</div>' +
+      '</div>' +
+      '<div class="pv-info-actions">' +
+        '<button class="pv-info-btn cancel" onclick="closePvInfo()">Cancel</button>' +
+        '<button class="pv-info-btn save" onclick="savePvInfo()">Save</button>' +
+      '</div>' +
+    '</div>';
+  
+  // Add modal to body
+  document.body.appendChild(infoModal);
+  
+  pvInitialized = true;
+  console.log('Photo Viewer v2: Initialized');
+}
+
+function togglePvMenu() {
+  const menu = document.getElementById('pvToolsMenu');
+  const btn = document.getElementById('pvMenuBtn');
+  if (!menu || !btn) return;
+  pvMenuOpen = !pvMenuOpen;
+  menu.classList.toggle('show', pvMenuOpen);
+  btn.classList.toggle('active', pvMenuOpen);
+}
+
+function closePvMenu() {
+  pvMenuOpen = false;
+  const menu = document.getElementById('pvToolsMenu');
+  const btn = document.getElementById('pvMenuBtn');
+  if (menu) menu.classList.remove('show');
+  if (btn) btn.classList.remove('active');
+}
+
+function openPvInfo() {
+  closePvMenu();
+  if (typeof currentImageId === 'undefined' || typeof ideas === 'undefined') return;
+  var item = ideas.find(function(x) { return x.id === currentImageId; });
+  if (!item) return;
+  
+  var filenameEl = document.getElementById('pvFilename');
+  document.getElementById('pvInfoFilename').textContent = filenameEl ? filenameEl.textContent : 'Photo';
+  document.getElementById('pvInfoDate').textContent = (item.date || '') + (item.time ? ' • ' + item.time : '');
+  document.getElementById('pvInfoCategory').textContent = item.category || 'photo';
+  document.getElementById('pvInfoCaption').value = item.notes || item.text || '';
+  
+  document.getElementById('pvInfoModal').classList.add('show');
+}
+
+function closePvInfo() {
+  var modal = document.getElementById('pvInfoModal');
+  if (modal) modal.classList.remove('show');
+}
+
+function savePvInfo() {
+  if (typeof currentImageId === 'undefined' || typeof ideas === 'undefined') return;
+  var item = ideas.find(function(x) { return x.id === currentImageId; });
+  if (!item) return;
+  
+  item.notes = document.getElementById('pvInfoCaption').value.trim();
+  if (typeof save === 'function') save();
+  if (typeof render === 'function') render();
+  if (typeof toast === 'function') toast('Caption saved');
+  closePvInfo();
+}
+
+function updatePvHeader(item) {
+  if (!item) return;
+  
+  // Update counter
+  if (typeof currentMediaIndex !== 'undefined' && typeof allMediaIds !== 'undefined') {
+    var counter = document.getElementById('pvCounter');
+    if (counter) counter.textContent = (currentMediaIndex + 1) + ' / ' + allMediaIds.length;
+  }
+  
+  // Update filename
+  var filename = document.getElementById('pvFilename');
+  if (filename) {
+    if (item.timestamp) {
+      var d = new Date(item.timestamp);
+      filename.textContent = 'IMG_' + d.getFullYear() + 
+        String(d.getMonth() + 1).padStart(2, '0') + 
+        String(d.getDate()).padStart(2, '0') + '_' +
+        String(d.getHours()).padStart(2, '0') + 
+        String(d.getMinutes()).padStart(2, '0');
+    } else {
+      filename.textContent = item.date || 'Photo';
+    }
+  }
+}
+
+// Initialize when DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPhotoViewerV2);
+} else {
+  initPhotoViewerV2();
+}
+
+// Hook existing functions after they're defined
+window.addEventListener('load', function() {
+  // Hook viewImage
+  if (typeof window.viewImage === 'function') {
+    var originalViewImage = window.viewImage;
+    window.viewImage = function(id, e) {
+      originalViewImage.apply(this, arguments);
+      setTimeout(function() {
+        if (typeof ideas !== 'undefined' && typeof currentImageId !== 'undefined') {
+          var item = ideas.find(function(x) { return x.id === currentImageId; });
+          updatePvHeader(item);
+        }
+      }, 50);
+    };
+  }
+  
+  // Hook navigateImage
+  if (typeof window.navigateImage === 'function') {
+    var originalNavigateImage = window.navigateImage;
+    window.navigateImage = function(direction) {
+      originalNavigateImage.apply(this, arguments);
+      setTimeout(function() {
+        if (typeof ideas !== 'undefined' && typeof currentImageId !== 'undefined') {
+          var item = ideas.find(function(x) { return x.id === currentImageId; });
+          updatePvHeader(item);
+        }
+      }, 150);
+    };
+  }
+  
+  // Hook closeImageViewer
+  if (typeof window.closeImageViewer === 'function') {
+    var originalCloseImageViewer = window.closeImageViewer;
+    window.closeImageViewer = function() {
+      closePvMenu();
+      originalCloseImageViewer.apply(this, arguments);
+    };
+  }
+});
