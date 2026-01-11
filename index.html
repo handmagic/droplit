@@ -1868,7 +1868,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.99 • Syntrise Inc. © 2026</div>
+          <div class="menu-about-ver">v0.9.101 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1882,7 +1882,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.99 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.101 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -1961,6 +1961,25 @@
             <input type="checkbox" id="exportIncludeMeta">
             <span>Include metadata</span>
           </label>
+        </div>
+        
+        <!-- DOCX/PDF specific options -->
+        <div class="export-options" id="exportDocOptions" style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 8px;">
+          <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">Document options (DOCX/PDF):</div>
+          <label class="export-option">
+            <input type="checkbox" id="exportBusinessStyle" checked>
+            <span>Business style (Times 14pt + formatting)</span>
+          </label>
+          <div style="display: flex; gap: 16px; margin-top: 8px;">
+            <label class="export-option" style="flex: 1;">
+              <input type="radio" name="pageSize" value="a4" checked>
+              <span>A4 (Europe)</span>
+            </label>
+            <label class="export-option" style="flex: 1;">
+              <input type="radio" name="pageSize" value="letter">
+              <span>Letter (US)</span>
+            </label>
+          </div>
         </div>
         
         <div class="export-file-actions">
@@ -5764,6 +5783,14 @@ function openFileExportModal(dropId = null) {
   const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
   document.getElementById('exportFilename').value = `droplit-${timestamp}`;
   
+  // Initialize format selection (default is txt, so hide doc options)
+  exportState.format = 'txt';
+  document.querySelectorAll('.export-format-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.format === 'txt');
+  });
+  const docOptions = document.getElementById('exportDocOptions');
+  if (docOptions) docOptions.style.display = 'none';
+  
   document.getElementById('fileExportOverlay').classList.add('show');
 }
 
@@ -5776,6 +5803,12 @@ function selectExportFormat(format) {
   document.querySelectorAll('.export-format-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.format === format);
   });
+  
+  // Show/hide document-specific options (only for DOCX and PDF)
+  const docOptions = document.getElementById('exportDocOptions');
+  if (docOptions) {
+    docOptions.style.display = (format === 'docx' || format === 'pdf') ? 'block' : 'none';
+  }
 }
 
 function selectExportScope(scope) {
@@ -5830,6 +5863,13 @@ async function executeFileExport() {
   const includeCategory = document.getElementById('exportIncludeCategory').checked;
   const includeMeta = document.getElementById('exportIncludeMeta').checked;
   
+  // Document-specific options
+  const businessStyle = document.getElementById('exportBusinessStyle')?.checked ?? true;
+  const pageSize = document.querySelector('input[name="pageSize"]:checked')?.value || 'a4';
+  
+  const docOptions = { businessStyle, pageSize };
+  console.log('[Export] docOptions:', docOptions);
+  
   // Helper: run with timeout
   async function withTimeout(promise, ms, name) {
     return Promise.race([
@@ -5864,13 +5904,13 @@ async function executeFileExport() {
         
       case 'docx':
         toast('Generating DOCX...', 'info');
-        blob = await withTimeout(generateDOCX(drops, includeDate, includeCategory), 30000, 'DOCX');
+        blob = await withTimeout(generateDOCX(drops, includeDate, includeCategory, docOptions), 30000, 'DOCX');
         ext = 'docx';
         break;
         
       case 'pdf':
         toast('Generating PDF...', 'info');
-        blob = await withTimeout(generatePDF(drops, includeDate, includeCategory), 30000, 'PDF');
+        blob = await withTimeout(generatePDF(drops, includeDate, includeCategory, docOptions), 30000, 'PDF');
         ext = 'pdf';
         break;
         
@@ -5890,14 +5930,51 @@ async function executeFileExport() {
 }
 
 function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  console.log('[Export] downloadBlob called, size:', blob.size, 'name:', filename);
+  
+  try {
+    // Method 1: Standard blob URL (works in most cases)
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    
+    // Use click with timeout for better compatibility
+    setTimeout(() => {
+      a.click();
+      
+      // Cleanup after delay
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        console.log('[Export] Download initiated via blob URL');
+      }, 1000);
+    }, 100);
+    
+  } catch (e1) {
+    console.warn('[Export] Blob URL failed, trying data URL:', e1);
+    
+    // Method 2: Data URL fallback (for incognito/restricted environments)
+    try {
+      const reader = new FileReader();
+      reader.onload = function() {
+        const a = document.createElement('a');
+        a.href = reader.result;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => document.body.removeChild(a), 1000);
+        console.log('[Export] Download initiated via data URL');
+      };
+      reader.readAsDataURL(blob);
+    } catch (e2) {
+      console.error('[Export] All download methods failed:', e2);
+      toast('Download failed. Try right-click → Save As', 'error');
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -6230,7 +6307,7 @@ function generateCSV(drops, includeDate, includeCategory, includeMeta) {
 // ─────────────────────────────────────────────────────────────
 // DOCX Export - WITH MARKDOWN RENDERING
 // ─────────────────────────────────────────────────────────────
-async function generateDOCX(drops, includeDate, includeCategory) {
+async function generateDOCX(drops, includeDate, includeCategory, docOptions = {}) {
   try {
     // Load docx library if not loaded
     if (typeof docx === 'undefined' && !window.docx) {
@@ -6248,13 +6325,28 @@ async function generateDOCX(drops, includeDate, includeCategory) {
     const userPlan = localStorage.getItem('droplit_user_plan') || 'beta';
     const showBranding = !['business', 'owner', 'vip'].includes(userPlan);
     
-    // Font settings - Times New Roman for business style
-    const FONT = 'Times New Roman';
-    const SIZE_BODY = 28; // 14pt
-    const SIZE_H1 = 36;   // 18pt
-    const SIZE_H2 = 32;   // 16pt  
-    const SIZE_H3 = 28;   // 14pt
+    // Document options
+    const businessStyle = docOptions.businessStyle !== false; // default true
+    const pageSize = docOptions.pageSize || 'a4';
+    
+    // Page dimensions (in twentieths of a point - DXA)
+    // A4: 210mm x 297mm = 11906 x 16838 DXA
+    // Letter: 8.5" x 11" = 12240 x 15840 DXA
+    const PAGE_SIZES = {
+      a4: { width: 11906, height: 16838 },
+      letter: { width: 12240, height: 15840 }
+    };
+    const pageDims = PAGE_SIZES[pageSize] || PAGE_SIZES.a4;
+    
+    // Font settings
+    const FONT = businessStyle ? 'Times New Roman' : 'Arial';
+    const SIZE_BODY = businessStyle ? 28 : 24; // 14pt or 12pt
+    const SIZE_H1 = businessStyle ? 36 : 32;
+    const SIZE_H2 = businessStyle ? 32 : 28;  
+    const SIZE_H3 = businessStyle ? 28 : 24;
     const SIZE_SMALL = 24; // 12pt
+    
+    console.log('[Export] DOCX options:', { businessStyle, pageSize, pageDims });
     
     // Process each drop
     for (let dropIndex = 0; dropIndex < drops.length; dropIndex++) {
@@ -6287,102 +6379,124 @@ async function generateDOCX(drops, includeDate, includeCategory) {
         }));
       }
       
-      // Parse content as Markdown and render
+      // Get text content
       const text = drop.text || drop.content || '';
-      let ast;
-      try {
-        ast = parseMarkdownToAST(text);
-      } catch (e) {
-        console.error('[Export] AST parse error:', e);
-        ast = [{ type: 'paragraph', content: [{ type: 'text', value: text }] }];
-      }
       
-      // Render AST to DOCX
-      for (const node of ast) {
+      // Business style: parse and render Markdown
+      // Plain style: just text paragraphs
+      if (businessStyle) {
+        let ast;
         try {
-          switch (node.type) {
-            case 'heading':
-              children.push(new Paragraph({
-                children: renderInlineToDocx(node.content, docxLib, FONT, 
-                  node.level === 1 ? SIZE_H1 : node.level === 2 ? SIZE_H2 : SIZE_H3),
-                heading: node.level === 1 ? HeadingLevel.HEADING_1 : 
-                         node.level === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3,
-                spacing: { before: 240, after: 120 }
-              }));
-              break;
-              
-            case 'paragraph':
-              children.push(new Paragraph({
-                children: renderInlineToDocx(node.content, docxLib, FONT, SIZE_BODY),
-                spacing: { after: 200 }
-              }));
-              break;
-              
-            case 'list':
-              for (let idx = 0; idx < node.items.length; idx++) {
-                const item = node.items[idx];
+          ast = parseMarkdownToAST(text);
+        } catch (e) {
+          console.error('[Export] AST parse error:', e);
+          ast = [{ type: 'paragraph', content: [{ type: 'text', value: text }] }];
+        }
+        
+        // Render AST to DOCX
+        for (const node of ast) {
+          try {
+            switch (node.type) {
+              case 'heading':
+                children.push(new Paragraph({
+                  children: renderInlineToDocx(node.content, docxLib, FONT, 
+                    node.level === 1 ? SIZE_H1 : node.level === 2 ? SIZE_H2 : SIZE_H3),
+                  heading: node.level === 1 ? HeadingLevel.HEADING_1 : 
+                           node.level === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3,
+                  spacing: { before: 240, after: 120 }
+                }));
+                break;
+                
+              case 'paragraph':
+                children.push(new Paragraph({
+                  children: renderInlineToDocx(node.content, docxLib, FONT, SIZE_BODY),
+                  spacing: { after: 200 }
+                }));
+                break;
+                
+              case 'list':
+                for (let idx = 0; idx < node.items.length; idx++) {
+                  const item = node.items[idx];
+                  children.push(new Paragraph({
+                    children: [
+                      new TextRun({ 
+                        text: node.ordered ? (idx + 1) + '. ' : '• ',
+                        font: FONT,
+                        size: SIZE_BODY
+                      }),
+                      ...renderInlineToDocx(item.content, docxLib, FONT, SIZE_BODY)
+                    ],
+                    indent: { left: 720 },
+                    spacing: { after: 80 }
+                  }));
+                }
+                break;
+                
+              case 'blockquote':
                 children.push(new Paragraph({
                   children: [
-                    new TextRun({ 
-                      text: node.ordered ? (idx + 1) + '. ' : '• ',
-                      font: FONT,
-                      size: SIZE_BODY
-                    }),
-                    ...renderInlineToDocx(item.content, docxLib, FONT, SIZE_BODY)
+                    new TextRun({ text: '│ ', color: '9CA3AF', font: FONT, size: SIZE_BODY }),
+                    ...renderInlineToDocx(node.content, docxLib, FONT, SIZE_BODY)
                   ],
-                  indent: { left: 720 },
-                  spacing: { after: 80 }
+                  indent: { left: 360 },
+                  spacing: { after: 200 }
                 }));
-              }
-              break;
-              
-            case 'blockquote':
-              children.push(new Paragraph({
-                children: [
-                  new TextRun({ text: '│ ', color: '9CA3AF', font: FONT, size: SIZE_BODY }),
-                  ...renderInlineToDocx(node.content, docxLib, FONT, SIZE_BODY)
-                ],
-                indent: { left: 360 },
-                spacing: { after: 200 }
-              }));
-              break;
-              
-            case 'codeBlock':
-              const codeLines = (node.code || '').split('\n');
-              for (const codeLine of codeLines) {
+                break;
+                
+              case 'codeBlock':
+                const codeLines = (node.code || '').split('\n');
+                for (const codeLine of codeLines) {
+                  children.push(new Paragraph({
+                    children: [new TextRun({ 
+                      text: codeLine || ' ',
+                      font: 'Courier New',
+                      size: SIZE_SMALL,
+                      color: '374151'
+                    })],
+                    shading: { fill: 'F3F4F6' },
+                    spacing: { after: 0 },
+                    indent: { left: 360 }
+                  }));
+                }
+                children.push(new Paragraph({ spacing: { after: 200 } }));
+                break;
+                
+              case 'hr':
                 children.push(new Paragraph({
-                  children: [new TextRun({ 
-                    text: codeLine || ' ',
-                    font: 'Courier New',
-                    size: SIZE_SMALL,
-                    color: '374151'
-                  })],
-                  shading: { fill: 'F3F4F6' },
-                  spacing: { after: 0 },
-                  indent: { left: 360 }
+                  children: [new TextRun({ text: ' ' })],
+                  border: { bottom: { style: BorderStyle?.SINGLE || 'single', size: 6, color: 'CCCCCC' } },
+                  spacing: { before: 200, after: 200 }
                 }));
-              }
-              children.push(new Paragraph({ spacing: { after: 200 } }));
-              break;
-              
-            case 'hr':
-              children.push(new Paragraph({
-                children: [new TextRun({ text: ' ' })],
-                border: { bottom: { style: BorderStyle?.SINGLE || 'single', size: 6, color: 'CCCCCC' } },
-                spacing: { before: 200, after: 200 }
-              }));
-              break;
-              
-            default:
-              // Unknown type - render as plain text
-              const plainText = JSON.stringify(node.content || '');
-              children.push(new Paragraph({
-                children: [new TextRun({ text: plainText, font: FONT, size: SIZE_BODY })],
-                spacing: { after: 200 }
-              }));
+                break;
+                
+              default:
+                const plainText = typeof node.content === 'string' ? node.content : '';
+                if (plainText) {
+                  children.push(new Paragraph({
+                    children: [new TextRun({ text: plainText, font: FONT, size: SIZE_BODY })],
+                    spacing: { after: 200 }
+                  }));
+                }
+            }
+          } catch (nodeError) {
+            console.error('[Export] Node render error:', nodeError, node);
           }
-        } catch (nodeError) {
-          console.error('[Export] Node render error:', nodeError, node);
+        }
+      } else {
+        // Plain style - just paragraphs, no Markdown
+        const paragraphs = text.split(/\n\n+/);
+        for (const para of paragraphs) {
+          if (!para.trim()) continue;
+          const lines = para.split('\n');
+          const runs = [];
+          for (let idx = 0; idx < lines.length; idx++) {
+            if (idx > 0) runs.push(new TextRun({ break: 1 }));
+            runs.push(new TextRun({ text: lines[idx], font: FONT, size: SIZE_BODY }));
+          }
+          children.push(new Paragraph({
+            children: runs,
+            spacing: { after: 200 }
+          }));
         }
       }
       
@@ -6414,7 +6528,7 @@ async function generateDOCX(drops, includeDate, includeCategory) {
       sections: [{
         properties: {
           page: {
-            size: { width: 12240, height: 15840 },
+            size: { width: pageDims.width, height: pageDims.height },
             margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
           }
         },
@@ -6468,13 +6582,13 @@ function renderInlineToDocx(nodes, docxLib, font, size) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PDF Export - ROBUST VERSION (using jsPDF with fallback)
+// PDF Export - ROBUST VERSION (larger font, page size options)
 // ─────────────────────────────────────────────────────────────
-async function generatePDF(drops, includeDate, includeCategory) {
+async function generatePDF(drops, includeDate, includeCategory, docOptions = {}) {
   console.log('[Export] Starting PDF generation for', drops.length, 'drops');
   
   try {
-    // Load jsPDF (simpler, more reliable than pdfmake)
+    // Load jsPDF
     if (!window.jspdf) {
       console.log('[Export] Loading jsPDF...');
       await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
@@ -6484,16 +6598,25 @@ async function generatePDF(drops, includeDate, includeCategory) {
     if (!window.jspdf) throw new Error('jsPDF not loaded');
     
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    
+    // Page size: a4 or letter
+    const pageSize = docOptions.pageSize || 'a4';
+    const doc = new jsPDF({ format: pageSize });
     
     const userPlan = localStorage.getItem('droplit_user_plan') || 'beta';
     const showBranding = !['business', 'owner', 'vip'].includes(userPlan);
     
-    let y = 20;
+    // Page dimensions depend on format
+    // A4: 210x297mm, Letter: 215.9x279.4mm
+    const isLetter = pageSize === 'letter';
+    const pageWidth = isLetter ? 175 : 170;
+    const pageHeight = isLetter ? 250 : 270;
+    
+    let y = 25;
     const margin = 20;
-    const pageWidth = 170;
-    const pageHeight = 270;
-    const lineHeight = 6;
+    const lineHeight = 8;
+    
+    console.log('[Export] PDF options:', { pageSize, pageWidth, pageHeight });
     
     // Process each drop
     for (let dropIndex = 0; dropIndex < drops.length; dropIndex++) {
@@ -6503,37 +6626,33 @@ async function generatePDF(drops, includeDate, includeCategory) {
       // New page if needed
       if (y > pageHeight - 40) {
         doc.addPage();
-        y = 20;
+        y = 25;
       }
       
       // Header with category/date
       if (includeCategory || includeDate) {
-        doc.setFontSize(10);
+        doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(99, 102, 241); // Purple
         
         let header = '';
         if (includeCategory) {
+          doc.setTextColor(99, 102, 241);
           header += '[' + (drop.category || 'inbox').toUpperCase() + '] ';
         }
         if (includeDate && (drop.date || drop.time)) {
-          doc.setTextColor(100, 100, 100);
           header += (drop.date || '') + ' ' + (drop.time || '');
         }
         
         doc.text(header, margin, y);
         y += lineHeight + 2;
+        doc.setTextColor(0, 0, 0);
       }
       
-      // Content - simple text rendering (no complex Markdown)
-      doc.setFontSize(11);
+      // Content
+      doc.setFontSize(13);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(0, 0, 0);
       
       const text = drop.text || drop.content || '';
-      
-      // Simple: split by lines and render
-      // Note: Cyrillic may show as "?" - this is a jsPDF limitation
       const paragraphs = text.split(/\n/);
       
       for (let pIdx = 0; pIdx < paragraphs.length && pIdx < 200; pIdx++) {
@@ -6544,53 +6663,51 @@ async function generatePDF(drops, includeDate, includeCategory) {
           continue;
         }
         
-        // Handle basic markdown: remove ** and * markers for cleaner text
+        // Clean markdown markers
         let cleanText = para
-          .replace(/\*\*([^*]+)\*\*/g, '$1')  // **bold** → bold
-          .replace(/\*([^*]+)\*/g, '$1')      // *italic* → italic
-          .replace(/`([^`]+)`/g, '$1')        // `code` → code
-          .replace(/^#+\s*/, '')              // # header → header
-          .replace(/^[\-\*]\s+/, '• ')         // - list → • list
-          .replace(/^\d+\.\s+/, (m) => m);    // keep numbered lists
+          .replace(/\*\*([^*]+)\*\*/g, '$1')
+          .replace(/\*([^*]+)\*/g, '$1')
+          .replace(/`([^`]+)`/g, '$1')
+          .replace(/^#+\s*/, '')
+          .replace(/^[\-\*]\s+/, '• ')
+          .replace(/^\d+\.\s+/, (m) => m);
         
-        // Wrap text to fit page width
+        // Note: Cyrillic will show as "?" - jsPDF limitation
+        // For Cyrillic, recommend DOCX or TXT export
+        
         try {
           const lines = doc.splitTextToSize(cleanText, pageWidth);
           
           for (const line of lines) {
             if (y > pageHeight) {
               doc.addPage();
-              y = 20;
+              y = 25;
             }
             doc.text(line, margin, y);
             y += lineHeight;
           }
         } catch (e) {
-          // Fallback: just print truncated
           doc.text(cleanText.slice(0, 80), margin, y);
           y += lineHeight;
         }
       }
       
       // Separator
-      y += 4;
+      y += 5;
       if (dropIndex < drops.length - 1) {
         doc.setDrawColor(200, 200, 200);
         doc.line(margin, y, margin + pageWidth, y);
-        y += 8;
+        y += 10;
       }
     }
     
     // Footer branding
     if (showBranding) {
-      if (y > pageHeight - 20) {
-        doc.addPage();
-        y = pageHeight - 10;
-      }
-      doc.setFontSize(8);
+      const footerY = isLetter ? 265 : 285;
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(150, 150, 150);
-      doc.text('Created with DropLit', 105, y + 20, { align: 'center' });
+      doc.text('Created with DropLit', 105, footerY, { align: 'center' });
     }
     
     console.log('[Export] PDF generation complete');
@@ -6602,7 +6719,7 @@ async function generatePDF(drops, includeDate, includeCategory) {
   }
 }
 
-// Simplified inline renderer for PDF (plain text extraction)
+// Simplified inline renderer for PDF
 function renderInlineToPdf(nodes) {
   if (!nodes) return '';
   if (typeof nodes === 'string') return nodes;
@@ -7282,6 +7399,41 @@ async function setupEncryption() {
     }
   } catch (e) {
     console.error("Error checking key:", e);
+  }
+  
+  // ════════════════════════════════════════════════════════════
+  // PROTECTION: Check if user might have existing encrypted data
+  // ════════════════════════════════════════════════════════════
+  try {
+    // Check markers that indicate previous encryption use
+    const hadKeyBefore = localStorage.getItem("droplit_had_encryption_" + currentUser.id) === "true";
+    const existingDrops = localStorage.getItem('ideas');
+    const hasLocalDrops = existingDrops && existingDrops.length > 50;
+    
+    // If there's any indication of previous data
+    if (hadKeyBefore || hasLocalDrops) {
+      const warningResult = confirm(
+        "⚠️ IMPORTANT: Check Before Proceeding\n\n" +
+        "You may have existing encrypted data from a previous session.\n\n" +
+        "Creating a NEW encryption key will make old data UNREADABLE.\n\n" +
+        "📋 Your options:\n" +
+        "• Enter your PASSWORD to recover existing key\n" +
+        "• Use BACKUP KEY if you saved one\n" +
+        "• Create NEW key only if starting fresh\n\n" +
+        "Press OK to continue to setup.\n" +
+        "Press Cancel to close and review your data first."
+      );
+      
+      if (!warningResult) {
+        return;
+      }
+    }
+    
+    // Mark that this user has used encryption (for future warnings)
+    localStorage.setItem("droplit_had_encryption_" + currentUser.id, "true");
+    
+  } catch (e) {
+    console.warn("[Encryption] Protection check error:", e);
   }
   
   // Close main menu first
