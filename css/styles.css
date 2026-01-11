@@ -1209,7 +1209,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 .image-viewer-markers.has-markers { background: rgba(139,92,246,0.6); }
 
 /* Photo AI Tools Modal */
-.photo-ai-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 250; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+.photo-ai-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 650; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
 .photo-ai-modal.show { opacity: 1; visibility: visible; }
 .photo-ai-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 360px; overflow: hidden; transform: scale(0.9); transition: transform 0.2s; }
 .photo-ai-modal.show .photo-ai-content { transform: scale(1); }
@@ -1227,7 +1227,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 .photo-ai-cancel { padding: 14px; border: none; background: none; width: 100%; font-size: 0.95rem; color: var(--color-text-muted); cursor: pointer; border-top: 1px solid var(--color-border); }
 
 /* Photo AI Result Modal */
-.photo-ai-result { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 260; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+.photo-ai-result { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 660; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
 .photo-ai-result.show { opacity: 1; visibility: visible; }
 .photo-ai-result-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 400px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column; }
 .photo-ai-result-header { padding: 16px 20px; background: linear-gradient(135deg, #8B5CF6, #3B82F6); color: white; }
@@ -1240,7 +1240,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 .photo-ai-result-btn:active { transform: scale(0.98); }
 
 /* Photo Markers Modal */
-.photo-markers-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 250; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+.photo-markers-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 650; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
 .photo-markers-modal.show { opacity: 1; visibility: visible; }
 .photo-markers-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 320px; padding: 20px; text-align: center; }
 .photo-markers-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; }
