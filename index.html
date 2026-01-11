@@ -171,7 +171,7 @@
         </button>
         
         <p class="onboarding-footer">
-          Don't have a code? <a href="/cdn-cgi/l/email-protection#82e3eee7fac2f1fbecf6f0ebf1e7ace1edef">Request access</a>
+          Don't have a code? <a href="mailto:alex@syntrise.com">Request access</a>
         </p>
       </div>
       
@@ -2039,37 +2039,6 @@
   </div>
   
   <div class="overlay image-viewer" id="imageViewer" onclick="handleImageViewerClick(event)">
-    <!-- NEW HEADER (v2) -->
-    <div class="pv-header" onclick="event.stopPropagation()">
-      <button class="pv-header-btn menu" id="pvMenuBtn" onclick="togglePvMenu()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-      </button>
-      <span class="pv-counter" id="pvCounter">1 / 1</span>
-      <div class="pv-header-center">
-        <div class="pv-filename" id="pvFilename">Photo</div>
-      </div>
-      <div class="pv-header-right">
-        <button class="pv-pill" onclick="openPvInfo()">Info</button>
-        <button class="pv-header-btn" onclick="closeImageViewer()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-    </div>
-    <!-- NEW TOOLS MENU (v2) -->
-    <div class="pv-tools-menu" id="pvToolsMenu" onclick="event.stopPropagation()">
-      <div class="pv-tools-row">
-        <button class="pv-btn" onclick="shareImage()">Share</button>
-        <button class="pv-btn" onclick="saveImageToGallery()">Download</button>
-        <button class="pv-btn" onclick="openPhotoMarkers()">Markers</button>
-        <button class="pv-btn delete" onclick="deleteFromViewer()">Delete</button>
-      </div>
-      <div class="pv-tools-row">
-        <button class="pv-btn ai" onclick="runPhotoAI('ocr')">OCR</button>
-        <button class="pv-btn ai" onclick="runPhotoAI('describe')">Describe</button>
-        <button class="pv-btn" onclick="openPvInfo()">Edit Caption</button>
-      </div>
-    </div>
-    <!-- OLD ELEMENTS BELOW -->
     <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
     <div class="image-viewer-markers" id="imageViewerMarkers" onclick="openPhotoMarkers()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg></div>
     <div class="image-viewer-ai" onclick="openPhotoAI()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></div>
@@ -2096,38 +2065,6 @@
         <button class="img-act" onclick="shareImage()">Share</button>
         <button class="img-act" onclick="saveImageToGallery()">Download</button>
         <button class="img-act delete" onclick="deleteFromViewer()">Delete</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- NEW: Photo Info Modal (v2) -->
-  <div class="pv-info-modal" id="pvInfoModal" onclick="if(event.target===this)closePvInfo()">
-    <div class="pv-info-content">
-      <div class="pv-info-header">
-        <h3>Photo Info</h3>
-        <button class="pv-info-close" onclick="closePvInfo()">✕</button>
-      </div>
-      <div class="pv-info-body">
-        <div class="pv-info-section">
-          <div class="pv-info-label">Filename</div>
-          <div class="pv-info-value" id="pvInfoFilename">-</div>
-        </div>
-        <div class="pv-info-section">
-          <div class="pv-info-label">Date & Time</div>
-          <div class="pv-info-value" id="pvInfoDate">-</div>
-        </div>
-        <div class="pv-info-section">
-          <div class="pv-info-label">Category</div>
-          <div class="pv-info-value" id="pvInfoCategory">-</div>
-        </div>
-        <div class="pv-info-section">
-          <div class="pv-info-label">Caption / Notes</div>
-          <textarea class="pv-info-textarea" id="pvInfoCaption" placeholder="Add caption or notes..."></textarea>
-        </div>
-      </div>
-      <div class="pv-info-actions">
-        <button class="pv-info-btn cancel" onclick="closePvInfo()">Cancel</button>
-        <button class="pv-info-btn save" onclick="savePvInfo()">Save</button>
       </div>
     </div>
   </div>
@@ -2190,7 +2127,7 @@
     </div>
   </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
@@ -4242,7 +4179,6 @@ function viewImage(id,e){
   loadCurrentImage();
   updateNavigation();
   updatePhotoMarkersButton();
-  updatePvHeader(item);
   
   document.getElementById('imageViewer').classList.add('show');
   
@@ -4351,9 +4287,6 @@ function navigateImage(direction){
     img.style.opacity = '1';
     updateNavigation();
     updatePhotoMarkersButton();
-    
-    const item = ideas.find(x => x.id === currentImageId);
-    updatePvHeader(item);
   }, 100);
 }
 
@@ -4762,81 +4695,6 @@ function closeImageViewer(){
   allMediaIds=[];
   document.getElementById('imageViewer').classList.remove('show');
   document.getElementById('imageViewerImg').src='';
-  closePvMenu();
-}
-
-// ============================================
-// NEW PHOTO VIEWER FUNCTIONS (v2)
-// ============================================
-
-let pvMenuOpen = false;
-
-function togglePvMenu() {
-  const menu = document.getElementById('pvToolsMenu');
-  const btn = document.getElementById('pvMenuBtn');
-  if (!menu || !btn) return;
-  pvMenuOpen = !pvMenuOpen;
-  menu.classList.toggle('show', pvMenuOpen);
-  btn.classList.toggle('active', pvMenuOpen);
-}
-
-function closePvMenu() {
-  pvMenuOpen = false;
-  const menu = document.getElementById('pvToolsMenu');
-  const btn = document.getElementById('pvMenuBtn');
-  if (menu) menu.classList.remove('show');
-  if (btn) btn.classList.remove('active');
-}
-
-function openPvInfo() {
-  closePvMenu();
-  const item = ideas.find(x => x.id === currentImageId);
-  if (!item) return;
-  
-  document.getElementById('pvInfoFilename').textContent = document.getElementById('pvFilename')?.textContent || 'Photo';
-  document.getElementById('pvInfoDate').textContent = (item.date || '') + (item.time ? ' • ' + item.time : '');
-  document.getElementById('pvInfoCategory').textContent = item.category || 'photo';
-  document.getElementById('pvInfoCaption').value = item.notes || item.text || '';
-  
-  document.getElementById('pvInfoModal').classList.add('show');
-}
-
-function closePvInfo() {
-  document.getElementById('pvInfoModal').classList.remove('show');
-}
-
-function savePvInfo() {
-  const item = ideas.find(x => x.id === currentImageId);
-  if (!item) return;
-  
-  item.notes = document.getElementById('pvInfoCaption').value.trim();
-  save();
-  render();
-  toast('Caption saved');
-  closePvInfo();
-}
-
-function updatePvHeader(item) {
-  if (!item) return;
-  
-  // Update counter
-  const counter = document.getElementById('pvCounter');
-  if (counter) counter.textContent = (currentMediaIndex+1) + ' / ' + allMediaIds.length;
-  
-  // Update filename
-  const filename = document.getElementById('pvFilename');
-  if (filename) {
-    if (item.timestamp) {
-      const d = new Date(item.timestamp);
-      filename.textContent = 'IMG_' + d.getFullYear() + 
-        String(d.getMonth()+1).padStart(2,'0') + 
-        String(d.getDate()).padStart(2,'0') + '_' +
-        String(d.getHours()).padStart(2,'0') + 
-        String(d.getMinutes()).padStart(2,'0');
-    } else {
-      filename.textContent = item.date || 'Photo';
-    }
-  }
 }
 
 function shareImage(){
@@ -8119,4 +7977,13 @@ async function resetEncryption() {
     updateEncryptionButton(false);
     updateSecurityIndicator();
     
-    toast("✅ Encryption reset. You
+    toast("✅ Encryption reset. You can set it up again.", "success");
+    
+  } catch (error) {
+    toast("Reset failed: " + error.message, "error");
+  }
+}
+
+</script>
+</body>
+</html>
