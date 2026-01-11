@@ -207,6 +207,10 @@ function openPhotoMarkers() {
 
 function closePhotoMarkersModal() {
   document.getElementById('photoMarkersModal').classList.remove('show');
+  // Render feed to show updated markers (deferred to avoid lag while in viewer)
+  if (typeof render === 'function') {
+    setTimeout(render, 100);
+  }
 }
 
 function togglePhotoMarker(marker) {
@@ -225,8 +229,10 @@ function togglePhotoMarker(marker) {
   }
   
   save();
-  render();
+  // Don't call render() here - it causes lag
+  // render();
   updatePhotoMarkersButton();
+  updatePvMarkers(); // Update markers in photo viewer
   
   // Update button state in modal
   const btns = document.querySelectorAll('.photo-marker-btn');
@@ -278,6 +284,112 @@ window.DropLitPhoto = {
    PHOTO VIEWER v2 - New Header & Tools
    ============================================ */
 
+// Share photo using Web Share API
+function pvShare() {
+  if (typeof currentImageId === 'undefined') return;
+  var item = ideas.find(function(x) { return x.id === currentImageId; });
+  if (!item || !item.image) {
+    toast('No image to share', 'error');
+    return;
+  }
+  
+  if (navigator.share) {
+    // Convert base64 to blob for sharing
+    fetch(item.image)
+      .then(function(res) { return res.blob(); })
+      .then(function(blob) {
+        var file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+        navigator.share({
+          title: item.notes || 'Photo from DropLit',
+          files: [file]
+        }).catch(function(err) {
+          console.log('Share cancelled or failed:', err);
+        });
+      })
+      .catch(function() {
+        // Fallback - share just text
+        navigator.share({
+          title: 'Photo from DropLit',
+          text: item.notes || ''
+        });
+      });
+  } else {
+    toast('Share not supported on this device', 'info');
+  }
+  closePvMenu();
+}
+
+// Download photo
+function pvDownload() {
+  if (typeof currentImageId === 'undefined') return;
+  var item = ideas.find(function(x) { return x.id === currentImageId; });
+  if (!item || !item.image) {
+    toast('No image to download', 'error');
+    return;
+  }
+  
+  var link = document.createElement('a');
+  link.href = item.image;
+  
+  // Generate filename
+  var filename = 'IMG_';
+  if (item.timestamp) {
+    var d = new Date(item.timestamp);
+    filename += d.getFullYear() + 
+      String(d.getMonth() + 1).padStart(2, '0') + 
+      String(d.getDate()).padStart(2, '0') + '_' +
+      String(d.getHours()).padStart(2, '0') + 
+      String(d.getMinutes()).padStart(2, '0');
+  } else {
+    filename += Date.now();
+  }
+  filename += '.jpg';
+  
+  link.download = filename;
+  link.click();
+  
+  toast('Photo downloaded', 'success');
+  closePvMenu();
+}
+
+// Delete photo with confirmation
+function pvDelete() {
+  if (typeof currentImageId === 'undefined') return;
+  
+  closePvMenu();
+  
+  if (confirm('Delete this photo?')) {
+    var idx = ideas.findIndex(function(x) { return x.id === currentImageId; });
+    if (idx !== -1) {
+      ideas.splice(idx, 1);
+      if (typeof save === 'function') save();
+      if (typeof render === 'function') render();
+      if (typeof counts === 'function') counts();
+      if (typeof closeImageViewer === 'function') closeImageViewer();
+      toast('Photo deleted', 'success');
+    }
+  }
+}
+
+// Update markers display in photo viewer
+function updatePvMarkers() {
+  var markersEl = document.getElementById('pvMarkers');
+  if (!markersEl) return;
+  
+  if (typeof currentImageId === 'undefined' || typeof ideas === 'undefined') {
+    markersEl.style.display = 'none';
+    return;
+  }
+  
+  var item = ideas.find(function(x) { return x.id === currentImageId; });
+  if (item && item.markers && item.markers.length > 0 && typeof MARKERS !== 'undefined') {
+    markersEl.textContent = item.markers.map(function(m) { return MARKERS[m] || ''; }).join(' ');
+    markersEl.style.display = 'flex';
+  } else {
+    markersEl.style.display = 'none';
+  }
+}
+
 function initPhotoViewerV2() {
   var imageViewer = document.getElementById('imageViewer');
   if (!imageViewer || document.getElementById('pvHeader')) return;
@@ -296,6 +408,7 @@ function initPhotoViewerV2() {
         '<svg class="pv-filename-lock" id="pvFilenameLock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
         '<span id="pvFilenameText">Photo</span>' +
       '</div>' +
+      '<div class="pv-markers" id="pvMarkers" style="display:none"></div>' +
     '</div>' +
     '<div class="pv-header-right">' +
       '<button class="pv-header-btn" onclick="closeImageViewer()">' +
@@ -317,10 +430,10 @@ function initPhotoViewerV2() {
   toolsMenu.onclick = function(e) { e.stopPropagation(); };
   toolsMenu.innerHTML = 
     '<div class="pv-tools-row">' +
-      '<button class="pv-btn" onclick="shareDrop(currentImageId)">Share</button>' +
-      '<button class="pv-btn" onclick="downloadImage()">Download</button>' +
+      '<button class="pv-btn" onclick="pvShare()">Share</button>' +
+      '<button class="pv-btn" onclick="pvDownload()">Download</button>' +
       '<button class="pv-btn" onclick="openPhotoMarkers()">Markers</button>' +
-      '<button class="pv-btn delete" onclick="confirmDeleteFromViewer()">Delete</button>' +
+      '<button class="pv-btn delete" onclick="pvDelete()">Delete</button>' +
     '</div>' +
     '<div class="pv-tools-row">' +
       '<button class="pv-btn ai" onclick="runPhotoAI(\'ocr\')">OCR</button>' +
@@ -452,6 +565,9 @@ function updatePvHeader(item) {
     var isEncrypted = item.encrypted || item.content_encrypted;
     lockIcon.style.display = isEncrypted ? 'block' : 'none';
   }
+  
+  // Update markers
+  updatePvMarkers();
 }
 
 // Initialize on load and hook into existing functions
