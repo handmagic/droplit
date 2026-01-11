@@ -1209,20 +1209,11 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 .image-viewer-markers.has-markers { background: rgba(139,92,246,0.6); }
 
 /* ============================================
-   NEW PHOTO VIEWER HEADER & TOOLS (v2)
+   NEW PHOTO VIEWER ELEMENTS (v2)
+   Minimal addition - old elements remain visible
    ============================================ */
 
-/* Hide old elements - using new header instead */
-.image-viewer-close { display: none !important; }
-.image-counter { display: none !important; }
-.image-viewer-ai { display: none !important; }
-.image-viewer-markers { display: none !important; }
-.image-viewer-panel { display: none !important; }
-
-/* Make content full screen */
-.image-viewer-content { position: absolute !important; inset: 0 !important; padding: 0 !important; }
-
-/* New Header - transparent overlay */
+/* New Header */
 .pv-header {
   position: absolute;
   top: 0;
@@ -1235,7 +1226,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   padding-top: env(safe-area-inset-top, 0);
   background: transparent;
   gap: 8px;
-  z-index: 20;
+  z-index: 25;
 }
 
 .pv-header-btn {
@@ -1250,7 +1241,6 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   color: white;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -1261,7 +1251,6 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   font-size: 0.75rem;
   font-weight: 600;
   color: white;
-  flex-shrink: 0;
   background: rgba(0,0,0,0.5);
   padding: 4px 10px;
   border-radius: 12px;
@@ -1294,30 +1283,25 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
 }
 
-/* Pill button for header (INFO) */
 .pv-pill {
   height: 32px;
   padding: 0 14px;
   border: none;
   background: rgba(0,0,0,0.5);
   border-radius: 16px;
-  font-family: inherit;
   font-size: 0.7rem;
   font-weight: 600;
   color: white;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
   cursor: pointer;
-  transition: background 0.15s;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 .pv-pill:active { background: rgba(0,0,0,0.7); }
 
-/* Dropdown Tools Menu */
+/* Tools Menu */
 .pv-tools-menu {
   position: absolute;
   top: calc(56px + env(safe-area-inset-top, 0px));
@@ -1327,12 +1311,11 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   flex-direction: column;
   gap: 8px;
   padding: 0 12px;
-  background: transparent;
   max-height: 0;
   overflow: hidden;
   opacity: 0;
-  transition: max-height 0.25s ease-out, opacity 0.2s ease-out, padding 0.25s ease-out;
-  z-index: 20;
+  transition: max-height 0.25s, opacity 0.2s, padding 0.25s;
+  z-index: 25;
 }
 .pv-tools-menu.show { 
   max-height: 150px;
@@ -1345,11 +1328,9 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
-  -ms-overflow-style: none;
 }
 .pv-tools-row::-webkit-scrollbar { display: none; }
 
-/* Tool buttons in menu */
 .pv-btn {
   flex-shrink: 0;
   height: 32px;
@@ -1357,24 +1338,19 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   border: none;
   background: rgba(0,0,0,0.5);
   border-radius: 16px;
-  font-family: inherit;
   font-size: 0.7rem;
   font-weight: 600;
   color: white;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
   cursor: pointer;
-  transition: background 0.15s;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 .pv-btn:active { background: rgba(0,0,0,0.7); }
 .pv-btn.ai { background: rgba(139,92,246,0.6); }
-.pv-btn.ai:active { background: rgba(139,92,246,0.8); }
 .pv-btn.delete { background: rgba(239,68,68,0.5); }
-.pv-btn.delete:active { background: rgba(239,68,68,0.7); }
 
-/* Photo Info Modal */
+/* Info Modal */
 .pv-info-modal {
   position: fixed;
   inset: 0;
@@ -1408,35 +1384,23 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   padding: 16px 20px;
   border-bottom: 1px solid var(--color-border);
 }
-.pv-info-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: var(--color-text);
-}
+.pv-info-header h3 { margin: 0; font-size: 1.1rem; }
+
 .pv-info-close {
   width: 32px;
   height: 32px;
   border: none;
   background: var(--color-bg-tertiary);
   border-radius: 50%;
-  font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary);
 }
 
-.pv-info-body {
-  padding: 16px 20px;
-  overflow-y: auto;
-  flex: 1;
-}
+.pv-info-body { padding: 16px 20px; overflow-y: auto; }
 
-.pv-info-section {
-  margin-bottom: 16px;
-}
-.pv-info-section:last-child { margin-bottom: 0; }
+.pv-info-section { margin-bottom: 16px; }
 
 .pv-info-label {
   font-size: 0.7rem;
@@ -1446,11 +1410,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   margin-bottom: 4px;
 }
 
-.pv-info-value {
-  font-size: 0.95rem;
-  color: var(--color-text);
-  line-height: 1.4;
-}
+.pv-info-value { font-size: 0.95rem; }
 
 .pv-info-textarea {
   width: 100%;
@@ -1464,10 +1424,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   background: var(--color-bg);
   color: var(--color-text);
 }
-.pv-info-textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
+.pv-info-textarea:focus { outline: none; border-color: var(--color-primary); }
 
 .pv-info-actions {
   display: flex;
@@ -1481,7 +1438,6 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   padding: 14px;
   border: none;
   border-radius: 12px;
-  font-family: inherit;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
