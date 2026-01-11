@@ -207,8 +207,6 @@ function openPhotoMarkers() {
 
 function closePhotoMarkersModal() {
   document.getElementById('photoMarkersModal').classList.remove('show');
-  // Deferred render to update feed (avoid lag while in viewer)
-  setTimeout(function() { if (typeof render === 'function') render(); }, 100);
 }
 
 function togglePhotoMarker(marker) {
@@ -227,9 +225,8 @@ function togglePhotoMarker(marker) {
   }
   
   save();
-  // Don't call render() here - causes lag. Deferred to closePhotoMarkersModal
+  render();
   updatePhotoMarkersButton();
-  updatePvMarkers(); // Update markers in photo viewer header
   
   // Update button state in modal
   const btns = document.querySelectorAll('.photo-marker-btn');
@@ -239,24 +236,6 @@ function togglePhotoMarker(marker) {
       btn.classList.toggle('active', item.markers.includes(mk));
     }
   });
-}
-
-// Update markers display in photo viewer header
-function updatePvMarkers() {
-  var el = document.getElementById('pvMarkers');
-  if (!el) return;
-  
-  if (typeof currentImageId === 'undefined') {
-    el.textContent = '';
-    return;
-  }
-  
-  var item = ideas.find(function(x) { return x.id === currentImageId; });
-  if (item && item.markers && item.markers.length > 0 && typeof MARKERS !== 'undefined') {
-    el.textContent = item.markers.map(function(m) { return MARKERS[m] || ''; }).join(' ');
-  } else {
-    el.textContent = '';
-  }
 }
 
 function updatePhotoMarkersButton() {
@@ -317,7 +296,6 @@ function initPhotoViewerV2() {
         '<svg class="pv-filename-lock" id="pvFilenameLock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
         '<span id="pvFilenameText">Photo</span>' +
       '</div>' +
-      '<div class="pv-markers" id="pvMarkers"></div>' +
     '</div>' +
     '<div class="pv-header-right">' +
       '<button class="pv-header-btn" onclick="closeImageViewer()">' +
@@ -474,9 +452,6 @@ function updatePvHeader(item) {
     var isEncrypted = item.encrypted || item.content_encrypted;
     lockIcon.style.display = isEncrypted ? 'block' : 'none';
   }
-  
-  // Update markers display
-  updatePvMarkers();
 }
 
 // Initialize on load and hook into existing functions
