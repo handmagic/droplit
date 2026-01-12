@@ -1,4 +1,4 @@
-// DropLit AI API v4.17 - Vercel Edge Function
+// DropLit AI API v4.18 - Vercel Edge Function
 // + CONFLICT RESOLUTION PROTOCOL for contradictory facts
 // + Transparent handling of uncertainty
 // + Explicit "CHECK MEMORY FIRST" instruction
@@ -6,8 +6,9 @@
 // + EVENT SCHEDULING: create_event tool for reminders/alarms
 // + MODEL SELECTION: Choose between Sonnet (ASKI) and Opus (Deep)
 // + API COST TRACKING v1.0
-// + TOKEN DEDUCTION v1.0 ← NEW
-// Version: 4.17.0
+// + TOKEN DEDUCTION v1.0
+// + VOICE AUTO-MODEL v1.0 ← NEW: Haiku for simple, Opus for deep
+// Version: 4.18.0
 
 export const config = {
   runtime: 'edge',
@@ -41,6 +42,94 @@ const DEFAULT_MODEL = 'sonnet';
 
 function getModelConfig(modelKey) {
   return AI_MODELS[modelKey] || AI_MODELS[DEFAULT_MODEL];
+}
+
+// ============================================
+// VOICE MODE: AUTO MODEL SELECTION
+// ============================================
+const VOICE_COMPLEXITY_PATTERNS = {
+  // → HAIKU: быстрые простые ответы
+  simple: [
+    // Приветствия и болтовня
+    /^(привет|здравствуй|добр(ое|ый)|хай|хелло|как дела|что нового)/i,
+    /^(спасибо|пока|до свидания|хорошего дня|удачи)/i,
+    // Простые вопросы
+    /^(который час|какой сегодня день|какая погода)/i,
+    /^(сколько будет|посчитай)\s+\d/i,
+    // Рецепты и быт
+    /(рецепт|приготов|сварить|пожарить|испечь)/i,
+    /(что приготовить|что поесть|на ужин|на обед|на завтрак)/i,
+    // Быстрые факты
+    /^(что такое|кто такой|где находится|как называется)/i,
+    /^(переведи|перевод)\s/i,
+    // Команды
+    /^(напомни|запиши|сохрани|создай напоминание)/i,
+    /^(поставь таймер|разбуди|alarm)/i,
+    // Короткие запросы (менее 5 слов без вопроса)
+  ],
+  
+  // → OPUS: глубокий анализ
+  deep: [
+    // Явные запросы глубины
+    /(проанализируй|глубоко|детально|подробно разбери)/i,
+    /(стратегия|стратегически|долгосрочн)/i,
+    /(философ|смысл жизни|экзистенциальн)/i,
+    // Сложные решения
+    /(что думаешь о|как считаешь|твоё мнение)/i,
+    /(стоит ли мне|как мне быть|не знаю что делать)/i,
+    /(разобраться в ситуации|сложная ситуация)/i,
+    // Бизнес/карьера
+    /(бизнес.план|инвест|стартап.*идея)/i,
+    /(менять работу|уволиться|карьер)/i,
+    // Отношения глубоко
+    /(отношения.*сложн|конфликт.*семь|развод)/i,
+    // Явный запрос NOUS
+    /(nous|ноус|глубокий режим|deep mode)/i,
+  ]
+};
+
+// Минимальная длина для "сложного" запроса
+const DEEP_MIN_WORDS = 15;
+
+function selectModelForVoice(text, explicitModel = null) {
+  // Если пользователь явно выбрал модель — уважаем выбор
+  if (explicitModel && explicitModel !== 'auto') {
+    return explicitModel;
+  }
+  
+  const trimmed = (text || '').trim().toLowerCase();
+  const wordCount = trimmed.split(/\s+/).length;
+  
+  // Проверяем паттерны DEEP → Opus
+  for (const pattern of VOICE_COMPLEXITY_PATTERNS.deep) {
+    if (pattern.test(trimmed)) {
+      console.log('[VoiceModel] Deep pattern matched → opus');
+      return 'opus';
+    }
+  }
+  
+  // Проверяем паттерны SIMPLE → Haiku
+  for (const pattern of VOICE_COMPLEXITY_PATTERNS.simple) {
+    if (pattern.test(trimmed)) {
+      console.log('[VoiceModel] Simple pattern matched → haiku');
+      return 'haiku';
+    }
+  }
+  
+  // Эвристики по длине
+  if (wordCount <= 5) {
+    console.log('[VoiceModel] Short query (<=5 words) → haiku');
+    return 'haiku';
+  }
+  
+  if (wordCount >= DEEP_MIN_WORDS) {
+    console.log('[VoiceModel] Long query (>=15 words) → sonnet (medium)');
+    return 'sonnet';  // Длинные но не deep → средний уровень
+  }
+  
+  // По умолчанию для голоса — быстрый Sonnet
+  console.log('[VoiceModel] Default → sonnet');
+  return 'sonnet';
 }
 
 // ============================================
@@ -1301,12 +1390,20 @@ export default async function handler(req) {
       stream,
       userId,  // Accept userId from frontend
       uid,     // Alternative userId field
-      model    // Model selection: 'sonnet', 'opus', 'haiku'
+      model,   // Model selection: 'sonnet', 'opus', 'haiku', 'auto'
+      voiceMode  // NEW: if true, auto-select model based on query
     } = await req.json();
 
+    // Auto-select model for voice mode
+    let selectedModel = model;
+    if (voiceMode && (!model || model === 'auto')) {
+      selectedModel = selectModelForVoice(text, model);
+      console.log(`[VoiceMode] Auto-selected model: ${selectedModel} for: "${(text || '').substring(0, 50)}..."`);
+    }
+
     // Get model configuration
-    const modelConfig = getModelConfig(model);
-    console.log(`[AI] Action: ${action}, Model: ${modelConfig.id}, Stream: ${stream}`);
+    const modelConfig = getModelConfig(selectedModel);
+    console.log(`[AI] Action: ${action}, Model: ${modelConfig.id}, Stream: ${stream}, VoiceMode: ${!!voiceMode}`);
 
     // Get user timezone from headers
     const userTimezone = req.headers.get('x-timezone') || 'UTC';
