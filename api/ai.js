@@ -47,87 +47,46 @@ function getModelConfig(modelKey) {
 // ============================================
 // VOICE MODE: AUTO MODEL SELECTION
 // ============================================
-const VOICE_COMPLEXITY_PATTERNS = {
-  // → HAIKU: быстрые простые ответы
-  simple: [
-    // Приветствия и болтовня
-    /^(привет|здравствуй|добр(ое|ый)|хай|хелло|как дела|что нового)/i,
-    /^(спасибо|пока|до свидания|хорошего дня|удачи)/i,
-    // Простые вопросы
-    /^(который час|какой сегодня день|какая погода)/i,
-    /^(сколько будет|посчитай)\s+\d/i,
-    // Рецепты и быт
-    /(рецепт|приготов|сварить|пожарить|испечь)/i,
-    /(что приготовить|что поесть|на ужин|на обед|на завтрак)/i,
-    // Быстрые факты
-    /^(что такое|кто такой|где находится|как называется)/i,
-    /^(переведи|перевод)\s/i,
-    // Команды
-    /^(напомни|запиши|сохрани|создай напоминание)/i,
-    /^(поставь таймер|разбуди|alarm)/i,
-    // Короткие запросы (менее 5 слов без вопроса)
-  ],
-  
-  // → OPUS: глубокий анализ
-  deep: [
-    // Явные запросы глубины
-    /(проанализируй|глубоко|детально|подробно разбери)/i,
-    /(стратегия|стратегически|долгосрочн)/i,
-    /(философ|смысл жизни|экзистенциальн)/i,
-    // Сложные решения
-    /(что думаешь о|как считаешь|твоё мнение)/i,
-    /(стоит ли мне|как мне быть|не знаю что делать)/i,
-    /(разобраться в ситуации|сложная ситуация)/i,
-    // Бизнес/карьера
-    /(бизнес.план|инвест|стартап.*идея)/i,
-    /(менять работу|уволиться|карьер)/i,
-    // Отношения глубоко
-    /(отношения.*сложн|конфликт.*семь|развод)/i,
-    // Явный запрос NOUS
-    /(nous|ноус|глубокий режим|deep mode)/i,
-  ]
-};
+// For voice mode: optimize between Haiku (fast/cheap) and Sonnet (balanced)
+// Opus is ONLY used when explicitly selected in settings (NOUS)
 
-// Минимальная длина для "сложного" запроса
-const DEEP_MIN_WORDS = 15;
+const VOICE_SIMPLE_PATTERNS = [
+  // Приветствия и болтовня
+  /^(привет|здравствуй|добр(ое|ый)|хай|хелло|как дела|что нового)/i,
+  /^(спасибо|пока|до свидания|хорошего дня|удачи)/i,
+  // Простые вопросы
+  /^(который час|какой сегодня день|какая погода)/i,
+  /^(сколько будет|посчитай)\s+\d/i,
+  // Рецепты и быт
+  /(рецепт|приготов|сварить|пожарить|испечь)/i,
+  /(что приготовить|что поесть|на ужин|на обед|на завтрак)/i,
+  // Быстрые факты
+  /^(что такое|кто такой|где находится|как называется)/i,
+  /^(переведи|перевод)\s/i,
+  // Команды
+  /^(напомни|запиши|сохрани|создай напоминание)/i,
+  /^(поставь таймер|разбуди|alarm)/i,
+];
 
-function selectModelForVoice(text, explicitModel = null) {
-  // Если пользователь явно выбрал модель — уважаем выбор
-  if (explicitModel && explicitModel !== 'auto') {
-    return explicitModel;
-  }
-  
+function selectModelForVoice(text) {
   const trimmed = (text || '').trim().toLowerCase();
   const wordCount = trimmed.split(/\s+/).length;
   
-  // Проверяем паттерны DEEP → Opus
-  for (const pattern of VOICE_COMPLEXITY_PATTERNS.deep) {
-    if (pattern.test(trimmed)) {
-      console.log('[VoiceModel] Deep pattern matched → opus');
-      return 'opus';
-    }
-  }
-  
-  // Проверяем паттерны SIMPLE → Haiku
-  for (const pattern of VOICE_COMPLEXITY_PATTERNS.simple) {
+  // Простые паттерны → Haiku
+  for (const pattern of VOICE_SIMPLE_PATTERNS) {
     if (pattern.test(trimmed)) {
       console.log('[VoiceModel] Simple pattern matched → haiku');
       return 'haiku';
     }
   }
   
-  // Эвристики по длине
+  // Короткие запросы (≤5 слов) → Haiku
   if (wordCount <= 5) {
-    console.log('[VoiceModel] Short query (<=5 words) → haiku');
+    console.log('[VoiceModel] Short query (≤5 words) → haiku');
     return 'haiku';
   }
   
-  if (wordCount >= DEEP_MIN_WORDS) {
-    console.log('[VoiceModel] Long query (>=15 words) → sonnet (medium)');
-    return 'sonnet';  // Длинные но не deep → средний уровень
-  }
-  
-  // По умолчанию для голоса — быстрый Sonnet
+  // Всё остальное → Sonnet (не повышаем до Opus автоматически)
   console.log('[VoiceModel] Default → sonnet');
   return 'sonnet';
 }
@@ -1396,9 +1355,17 @@ export default async function handler(req) {
 
     // Auto-select model for voice mode
     let selectedModel = model;
-    if (voiceMode && (!model || model === 'auto')) {
-      selectedModel = selectModelForVoice(text, model);
-      console.log(`[VoiceMode] Auto-selected model: ${selectedModel} for: "${(text || '').substring(0, 50)}..."`);
+    
+    if (model === 'opus') {
+      // User explicitly chose NOUS (Opus) - always respect this choice
+      console.log('[VoiceMode] User chose NOUS (Opus), respecting choice');
+      selectedModel = 'opus';
+    } else if (voiceMode) {
+      // Voice mode with Sonnet/Haiku/auto - optimize between Haiku and Sonnet
+      selectedModel = selectModelForVoice(text);
+      console.log(`[VoiceMode] Auto-selected: ${selectedModel} for: "${(text || '').substring(0, 40)}..."`);
+    } else if (!model) {
+      selectedModel = 'sonnet'; // Default for text mode
     }
 
     // Get model configuration
