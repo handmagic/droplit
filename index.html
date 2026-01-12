@@ -7977,4 +7977,13 @@ async function resetEncryption() {
     updateEncryptionButton(false);
     updateSecurityIndicator();
     
-    toast("✅ Encryption reset. You
+    toast("✅ Encryption reset. You can set it up again.", "success");
+    
+  } catch (error) {
+    toast("Reset failed: " + error.message, "error");
+  }
+}
+
+</script>
+</body>
+</html>
