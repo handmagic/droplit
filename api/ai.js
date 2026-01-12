@@ -1,11 +1,12 @@
-// DropLit AI API v4.15 - Vercel Edge Function
+// DropLit AI API v4.16 - Vercel Edge Function
 // + CONFLICT RESOLUTION PROTOCOL for contradictory facts
 // + Transparent handling of uncertainty
 // + Explicit "CHECK MEMORY FIRST" instruction
 // + Smart prioritization: recent > old, specific > vague
 // + EVENT SCHEDULING: create_event tool for reminders/alarms
 // + MODEL SELECTION: Choose between Sonnet (ASKI) and Opus (Deep)
-// Version: 4.15.0
+// + API COST TRACKING v1.0 ← NEW
+// Version: 4.16.0
 
 export const config = {
   runtime: 'edge',
@@ -39,6 +40,69 @@ const DEFAULT_MODEL = 'sonnet';
 
 function getModelConfig(modelKey) {
   return AI_MODELS[modelKey] || AI_MODELS[DEFAULT_MODEL];
+}
+
+// ============================================
+// API COST TRACKING (NEW in v4.16)
+// ============================================
+const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
+
+// Pricing per 1M tokens (USD)
+const API_PRICING = {
+  'claude-sonnet-4-20250514': { input: 3.00, output: 15.00 },
+  'claude-opus-4-20250514': { input: 15.00, output: 75.00 },
+  'claude-haiku-4-20250514': { input: 0.25, output: 1.25 }
+};
+
+async function logApiCost(params) {
+  const {
+    provider = 'anthropic',
+    model,
+    tokens_input = 0,
+    tokens_output = 0,
+    user_id = null,
+    action = 'chat'
+  } = params;
+  
+  // Calculate cost
+  const pricing = API_PRICING[model] || { input: 3.00, output: 15.00 };
+  const cost_usd = (tokens_input * pricing.input + tokens_output * pricing.output) / 1_000_000;
+  
+  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  if (!SUPABASE_KEY) {
+    console.log('[Cost Log] No SUPABASE_SERVICE_KEY, skipping');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/api_costs`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        provider,
+        model,
+        tokens_input,
+        tokens_output,
+        cost_usd,
+        user_id,
+        action
+      })
+    });
+    
+    if (!response.ok) {
+      console.error('[Cost Log] Failed:', response.status);
+    } else {
+      console.log(`[Cost Log] ${action}: ${tokens_input}/${tokens_output} tokens, $${cost_usd.toFixed(6)}`);
+    }
+  } catch (err) {
+    console.error('[Cost Log] Error:', err.message);
+    // Don't throw - logging should never break the main flow
+  }
 }
 
 // ============================================
@@ -286,7 +350,6 @@ async function fetchCoreContext(userId, queryText = '') {
     return { memory: [], entities: [], semanticDrops: [], _debug: debug };
   }
   
-  const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   const OPENAI_KEY = process.env.OPENAI_API_KEY;
   
@@ -498,204 +561,258 @@ When you find CONTRADICTORY facts about the same topic:
    Don't pretend it doesn't exist. Say: "I have different information about this..."
 
 2. **PRIORITIZE by these rules (in order):**
-   - EXPLICIT user statements > inferred information
-   - RECENT facts > older facts (if timestamps available)
-   - SPECIFIC facts > vague facts
-   - POSITIVE statements ("X is Y") > NEGATIVE statements ("X is not Y")
+   - EXPLICIT beats INFERRED (what user directly stated vs what was deduced)
+   - RECENT beats OLD (fresher data more likely accurate)
+   - SPECIFIC beats VAGUE (precise dates/names beat approximate)
+   - HIGH CONFIDENCE beats LOW CONFIDENCE (if we have scores)
 
-3. **PRESENT both versions when relevant:**
-   Example: "According to my records, your grandmother Maria lives in Santa Barbara. 
-   However, I also have a note suggesting otherwise. Could you clarify which is current?"
+3. **PRESENT BOTH versions to the user:**
+   "My memory says X, but I also have information about Y. Which is correct?"
 
-4. **NEVER silently pick one version** — transparency builds trust
+4. **OFFER TO UPDATE:**
+   "Should I remember [new fact] going forward?"
 
-5. **OFFER to update** if user provides clarification:
-   "Would you like me to remember the correct information?"
+5. **When in doubt — ASK:**
+   Don't guess between contradictory facts. User knows their own life better.
 
-### RESPONSE PATTERNS FOR UNCERTAINTY:
+## SCHEDULING & REMINDERS:
+When user asks to remind, wake up, notify, or schedule:
+1. Use the create_event tool
+2. Convert relative time ("через 5 минут") to absolute ISO datetime
+3. Set appropriate priority: alarms=8-10, reminders=5, notifications=3
+4. Confirm what was scheduled in your response
 
-**Multiple versions exist:**
-"I have several pieces of information about [topic]. The most recent suggests [X], 
-but earlier you mentioned [Y]. Which is accurate now?"
+## LANGUAGE:
+- Always respond in same language as user
+- Support Russian and English seamlessly`;
 
-**Possible outdated info:**
-"My last information about [topic] is [fact]. Is this still current?"
-
-**Conflicting sources:**
-"I found both [fact A] and [fact B] about this. Let me know which applies."
-
-## CRITICAL DIALOGUE RULES:
-
-### ADAPTIVE RESPONSE LENGTH:
-Identify question type and respond accordingly:
-
-FACTUAL (simple facts, yes/no, numbers):
-→ 1-2 sentences MAX, no preamble
-
-EXPLANATORY (how, why, compare):
-→ 2-4 sentences, then ASK if user wants more
-
-DEEP (philosophy, strategy, meaning):
-→ 1-2 paragraphs, then OFFER to explore aspects
-
-### STOP AFTER QUESTION:
-When you ask "Want more details?" or similar:
-- STOP IMMEDIATELY after the question
-- DO NOT continue with more content
-- WAIT for user's response
-
-### LANGUAGE:
-Always respond in SAME language as user's message.`;
-
-  if (isExpansion) {
-    basePrompt += `
-
-## EXPANSION MODE ACTIVE:
-User confirmed they want details. Now give comprehensive answer:
-- Full explanation with examples
-- Multiple paragraphs as needed
-- No need to offer more at the end`;
-  }
-
-  basePrompt += `
-
-## TOOLS:
-- fetch_recent_drops / search_drops: for user's notes
-- create_drop: ONLY on explicit request ("save", "remember", "note this")
-- web_search: for current events, weather, news, prices
-
-## CORE MEMORY:`;
-
-  // cleanMemory already defined at the top of function
+  // Build core memory section
+  let memorySection = '';
   
-  if (cleanMemory?.length) {
-    basePrompt += '\n### Known facts:\n';
-    cleanMemory.slice(0, 15).forEach(m => {
-      basePrompt += `- ${m.fact}\n`;
+  // Add semantic search results if available
+  if (coreContext?.semanticDrops?.length > 0) {
+    memorySection += '\n\n## 🎯 MOST RELEVANT (semantic match):\n';
+    coreContext.semanticDrops.slice(0, 5).forEach(drop => {
+      memorySection += `- "${drop.content?.slice(0, 200) || ''}"\n`;
     });
   }
   
-  if (coreContext?.entities?.length) {
-    basePrompt += '\n### Key entities:\n';
-    coreContext.entities.slice(0, 10).forEach(e => {
-      basePrompt += `- ${e.name} (${e.entity_type}): mentioned ${e.mention_count}x\n`;
+  // Add filtered core memory facts
+  if (hasMemory) {
+    memorySection += '\n\n## 🧠 CORE MEMORY (verified facts):\n### Known facts:\n';
+    cleanMemory.forEach(m => {
+      const confidence = m.confidence ? ` [${Math.round(m.confidence * 100)}%]` : '';
+      memorySection += `- ${m.fact}${confidence}\n`;
     });
   }
-
-  // Semantic search results (most relevant notes for this query)
-  // DEDUPLICATE to prevent seeing same message twice
-  if (coreContext?.semanticDrops?.length) {
-    const dedupedSemanticDrops = deduplicateDrops(coreContext.semanticDrops);
-    if (dedupedSemanticDrops.length) {
-      basePrompt += '\n### MOST RELEVANT NOTES (semantic match):\n';
-      dedupedSemanticDrops.slice(0, 5).forEach(d => {
-        const similarity = (d.similarity * 100).toFixed(0);
-        basePrompt += `- [${similarity}% match] ${d.content?.slice(0, 200)}${d.content?.length > 200 ? '...' : ''}\n`;
-      });
-    }
+  
+  // Add entities
+  if (hasEntities) {
+    memorySection += '\n### Key entities:\n';
+    coreContext.entities.forEach(e => {
+      let entityInfo = `- **${e.name}** (${e.entity_type})`;
+      if (e.attributes) {
+        const attrs = [];
+        if (e.attributes.birthday) attrs.push(`birthday: ${e.attributes.birthday}`);
+        if (e.attributes.relationship) attrs.push(`relationship: ${e.attributes.relationship}`);
+        if (e.attributes.occupation) attrs.push(`occupation: ${e.attributes.occupation}`);
+        if (attrs.length > 0) entityInfo += ` — ${attrs.join(', ')}`;
+      }
+      memorySection += entityInfo + '\n';
+    });
   }
-
+  
+  // Add recent drops context (if provided)
   if (dropContext) {
-    basePrompt += `\n## USER'S NOTES:\n${dropContext}\n`;
+    memorySection += `\n\n## 📝 USER'S NOTES:\n${dropContext}`;
   }
 
-  if (userProfile?.name) {
-    basePrompt += `\n## USER: ${userProfile.name}`;
-    if (userProfile.preferences) {
-      basePrompt += ` (${userProfile.preferences})`;
-    }
-    basePrompt += '\n';
+  // Add expansion instructions if needed
+  if (isExpansion) {
+    basePrompt += `\n\n## EXPANSION MODE:
+User has asked to expand on a previous topic. Give a more detailed response covering nuances, examples, or additional perspectives.`;
+  }
+  
+  // Add user profile if available
+  if (userProfile) {
+    basePrompt += `\n\n## USER PROFILE:\n${JSON.stringify(userProfile)}`;
   }
 
-  return basePrompt;
+  return basePrompt + memorySection;
 }
 
 // ============================================
 // TOOL EXECUTION
 // ============================================
-async function executeTool(toolName, toolInput, dropContext, userId = null) {
+async function executeTool(toolName, input, dropContext, userId = null) {
+  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  
   switch (toolName) {
-    case 'fetch_recent_drops':
-    case 'search_drops':
-    case 'get_summary':
-      return { success: true, data: dropContext || 'No drops available in current context.' };
+    case 'fetch_recent_drops': {
+      const hours = input.hours || 24;
+      const limit = input.limit || 10;
+      const category = input.category;
+      
+      if (!SUPABASE_KEY || !userId) {
+        return { success: false, error: 'No SUPABASE_KEY or userId' };
+      }
+      
+      let url = `${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`;
+      if (category) url += `&category=eq.${category}`;
+      
+      const response = await fetch(url, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      
+      if (!response.ok) return { success: false, error: 'Fetch failed' };
+      const drops = await response.json();
+      return { success: true, drops, count: drops.length };
+    }
     
-    case 'create_drop':
+    case 'search_drops': {
+      const query = input.query;
+      const limit = input.limit || 5;
+      
+      if (!query) return { success: false, error: 'No query' };
+      if (!SUPABASE_KEY || !userId) {
+        return { success: false, error: 'No SUPABASE_KEY or userId' };
+      }
+      
+      // Simple text search
+      const url = `${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&content=ilike.*${encodeURIComponent(query)}*&order=created_at.desc&limit=${limit}`;
+      
+      const response = await fetch(url, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      
+      if (!response.ok) return { success: false, error: 'Search failed' };
+      const drops = await response.json();
+      return { success: true, drops, count: drops.length, query };
+    }
+    
+    case 'create_drop': {
+      const text = input.text;
+      const category = input.category || 'inbox';
+      
+      if (!text) return { success: false, error: 'No text' };
+      
+      // Return action for frontend to handle
       return { 
         success: true, 
         action: 'create_drop',
-        drop: {
-          text: toolInput.text,
-          category: toolInput.category || 'inbox'
-        }
+        drop: { text, category, creator: 'aski' }
       };
-    
-    case 'web_search':
-      return await executeWebSearch(toolInput.query, toolInput.search_depth);
-    
-    case 'create_event':
-      return await executeCreateEvent(toolInput, userId);
-    
-    default:
-      return { success: false, error: 'Unknown tool' };
-  }
-}
-
-// ============================================
-// WEB SEARCH (Tavily)
-// ============================================
-async function executeWebSearch(query, depth = 'basic') {
-  const TAVILY_KEY = process.env.TAVILY_API_KEY;
-  if (!TAVILY_KEY) {
-    return { success: false, error: 'Search not configured' };
-  }
-  
-  try {
-    const response = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: TAVILY_KEY,
-        query,
-        search_depth: depth,
-        max_results: 5
-      })
-    });
-    
-    const data = await response.json();
-    
-    if (data.results?.length) {
-      const summary = data.results.map(r => 
-        `- ${r.title}: ${r.content?.slice(0, 200)}...`
-      ).join('\n');
-      return { success: true, data: summary };
     }
     
-    return { success: true, data: 'No results found.' };
-  } catch (error) {
-    return { success: false, error: error.message };
+    case 'get_summary': {
+      const period = input.period || 'today';
+      
+      if (!SUPABASE_KEY || !userId) {
+        return { success: false, error: 'No SUPABASE_KEY or userId' };
+      }
+      
+      // Calculate date range
+      const now = new Date();
+      let startDate;
+      switch (period) {
+        case 'today':
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+          break;
+        case 'week':
+          startDate = new Date(now.setDate(now.getDate() - 7));
+          break;
+        case 'month':
+          startDate = new Date(now.setMonth(now.getMonth() - 1));
+          break;
+        default:
+          startDate = new Date(now.setHours(0, 0, 0, 0));
+      }
+      
+      const url = `${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&created_at=gte.${startDate.toISOString()}&order=created_at.desc`;
+      
+      const response = await fetch(url, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      
+      if (!response.ok) return { success: false, error: 'Fetch failed' };
+      const drops = await response.json();
+      
+      // Group by category
+      const byCategory = {};
+      drops.forEach(d => {
+        const cat = d.category || 'inbox';
+        byCategory[cat] = (byCategory[cat] || 0) + 1;
+      });
+      
+      return { success: true, period, totalCount: drops.length, byCategory };
+    }
+    
+    case 'web_search': {
+      const TAVILY_KEY = process.env.TAVILY_API_KEY;
+      if (!TAVILY_KEY) {
+        return { success: false, error: 'No TAVILY_API_KEY configured' };
+      }
+      
+      try {
+        const response = await fetch('https://api.tavily.com/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            api_key: TAVILY_KEY,
+            query: input.query,
+            search_depth: input.search_depth || 'basic',
+            max_results: 5
+          })
+        });
+        
+        if (!response.ok) {
+          return { success: false, error: 'Tavily search failed' };
+        }
+        
+        const data = await response.json();
+        const results = data.results?.map(r => ({
+          title: r.title,
+          content: r.content?.slice(0, 300),
+          url: r.url
+        })) || [];
+        
+        return { success: true, results, query: input.query };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    }
+    
+    case 'create_event': {
+      return await handleCreateEvent(input, userId);
+    }
+    
+    default:
+      return { success: false, error: `Unknown tool: ${toolName}` };
   }
 }
 
 // ============================================
-// CREATE SCHEDULED EVENT
+// CREATE EVENT HANDLER
 // ============================================
-async function executeCreateEvent(input, userId) {
-  const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
+async function handleCreateEvent(input, userId) {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   if (!SUPABASE_KEY) {
-    console.error('[create_event] SUPABASE_SERVICE_KEY not configured');
-    return { success: false, error: 'Database not configured' };
+    console.error('[create_event] No SUPABASE_SERVICE_KEY');
+    return { success: false, error: 'Server configuration error' };
   }
   
   if (!userId) {
-    console.error('[create_event] No userId provided');
+    console.error('[create_event] No userId');
     return { success: false, error: 'User not authenticated' };
   }
   
   try {
-    // Validate trigger_at for datetime type
+    // Validate required fields
+    if (!input.name) {
+      return { success: false, error: 'Event name is required' };
+    }
+    
     if (input.trigger_type === 'datetime' && !input.trigger_at) {
       return { success: false, error: 'trigger_at is required for datetime events' };
     }
@@ -790,7 +907,7 @@ async function* parseSSEStream(response) {
 }
 
 // ============================================
-// STREAMING CHAT WITH TOOLS
+// STREAMING CHAT WITH TOOLS (with cost tracking)
 // ============================================
 async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null, userId = null, modelConfig = null) {
   const encoder = new TextEncoder();
@@ -800,6 +917,10 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   
   // Use provided model or default to Sonnet
   const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
+  
+  // Track total usage across all iterations (NEW)
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
   
   // Helper to send SSE event to client
   const sendEvent = (data) => {
@@ -838,14 +959,17 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     let toolUseInputBuffer = '';
     let stopReason = null;
     let contentBlocks = [];
+    let messageUsage = null; // Track usage for this iteration (NEW)
     
     // Parse stream
     for await (const event of parseSSEStream(response)) {
       if (event.type === 'done') break;
       
-      // Message start
+      // Message start - contains usage info (NEW)
       if (event.type === 'message_start') {
-        // Message metadata
+        if (event.message?.usage) {
+          totalInputTokens += event.message.usage.input_tokens || 0;
+        }
       }
       
       // Content block start
@@ -902,9 +1026,12 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
         }
       }
       
-      // Message delta (contains stop_reason)
+      // Message delta (contains stop_reason and output tokens) (UPDATED)
       if (event.type === 'message_delta') {
         stopReason = event.delta?.stop_reason;
+        if (event.usage?.output_tokens) {
+          totalOutputTokens += event.usage.output_tokens;
+        }
       }
     }
     
@@ -959,12 +1086,27 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     break;
   }
   
+  // Log API cost (NEW) - wrapped in try/catch to never break the flow
+  try {
+    await logApiCost({
+      provider: 'anthropic',
+      model: modelId,
+      tokens_input: totalInputTokens,
+      tokens_output: totalOutputTokens,
+      user_id: userId,
+      action: 'chat'
+    });
+  } catch (costErr) {
+    console.error('[Cost Log] Failed in streaming:', costErr.message);
+  }
+  
   // Send final event with metadata AND debug info
   sendEvent({ 
     type: 'done',
     toolsUsed: toolResults.map(t => t.toolName),
     createDrop: createDropAction,
     createEvent: createEventAction,
+    usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens }, // NEW
     _debug: debugInfo
   });
   
@@ -972,7 +1114,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
 }
 
 // ============================================
-// NON-STREAMING CHAT HANDLER (fallback)
+// NON-STREAMING CHAT HANDLER (fallback, with cost tracking)
 // ============================================
 async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens, dropContext, userId = null, modelConfig = null) {
   // Use provided model or default to Sonnet
@@ -988,6 +1130,8 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
 
   let data;
   let toolResults = [];
+  let totalInputTokens = 0; // NEW
+  let totalOutputTokens = 0; // NEW
   
   for (let i = 0; i < 5; i++) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1001,6 +1145,12 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
     });
 
     data = await response.json();
+    
+    // Accumulate usage (NEW)
+    if (data.usage) {
+      totalInputTokens += data.usage.input_tokens || 0;
+      totalOutputTokens += data.usage.output_tokens || 0;
+    }
     
     if (data.stop_reason !== 'tool_use') break;
     
@@ -1032,12 +1182,32 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
     
     if (!finalResponse.ok) break;
     data = await finalResponse.json();
+    
+    // Accumulate usage from final response (NEW)
+    if (data.usage) {
+      totalInputTokens += data.usage.input_tokens || 0;
+      totalOutputTokens += data.usage.output_tokens || 0;
+    }
+  }
+
+  // Log API cost (NEW)
+  try {
+    await logApiCost({
+      provider: 'anthropic',
+      model: modelId,
+      tokens_input: totalInputTokens,
+      tokens_output: totalOutputTokens,
+      user_id: userId,
+      action: 'chat'
+    });
+  } catch (costErr) {
+    console.error('[Cost Log] Failed in non-streaming:', costErr.message);
   }
 
   const textBlocks = data.content?.filter(b => b.type === 'text') || [];
   const resultText = textBlocks.map(b => b.text).join('\n');
   
-  return { resultText, toolResults, usage: data.usage };
+  return { resultText, toolResults, usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens } };
 }
 
 // ============================================
@@ -1051,52 +1221,46 @@ export default async function handler(req) {
   };
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-
-  // Get user timezone from Vercel Geo
-  const userTimezone = req.geo?.timezone || 'UTC';
-  const userCountry = req.geo?.country || 'Unknown';
-  const userCity = req.geo?.city || 'Unknown';
-
-  const rateLimitKey = getRateLimitKey(req, 'ai');
-  const rateCheck = checkRateLimit(rateLimitKey, 'ai');
-  
-  if (!rateCheck.allowed) {
-    return rateLimitResponse(rateCheck.resetIn);
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
-    const body = await req.json();
+    // Rate limiting
+    const rateLimitKey = getRateLimitKey(req, 'ai');
+    const rateCheck = checkRateLimit(rateLimitKey, 'ai');
+    if (!rateCheck.allowed) {
+      return rateLimitResponse(rateCheck.resetIn);
+    }
+
+    // Parse request
     const { 
-      action, text, image, style, targetLang,
-      history = [], syntriseContext, dropContext, userProfile,
-      enableTools = true, userId, uid,
-      stream = false,
-      model = DEFAULT_MODEL  // 'sonnet', 'opus', or 'haiku'
-    } = body;
-    
+      action, 
+      text, 
+      image, 
+      style, 
+      targetLang, 
+      history, 
+      dropContext, 
+      syntriseContext, 
+      userProfile, 
+      stream,
+      userId,  // Accept userId from frontend
+      uid,     // Alternative userId field
+      model    // Model selection: 'sonnet', 'opus', 'haiku'
+    } = await req.json();
+
     // Get model configuration
     const modelConfig = getModelConfig(model);
+    console.log(`[AI] Action: ${action}, Model: ${modelConfig.id}, Stream: ${stream}`);
 
-    if (!action) {
-      return new Response(JSON.stringify({ error: 'No action specified' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    // === GET AVAILABLE MODELS ===
+    // Get user timezone from headers
+    const userTimezone = req.headers.get('x-timezone') || 'UTC';
+    const userCountry = req.headers.get('x-country') || null;
+    const userCity = req.headers.get('x-city') || null;
+
+    // === MODELS ACTION ===
     if (action === 'models') {
-      return new Response(JSON.stringify({ 
-        success: true,
+      return new Response(JSON.stringify({
         models: Object.entries(AI_MODELS).map(([key, config]) => ({
           key,
           id: config.id,
@@ -1235,7 +1399,7 @@ export default async function handler(req) {
       });
     }
 
-    // === IMAGE ACTIONS ===
+    // === IMAGE ACTIONS (with cost tracking) ===
     if (action === 'ocr' || action === 'describe') {
       const prompt = action === 'ocr' 
         ? 'Extract all visible text exactly as it appears.'
@@ -1247,6 +1411,8 @@ export default async function handler(req) {
         const matches = image.match(/^data:([^;]+);base64,(.+)$/);
         if (matches) { mediaType = matches[1]; imageData = matches[2]; }
       }
+      
+      const effectiveUserId = userId || uid || null; // NEW
       
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -1269,6 +1435,23 @@ export default async function handler(req) {
       });
 
       const data = await response.json();
+      
+      // Log cost (NEW)
+      try {
+        if (data.usage) {
+          await logApiCost({
+            provider: 'anthropic',
+            model: modelConfig.id,
+            tokens_input: data.usage.input_tokens || 0,
+            tokens_output: data.usage.output_tokens || 0,
+            user_id: effectiveUserId,
+            action: action
+          });
+        }
+      } catch (costErr) {
+        console.error('[Cost Log] Failed in image action:', costErr.message);
+      }
+      
       return new Response(JSON.stringify({ 
         success: true, 
         result: data.content?.[0]?.text || '' 
@@ -1277,7 +1460,7 @@ export default async function handler(req) {
       });
     }
 
-    // === TEXT ACTIONS ===
+    // === TEXT ACTIONS (with cost tracking) ===
     const textActions = {
       poem: `Create a beautiful poem. Style: ${style || 'classic'}. 8-16 lines. Same language as input.`,
       summarize: 'Summarize in 1-3 sentences. Same language.',
@@ -1291,6 +1474,8 @@ export default async function handler(req) {
     };
 
     if (textActions[action]) {
+      const effectiveUserId = userId || uid || null; // NEW
+      
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -1307,6 +1492,23 @@ export default async function handler(req) {
       });
 
       const data = await response.json();
+      
+      // Log cost (NEW)
+      try {
+        if (data.usage) {
+          await logApiCost({
+            provider: 'anthropic',
+            model: modelConfig.id,
+            tokens_input: data.usage.input_tokens || 0,
+            tokens_output: data.usage.output_tokens || 0,
+            user_id: effectiveUserId,
+            action: action
+          });
+        }
+      } catch (costErr) {
+        console.error('[Cost Log] Failed in text action:', costErr.message);
+      }
+      
       return new Response(JSON.stringify({ 
         success: true,
         action,
