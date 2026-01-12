@@ -1,12 +1,13 @@
-// DropLit AI API v4.16 - Vercel Edge Function
+// DropLit AI API v4.17 - Vercel Edge Function
 // + CONFLICT RESOLUTION PROTOCOL for contradictory facts
 // + Transparent handling of uncertainty
 // + Explicit "CHECK MEMORY FIRST" instruction
 // + Smart prioritization: recent > old, specific > vague
 // + EVENT SCHEDULING: create_event tool for reminders/alarms
 // + MODEL SELECTION: Choose between Sonnet (ASKI) and Opus (Deep)
-// + API COST TRACKING v1.0 ← NEW
-// Version: 4.16.0
+// + API COST TRACKING v1.0
+// + TOKEN DEDUCTION v1.0 ← NEW
+// Version: 4.17.0
 
 export const config = {
   runtime: 'edge',
@@ -102,6 +103,56 @@ async function logApiCost(params) {
   } catch (err) {
     console.error('[Cost Log] Error:', err.message);
     // Don't throw - logging should never break the main flow
+  }
+}
+
+// ============================================
+// DEDUCT USER TOKENS (NEW in v4.17)
+// ============================================
+async function deductUserTokens(userId, inputTokens, outputTokens, action) {
+  if (!userId) return null;
+  
+  // Exchange rate: input tokens 1:1, output tokens 1:5 (output costs more)
+  const tokenCost = Math.ceil(inputTokens + outputTokens * 5);
+  
+  if (tokenCost <= 0) return null;
+  
+  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  if (!SUPABASE_KEY) return null;
+  
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/deduct_tokens`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        p_user_id: userId,
+        p_amount: tokenCost,
+        p_reason: `${action}: ${inputTokens}in/${outputTokens}out`
+      })
+    });
+    
+    if (!response.ok) {
+      console.error('[Deduct] Failed:', response.status);
+      return null;
+    }
+    
+    const result = await response.json();
+    const data = result[0] || {};
+    
+    if (data.success) {
+      console.log(`[Deduct] -${tokenCost} tokens, balance: ${data.new_balance}`);
+    } else {
+      console.warn(`[Deduct] ${data.error_message}, balance: ${data.new_balance}`);
+    }
+    
+    return data;
+  } catch (err) {
+    console.error('[Deduct] Error:', err.message);
+    return null;
   }
 }
 
@@ -1096,6 +1147,8 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
       user_id: userId,
       action: 'chat'
     });
+    // Deduct tokens from user balance
+    await deductUserTokens(userId, totalInputTokens, totalOutputTokens, 'chat');
   } catch (costErr) {
     console.error('[Cost Log] Failed in streaming:', costErr.message);
   }
@@ -1200,6 +1253,8 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
       user_id: userId,
       action: 'chat'
     });
+    // Deduct tokens from user balance
+    await deductUserTokens(userId, totalInputTokens, totalOutputTokens, 'chat');
   } catch (costErr) {
     console.error('[Cost Log] Failed in non-streaming:', costErr.message);
   }
@@ -1447,6 +1502,8 @@ export default async function handler(req) {
             user_id: effectiveUserId,
             action: action
           });
+          // Deduct tokens from user balance
+          await deductUserTokens(effectiveUserId, data.usage.input_tokens || 0, data.usage.output_tokens || 0, action);
         }
       } catch (costErr) {
         console.error('[Cost Log] Failed in image action:', costErr.message);
@@ -1504,6 +1561,8 @@ export default async function handler(req) {
             user_id: effectiveUserId,
             action: action
           });
+          // Deduct tokens from user balance
+          await deductUserTokens(effectiveUserId, data.usage.input_tokens || 0, data.usage.output_tokens || 0, action);
         }
       } catch (costErr) {
         console.error('[Cost Log] Failed in text action:', costErr.message);
