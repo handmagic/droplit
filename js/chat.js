@@ -2364,7 +2364,7 @@ async function sendAskAIMessage() {
         enableTools: false, // v2: Enable Tool Calling
         userId: currentUser?.id, // v3: For CORE Memory integration
         model: selectedModel, // v4.14: AI model selection (sonnet/opus/haiku)
-        voiceMode: voiceModeEnabled // v4.18: Auto-select model (Haiku for simple, Opus for deep)
+        voiceMode: isVoiceModeEnabled() // v4.18: Auto-select model (Haiku for simple, Opus for deep)
       })
     });
     
