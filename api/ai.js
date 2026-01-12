@@ -31,7 +31,7 @@ const AI_MODELS = {
     maxTokens: 8192
   },
   'haiku': {
-    id: 'claude-haiku-4-20250514',
+    id: 'claude-3-5-haiku-20241022',
     name: 'ASKI Quick (Haiku)',
     description: 'Lightning fast responses',
     maxTokens: 2048
@@ -100,7 +100,7 @@ const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
 const API_PRICING = {
   'claude-sonnet-4-20250514': { input: 3.00, output: 15.00 },
   'claude-opus-4-20250514': { input: 15.00, output: 75.00 },
-  'claude-haiku-4-20250514': { input: 0.25, output: 1.25 }
+  'claude-3-5-haiku-20241022': { input: 0.80, output: 4.00 }
 };
 
 async function logApiCost(params) {
