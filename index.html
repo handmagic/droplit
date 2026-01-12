@@ -171,7 +171,7 @@
         </button>
         
         <p class="onboarding-footer">
-          Don't have a code? <a href="mailto:alex@syntrise.com">Request access</a>
+          Don't have a code? <a href="/cdn-cgi/l/email-protection#7819141d00380b01160c0a110b1d561b1715">Request access</a>
         </p>
       </div>
       
@@ -2127,7 +2127,7 @@
     </div>
   </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
@@ -5769,20 +5769,80 @@ document.getElementById('cats').addEventListener('click',e=>{
 // TOKEN BALANCE
 // ============================================
 
+function formatTokens(num) {
+  if (num === null || num === undefined) return '—';
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return Math.floor(num / 1000) + ',' + String(num % 1000).padStart(3, '0');
+  }
+  return num.toLocaleString();
+}
+
 async function updateTokenBalance() {
-  // For now, show placeholder - will connect to real API later
-  document.getElementById('tokenBalance').textContent = '∞ Free Beta';
-  document.getElementById('tokenUsage').textContent = 'Unlimited during beta';
+  const balanceEl = document.getElementById('tokenBalance');
+  const usageEl = document.getElementById('tokenUsage');
   
-  // TODO: Fetch real balance from API
-  // try {
-  //   const response = await fetch(AI_API_URL + '?action=balance');
-  //   const data = await response.json();
-  //   document.getElementById('tokenBalance').textContent = formatTokens(data.balance);
-  //   document.getElementById('tokenUsage').textContent = `Used: ${formatTokens(data.used)}`;
-  // } catch (e) {
-  //   document.getElementById('tokenBalance').textContent = 'N/A';
-  // }
+  if (!currentUser) {
+    if (balanceEl) balanceEl.textContent = '—';
+    if (usageEl) usageEl.textContent = 'Sign in to view';
+    return;
+  }
+  
+  try {
+    const client = getSupabaseClient();
+    if (!client) {
+      if (balanceEl) balanceEl.textContent = '—';
+      if (usageEl) usageEl.textContent = 'Connection error';
+      return;
+    }
+    
+    // Fetch balance from profiles
+    const { data, error } = await client
+      .from('profiles')
+      .select('token_balance')
+      .eq('id', currentUser.id)
+      .single();
+    
+    if (error || !data) {
+      console.log('[Tokens] Could not fetch balance:', error?.message);
+      if (balanceEl) balanceEl.textContent = '∞ Beta';
+      if (usageEl) usageEl.textContent = 'Free during beta';
+      return;
+    }
+    
+    const balance = data.token_balance || 0;
+    
+    // Update balance display
+    if (balanceEl) {
+      balanceEl.textContent = '💎 ' + formatTokens(balance);
+    }
+    
+    // Show usage hint with Pro upsell
+    if (usageEl) {
+      if (balance <= 0) {
+        usageEl.innerHTML = '⚠️ Empty! <a href="#" onclick="showProPlanInfo();return false;" style="color:#FFD700;text-decoration:underline;">Get Pro →</a>';
+      } else if (balance < 10000) {
+        usageEl.innerHTML = 'Running low • <a href="#" onclick="showProPlanInfo();return false;" style="color:#FFD700;text-decoration:underline;">Go Pro</a>';
+      } else if (balance < 30000) {
+        usageEl.innerHTML = 'Try <a href="#" onclick="showProPlanInfo();return false;" style="color:#FFD700;text-decoration:underline;">Pro plan</a> for unlimited';
+      } else {
+        usageEl.textContent = '✓ Plenty available';
+      }
+    }
+    
+    console.log('[Tokens] Balance:', balance);
+    
+  } catch (e) {
+    console.error('[Tokens] Error:', e);
+    if (balanceEl) balanceEl.textContent = '∞ Beta';
+    if (usageEl) usageEl.textContent = 'Free during beta';
+  }
+}
+
+function showProPlanInfo() {
+  toast('Pro Plan: $9.99/mo for 500K tokens • Coming soon!', 4000);
+  // TODO: Open pricing modal when ready
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -7977,13 +8037,4 @@ async function resetEncryption() {
     updateEncryptionButton(false);
     updateSecurityIndicator();
     
-    toast("✅ Encryption reset. You can set it up again.", "success");
-    
-  } catch (error) {
-    toast("Reset failed: " + error.message, "error");
-  }
-}
-
-</script>
-</body>
-</html>
+    toast("✅ Encryption reset. You
