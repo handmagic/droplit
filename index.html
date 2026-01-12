@@ -5769,10 +5769,67 @@ document.getElementById('cats').addEventListener('click',e=>{
 // TOKEN BALANCE
 // ============================================
 
+function formatTokens(num) {
+  if (num === null || num === undefined) return '—';
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  return num.toLocaleString();
+}
+
 async function updateTokenBalance() {
-  // For now, show placeholder - will connect to real API later
-  document.getElementById('tokenBalance').textContent = '∞ Free Beta';
-  document.getElementById('tokenUsage').textContent = 'Unlimited during beta';
+  const balanceEl = document.getElementById('tokenBalance');
+  const usageEl = document.getElementById('tokenUsage');
+  
+  if (!currentUser) {
+    if (balanceEl) balanceEl.textContent = '—';
+    if (usageEl) usageEl.textContent = 'Sign in to view';
+    return;
+  }
+  
+  try {
+    const client = getSupabaseClient();
+    if (!client) {
+      if (balanceEl) balanceEl.textContent = '∞ Beta';
+      if (usageEl) usageEl.textContent = 'Free during beta';
+      return;
+    }
+    
+    const { data, error } = await client
+      .from('profiles')
+      .select('token_balance')
+      .eq('id', currentUser.id)
+      .single();
+    
+    if (error || !data) {
+      console.log('[Tokens] Could not fetch balance:', error?.message);
+      if (balanceEl) balanceEl.textContent = '∞ Beta';
+      if (usageEl) usageEl.textContent = 'Free during beta';
+      return;
+    }
+    
+    const balance = data.token_balance || 0;
+    if (balanceEl) balanceEl.textContent = '💎 ' + formatTokens(balance);
+    
+    if (usageEl) {
+      if (balance <= 0) {
+        usageEl.innerHTML = '⚠️ Empty! <a href="#" onclick="showProPlanInfo();return false;" style="color:#FFD700;">Get Pro →</a>';
+      } else if (balance < 10000) {
+        usageEl.innerHTML = 'Running low • <a href="#" onclick="showProPlanInfo();return false;" style="color:#FFD700;">Go Pro</a>';
+      } else if (balance < 30000) {
+        usageEl.innerHTML = 'Try <a href="#" onclick="showProPlanInfo();return false;" style="color:#FFD700;">Pro plan</a> for more';
+      } else {
+        usageEl.textContent = '✓ Plenty available';
+      }
+    }
+    console.log('[Tokens] Balance:', balance);
+  } catch (e) {
+    console.error('[Tokens] Error:', e);
+    if (balanceEl) balanceEl.textContent = '∞ Beta';
+    if (usageEl) usageEl.textContent = 'Free during beta';
+  }
+}
+
+function showProPlanInfo() {
+  toast('Pro Plan: $9.99/mo for 500K tokens • Coming soon!', 4000);
 }
 
 // ═══════════════════════════════════════════════════════════════
