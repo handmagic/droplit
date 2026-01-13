@@ -3074,7 +3074,7 @@ function initCommandVoice() {
   if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     commandRecognition = new SpeechRecognition();
-    commandRecognition.lang = 'en-US';
+    commandRecognition.lang = 'ru-RU';
     commandRecognition.continuous = false;
     commandRecognition.interimResults = true;
     
