@@ -604,6 +604,101 @@ body.chat-open .fab-camera, body.chat-open .fab-askai, body.chat-open .fab-recor
 .plus-menu-item.magic .icon { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.15)); color: #8B5CF6; }
 .plus-menu-item.magic:hover { border-color: #8B5CF6; background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(236,72,153,0.1)); }
 
+/* Create Command Modal */
+.cmd-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+.cmd-modal.show { opacity: 1; visibility: visible; }
+.cmd-content { background: var(--color-bg-card); border-radius: 20px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; transform: translateY(20px); transition: transform 0.2s; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+.cmd-modal.show .cmd-content { transform: translateY(0); }
+
+/* Header */
+.cmd-header { padding: 16px 20px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; }
+.cmd-title { font-size: 1.05rem; font-weight: 600; color: var(--color-text); display: flex; align-items: center; gap: 8px; }
+.cmd-title .icon { font-size: 1.2rem; }
+.cmd-close { width: 32px; height: 32px; background: var(--color-bg-soft); border: none; border-radius: 8px; color: var(--color-text-muted); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.cmd-close:hover { background: var(--color-border); color: var(--color-text); }
+
+/* Views */
+.cmd-view { display: none; }
+.cmd-view.active { display: block; }
+.cmd-body { padding: 20px; }
+
+/* Labels */
+.cmd-label { font-size: 0.85rem; color: var(--color-text-muted); text-align: center; margin-bottom: 16px; }
+
+/* Input wrapper */
+.cmd-input-wrap { position: relative; margin-bottom: 16px; }
+.cmd-input { width: 100%; min-height: 90px; padding: 14px; padding-right: 40px; background: var(--color-bg-soft); border: 2px solid transparent; border-radius: 12px; color: var(--color-text); font-size: 1rem; font-family: var(--font-main); line-height: 1.5; resize: none; transition: all 0.2s; }
+.cmd-input:focus { outline: none; border-color: var(--color-active); background: var(--color-bg-card); }
+.cmd-input::placeholder { color: var(--color-text-muted); }
+.cmd-input.recording { border-color: #EF4444; background: #FEF2F2; }
+.cmd-clear { position: absolute; top: 10px; right: 10px; width: 26px; height: 26px; background: var(--color-border); border: none; border-radius: 50%; color: var(--color-text-muted); font-size: 11px; cursor: pointer; display: none; align-items: center; justify-content: center; transition: all 0.2s; }
+.cmd-clear.visible { display: flex; }
+.cmd-clear:hover { background: var(--color-text-muted); color: var(--color-bg); }
+
+/* Hint */
+.cmd-hint { font-size: 0.75rem; color: var(--color-text-muted); text-align: center; margin-bottom: 20px; line-height: 1.5; }
+.cmd-hint strong { color: var(--color-text-soft); }
+
+/* Action button */
+.cmd-action-btn { width: 100%; padding: 16px 20px; border: none; border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: var(--font-main); }
+.cmd-action-btn .icon { font-size: 1.2rem; }
+.cmd-action-btn.voice { background: var(--color-bg-soft); color: var(--color-text-soft); border: 2px solid var(--color-border); }
+.cmd-action-btn.voice:hover { background: var(--color-bg); border-color: var(--color-text-muted); color: var(--color-text); }
+.cmd-action-btn.recording { background: linear-gradient(135deg, #ff6b6b 0%, #EF4444 100%); color: white; border: none; animation: cmd-pulse 1.5s ease-in-out infinite; }
+@keyframes cmd-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+.cmd-action-btn.create { background: var(--color-active); color: white; border: none; }
+.cmd-action-btn.create:hover { background: #EA580C; }
+
+/* Secondary row */
+.cmd-secondary-row { display: flex; gap: 10px; margin-top: 12px; }
+.cmd-secondary { flex: 1; padding: 12px; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 10px; color: var(--color-text-soft); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-main); }
+.cmd-secondary:hover { background: var(--color-bg-soft); color: var(--color-text); border-color: var(--color-text-muted); }
+.cmd-secondary .icon { font-size: 1rem; }
+
+/* Cancel */
+.cmd-cancel { width: 100%; padding: 12px; background: none; border: none; color: var(--color-text-muted); font-size: 0.85rem; cursor: pointer; margin-top: 8px; transition: color 0.2s; font-family: var(--font-main); }
+.cmd-cancel:hover { color: var(--color-text-soft); }
+
+/* View header */
+.cmd-view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); font-size: 0.95rem; font-weight: 600; color: var(--color-text); }
+.cmd-back { background: none; border: none; color: var(--color-text-muted); font-size: 0.85rem; cursor: pointer; font-family: var(--font-main); }
+.cmd-back:hover { color: var(--color-active); }
+
+/* Fields */
+.cmd-field { margin-bottom: 14px; }
+.cmd-field label { display: block; font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.cmd-field input, .cmd-field select, .cmd-field textarea { width: 100%; padding: 12px; background: var(--color-bg-soft); border: 1px solid var(--color-border); border-radius: 10px; color: var(--color-text); font-size: 0.95rem; font-family: var(--font-main); transition: border-color 0.2s; }
+.cmd-field input:focus, .cmd-field select:focus, .cmd-field textarea:focus { outline: none; border-color: var(--color-active); }
+.cmd-field-row { display: flex; gap: 12px; }
+.cmd-field-row .cmd-field { flex: 1; }
+
+/* Quick times */
+.cmd-quick-times { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cmd-quick-times button { padding: 6px 12px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 16px; color: var(--color-text-muted); font-size: 0.75rem; cursor: pointer; font-family: var(--font-main); transition: all 0.15s; }
+.cmd-quick-times button:hover { background: var(--color-bg-soft); color: var(--color-text); border-color: var(--color-text-muted); }
+
+/* Buttons row */
+.cmd-buttons { display: flex; gap: 12px; margin-top: 20px; }
+.cmd-btn { flex: 1; padding: 14px; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: var(--font-main); transition: all 0.15s; }
+.cmd-btn.secondary { background: var(--color-bg-soft); color: var(--color-text-soft); border: 1px solid var(--color-border); }
+.cmd-btn.secondary:hover { background: var(--color-bg); color: var(--color-text); }
+.cmd-btn.primary { background: var(--color-active); color: white; }
+.cmd-btn.primary:hover { background: #EA580C; }
+
+/* Templates */
+.cmd-templates { display: flex; flex-direction: column; gap: 8px; }
+.cmd-template { padding: 14px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 12px; cursor: pointer; transition: all 0.15s; }
+.cmd-template:hover { border-color: var(--color-active); background: rgba(255, 107, 74, 0.05); }
+.cmd-template .name { font-size: 0.9rem; font-weight: 600; color: var(--color-text); margin-bottom: 2px; }
+.cmd-template .desc { font-size: 0.75rem; color: var(--color-text-muted); }
+
+/* Success */
+.cmd-success { text-align: center; padding: 40px 20px; }
+.cmd-success .success-icon { font-size: 3.5rem; margin-bottom: 12px; }
+.cmd-success .success-text { font-size: 1.15rem; color: #22C55E; font-weight: 600; margin-bottom: 6px; }
+.cmd-success .success-sub { font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 20px; }
+.cmd-success .cmd-btn { margin-top: 8px; }
+
 /* AI Magic Modal */
 .magic-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
 .magic-modal.show { opacity: 1; visibility: visible; }
