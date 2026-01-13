@@ -533,12 +533,65 @@ body.font-large .card-header-content { height: 52px; }
 
 body.chat-open .fab-camera, body.chat-open .fab-askai, body.chat-open .fab-record { opacity: 0; pointer-events: none; }
 
-/* Plus menu */
-.plus-menu { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--color-bg-card); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); z-index: 49; opacity: 0; visibility: hidden; transition: all 0.2s ease; min-width: 280px; overflow: hidden; padding: 12px; }
+/* Plus Menu v3 */
+.plus-menu { position: fixed; bottom: calc(100px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--color-bg-card); border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05); z-index: 49; opacity: 0; visibility: hidden; transition: all 0.2s ease; width: calc(100% - 32px); max-width: 360px; padding: 16px; max-height: calc(100vh - 180px); overflow-y: auto; }
 .plus-menu.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+.plus-menu-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.2); z-index: 48; opacity: 0; visibility: hidden; transition: opacity 0.2s; }
+.plus-menu-backdrop.show { opacity: 1; visibility: visible; }
+
+/* Section dividers */
+.plus-menu .section-divider { display: flex; align-items: center; gap: 10px; margin: 6px 0 12px 0; font-size: 0.65rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.plus-menu .section-divider::before, .plus-menu .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
+.plus-menu .section-divider:first-child { margin-top: 0; }
+
+/* Grid layouts */
+.menu-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.menu-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+
+/* Base menu item */
+.menu-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: all 0.15s; border: 1.5px solid var(--color-border); border-radius: 14px; background: var(--color-bg-card); width: 100%; text-align: left; font-family: var(--font-main); margin-bottom: 8px; }
+.menu-item:last-child { margin-bottom: 0; }
+.menu-item:hover { border-color: var(--color-text-muted); background: var(--color-bg-soft); }
+.menu-item:active { transform: scale(0.98); }
+.menu-item .icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--color-bg-soft); border-radius: 12px; color: var(--color-text-soft); flex-shrink: 0; }
+.menu-item .icon svg { width: 22px; height: 22px; }
+.menu-item .info { flex: 1; min-width: 0; }
+.menu-item .title { font-size: 0.95rem; font-weight: 600; color: var(--color-text); }
+.menu-item .desc { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px; }
+
+/* Compact variant (grid buttons, no icon background) */
+.menu-item.compact { flex-direction: column; align-items: center; text-align: center; padding: 14px 8px; gap: 6px; margin-bottom: 0; }
+.menu-item.compact .icon { width: auto; height: auto; background: none; color: var(--color-text-soft); }
+.menu-item.compact .icon svg { width: 24px; height: 24px; }
+.menu-item.compact .title { font-size: 0.75rem; font-weight: 600; }
+.menu-item.compact .desc { display: none; }
+.menu-item.compact:hover .icon { color: var(--color-text); }
+
+/* Primary (orange) */
+.menu-item.primary { border-color: var(--color-active); background: rgba(255, 107, 74, 0.06); }
+.menu-item.primary .icon { background: rgba(255, 107, 74, 0.15); color: #EA580C; }
+.menu-item.primary:hover { border-color: #EA580C; background: rgba(255, 107, 74, 0.12); }
+
+/* Command (green) */
+.menu-item.command { border-color: rgba(34, 197, 94, 0.5); background: rgba(34, 197, 94, 0.06); }
+.menu-item.command .icon { background: rgba(34, 197, 94, 0.15); color: #16A34A; }
+.menu-item.command:hover { border-color: #22C55E; background: rgba(34, 197, 94, 0.12); }
+
+/* Audio (amber) */
+.menu-item.audio { border-color: rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.06); }
+.menu-item.audio .icon { background: rgba(245, 158, 11, 0.15); color: #D97706; }
+.menu-item.audio:hover { border-color: #F59E0B; background: rgba(245, 158, 11, 0.12); }
+
+/* Magic (purple) */
+.menu-item.magic { border-color: rgba(139, 92, 246, 0.3); background: linear-gradient(135deg, rgba(139,92,246,0.04), rgba(236,72,153,0.04)); }
+.menu-item.magic .icon { color: #8B5CF6; }
+.menu-item.magic:hover { border-color: rgba(139, 92, 246, 0.5); background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(236,72,153,0.08)); }
+.menu-item.magic:hover .icon { color: #7C3AED; }
+
+/* Backward compatibility - old class names */
 .plus-menu-item { display: flex; align-items: center; gap: 12px; padding: 12px; cursor: pointer; transition: all 0.15s; border: 1.5px solid var(--color-border); border-radius: 12px; background: var(--color-bg); width: 100%; text-align: left; font-family: var(--font-main); margin-bottom: 8px; }
 .plus-menu-item:last-child { margin-bottom: 0; }
-.plus-menu-item:hover { border-color: #8B5CF6; background: rgba(139,92,246,0.05); }
+.plus-menu-item:hover { border-color: var(--color-text-muted); background: var(--color-bg-soft); }
 .plus-menu-item:active { transform: scale(0.98); }
 .plus-menu-item .icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--color-bg-btn); border-radius: 10px; color: var(--color-text-muted); flex-shrink: 0; }
 .plus-menu-item .icon svg { width: 20px; height: 20px; }
@@ -550,8 +603,6 @@ body.chat-open .fab-camera, body.chat-open .fab-askai, body.chat-open .fab-recor
 .plus-menu-item.magic { border-color: rgba(139,92,246,0.3); background: linear-gradient(135deg, rgba(139,92,246,0.05), rgba(236,72,153,0.05)); }
 .plus-menu-item.magic .icon { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(236,72,153,0.15)); color: #8B5CF6; }
 .plus-menu-item.magic:hover { border-color: #8B5CF6; background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(236,72,153,0.1)); }
-.plus-menu-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 48; opacity: 0; visibility: hidden; transition: opacity 0.2s; }
-.plus-menu-backdrop.show { opacity: 1; visibility: visible; }
 
 /* AI Magic Modal */
 .magic-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
