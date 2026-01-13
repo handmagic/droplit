@@ -1199,6 +1199,159 @@
     </div>
   </div>
 
+  <!-- Create Command Modal -->
+  <div class="cmd-modal" id="createCommandModal" onclick="if(event.target===this)closeCreateCommand()">
+    <div class="cmd-content">
+      <!-- Header -->
+      <div class="cmd-header">
+        <div class="cmd-title">
+          <span class="icon">⚡</span>
+          <span>New Command</span>
+        </div>
+        <button class="cmd-close" onclick="closeCreateCommand()">×</button>
+      </div>
+      
+      <!-- INPUT VIEW -->
+      <div class="cmd-view active" id="cmdInputView">
+        <div class="cmd-body">
+          <p class="cmd-label">What do you need to do?</p>
+          
+          <div class="cmd-input-wrap">
+            <textarea 
+              class="cmd-input" 
+              id="commandInput" 
+              placeholder="Type or dictate your command..."
+              oninput="updateCommandButton()"
+            ></textarea>
+            <button class="cmd-clear" id="commandClearBtn" onclick="document.getElementById('commandInput').value='';updateCommandButton()">✕</button>
+          </div>
+          
+          <p class="cmd-hint">
+            <strong>Examples:</strong> "Remind me in 30 min" · "Tomorrow at 9am — call" · "Every day at 8am"
+          </p>
+          
+          <button class="cmd-action-btn voice" id="commandActionBtn" onclick="handleCommandAction()">
+            <span class="icon">🎤</span>
+            <span class="text">TAP TO COMMAND</span>
+          </button>
+          
+          <div class="cmd-secondary-row">
+            <button class="cmd-secondary" onclick="showCommandView('details')">
+              <span class="icon">⚙️</span>
+              <span>Details</span>
+            </button>
+            <button class="cmd-secondary" onclick="showCommandView('templates')">
+              <span class="icon">📋</span>
+              <span>Templates</span>
+            </button>
+          </div>
+          
+          <button class="cmd-cancel" onclick="closeCreateCommand()">Cancel</button>
+        </div>
+      </div>
+      
+      <!-- DETAILS VIEW -->
+      <div class="cmd-view" id="cmdDetailsView">
+        <div class="cmd-body">
+          <div class="cmd-view-header">
+            <span>⚙️ Command Details</span>
+            <button class="cmd-back" onclick="showCommandView('input')">← Back</button>
+          </div>
+          
+          <div class="cmd-field">
+            <label>Title</label>
+            <input type="text" id="commandTitleInput" placeholder="What to remind about">
+          </div>
+          
+          <div class="cmd-field">
+            <label>When</label>
+            <input type="datetime-local" id="commandTimeInput">
+            <div class="cmd-quick-times">
+              <button type="button" onclick="setCommandQuickTime(5)">5 min</button>
+              <button type="button" onclick="setCommandQuickTime(15)">15 min</button>
+              <button type="button" onclick="setCommandQuickTime(30)">30 min</button>
+              <button type="button" onclick="setCommandQuickTime(60)">1 hour</button>
+              <button type="button" onclick="setCommandQuickTime(1440)">Tomorrow</button>
+            </div>
+          </div>
+          
+          <div class="cmd-field-row">
+            <div class="cmd-field">
+              <label>Type</label>
+              <select id="commandTypeSelect">
+                <option value="reminder">Reminder</option>
+                <option value="alarm">Alarm</option>
+                <option value="cron">Recurring</option>
+              </select>
+            </div>
+            <div class="cmd-field">
+              <label>Notify</label>
+              <select id="commandNotifySelect">
+                <option value="push">🔔 Push</option>
+                <option value="tts">🔊 Voice</option>
+                <option value="email">📧 Email</option>
+                <option value="telegram">📱 Telegram</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="cmd-buttons">
+            <button class="cmd-btn secondary" onclick="showCommandView('input')">Cancel</button>
+            <button class="cmd-btn primary" onclick="createCommand()">Create Command</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- TEMPLATES VIEW -->
+      <div class="cmd-view" id="cmdTemplatesView">
+        <div class="cmd-body">
+          <div class="cmd-view-header">
+            <span>📋 Templates</span>
+            <button class="cmd-back" onclick="showCommandView('input')">← Back</button>
+          </div>
+          
+          <div class="cmd-templates">
+            <div class="cmd-template" onclick="applyCommandTemplate('morning')">
+              <div class="name">🌅 Morning routine</div>
+              <div class="desc">Daily at 7:00 AM</div>
+            </div>
+            <div class="cmd-template" onclick="applyCommandTemplate('meeting')">
+              <div class="name">📅 Meeting reminder</div>
+              <div class="desc">15 minutes before</div>
+            </div>
+            <div class="cmd-template" onclick="applyCommandTemplate('medicine')">
+              <div class="name">💊 Take medication</div>
+              <div class="desc">Daily health reminder</div>
+            </div>
+            <div class="cmd-template" onclick="applyCommandTemplate('call')">
+              <div class="name">📞 Call back</div>
+              <div class="desc">In 30 minutes</div>
+            </div>
+            <div class="cmd-template" onclick="applyCommandTemplate('water')">
+              <div class="name">💧 Drink water</div>
+              <div class="desc">Hourly reminder</div>
+            </div>
+            <div class="cmd-template" onclick="applyCommandTemplate('break')">
+              <div class="name">☕ Take a break</div>
+              <div class="desc">Every 2 hours</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- SUCCESS VIEW -->
+      <div class="cmd-view" id="cmdSuccessView">
+        <div class="cmd-body cmd-success">
+          <div class="success-icon">✅</div>
+          <div class="success-text">Command Created!</div>
+          <div class="success-sub">You'll be notified at the scheduled time</div>
+          <button class="cmd-btn secondary" onclick="document.getElementById('commandInput').value='';updateCommandButton();showCommandView('input')">Create Another</button>
+          <button class="cmd-btn primary" onclick="closeCreateCommand()">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- AI Magic Modal -->
   <div class="magic-modal" id="magicModal" onclick="if(event.target===this)closeMagic()">
     <div class="magic-content">
@@ -2856,14 +3009,199 @@ function openTextInput(){
   },100);
 }
 
-// CREATE COMMAND (placeholder - will open command creation UI)
+// CREATE COMMAND
 function openCreateCommand(){
   closePlusMenu();
-  // TODO: Integrate with ASKI dialog or open Create Command modal
-  toast('Create Command - Coming soon!','info');
-  // Future: open command creation modal or trigger ASKI dialog
-  // document.getElementById('createCommandModal').classList.add('show');
+  document.getElementById('createCommandModal').classList.add('show');
+  setTimeout(()=>{
+    document.getElementById('commandInput').focus();
+  },100);
 }
+
+function closeCreateCommand(){
+  document.getElementById('createCommandModal').classList.remove('show');
+  document.getElementById('commandInput').value = '';
+  showCommandView('input');
+  updateCommandButton();
+}
+
+// Command modal state
+let commandRecognition = null;
+let isCommandRecording = false;
+
+// Switch command views
+function showCommandView(viewId) {
+  document.querySelectorAll('#createCommandModal .cmd-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('cmd' + viewId.charAt(0).toUpperCase() + viewId.slice(1) + 'View')?.classList.add('active');
+}
+
+// Update command button state
+function updateCommandButton() {
+  const input = document.getElementById('commandInput');
+  const btn = document.getElementById('commandActionBtn');
+  if (!input || !btn) return;
+  
+  const hasText = input.value.trim().length > 0;
+  const iconEl = btn.querySelector('.icon');
+  const textEl = btn.querySelector('.text');
+  
+  btn.classList.remove('voice', 'recording', 'create');
+  
+  if (isCommandRecording) {
+    btn.classList.add('recording');
+    iconEl.textContent = '⏹';
+    textEl.textContent = 'TAP TO STOP';
+    input.classList.add('recording');
+  } else if (hasText) {
+    btn.classList.add('create');
+    iconEl.textContent = '🚀';
+    textEl.textContent = 'CREATE COMMAND';
+    input.classList.remove('recording');
+  } else {
+    btn.classList.add('voice');
+    iconEl.textContent = '🎤';
+    textEl.textContent = 'TAP TO COMMAND';
+    input.classList.remove('recording');
+  }
+  
+  // Clear button
+  const clearBtn = document.getElementById('commandClearBtn');
+  if (clearBtn) clearBtn.classList.toggle('visible', hasText);
+}
+
+// Init command voice recognition
+function initCommandVoice() {
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    commandRecognition = new SpeechRecognition();
+    commandRecognition.lang = 'en-US';
+    commandRecognition.continuous = false;
+    commandRecognition.interimResults = true;
+    
+    commandRecognition.onstart = () => {
+      isCommandRecording = true;
+      updateCommandButton();
+    };
+    
+    commandRecognition.onend = () => {
+      isCommandRecording = false;
+      updateCommandButton();
+    };
+    
+    commandRecognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map(result => result[0].transcript)
+        .join('');
+      document.getElementById('commandInput').value = transcript;
+      updateCommandButton();
+    };
+    
+    commandRecognition.onerror = () => {
+      isCommandRecording = false;
+      updateCommandButton();
+    };
+  }
+}
+
+// Command action button click
+function handleCommandAction() {
+  const input = document.getElementById('commandInput');
+  const hasText = input.value.trim().length > 0;
+  
+  if (isCommandRecording) {
+    commandRecognition?.stop();
+  } else if (hasText) {
+    createCommand();
+  } else {
+    if (commandRecognition) {
+      commandRecognition.start();
+    } else {
+      toast('Voice input not supported', 'error');
+    }
+  }
+}
+
+// Create command (simple version)
+async function createCommand() {
+  const text = document.getElementById('commandInput').value.trim();
+  if (!text) return;
+  
+  const btn = document.getElementById('commandActionBtn');
+  btn.querySelector('.icon').textContent = '⏳';
+  btn.querySelector('.text').textContent = 'Creating...';
+  btn.disabled = true;
+  
+  try {
+    // Parse time from text (simple patterns)
+    const timePatterns = {
+      'in (\\d+) min': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
+      'in (\\d+) hour': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
+      'tomorrow': () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9,0,0,0); return d; },
+      'at (\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; }
+    };
+    
+    let scheduledAt = new Date(Date.now() + 3600000); // default: 1 hour
+    for (const [pattern, fn] of Object.entries(timePatterns)) {
+      const match = text.match(new RegExp(pattern, 'i'));
+      if (match) {
+        scheduledAt = fn(match);
+        break;
+      }
+    }
+    
+    // Create command via RPC
+    const { data, error } = await window.supabase.rpc('create_command_drop', {
+      p_text: text,
+      p_command_type: 'reminder',
+      p_scheduled_at: scheduledAt.toISOString(),
+      p_action_type: 'push',
+      p_category: 'personal'
+    });
+    
+    if (error) throw error;
+    
+    // Show success
+    showCommandView('success');
+    toast('Command created!', 'success');
+    
+  } catch (err) {
+    console.error('Create command error:', err);
+    toast('Failed to create command', 'error');
+    updateCommandButton();
+  }
+  
+  btn.disabled = false;
+}
+
+// Quick time buttons
+function setCommandQuickTime(minutes) {
+  const input = document.getElementById('commandTimeInput');
+  if (!input) return;
+  const d = new Date(Date.now() + minutes * 60000);
+  input.value = d.toISOString().slice(0, 16);
+}
+
+// Apply template
+function applyCommandTemplate(template) {
+  const templates = {
+    morning: { text: 'Morning routine - start the day', time: '07:00' },
+    meeting: { text: 'Meeting reminder', time: '+15' },
+    medicine: { text: 'Take medication', time: '09:00' },
+    call: { text: 'Call back', time: '+30' },
+    water: { text: 'Drink water', time: '+60' },
+    break: { text: 'Take a break', time: '+120' }
+  };
+  
+  const t = templates[template];
+  if (t) {
+    document.getElementById('commandInput').value = t.text;
+    updateCommandButton();
+    showCommandView('input');
+  }
+}
+
+// Init on load
+document.addEventListener('DOMContentLoaded', initCommandVoice);
 
 function closeTextInput(){
   document.getElementById('textInputModal').classList.remove('show');
