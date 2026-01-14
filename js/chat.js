@@ -2413,7 +2413,7 @@ async function sendAskAIMessage() {
         dropContext: contextObject, // v2: Structured context for server
         currentFeed: currentFeed, // v4.17: Actual drops from user's feed
         stream: STREAMING_ENABLED,
-        enableTools: false, // v2: Enable Tool Calling
+        enableTools: true, // v4.18: Enable Tool Calling for drop operations
         userId: currentUser?.id, // v3: For CORE Memory integration
         model: selectedModel // v4.14: AI model selection (sonnet/opus/haiku)
       })
