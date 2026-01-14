@@ -406,6 +406,80 @@ const TOOLS = [
       },
       required: []
     }
+  },
+  {
+    name: "delete_drop",
+    description: "Delete a drop from user's feed. Use when user asks to remove/delete a note, idea, or command from their feed. Works with any drop type including command drops after cancellation.",
+    input_schema: {
+      type: "object",
+      properties: {
+        drop_id: {
+          type: "string",
+          description: "ID of the drop to delete (UUID format)"
+        },
+        search_query: {
+          type: "string",
+          description: "Text to search for if ID not provided - will find and delete matching drop"
+        },
+        confirm: {
+          type: "boolean",
+          description: "Set to true to confirm deletion. Always ask user first before deleting."
+        }
+      },
+      required: ["confirm"]
+    }
+  },
+  {
+    name: "update_drop",
+    description: "Edit/update content of an existing drop in user's feed. Use when user asks to change, edit, or modify text of a note or idea.",
+    input_schema: {
+      type: "object",
+      properties: {
+        drop_id: {
+          type: "string",
+          description: "ID of the drop to update (UUID format)"
+        },
+        search_query: {
+          type: "string",
+          description: "Text to search for if ID not provided"
+        },
+        new_content: {
+          type: "string",
+          description: "New text content for the drop"
+        }
+      },
+      required: ["new_content"]
+    }
+  },
+  {
+    name: "update_event",
+    description: "Modify an existing reminder/scheduled event. Use when user wants to change time, reschedule, or update reminder text. Trigger phrases: 'change reminder to...', 'reschedule...', 'move reminder to...', 'перенеси напоминание...', 'измени время...'",
+    input_schema: {
+      type: "object",
+      properties: {
+        event_id: {
+          type: "string",
+          description: "ID of the reminder to update (UUID format)"
+        },
+        search_query: {
+          type: "string",
+          description: "Text to search for if ID not provided"
+        },
+        new_title: {
+          type: "string",
+          description: "New title/name for the reminder"
+        },
+        new_time: {
+          type: "string",
+          description: "New trigger time in ISO format (e.g. 2026-01-15T10:00:00Z)"
+        },
+        new_description: {
+          type: "string",
+          description: "New description text"
+        }
+      },
+      required: []
+    }
   }
 ];
 
@@ -748,11 +822,29 @@ When user asks to cancel, delete, or remove a reminder:
 3. If no specifics given, the most recent active reminder will be cancelled
 4. Confirm what was cancelled
 
+When user asks to change, reschedule, or modify a reminder:
+1. Use the update_event tool
+2. You can change: title (new_title), time (new_time as ISO), description (new_description)
+3. Confirm what was changed
+
 When user asks to see, list, or show reminders:
 1. Use the list_events tool
 2. Default shows active reminders
 3. Present results in a clear, concise format
 4. Include event ID for reference if user wants to cancel specific one
+
+## DROP MANAGEMENT (ASKI as operator):
+
+When user asks to delete a note/drop from feed:
+1. Use the delete_drop tool with confirm=true
+2. Search by drop_id or search_query
+3. ALWAYS confirm with user before deleting
+4. Works for any drop type including command drops
+
+When user asks to edit/change a note/drop:
+1. Use the update_drop tool
+2. Provide new_content with the updated text
+3. Search by drop_id or search_query
 
 ## LANGUAGE:
 - Always respond in same language as user
@@ -964,6 +1056,18 @@ async function executeTool(toolName, input, dropContext, userId = null) {
     
     case 'list_events': {
       return await executeListEvents(input, userId);
+    }
+    
+    case 'delete_drop': {
+      return await executeDeleteDrop(input, userId);
+    }
+    
+    case 'update_drop': {
+      return await executeUpdateDrop(input, userId);
+    }
+    
+    case 'update_event': {
+      return await executeUpdateEvent(input, userId);
     }
     
     default:
@@ -1305,6 +1409,290 @@ async function executeListEvents(input, userId) {
   } catch (error) {
     console.error('[list_events] Exception:', error);
     return { success: false, error: error.message, action: 'list_events' };
+  }
+}
+
+// ============================================
+// DELETE DROP - Remove any drop from feed
+// ============================================
+async function executeDeleteDrop(input, userId) {
+  try {
+    console.log('[delete_drop] Deleting drop for user:', userId);
+    
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      return { success: false, error: 'Database not configured' };
+    }
+    
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
+    }
+    
+    if (!input.confirm) {
+      return { success: false, error: 'Deletion not confirmed. Please confirm before deleting.' };
+    }
+    
+    let dropToDelete = null;
+    
+    // Find drop by ID or search
+    if (input.drop_id) {
+      // Try command_drops first
+      let response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?id=eq.${input.drop_id}&user_id=eq.${userId}`, {
+        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+      });
+      let data = await response.json();
+      if (data.length > 0) {
+        dropToDelete = { ...data[0], table: 'command_drops' };
+      } else {
+        // Try drops table
+        response = await fetch(`${SUPABASE_URL}/rest/v1/drops?id=eq.${input.drop_id}&user_id=eq.${userId}`, {
+          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+        });
+        data = await response.json();
+        if (data.length > 0) {
+          dropToDelete = { ...data[0], table: 'drops' };
+        }
+      }
+    } else if (input.search_query) {
+      // Search in command_drops
+      let response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?user_id=eq.${userId}&title=ilike.*${encodeURIComponent(input.search_query)}*&order=created_at.desc&limit=1`, {
+        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+      });
+      let data = await response.json();
+      if (data.length > 0) {
+        dropToDelete = { ...data[0], table: 'command_drops' };
+      } else {
+        // Search in drops
+        response = await fetch(`${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&content=ilike.*${encodeURIComponent(input.search_query)}*&order=created_at.desc&limit=1`, {
+          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+        });
+        data = await response.json();
+        if (data.length > 0) {
+          dropToDelete = { ...data[0], table: 'drops' };
+        }
+      }
+    }
+    
+    if (!dropToDelete) {
+      return { success: false, error: 'Drop not found', action: 'delete_drop' };
+    }
+    
+    // Delete the drop
+    const deleteResponse = await fetch(`${SUPABASE_URL}/rest/v1/${dropToDelete.table}?id=eq.${dropToDelete.id}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+      }
+    });
+    
+    if (!deleteResponse.ok) {
+      return { success: false, error: 'Failed to delete drop', action: 'delete_drop' };
+    }
+    
+    console.log('[delete_drop] Deleted:', dropToDelete.id, 'from', dropToDelete.table);
+    
+    return {
+      success: true,
+      action: 'delete_drop',
+      deleted_id: dropToDelete.id,
+      deleted_title: dropToDelete.title || dropToDelete.content?.substring(0, 50),
+      table: dropToDelete.table
+    };
+    
+  } catch (error) {
+    console.error('[delete_drop] Exception:', error);
+    return { success: false, error: error.message, action: 'delete_drop' };
+  }
+}
+
+// ============================================
+// UPDATE DROP - Edit drop content
+// ============================================
+async function executeUpdateDrop(input, userId) {
+  try {
+    console.log('[update_drop] Updating drop for user:', userId);
+    
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      return { success: false, error: 'Database not configured' };
+    }
+    
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
+    }
+    
+    if (!input.new_content) {
+      return { success: false, error: 'New content is required' };
+    }
+    
+    let dropToUpdate = null;
+    
+    // Find drop by ID or search
+    if (input.drop_id) {
+      // Try drops table first (most common)
+      let response = await fetch(`${SUPABASE_URL}/rest/v1/drops?id=eq.${input.drop_id}&user_id=eq.${userId}`, {
+        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+      });
+      let data = await response.json();
+      if (data.length > 0) {
+        dropToUpdate = { ...data[0], table: 'drops', contentField: 'content' };
+      } else {
+        // Try command_drops
+        response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?id=eq.${input.drop_id}&user_id=eq.${userId}`, {
+          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+        });
+        data = await response.json();
+        if (data.length > 0) {
+          dropToUpdate = { ...data[0], table: 'command_drops', contentField: 'content' };
+        }
+      }
+    } else if (input.search_query) {
+      // Search in drops
+      let response = await fetch(`${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&content=ilike.*${encodeURIComponent(input.search_query)}*&order=created_at.desc&limit=1`, {
+        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+      });
+      let data = await response.json();
+      if (data.length > 0) {
+        dropToUpdate = { ...data[0], table: 'drops', contentField: 'content' };
+      }
+    }
+    
+    if (!dropToUpdate) {
+      return { success: false, error: 'Drop not found', action: 'update_drop' };
+    }
+    
+    // Update the drop
+    const updateData = { [dropToUpdate.contentField]: input.new_content, updated_at: new Date().toISOString() };
+    
+    const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/${dropToUpdate.table}?id=eq.${dropToUpdate.id}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(updateData)
+    });
+    
+    if (!updateResponse.ok) {
+      return { success: false, error: 'Failed to update drop', action: 'update_drop' };
+    }
+    
+    const updated = await updateResponse.json();
+    console.log('[update_drop] Updated:', dropToUpdate.id);
+    
+    return {
+      success: true,
+      action: 'update_drop',
+      updated_id: dropToUpdate.id,
+      old_content: dropToUpdate.content?.substring(0, 50),
+      new_content: input.new_content.substring(0, 50)
+    };
+    
+  } catch (error) {
+    console.error('[update_drop] Exception:', error);
+    return { success: false, error: error.message, action: 'update_drop' };
+  }
+}
+
+// ============================================
+// UPDATE EVENT - Modify reminder/scheduled event
+// ============================================
+async function executeUpdateEvent(input, userId) {
+  try {
+    console.log('[update_event] Updating event for user:', userId);
+    
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      return { success: false, error: 'Database not configured' };
+    }
+    
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
+    }
+    
+    if (!input.new_title && !input.new_time && !input.new_description) {
+      return { success: false, error: 'At least one field to update is required (new_title, new_time, or new_description)' };
+    }
+    
+    let eventToUpdate = null;
+    
+    // Find event by ID or search
+    if (input.event_id) {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?id=eq.${input.event_id}&user_id=eq.${userId}`, {
+        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+      });
+      const data = await response.json();
+      if (data.length > 0) {
+        eventToUpdate = data[0];
+      }
+    } else if (input.search_query) {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?user_id=eq.${userId}&status=eq.pending&title=ilike.*${encodeURIComponent(input.search_query)}*&order=created_at.desc&limit=1`, {
+        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+      });
+      const data = await response.json();
+      if (data.length > 0) {
+        eventToUpdate = data[0];
+      }
+    }
+    
+    if (!eventToUpdate) {
+      return { success: false, error: 'Reminder not found', action: 'update_event' };
+    }
+    
+    // Build update object
+    const updateData = { updated_at: new Date().toISOString() };
+    
+    if (input.new_title) {
+      updateData.title = input.new_title;
+    }
+    if (input.new_time) {
+      updateData.scheduled_at = input.new_time;
+    }
+    if (input.new_description) {
+      updateData.content = input.new_description;
+    }
+    
+    // Update the event
+    const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?id=eq.${eventToUpdate.id}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(updateData)
+    });
+    
+    if (!updateResponse.ok) {
+      return { success: false, error: 'Failed to update reminder', action: 'update_event' };
+    }
+    
+    const updated = await updateResponse.json();
+    console.log('[update_event] Updated:', eventToUpdate.id);
+    
+    // Format response
+    const changes = [];
+    if (input.new_title) changes.push(`title → "${input.new_title}"`);
+    if (input.new_time) {
+      const newTimeStr = new Date(input.new_time).toLocaleString('ru-RU', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+      });
+      changes.push(`time → ${newTimeStr}`);
+    }
+    if (input.new_description) changes.push(`description updated`);
+    
+    return {
+      success: true,
+      action: 'update_event',
+      updated_id: eventToUpdate.id,
+      original_title: eventToUpdate.title,
+      changes: changes.join(', ')
+    };
+    
+  } catch (error) {
+    console.error('[update_event] Exception:', error);
+    return { success: false, error: error.message, action: 'update_event' };
   }
 }
 
