@@ -273,11 +273,11 @@ function rateLimitResponse(resetIn) {
 // Address book for email recipients
 const EMAIL_ADDRESS_BOOK = {
   // Personal
-  'alex': 'hqrar@hotmail.com',
-  'алекс': 'hqrar@hotmail.com',
-  'я': 'hqrar@hotmail.com',
-  'мне': 'hqrar@hotmail.com',
-  'me': 'hqrar@hotmail.com',
+  'alex': 'order.ipan@gmail.com',
+  'алекс': 'order.ipan@gmail.com',
+  'я': 'order.ipan@gmail.com',
+  'мне': 'order.ipan@gmail.com',
+  'me': 'order.ipan@gmail.com',
   
   // Business contacts (examples - customize as needed)
   // 'бухгалтерия': 'accounting@company.com',
