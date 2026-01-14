@@ -1215,39 +1215,39 @@
       <!-- INPUT VIEW -->
       <div class="cmd-view active" id="cmdInputView">
         <div class="cmd-body">
-          <p class="cmd-label">Что нужно сделать?</p>
+          <p class="cmd-label">What do you need to do?</p>
           
           <div class="cmd-input-wrap">
             <textarea 
               class="cmd-input" 
               id="commandInput" 
-              placeholder="Напишите или продиктуйте команду..."
+              placeholder="Type or dictate your command..."
               oninput="updateCommandButton()"
             ></textarea>
             <button class="cmd-clear" id="commandClearBtn" onclick="document.getElementById('commandInput').value='';updateCommandButton()">✕</button>
           </div>
           
           <p class="cmd-hint">
-            <strong>Примеры:</strong> «Напомни через 30 мин» · «Завтра в 9 — позвонить» · «Каждый день в 8»
+            <strong>Examples:</strong> "Remind me in 30 min" · "Tomorrow at 9am — call" · "Every day at 8am"
           </p>
           
           <button class="cmd-action-btn voice" id="commandActionBtn" onclick="handleCommandAction()">
             <span class="icon">🎤</span>
-            <span class="text">НАЖМИ И СКАЖИ</span>
+            <span class="text">TAP TO COMMAND</span>
           </button>
           
           <div class="cmd-secondary-row">
             <button class="cmd-secondary" onclick="showCommandView('details')">
               <span class="icon">⚙️</span>
-              <span>Детали</span>
+              <span>Details</span>
             </button>
             <button class="cmd-secondary" onclick="showCommandView('templates')">
               <span class="icon">📋</span>
-              <span>Шаблоны</span>
+              <span>Templates</span>
             </button>
           </div>
           
-          <button class="cmd-cancel" onclick="closeCreateCommand()">Отмена</button>
+          <button class="cmd-cancel" onclick="closeCreateCommand()">Cancel</button>
         </div>
       </div>
       
@@ -1255,41 +1255,41 @@
       <div class="cmd-view" id="cmdDetailsView">
         <div class="cmd-body">
           <div class="cmd-view-header">
-            <span>⚙️ Детали команды</span>
-            <button class="cmd-back" onclick="showCommandView('input')">← Назад</button>
+            <span>⚙️ Command Details</span>
+            <button class="cmd-back" onclick="showCommandView('input')">← Back</button>
           </div>
           
           <div class="cmd-field">
-            <label>Название</label>
-            <input type="text" id="commandTitleInput" placeholder="О чём напомнить">
+            <label>Title</label>
+            <input type="text" id="commandTitleInput" placeholder="What to remind about">
           </div>
           
           <div class="cmd-field">
-            <label>Когда</label>
+            <label>When</label>
             <input type="datetime-local" id="commandTimeInput">
             <div class="cmd-quick-times">
-              <button type="button" onclick="setCommandQuickTime(5)">5 мин</button>
-              <button type="button" onclick="setCommandQuickTime(15)">15 мин</button>
-              <button type="button" onclick="setCommandQuickTime(30)">30 мин</button>
-              <button type="button" onclick="setCommandQuickTime(60)">1 час</button>
-              <button type="button" onclick="setCommandQuickTime(1440)">Завтра</button>
+              <button type="button" onclick="setCommandQuickTime(5)">5 min</button>
+              <button type="button" onclick="setCommandQuickTime(15)">15 min</button>
+              <button type="button" onclick="setCommandQuickTime(30)">30 min</button>
+              <button type="button" onclick="setCommandQuickTime(60)">1 hour</button>
+              <button type="button" onclick="setCommandQuickTime(1440)">Tomorrow</button>
             </div>
           </div>
           
           <div class="cmd-field-row">
             <div class="cmd-field">
-              <label>Тип</label>
+              <label>Type</label>
               <select id="commandTypeSelect">
-                <option value="reminder">Напоминание</option>
-                <option value="alarm">Будильник</option>
-                <option value="cron">Повторяющееся</option>
+                <option value="reminder">Reminder</option>
+                <option value="alarm">Alarm</option>
+                <option value="cron">Recurring</option>
               </select>
             </div>
             <div class="cmd-field">
-              <label>Уведомление</label>
+              <label>Notify</label>
               <select id="commandNotifySelect">
                 <option value="push">🔔 Push</option>
-                <option value="tts">🔊 Голос</option>
+                <option value="tts">🔊 Voice</option>
                 <option value="email">📧 Email</option>
                 <option value="telegram">📱 Telegram</option>
               </select>
@@ -1297,8 +1297,8 @@
           </div>
           
           <div class="cmd-buttons">
-            <button class="cmd-btn secondary" onclick="showCommandView('input')">Отмена</button>
-            <button class="cmd-btn primary" onclick="createCommand()">Создать команду</button>
+            <button class="cmd-btn secondary" onclick="showCommandView('input')">Cancel</button>
+            <button class="cmd-btn primary" onclick="createCommand()">Create Command</button>
           </div>
         </div>
       </div>
@@ -1307,34 +1307,34 @@
       <div class="cmd-view" id="cmdTemplatesView">
         <div class="cmd-body">
           <div class="cmd-view-header">
-            <span>📋 Шаблоны</span>
-            <button class="cmd-back" onclick="showCommandView('input')">← Назад</button>
+            <span>📋 Templates</span>
+            <button class="cmd-back" onclick="showCommandView('input')">← Back</button>
           </div>
           
           <div class="cmd-templates">
             <div class="cmd-template" onclick="applyCommandTemplate('morning')">
-              <div class="name">🌅 Утренняя рутина</div>
-              <div class="desc">Каждый день в 7:00</div>
+              <div class="name">🌅 Morning routine</div>
+              <div class="desc">Daily at 7:00 AM</div>
             </div>
             <div class="cmd-template" onclick="applyCommandTemplate('meeting')">
-              <div class="name">📅 Напоминание о встрече</div>
-              <div class="desc">За 15 минут до</div>
+              <div class="name">📅 Meeting reminder</div>
+              <div class="desc">15 minutes before</div>
             </div>
             <div class="cmd-template" onclick="applyCommandTemplate('medicine')">
-              <div class="name">💊 Принять лекарство</div>
-              <div class="desc">Ежедневное напоминание</div>
+              <div class="name">💊 Take medication</div>
+              <div class="desc">Daily health reminder</div>
             </div>
             <div class="cmd-template" onclick="applyCommandTemplate('call')">
-              <div class="name">📞 Перезвонить</div>
-              <div class="desc">Через 30 минут</div>
+              <div class="name">📞 Call back</div>
+              <div class="desc">In 30 minutes</div>
             </div>
             <div class="cmd-template" onclick="applyCommandTemplate('water')">
-              <div class="name">💧 Выпить воды</div>
-              <div class="desc">Каждый час</div>
+              <div class="name">💧 Drink water</div>
+              <div class="desc">Hourly reminder</div>
             </div>
             <div class="cmd-template" onclick="applyCommandTemplate('break')">
-              <div class="name">☕ Сделать перерыв</div>
-              <div class="desc">Каждые 2 часа</div>
+              <div class="name">☕ Take a break</div>
+              <div class="desc">Every 2 hours</div>
             </div>
           </div>
         </div>
@@ -1344,10 +1344,10 @@
       <div class="cmd-view" id="cmdSuccessView">
         <div class="cmd-body cmd-success">
           <div class="success-icon">✅</div>
-          <div class="success-text">Команда создана!</div>
-          <div class="success-sub">Вы получите уведомление в назначенное время</div>
-          <button class="cmd-btn secondary" onclick="document.getElementById('commandInput').value='';updateCommandButton();showCommandView('input')">Создать ещё</button>
-          <button class="cmd-btn primary" onclick="closeCreateCommand()">Готово</button>
+          <div class="success-text">Command Created!</div>
+          <div class="success-sub">You'll be notified at the scheduled time</div>
+          <button class="cmd-btn secondary" onclick="document.getElementById('commandInput').value='';updateCommandButton();showCommandView('input')">Create Another</button>
+          <button class="cmd-btn primary" onclick="closeCreateCommand()">Done</button>
         </div>
       </div>
     </div>
@@ -2336,8 +2336,13 @@ function checkPendingCommands() {
     i.scheduled_at
   );
   
+  if (pendingCommands.length > 0) {
+    console.log('[Commands] Checking', pendingCommands.length, 'pending at', now.toLocaleTimeString());
+  }
+  
   for (const cmd of pendingCommands) {
     const scheduledTime = new Date(cmd.scheduled_at);
+    console.log('[Commands] Command:', cmd.text, '| Scheduled:', scheduledTime.toLocaleTimeString(), '| Now:', now.toLocaleTimeString());
     
     if (scheduledTime <= now) {
       executeCommand(cmd);
@@ -2354,7 +2359,7 @@ function executeCommand(cmd) {
   save();
   
   // Show notification
-  const title = cmd.text || 'Напоминание';
+  const title = cmd.text || 'Reminder';
   
   // Try push notification first
   if (cmd.action_type === 'push' && 'Notification' in window && Notification.permission === 'granted') {
@@ -2411,7 +2416,15 @@ function requestNotificationPermission() {
 }
 
 // Start scheduler when page loads
-document.addEventListener('DOMContentLoaded', startCommandScheduler);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startCommandScheduler);
+} else {
+  // DOMContentLoaded already fired
+  startCommandScheduler();
+}
+
+// Also request notification permission early
+requestNotificationPermission();
 
 // ============================================
 // AUTO-FIX: Repair string IDs (v0.9.58)
@@ -3167,17 +3180,17 @@ function updateCommandButton() {
   if (isCommandRecording) {
     btn.classList.add('recording');
     iconEl.textContent = '⏹';
-    textEl.textContent = 'НАЖМИ ДЛЯ СТОП';
+    textEl.textContent = 'TAP TO STOP';
     input.classList.add('recording');
   } else if (hasText) {
     btn.classList.add('create');
     iconEl.textContent = '🚀';
-    textEl.textContent = 'СОЗДАТЬ КОМАНДУ';
+    textEl.textContent = 'CREATE COMMAND';
     input.classList.remove('recording');
   } else {
     btn.classList.add('voice');
     iconEl.textContent = '🎤';
-    textEl.textContent = 'НАЖМИ И СКАЖИ';
+    textEl.textContent = 'TAP TO COMMAND';
     input.classList.remove('recording');
   }
   
@@ -3225,8 +3238,8 @@ function initCommandVoice() {
   
   commandRecognition.onerror = (e) => {
     console.log('Speech error:', e.error);
-    if (e.error === 'no-speech') toast('Речь не распознана', 'warning');
-    else if (e.error === 'not-allowed') toast('Доступ к микрофону запрещён', 'error');
+    if (e.error === 'no-speech') toast('No speech detected', 'warning');
+    else if (e.error === 'not-allowed') toast('Microphone access denied', 'error');
     isCommandRecording = false;
     updateCommandButton();
   };
@@ -3259,7 +3272,7 @@ function handleCommandAction() {
 async function createCommand() {
   const text = document.getElementById('commandInput').value.trim();
   if (!text) {
-    toast('Введите текст команды', 'warning');
+    toast('Enter command text', 'warning');
     return;
   }
   
@@ -3291,14 +3304,14 @@ async function createCommand() {
     
     if (commandDrop) {
       showCommandView('success');
-      toast('Команда создана!', 'success');
+      toast('Command created!', 'success');
     } else {
       throw new Error('Не удалось создать команду');
     }
     
   } catch (err) {
     console.error('[Command] Error:', err);
-    toast('Ошибка: ' + (err.message || 'не удалось создать'), 'error');
+    toast('Error: ' + (err.message || 'failed to create'), 'error');
     updateCommandButton();
   }
   
@@ -3316,12 +3329,12 @@ function setCommandQuickTime(minutes) {
 // Apply template
 function applyCommandTemplate(template) {
   const templates = {
-    morning: { text: 'Утренняя рутина — начать день', time: '07:00' },
-    meeting: { text: 'Напоминание о встрече', time: '+15' },
-    medicine: { text: 'Принять лекарство', time: '09:00' },
-    call: { text: 'Перезвонить', time: '+30' },
-    water: { text: 'Выпить воды', time: '+60' },
-    break: { text: 'Сделать перерыв', time: '+120' }
+    morning: { text: 'Morning routine - start the day', time: '07:00' },
+    meeting: { text: 'Meeting reminder', time: '+15' },
+    medicine: { text: 'Take medication', time: '09:00' },
+    call: { text: 'Call back', time: '+30' },
+    water: { text: 'Drink water', time: '+60' },
+    break: { text: 'Take a break', time: '+120' }
   };
   
   const t = templates[template];
