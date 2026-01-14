@@ -2073,6 +2073,38 @@ async function handleStreamingResponse(response) {
             // Stream done
             if (parsed.type === 'done') {
               createDropData = parsed.createDrop;
+              
+              // Handle delete_drop in streaming mode (v4.17)
+              if (parsed.deleteDrop?.action === 'delete_drop' && parsed.deleteDrop?.sync_local) {
+                const deleteId = parsed.deleteDrop.local_id || parsed.deleteDrop.deleted_id;
+                if (deleteId) {
+                  const idx = ideas.findIndex(i => String(i.id) === String(deleteId));
+                  if (idx !== -1) {
+                    ideas.splice(idx, 1);
+                    localStorage.setItem('ideas', JSON.stringify(ideas));
+                    render();
+                    counts();
+                    console.log('✅ [Streaming] AI deleted drop from local feed:', deleteId);
+                    toast('Удалено из ленты', 'success');
+                  }
+                }
+              }
+              
+              // Handle update_drop in streaming mode (v4.17)
+              if (parsed.updateDrop?.action === 'update_drop') {
+                const updateId = parsed.updateDrop.updated_id;
+                if (updateId) {
+                  const item = ideas.find(i => String(i.id) === String(updateId));
+                  if (item && parsed.updateDrop.new_content) {
+                    item.text = parsed.updateDrop.new_content;
+                    item.content = parsed.updateDrop.new_content;
+                    localStorage.setItem('ideas', JSON.stringify(ideas));
+                    render();
+                    console.log('✅ [Streaming] AI updated drop in local feed:', updateId);
+                    toast('Обновлено', 'success');
+                  }
+                }
+              }
             }
             
             // Legacy format (v4.4 and earlier)
