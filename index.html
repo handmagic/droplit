@@ -2321,11 +2321,14 @@ function startCommandScheduler() {
   
   commandSchedulerInterval = setInterval(() => {
     checkPendingCommands();
-  }, 30000); // Check every 30 seconds
+  }, 15000); // Check every 15 seconds
   
   // Also check immediately on start
   setTimeout(checkPendingCommands, 2000);
   console.log('[Commands] Scheduler started');
+  
+  // DEBUG: Show that scheduler is running (remove later)
+  // toast('⚡ Command scheduler active', 'info', 2000);
 }
 
 function checkPendingCommands() {
@@ -2336,13 +2339,13 @@ function checkPendingCommands() {
     i.scheduled_at
   );
   
-  if (pendingCommands.length > 0) {
-    console.log('[Commands] Checking', pendingCommands.length, 'pending at', now.toLocaleTimeString());
-  }
+  console.log('[Commands] Checking', pendingCommands.length, 'pending at', now.toLocaleTimeString());
   
   for (const cmd of pendingCommands) {
     const scheduledTime = new Date(cmd.scheduled_at);
-    console.log('[Commands] Command:', cmd.text, '| Scheduled:', scheduledTime.toLocaleTimeString(), '| Now:', now.toLocaleTimeString());
+    const diff = scheduledTime - now;
+    
+    console.log('[Commands]', cmd.text, '| Scheduled:', scheduledTime.toLocaleTimeString(), '| Diff:', Math.round(diff/1000), 'sec');
     
     if (scheduledTime <= now) {
       executeCommand(cmd);
@@ -3304,7 +3307,7 @@ async function createCommand() {
     
     if (commandDrop) {
       showCommandView('success');
-      toast('Command created!', 'success');
+      toast('⚡ Command at ' + commandDrop.scheduled_time, 'success');
     } else {
       throw new Error('Не удалось создать команду');
     }
@@ -3402,21 +3405,36 @@ function createCommandDrop(options = {}) {
 
 // Parse time from natural language text
 function parseTimeFromText(text) {
+  const t = text.toLowerCase();
+  
+  // Russian word forms (without numbers)
+  if (/через\s+минуту|через\s+минутку|через\s+1\s+мин/i.test(t)) {
+    return new Date(Date.now() + 60000); // 1 minute
+  }
+  if (/через\s+час(?!\s*\d)/i.test(t)) {
+    return new Date(Date.now() + 3600000); // 1 hour
+  }
+  if (/через\s+полчаса/i.test(t)) {
+    return new Date(Date.now() + 1800000); // 30 min
+  }
+  
   const timePatterns = {
-    // Russian
-    'через (\\d+) мин': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
-    'через (\\d+) час': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
-    'через (\\d+) секунд': (m) => new Date(Date.now() + parseInt(m[1]) * 1000),
-    'завтра в (\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); return d; },
+    // Russian with numbers
+    'через\\s+(\\d+)\\s*мин': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
+    'через\\s+(\\d+)\\s*час': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
+    'через\\s+(\\d+)\\s*секунд': (m) => new Date(Date.now() + parseInt(m[1]) * 1000),
+    'завтра\\s+в\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); return d; },
     'завтра': () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9,0,0,0); return d; },
-    'в (\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; },
+    'в\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; },
     // English
-    'in (\\d+) min': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
-    'in (\\d+) hour': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
-    'in (\\d+) sec': (m) => new Date(Date.now() + parseInt(m[1]) * 1000),
-    'tomorrow at (\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); return d; },
+    'in\\s+(\\d+)\\s*min': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
+    'in\\s+a\\s+minute': () => new Date(Date.now() + 60000),
+    'in\\s+(\\d+)\\s*hour': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
+    'in\\s+an?\\s+hour': () => new Date(Date.now() + 3600000),
+    'in\\s+(\\d+)\\s*sec': (m) => new Date(Date.now() + parseInt(m[1]) * 1000),
+    'tomorrow\\s+at\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); return d; },
     'tomorrow': () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9,0,0,0); return d; },
-    'at (\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; }
+    'at\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; }
   };
   
   for (const [pattern, fn] of Object.entries(timePatterns)) {
