@@ -1,4 +1,5 @@
 // ============================================
+// ============================================
 // DROPLIT CHAT v1.4 - Sensitive Data Protection
 // ASKI Chat, Voice Mode, Streaming
 // ============================================
@@ -2842,11 +2843,12 @@ window.DropLitChat = {
 
 // ============================================
 // GENERATE DOCX AND SEND EMAIL (v4.19)
+// Uses same Markdown→AST→DOCX logic as export button
 // ============================================
 async function generateAndSendDocxEmail(emailData) {
   const { to, subject, content, filename } = emailData;
   
-  console.log('[Email] Generating DOCX:', subject);
+  console.log('[Email] Generating DOCX from Markdown:', subject);
   
   try {
     // Load docx library if not loaded
@@ -2858,81 +2860,138 @@ async function generateAndSendDocxEmail(emailData) {
     const docxLib = window.docx || (typeof docx !== 'undefined' ? docx : null);
     if (!docxLib) throw new Error('DOCX library not loaded');
     
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docxLib;
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } = docxLib;
     
-    // Parse content - remove HTML and split into paragraphs
-    let cleanContent = content
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/p>/gi, '\n\n')
-      .replace(/<\/div>/gi, '\n')
-      .replace(/<\/h[1-6]>/gi, '\n\n')
-      .replace(/<h[1-6][^>]*>/gi, '### ')
-      .replace(/<strong>|<b>/gi, '**')
-      .replace(/<\/strong>|<\/b>/gi, '**')
-      .replace(/<li>/gi, '• ')
-      .replace(/<[^>]*>/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .trim();
+    // Font settings (same as export)
+    const FONT = 'Calibri';
+    const SIZE_TITLE = 48;
+    const SIZE_H1 = 32;
+    const SIZE_H2 = 28;
+    const SIZE_H3 = 24;
+    const SIZE_BODY = 24;
+    const SIZE_SMALL = 20;
     
-    const paragraphs = cleanContent.split(/\n\n+/).filter(p => p.trim());
+    // Parse Markdown to AST using existing function from index.html
+    let ast;
+    try {
+      ast = parseMarkdownToAST(content);
+    } catch (e) {
+      console.error('[Email] AST parse error:', e);
+      ast = [{ type: 'paragraph', content: [{ type: 'text', value: content }] }];
+    }
     
-    // Build document paragraphs
-    const docParagraphs = [];
+    console.log('[Email] Parsed AST nodes:', ast.length);
+    
+    // Build document children array
+    const children = [];
     
     // Title
-    docParagraphs.push(new Paragraph({
-      text: subject,
+    children.push(new Paragraph({
+      children: [new TextRun({ text: subject, bold: true, font: FONT, size: SIZE_TITLE })],
       heading: HeadingLevel.TITLE,
       alignment: AlignmentType.CENTER,
       spacing: { after: 400 }
     }));
     
-    // Content paragraphs
-    for (const para of paragraphs) {
-      // Check if header (starts with # or ###)
-      if (para.startsWith('###') || para.startsWith('##') || para.startsWith('#')) {
-        const headerText = para.replace(/^#+\s*/, '');
-        docParagraphs.push(new Paragraph({
-          text: headerText,
-          heading: HeadingLevel.HEADING_1,
-          spacing: { before: 300, after: 150 }
-        }));
-      } else if (para.startsWith('•')) {
-        // Bullet point
-        docParagraphs.push(new Paragraph({
-          children: [new TextRun({ text: para.replace('• ', ''), size: 24 })],
-          bullet: { level: 0 },
-          spacing: { after: 100 }
-        }));
-      } else {
-        // Regular paragraph - handle bold markers
-        const runs = [];
-        const parts = para.split(/\*\*(.*?)\*\*/g);
-        for (let i = 0; i < parts.length; i++) {
-          if (parts[i]) {
-            runs.push(new TextRun({
-              text: parts[i],
-              bold: i % 2 === 1,
-              size: 24,
-              font: 'Calibri'
+    // Render AST to DOCX (same logic as export)
+    for (const node of ast) {
+      try {
+        switch (node.type) {
+          case 'heading':
+            children.push(new Paragraph({
+              children: renderInlineToDocx(node.content, docxLib, FONT, 
+                node.level === 1 ? SIZE_H1 : node.level === 2 ? SIZE_H2 : SIZE_H3),
+              heading: node.level === 1 ? HeadingLevel.HEADING_1 : 
+                       node.level === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3,
+              spacing: { before: 240, after: 120 }
             }));
-          }
+            break;
+            
+          case 'paragraph':
+            children.push(new Paragraph({
+              children: renderInlineToDocx(node.content, docxLib, FONT, SIZE_BODY),
+              spacing: { after: 200 }
+            }));
+            break;
+            
+          case 'list':
+            for (let idx = 0; idx < node.items.length; idx++) {
+              const item = node.items[idx];
+              children.push(new Paragraph({
+                children: [
+                  new TextRun({ 
+                    text: node.ordered ? (idx + 1) + '. ' : '• ',
+                    font: FONT,
+                    size: SIZE_BODY
+                  }),
+                  ...renderInlineToDocx(item.content, docxLib, FONT, SIZE_BODY)
+                ],
+                indent: { left: 720 },
+                spacing: { after: 80 }
+              }));
+            }
+            break;
+            
+          case 'blockquote':
+            children.push(new Paragraph({
+              children: [
+                new TextRun({ text: '│ ', color: '9CA3AF', font: FONT, size: SIZE_BODY }),
+                ...renderInlineToDocx(node.content, docxLib, FONT, SIZE_BODY)
+              ],
+              indent: { left: 360 },
+              spacing: { after: 200 }
+            }));
+            break;
+            
+          case 'codeBlock':
+            const codeLines = (node.code || '').split('\n');
+            for (const codeLine of codeLines) {
+              children.push(new Paragraph({
+                children: [new TextRun({ 
+                  text: codeLine || ' ',
+                  font: 'Courier New',
+                  size: SIZE_SMALL,
+                  color: '374151'
+                })],
+                shading: { fill: 'F3F4F6' },
+                spacing: { after: 0 },
+                indent: { left: 360 }
+              }));
+            }
+            children.push(new Paragraph({ spacing: { after: 200 } }));
+            break;
+            
+          case 'hr':
+            children.push(new Paragraph({
+              children: [new TextRun({ text: ' ' })],
+              border: { bottom: { style: BorderStyle?.SINGLE || 'single', size: 6, color: 'CCCCCC' } },
+              spacing: { before: 200, after: 200 }
+            }));
+            break;
+            
+          default:
+            const plainText = typeof node.content === 'string' ? node.content : '';
+            if (plainText) {
+              children.push(new Paragraph({
+                children: [new TextRun({ text: plainText, font: FONT, size: SIZE_BODY })],
+                spacing: { after: 200 }
+              }));
+            }
         }
-        
-        docParagraphs.push(new Paragraph({
-          children: runs.length > 0 ? runs : [new TextRun({ text: para, size: 24, font: 'Calibri' })],
-          spacing: { after: 200 }
-        }));
+      } catch (nodeError) {
+        console.error('[Email] Node render error:', nodeError, node);
       }
     }
     
     // Footer
-    docParagraphs.push(new Paragraph({
-      children: [new TextRun({ text: 'Документ создан через ASKI', size: 18, color: '888888', italics: true })],
+    children.push(new Paragraph({
+      children: [new TextRun({ 
+        text: 'Документ создан через ASKI', 
+        size: 18, 
+        color: '888888', 
+        italics: true,
+        font: FONT
+      })],
       alignment: AlignmentType.RIGHT,
       spacing: { before: 400 }
     }));
@@ -2941,7 +3000,7 @@ async function generateAndSendDocxEmail(emailData) {
     const doc = new Document({
       sections: [{
         properties: {},
-        children: docParagraphs
+        children: children
       }]
     });
     
