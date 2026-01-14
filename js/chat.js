@@ -2420,11 +2420,77 @@ async function sendAskAIMessage() {
           render();
           counts();
           
+          // Play sound
+          if (typeof playDropSound === 'function') playDropSound();
+          
           console.log('✅ AI created drop:', dropText.substring(0, 50) + '...');
           toast(`Aski created: ${dropCategory}`, 'success');
         } else {
           console.log('⏭️ AI wanted to create drop but AutoDrop is OFF');
         }
+      }
+      
+      // Handle AI-initiated command/event creation (v2.0 Command Drops)
+      if (data.createEvent?.action === 'create_event' && data.createEvent?.event) {
+        const event = data.createEvent.event;
+        const command = data.createEvent.command || data.command;
+        
+        console.log('🎯 AI created command:', event.name);
+        
+        // Create local command drop for UI display
+        const now = new Date();
+        const scheduledDate = new Date(event.trigger_at || command?.scheduled_at);
+        
+        const commandDrop = {
+          id: command?.id || Date.now(),
+          supabase_id: command?.id || event.id,
+          text: event.name,
+          title: event.name,
+          content: event.name,
+          category: 'commands',
+          type: 'command',
+          
+          // Actors
+          creator: 'aski',
+          acceptor: 'user',
+          
+          // Classification  
+          sense_type: 'reminder',
+          runtime_type: 'scheduled',
+          
+          // Execution
+          scheduled_at: scheduledDate.toISOString(),
+          scheduled_date: scheduledDate.toLocaleDateString('ru-RU'),
+          scheduled_time: scheduledDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          action_type: event.action_type || 'push',
+          
+          // State
+          status: 'pending',
+          
+          // Metadata
+          timestamp: now.toISOString(),
+          date: now.toLocaleDateString('ru-RU'),
+          time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          isMedia: false,
+          encrypted: window.DROPLIT_PRIVACY_ENABLED || false,
+          synced_at: now.toISOString()
+        };
+        
+        // Add to ideas array
+        ideas.unshift(commandDrop);
+        save(commandDrop);
+        render();
+        counts();
+        
+        // Play sound
+        if (typeof playDropSound === 'function') playDropSound();
+        
+        // Sync to Service Worker
+        if (typeof CommandSystem !== 'undefined' && CommandSystem.sendToSW) {
+          CommandSystem.sendToSW('SYNC_COMMAND', commandDrop);
+        }
+        
+        toast(`⚡ Command at ${commandDrop.scheduled_time}`, 'success');
       }
     } else {
       console.log('Error in response:', data);
