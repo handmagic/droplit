@@ -1066,6 +1066,7 @@
         <button class="sort-btn" id="sortBtn" onclick="toggleSort()" title="Sort order"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button>
       </div>
       <div class="cat-row" id="cats">
+        <button class="cat" data-category="commands">Commands <span class="cnt" id="cntCommands">0</span></button>
         <button class="cat" data-category="tasks">Tasks <span class="cnt" id="cntTasks">0</span></button>
         <button class="cat" data-category="ideas">Ideas <span class="cnt" id="cntIdeas">0</span></button>
         <button class="cat" data-category="handmagic">Handmagic <span class="cnt" id="cntHandmagic">0</span></button>
@@ -2298,6 +2299,121 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 
 // ============================================
+// COMMAND DROPS SYSTEM (v0.9.60)
+// ============================================
+
+// Add commands category to CATS
+if (typeof CATS !== 'undefined') {
+  CATS.commands = { 
+    name: 'COMMANDS', 
+    single: 'CMD', 
+    kw: ['напомни', 'напоминание', 'remind', 'reminder', 'alarm', 'будильник'], 
+    isMedia: false,
+    isCommand: true
+  };
+}
+
+// Command scheduler - checks every 30 seconds
+let commandSchedulerInterval = null;
+
+function startCommandScheduler() {
+  if (commandSchedulerInterval) return;
+  
+  commandSchedulerInterval = setInterval(() => {
+    checkPendingCommands();
+  }, 30000); // Check every 30 seconds
+  
+  // Also check immediately on start
+  setTimeout(checkPendingCommands, 2000);
+  console.log('[Commands] Scheduler started');
+}
+
+function checkPendingCommands() {
+  const now = new Date();
+  const pendingCommands = ideas.filter(i => 
+    i.type === 'command' && 
+    i.status === 'pending' && 
+    i.scheduled_at
+  );
+  
+  for (const cmd of pendingCommands) {
+    const scheduledTime = new Date(cmd.scheduled_at);
+    
+    if (scheduledTime <= now) {
+      executeCommand(cmd);
+    }
+  }
+}
+
+function executeCommand(cmd) {
+  console.log('[Commands] Executing:', cmd.text);
+  
+  // Update status
+  cmd.status = 'executed';
+  cmd.executed_at = new Date().toISOString();
+  save();
+  
+  // Show notification
+  const title = cmd.text || 'Напоминание';
+  
+  // Try push notification first
+  if (cmd.action_type === 'push' && 'Notification' in window && Notification.permission === 'granted') {
+    new Notification('⚡ ' + title, {
+      body: 'Время: ' + cmd.scheduled_time,
+      icon: 'icons/icon-192.png',
+      tag: 'command-' + cmd.id,
+      requireInteraction: true
+    });
+  }
+  
+  // Always show toast
+  toast('⚡ ' + title, 'warning', 10000);
+  
+  // TTS if enabled
+  if (cmd.action_type === 'tts' && typeof speakText === 'function') {
+    speakText(title);
+  }
+  
+  // Handle recurring commands
+  if (cmd.command_type === 'cron' && cmd.cron_interval) {
+    scheduleNextOccurrence(cmd);
+  }
+  
+  render();
+}
+
+function scheduleNextOccurrence(cmd) {
+  // Clone command for next occurrence
+  const nextCmd = {
+    ...cmd,
+    id: Date.now(),
+    status: 'pending',
+    scheduled_at: new Date(Date.now() + (cmd.cron_interval || 3600000)).toISOString(),
+    timestamp: new Date().toISOString(),
+    date: new Date().toLocaleDateString('ru-RU'),
+    time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})
+  };
+  
+  const nextTime = new Date(nextCmd.scheduled_at);
+  nextCmd.scheduled_date = nextTime.toLocaleDateString('ru-RU');
+  nextCmd.scheduled_time = nextTime.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+  
+  ideas.push(nextCmd);
+  save();
+  console.log('[Commands] Next occurrence scheduled:', nextCmd.scheduled_time);
+}
+
+// Request notification permission
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// Start scheduler when page loads
+document.addEventListener('DOMContentLoaded', startCommandScheduler);
+
+// ============================================
 // AUTO-FIX: Repair string IDs (v0.9.58)
 // ============================================
 (function autoFixIds() {
@@ -3139,7 +3255,7 @@ function handleCommandAction() {
   }
 }
 
-// Create command (simple version)
+// Create command from UI
 async function createCommand() {
   const text = document.getElementById('commandInput').value.trim();
   if (!text) {
@@ -3153,75 +3269,32 @@ async function createCommand() {
   btn.disabled = true;
   
   try {
-    // Parse time from text (Russian + English patterns)
-    const timePatterns = {
-      // Russian
-      'через (\\d+) мин': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
-      'через (\\d+) час': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
-      'завтра': () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9,0,0,0); return d; },
-      'в (\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; },
-      // English
-      'in (\\d+) min': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
-      'in (\\d+) hour': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
-      'tomorrow': () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9,0,0,0); return d; },
-      'at (\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; }
-    };
-    
-    let scheduledAt = new Date(Date.now() + 3600000); // default: 1 hour
-    for (const [pattern, fn] of Object.entries(timePatterns)) {
-      const match = text.match(new RegExp(pattern, 'i'));
-      if (match) {
-        scheduledAt = fn(match);
-        break;
-      }
-    }
-    
     // Get values from Details view if available
     const titleInput = document.getElementById('commandTitleInput');
     const timeInput = document.getElementById('commandTimeInput');
     const typeSelect = document.getElementById('commandTypeSelect');
     const notifySelect = document.getElementById('commandNotifySelect');
     
-    if (timeInput && timeInput.value) {
-      scheduledAt = new Date(timeInput.value);
-    }
-    
-    const commandType = typeSelect ? typeSelect.value : 'reminder';
-    const actionType = notifySelect ? notifySelect.value : 'push';
-    const title = (titleInput && titleInput.value.trim()) || text;
-    
-    console.log('[Command] Creating:', { title, scheduledAt: scheduledAt.toISOString(), commandType, actionType });
-    
-    // Create command drop (same structure as regular drops + command fields)
-    const commandDrop = {
-      id: Date.now(),
-      text: title,
-      category: 'COMMANDS',
-      timestamp: new Date().toISOString(),
-      date: new Date().toLocaleDateString('ru-RU'),
-      time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
-      isMedia: false,
-      encrypted: window.DROPLIT_PRIVACY_ENABLED || false,
-      // Command-specific fields
-      type: 'command',
-      command_type: commandType,
-      scheduled_at: scheduledAt.toISOString(),
-      scheduled_date: scheduledAt.toLocaleDateString('ru-RU'),
-      scheduled_time: scheduledAt.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
-      action_type: actionType,
-      status: 'pending'
+    const options = {
+      text: (titleInput && titleInput.value.trim()) || text,
+      command_type: typeSelect ? typeSelect.value : 'reminder',
+      action_type: notifySelect ? notifySelect.value : 'push',
+      creator: 'user'
     };
     
-    // Add to ideas array and save (same as regular drops)
-    ideas.push(commandDrop);
-    save(commandDrop);
-    render();
+    // Use time from input if set
+    if (timeInput && timeInput.value) {
+      options.scheduled_at = new Date(timeInput.value).toISOString();
+    }
     
-    console.log('[Command] Created:', commandDrop);
+    const commandDrop = createCommandDrop(options);
     
-    // Show success
-    showCommandView('success');
-    toast('Команда создана!', 'success');
+    if (commandDrop) {
+      showCommandView('success');
+      toast('Команда создана!', 'success');
+    } else {
+      throw new Error('Не удалось создать команду');
+    }
     
   } catch (err) {
     console.error('[Command] Error:', err);
@@ -3258,6 +3331,94 @@ function applyCommandTemplate(template) {
     showCommandView('input');
   }
 }
+
+// ============================================
+// UNIFIED COMMAND CREATION (for UI and ASKI)
+// ============================================
+function createCommandDrop(options = {}) {
+  const {
+    text = '',
+    command_type = 'reminder',
+    scheduled_at = null,
+    action_type = 'push',
+    creator = 'user',
+    cron_interval = null
+  } = options;
+  
+  if (!text.trim()) {
+    console.error('[Command] Empty text');
+    return null;
+  }
+  
+  // Parse time if not provided
+  let scheduledTime = scheduled_at ? new Date(scheduled_at) : parseTimeFromText(text);
+  
+  const now = new Date();
+  const commandDrop = {
+    id: Date.now(),
+    text: text.trim(),
+    category: 'commands',
+    timestamp: now.toISOString(),
+    date: now.toLocaleDateString('ru-RU'),
+    time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+    isMedia: false,
+    encrypted: window.DROPLIT_PRIVACY_ENABLED || false,
+    creator: creator,
+    // Command-specific fields
+    type: 'command',
+    command_type: command_type,
+    scheduled_at: scheduledTime.toISOString(),
+    scheduled_date: scheduledTime.toLocaleDateString('ru-RU'),
+    scheduled_time: scheduledTime.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+    action_type: action_type,
+    status: 'pending',
+    cron_interval: cron_interval
+  };
+  
+  // Request notification permission
+  requestNotificationPermission();
+  
+  // Add to ideas and save
+  ideas.push(commandDrop);
+  save(commandDrop);
+  render();
+  
+  console.log('[Command] Created via API:', commandDrop);
+  return commandDrop;
+}
+
+// Parse time from natural language text
+function parseTimeFromText(text) {
+  const timePatterns = {
+    // Russian
+    'через (\\d+) мин': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
+    'через (\\d+) час': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
+    'через (\\d+) секунд': (m) => new Date(Date.now() + parseInt(m[1]) * 1000),
+    'завтра в (\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); return d; },
+    'завтра': () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9,0,0,0); return d; },
+    'в (\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; },
+    // English
+    'in (\\d+) min': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
+    'in (\\d+) hour': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
+    'in (\\d+) sec': (m) => new Date(Date.now() + parseInt(m[1]) * 1000),
+    'tomorrow at (\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); return d; },
+    'tomorrow': () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9,0,0,0); return d; },
+    'at (\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; }
+  };
+  
+  for (const [pattern, fn] of Object.entries(timePatterns)) {
+    const match = text.match(new RegExp(pattern, 'i'));
+    if (match) {
+      return fn(match);
+    }
+  }
+  
+  // Default: 1 hour from now
+  return new Date(Date.now() + 3600000);
+}
+
+// Expose for ASKI
+window.createCommandDrop = createCommandDrop;
 
 function closeTextInput(){
   document.getElementById('textInputModal').classList.remove('show');
@@ -4310,8 +4471,19 @@ function render(){
       const badgeSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
       const verifiedBadge = creatorStatus ? '<span class="verified-badge '+creatorStatus+'">'+badgeSvg+'</span>' : '';
       // Card with full width, avatar inside
-      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
+      const isCommand = i.type === 'command';
+      const cmdStatus = isCommand ? (i.status || 'pending') : '';
+      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+(isCommand?' command '+cmdStatus:'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
+      // Command roll-up view
+      if(isCommand && isRollUp){
+        h+='<div class="cmd-rollup">';
+        h+='<span class="cmd-icon">⚡</span>';
+        h+='<span class="cmd-time-badge">'+(i.scheduled_time||'')+'</span>';
+        h+='<span class="cmd-text-short">'+esc((i.text||'').substring(0,30))+(i.text?.length>30?'...':'')+'</span>';
+        if(cmdStatus==='executed')h+='<span class="cmd-status done">✓</span>';
+        h+='</div>';
+      }
       // Header: Avatar left, two rows right
       h+='<div class="card-header">';
       h+='<div class="card-avatar '+creator+'" onclick="openCreatorModal('+i.id+',event)">'+avatarSvg+'</div>';
@@ -4324,6 +4496,10 @@ function render(){
       // Row 2: Category + params + NEW
       h+='<div class="card-row2">';
       h+='<span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
+      // Command scheduled time
+      if(isCommand && i.scheduled_time){
+        h+='<span class="cmd-scheduled-badge'+(cmdStatus==='executed'?' done':'')+'">⏰ '+i.scheduled_time+'</span>';
+      }
       // Encrypted lock icon (shows if drop is encrypted)
       if(i.encrypted){
         h+='<span class="encrypted-lock" title="Encrypted"><svg viewBox="0 0 24 24"><path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none" stroke-width="2"/></svg></span>';
