@@ -1568,7 +1568,7 @@ async function* parseSSEStream(response) {
 // ============================================
 // STREAMING CHAT WITH TOOLS (with cost tracking)
 // ============================================
-async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null, userId = null, modelConfig = null) {
+async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null, userId = null, modelConfig = null, currentFeed = []) {
   const encoder = new TextEncoder();
   let toolResults = [];
   let createDropAction = null;
@@ -2078,7 +2078,7 @@ export default async function handler(req) {
         const writer = writable.getWriter();
         
         // Start streaming in background, pass debug info, userId, and model config
-        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId, modelConfig)
+        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId, modelConfig, currentFeed)
           .catch(error => {
             console.error('Streaming error:', error);
             const encoder = new TextEncoder();
