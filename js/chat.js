@@ -1,7 +1,6 @@
 // ============================================
-// DROPLIT CHAT v1.5 - Voice Auto-Model Selection
+// DROPLIT CHAT v1.4 - Sensitive Data Protection
 // ASKI Chat, Voice Mode, Streaming
-// + v1.5: voiceMode flag for auto Haiku/Sonnet/Opus
 // ============================================
 
 // ============================================
@@ -2009,9 +2008,6 @@ async function handleStreamingResponse(response) {
   let fullText = '';
   let buffer = '';
   let createDropData = null;
-  let createEventData = null; // Command drops support
-  let cancelEventData = null; // Cancel reminder support
-  let listEventsData = null;  // List reminders support
   
   // Start WebSocket streaming TTS if enabled
   // TEMPORARILY DISABLED for debugging
@@ -2077,9 +2073,6 @@ async function handleStreamingResponse(response) {
             // Stream done
             if (parsed.type === 'done') {
               createDropData = parsed.createDrop;
-              createEventData = parsed.createEvent; // Command drops support
-              cancelEventData = parsed.cancelEvent; // Cancel reminder support
-              listEventsData = parsed.listEvents;   // List reminders support
             }
             
             // Legacy format (v4.4 and earlier)
@@ -2143,85 +2136,8 @@ async function handleStreamingResponse(response) {
     };
     ideas.unshift(newIdea);
     save(newIdea);
-    if (typeof playDropSound === 'function') playDropSound();
     counts();  // NO render() - causes delays!
     toast('Drop created by ASKI', 'success');
-  }
-  
-  // Handle AI-initiated command/event creation (Command Drops v2.0)
-  if (createEventData?.action === 'create_event' && createEventData?.event) {
-    const event = createEventData.event;
-    const command = createEventData.command;
-    
-    console.log('🎯 AI created command (streaming):', event.name);
-    
-    const now = new Date();
-    const scheduledDate = new Date(event.trigger_at || command?.scheduled_at);
-    
-    const commandDrop = {
-      id: command?.id || Date.now(),
-      supabase_id: command?.id || event.id,
-      text: event.name,
-      title: event.name,
-      content: event.name,
-      category: 'commands',
-      type: 'command',
-      creator: 'aski',
-      acceptor: 'user',
-      sense_type: 'reminder',
-      runtime_type: 'scheduled',
-      scheduled_at: scheduledDate.toISOString(),
-      scheduled_date: scheduledDate.toLocaleDateString('ru-RU'),
-      scheduled_time: scheduledDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-      action_type: event.action_type || 'push',
-      status: 'pending',
-      timestamp: now.toISOString(),
-      date: now.toLocaleDateString('ru-RU'),
-      time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-      isMedia: false,
-      encrypted: window.DROPLIT_PRIVACY_ENABLED || false,
-      synced_at: now.toISOString()
-    };
-    
-    ideas.unshift(commandDrop);
-    save(commandDrop);
-    render();
-    counts();
-    
-    if (typeof playDropSound === 'function') playDropSound();
-    
-    if (typeof CommandSystem !== 'undefined' && CommandSystem.sendToSW) {
-      CommandSystem.sendToSW('SYNC_COMMAND', commandDrop);
-    }
-    
-    toast(`⚡ Command at ${commandDrop.scheduled_time}`, 'success');
-  }
-  
-  // Handle AI-initiated cancel event (streaming)
-  if (cancelEventData?.action === 'cancel_event' && cancelEventData?.cancelled) {
-    const cancelled = cancelEventData.cancelled;
-    console.log('🗑️ AI cancelled reminder:', cancelled.title);
-    
-    // Update local drop status
-    const idx = ideas.findIndex(i => 
-      i.supabase_id === cancelled.id || 
-      i.id === cancelled.id ||
-      (i.category === 'commands' && i.text === cancelled.title && i.status === 'pending')
-    );
-    
-    if (idx !== -1) {
-      ideas[idx].status = 'cancelled';
-      save(ideas[idx]);
-      render();
-    }
-    
-    toast(`🗑️ Reminder cancelled: ${cancelled.title}`, 'success');
-  }
-  
-  // Handle AI-initiated list events (streaming) 
-  if (listEventsData?.action === 'list_events' && listEventsData?.events) {
-    console.log('📋 AI listed', listEventsData.count, 'reminders');
-    // No special UI action needed - ASKI will describe them in text response
   }
   
   if (localStorage.getItem('droplit_autodrop') === 'true') autoSaveMessageAsDrop(fullText, false);
@@ -2434,6 +2350,26 @@ async function sendAskAIMessage() {
       }
     }
     
+    // Get current feed from localStorage for ASKI (v4.17)
+    let currentFeed = [];
+    try {
+      if (typeof ideas !== 'undefined' && Array.isArray(ideas)) {
+        // Get last 20 drops from the actual feed user sees
+        currentFeed = ideas.slice(0, 20).map(d => ({
+          id: d.id,
+          content: d.text || d.content || '',
+          category: d.category || 'inbox',
+          type: d.type || 'note',
+          created_at: d.created_at || d.timestamp,
+          status: d.status,
+          is_encrypted: d.encrypted || d.is_encrypted || false
+        }));
+        console.log('[ASKI] Sending currentFeed:', currentFeed.length, 'drops');
+      }
+    } catch (e) {
+      console.warn('Could not get currentFeed:', e);
+    }
+    
     const response = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2443,11 +2379,11 @@ async function sendAskAIMessage() {
         history: askAIMessages.slice(-10),
         syntriseContext: syntriseContext, // Legacy
         dropContext: contextObject, // v2: Structured context for server
+        currentFeed: currentFeed, // v4.17: Actual drops from user's feed
         stream: STREAMING_ENABLED,
         enableTools: false, // v2: Enable Tool Calling
         userId: currentUser?.id, // v3: For CORE Memory integration
-        model: selectedModel, // v4.14: AI model selection (sonnet/opus/haiku)
-        voiceMode: isVoiceModeEnabled() // v4.18: Auto-select model (Haiku for simple, Opus for deep)
+        model: selectedModel // v4.14: AI model selection (sonnet/opus/haiku)
       })
     });
     
@@ -2503,9 +2439,6 @@ async function sendAskAIMessage() {
           render();
           counts();
           
-          // Play sound
-          if (typeof playDropSound === 'function') playDropSound();
-          
           console.log('✅ AI created drop:', dropText.substring(0, 50) + '...');
           toast(`Aski created: ${dropCategory}`, 'success');
         } else {
@@ -2513,67 +2446,36 @@ async function sendAskAIMessage() {
         }
       }
       
-      // Handle AI-initiated command/event creation (v2.0 Command Drops)
-      if (data.createEvent?.action === 'create_event' && data.createEvent?.event) {
-        const event = data.createEvent.event;
-        const command = data.createEvent.command || data.command;
-        
-        console.log('🎯 AI created command:', event.name);
-        
-        // Create local command drop for UI display
-        const now = new Date();
-        const scheduledDate = new Date(event.trigger_at || command?.scheduled_at);
-        
-        const commandDrop = {
-          id: command?.id || Date.now(),
-          supabase_id: command?.id || event.id,
-          text: event.name,
-          title: event.name,
-          content: event.name,
-          category: 'commands',
-          type: 'command',
-          
-          // Actors
-          creator: 'aski',
-          acceptor: 'user',
-          
-          // Classification  
-          sense_type: 'reminder',
-          runtime_type: 'scheduled',
-          
-          // Execution
-          scheduled_at: scheduledDate.toISOString(),
-          scheduled_date: scheduledDate.toLocaleDateString('ru-RU'),
-          scheduled_time: scheduledDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-          action_type: event.action_type || 'push',
-          
-          // State
-          status: 'pending',
-          
-          // Metadata
-          timestamp: now.toISOString(),
-          date: now.toLocaleDateString('ru-RU'),
-          time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-          isMedia: false,
-          encrypted: window.DROPLIT_PRIVACY_ENABLED || false,
-          synced_at: now.toISOString()
-        };
-        
-        // Add to ideas array
-        ideas.unshift(commandDrop);
-        save(commandDrop);
-        render();
-        counts();
-        
-        // Play sound
-        if (typeof playDropSound === 'function') playDropSound();
-        
-        // Sync to Service Worker
-        if (typeof CommandSystem !== 'undefined' && CommandSystem.sendToSW) {
-          CommandSystem.sendToSW('SYNC_COMMAND', commandDrop);
+      // Handle AI-initiated drop deletion (v4.17)
+      if (data.deleteDrop?.action === 'delete_drop' && data.deleteDrop?.sync_local) {
+        const deleteId = data.deleteDrop.local_id || data.deleteDrop.deleted_id;
+        if (deleteId) {
+          const idx = ideas.findIndex(i => String(i.id) === String(deleteId));
+          if (idx !== -1) {
+            ideas.splice(idx, 1);
+            localStorage.setItem('ideas', JSON.stringify(ideas));
+            render();
+            counts();
+            console.log('✅ AI deleted drop from local feed:', deleteId);
+            toast('Удалено из ленты', 'success');
+          }
         }
-        
-        toast(`⚡ Command at ${commandDrop.scheduled_time}`, 'success');
+      }
+      
+      // Handle AI-initiated drop update (v4.17)
+      if (data.updateDrop?.action === 'update_drop') {
+        const updateId = data.updateDrop.updated_id;
+        if (updateId) {
+          const item = ideas.find(i => String(i.id) === String(updateId));
+          if (item && data.updateDrop.new_content) {
+            item.text = data.updateDrop.new_content;
+            item.content = data.updateDrop.new_content;
+            localStorage.setItem('ideas', JSON.stringify(ideas));
+            render();
+            console.log('✅ AI updated drop in local feed:', updateId);
+            toast('Обновлено', 'success');
+          }
+        }
       }
     } else {
       console.log('Error in response:', data);
