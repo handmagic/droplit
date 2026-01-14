@@ -2074,6 +2074,33 @@ async function handleStreamingResponse(response) {
             if (parsed.type === 'done') {
               createDropData = parsed.createDrop;
               
+              // Handle create_drop in streaming mode (v4.18)
+              if (parsed.createDrop?.action === 'create_drop' && parsed.createDrop?.drop) {
+                const drop = parsed.createDrop.drop;
+                const now = new Date();
+                const newIdea = {
+                  id: Date.now().toString(),
+                  text: drop.text,
+                  content: drop.text,
+                  category: drop.category || 'inbox',
+                  timestamp: now.toISOString(),
+                  created_at: now.toISOString(),
+                  date: now.toLocaleDateString('ru-RU'),
+                  time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+                  isMedia: false,
+                  source: 'aski_tool',
+                  creator: 'aski'
+                };
+                ideas.unshift(newIdea);
+                localStorage.setItem('ideas', JSON.stringify(ideas));
+                render();
+                counts();
+                console.log('✅ [Streaming] AI created drop in local feed:', newIdea.id);
+                toast('Дроп создан', 'success');
+                // Clear so it doesn't get processed again later
+                createDropData = null;
+              }
+              
               // Handle delete_drop in streaming mode (v4.17)
               if (parsed.deleteDrop?.action === 'delete_drop' && parsed.deleteDrop?.sync_local) {
                 const deleteId = parsed.deleteDrop.local_id || parsed.deleteDrop.deleted_id;
