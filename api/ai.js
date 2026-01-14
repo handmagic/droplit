@@ -423,24 +423,16 @@ const TOOLS = [
   },
   {
     name: "delete_drop",
-    description: "Delete a drop from user's feed. Use when user asks to remove/delete a note, idea, or command from their feed. Works with any drop type including command drops after cancellation.",
+    description: "Delete a drop from user's feed by ID. Get the ID from CURRENT FEED section in your context.",
     input_schema: {
       type: "object",
       properties: {
         drop_id: {
           type: "string",
-          description: "ID of the drop to delete (UUID format)"
-        },
-        search_query: {
-          type: "string",
-          description: "Text to search for if ID not provided - will find and delete matching drop"
-        },
-        confirm: {
-          type: "boolean",
-          description: "Set to true to confirm deletion. Always ask user first before deleting."
+          description: "ID of the drop to delete (from CURRENT FEED list)"
         }
       },
-      required: ["confirm"]
+      required: ["drop_id"]
     }
   },
   {
@@ -820,6 +812,13 @@ ${hasEntities ? '✅ You know ' + coreContext.entities.length + ' entities - CHE
 - No emojis (they get spoken)
 - Natural speech, avoid bullet points
 - Use punctuation for rhythm
+
+## ⚠️ BREVITY - CRITICAL RULE:
+- ВСЕГДА отвечай МАКСИМАЛЬНО КРАТКО — 1-2 предложения
+- Длинные ответы только если пользователь ЯВНО попросит "подробнее", "расскажи больше", "explain more"
+- После выполнения действия (удаление, создание) — просто подтверди: "Готово" или "Удалено"
+- НЕ объясняй что ты сделал, если не спрашивают
+- НЕ предлагай дополнительные действия без запроса
 
 ## MESSAGE HANDLING:
 - You receive information from multiple sources: chat history, recent drops, and core memory
@@ -1608,72 +1607,51 @@ async function executeListEvents(input, userId) {
 // ============================================
 async function executeDeleteDrop(input, userId) {
   try {
-    console.log('[delete_drop] Deleting drop:', input.drop_id || input.search_query);
-    
-    if (!input.confirm) {
-      return { success: false, error: 'Deletion not confirmed. Please confirm before deleting.', action: 'delete_drop' };
-    }
+    console.log('[delete_drop] Input:', JSON.stringify(input));
     
     const dropId = input.drop_id ? String(input.drop_id) : null;
     
-    // For local feed drops, we just need to tell frontend to remove it
-    // The ID from currentFeed is what matters
-    if (dropId) {
-      // Try to also delete from Supabase if it exists there
-      let deletedFromDb = false;
-      
-      if (SUPABASE_URL && SUPABASE_SERVICE_KEY && userId) {
+    if (!dropId) {
+      return { success: false, error: 'No drop_id provided', action: 'delete_drop' };
+    }
+    
+    // Try to also delete from Supabase if it exists there
+    let deletedFromDb = false;
+    
+    if (SUPABASE_URL && SUPABASE_SERVICE_KEY && userId) {
+      try {
         const isUUID = dropId.includes('-') && dropId.length > 30;
+        const searchField = isUUID ? 'id' : 'local_id';
         
         // Try command_drops
-        let searchField = isUUID ? 'id' : 'local_id';
-        let response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/command_drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
           method: 'DELETE',
           headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
         });
-        if (response.ok) deletedFromDb = true;
         
-        // Try drops table too
-        response = await fetch(`${SUPABASE_URL}/rest/v1/drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
+        // Try drops table
+        await fetch(`${SUPABASE_URL}/rest/v1/drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
           method: 'DELETE',
           headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
         });
-        if (response.ok) deletedFromDb = true;
         
-        // Also try by id if we searched by local_id
-        if (!isUUID) {
-          response = await fetch(`${SUPABASE_URL}/rest/v1/drops?id=eq.${dropId}&user_id=eq.${userId}`, {
-            method: 'DELETE',
-            headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
-          });
-        }
+        deletedFromDb = true;
+      } catch (e) {
+        console.log('[delete_drop] DB delete error (non-critical):', e.message);
       }
-      
-      console.log('[delete_drop] Signaling frontend to remove:', dropId, 'DB deleted:', deletedFromDb);
-      
-      // Return success - frontend will remove from localStorage
-      return {
-        success: true,
-        action: 'delete_drop',
-        deleted_id: dropId,
-        local_id: dropId,
-        sync_local: true,
-        deleted_from_db: deletedFromDb
-      };
     }
     
-    // Search by query - need to find in feed first
-    if (input.search_query) {
-      // This should be handled by ASKI looking at currentFeed in prompt
-      // and providing the ID
-      return {
-        success: false,
-        error: `Не могу найти дроп по запросу "${input.search_query}". Посмотри в ленту и укажи конкретный ID.`,
-        action: 'delete_drop'
-      };
-    }
+    console.log('[delete_drop] Success, signaling frontend to remove:', dropId);
     
-    return { success: false, error: 'No drop_id provided', action: 'delete_drop' };
+    // Return success - frontend will remove from localStorage
+    return {
+      success: true,
+      action: 'delete_drop',
+      deleted_id: dropId,
+      local_id: dropId,
+      sync_local: true,
+      message: 'Удалено'
+    };
     
   } catch (error) {
     console.error('[delete_drop] Exception:', error);
@@ -2075,12 +2053,13 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
         }
         
         // Track delete_drop action (v4.17)
-        if (toolBlock.name === 'delete_drop' && toolResult.action === 'delete_drop') {
+        if (toolBlock.name === 'delete_drop') {
           deleteDropAction = toolResult;
+          console.log('[delete_drop] Tool result:', JSON.stringify(toolResult));
         }
         
         // Track update_drop action (v4.17)
-        if (toolBlock.name === 'update_drop' && toolResult.action === 'update_drop') {
+        if (toolBlock.name === 'update_drop') {
           updateDropAction = toolResult;
         }
         
