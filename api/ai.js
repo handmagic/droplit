@@ -331,17 +331,40 @@ const TOOLS = [
   },
   {
     name: "create_event",
-    description: "Create scheduled event: reminder, alarm, or notification. Use when user asks to remind, wake up, schedule something at specific time. Trigger phrases: 'remind me...', 'wake me up...', 'in X hours...', 'tomorrow at...', 'напомни...', 'разбуди...'",
+    description: "Create a command drop: reminder, alarm, or scheduled notification. Use when user asks to remind, wake up, schedule something. Trigger phrases: 'remind me...', 'wake me up...', 'in X hours...', 'tomorrow at...', 'напомни...', 'разбуди...', 'через X минут...'",
     input_schema: {
       type: "object",
       properties: {
-        name: { type: "string", description: "Short event name/title" },
-        description: { type: "string", description: "What to remind about" },
-        trigger_type: { type: "string", enum: ["datetime", "cron"], description: "datetime for one-time, cron for recurring" },
-        trigger_at: { type: "string", description: "ISO datetime when to trigger (e.g. 2026-01-04T08:00:00-05:00). REQUIRED for datetime type." },
-        cron_expression: { type: "string", description: "Cron for recurring (e.g. '0 8 * * *' = daily 8am). Use for 'every day', 'every morning' etc." },
-        action_type: { type: "string", enum: ["push", "tts", "email"], description: "push=notification banner, tts=voice announcement" },
-        priority: { type: "number", description: "1-10, higher = more urgent. Use 8-10 for alarms, 5 for reminders" }
+        name: { 
+          type: "string", 
+          description: "Short title for the reminder/alarm" 
+        },
+        description: { 
+          type: "string", 
+          description: "Detailed description of what to remind about" 
+        },
+        trigger_type: { 
+          type: "string", 
+          enum: ["datetime", "cron"], 
+          description: "datetime for one-time, cron for recurring" 
+        },
+        trigger_at: { 
+          type: "string", 
+          description: "ISO datetime when to trigger (e.g. 2026-01-15T08:00:00Z). REQUIRED for datetime type. Always include timezone or use UTC." 
+        },
+        cron_expression: { 
+          type: "string", 
+          description: "Cron expression for recurring (e.g. '0 8 * * *' = daily 8am). Use for 'every day', 'every morning' etc." 
+        },
+        action_type: { 
+          type: "string", 
+          enum: ["push", "tts", "email", "telegram"], 
+          description: "push=notification banner (default), tts=voice announcement, email=send email, telegram=telegram message" 
+        },
+        priority: { 
+          type: "number", 
+          description: "1-10 urgency. Use 8-10 for alarms/wake-up, 5 for normal reminders, 1-3 for low priority" 
+        }
       },
       required: ["name", "trigger_type", "action_type"]
     }
@@ -891,7 +914,7 @@ async function executeTool(toolName, input, dropContext, userId = null) {
 }
 
 // ============================================
-// CREATE EVENT HANDLER
+// CREATE EVENT HANDLER → COMMAND DROPS v2.0
 // ============================================
 async function handleCreateEvent(input, userId) {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -916,26 +939,68 @@ async function handleCreateEvent(input, userId) {
       return { success: false, error: 'trigger_at is required for datetime events' };
     }
     
-    // Prepare event data
-    const eventData = {
-      user_id: userId,
-      name: input.name,
-      description: input.description || input.name,
-      trigger_type: input.trigger_type || 'datetime',
-      trigger_at: input.trigger_type === 'datetime' ? input.trigger_at : null,
-      cron_expression: input.trigger_type === 'cron' ? input.cron_expression : null,
-      timezone: 'America/New_York',
-      action_type: input.action_type || 'push',
-      action_config: input.action_config || {},
-      priority: input.priority || 5,
-      status: 'active',
-      next_run: input.trigger_at || new Date().toISOString(),
-      run_count: 0
+    // Calculate scheduled_at
+    let scheduledAt;
+    if (input.trigger_type === 'datetime' && input.trigger_at) {
+      scheduledAt = input.trigger_at;
+    } else if (input.trigger_type === 'cron') {
+      // For cron, calculate next occurrence (simplified - use current time + 1 hour as placeholder)
+      scheduledAt = new Date(Date.now() + 3600000).toISOString();
+    } else {
+      scheduledAt = new Date(Date.now() + 3600000).toISOString(); // Default 1 hour
+    }
+    
+    // Map action_type
+    const actionType = input.action_type || 'push';
+    
+    // Determine sense_type based on priority and keywords
+    let senseType = 'reminder';
+    if (input.priority >= 8 || /alarm|будильник|wake|разбуд/i.test(input.name)) {
+      senseType = 'reminder'; // High priority reminders
+    }
+    
+    // Prepare command drop data (matches command_drops table schema)
+    const commandData = {
+      // Identity
+      title: input.name,
+      content: input.description || input.name,
+      
+      // Actors
+      creator: 'aski',
+      acceptor: 'user',
+      controller: 'system',
+      
+      // Classification
+      relation_type: 'user',
+      sense_type: senseType,
+      runtime_type: input.trigger_type === 'cron' ? 'scripted' : 'scheduled',
+      
+      // Execution
+      scheduled_at: scheduledAt,
+      schedule_rule: input.trigger_type === 'cron' ? input.cron_expression : null,
+      action_type: actionType,
+      action_params: {
+        priority: input.priority || 5,
+        original_input: input
+      },
+      
+      // State
+      status: 'pending',
+      approval: 'not_required',
+      
+      // Access
+      visibility: 'visible',
+      editability: 'editable',
+      storage_type: 'supabase',
+      
+      // User ownership
+      user_id: userId
     };
     
-    console.log('[create_event] Creating:', eventData.name, 'at:', eventData.next_run, 'for user:', userId);
+    console.log('[create_event] Creating command drop:', commandData.title, 'at:', commandData.scheduled_at, 'for user:', userId);
     
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/scheduled_events`, {
+    // Insert into command_drops table
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops`, {
       method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -943,26 +1008,47 @@ async function handleCreateEvent(input, userId) {
         'Content-Type': 'application/json',
         'Prefer': 'return=representation'
       },
-      body: JSON.stringify(eventData)
+      body: JSON.stringify(commandData)
     });
     
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[create_event] Supabase error:', response.status, errorText);
-      return { success: false, error: 'Failed to create event: ' + response.status };
+      return { success: false, error: 'Failed to create command: ' + response.status };
     }
     
     const created = await response.json();
-    console.log('[create_event] Success! Event ID:', created[0]?.id);
+    const commandId = created[0]?.id;
+    
+    console.log('[create_event] Success! Command ID:', commandId);
+    
+    // Format time for display
+    const scheduledDate = new Date(scheduledAt);
+    const timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      timeZone: 'UTC'
+    });
     
     return { 
       success: true, 
       action: 'create_event',
       event: {
-        id: created[0]?.id,
+        id: commandId,
         name: input.name,
-        trigger_at: eventData.next_run,
-        action_type: input.action_type
+        trigger_at: scheduledAt,
+        scheduled_time: timeStr,
+        action_type: actionType,
+        creator: 'aski'
+      },
+      // Also return for frontend display
+      command: {
+        id: commandId,
+        title: input.name,
+        scheduled_at: scheduledAt,
+        scheduled_time: timeStr,
+        status: 'pending',
+        creator: 'aski'
       }
     };
     
