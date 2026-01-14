@@ -269,6 +269,34 @@ function rateLimitResponse(resetIn) {
 // ============================================
 // TOOL DEFINITIONS
 // ============================================
+
+// Address book for email recipients
+const EMAIL_ADDRESS_BOOK = {
+  // Personal
+  'alex': 'hqrar@hotmail.com',
+  'алекс': 'hqrar@hotmail.com',
+  'я': 'hqrar@hotmail.com',
+  'мне': 'hqrar@hotmail.com',
+  'me': 'hqrar@hotmail.com',
+  
+  // Business contacts (examples - customize as needed)
+  // 'бухгалтерия': 'accounting@company.com',
+  // 'плановый отдел': 'planning@company.com',
+  // 'john': 'john.smith@example.com',
+};
+
+// Resolve recipient name to email address
+function resolveEmailAddress(recipient) {
+  if (!recipient) return null;
+  
+  // Check if it's already an email
+  if (recipient.includes('@')) return recipient;
+  
+  // Look up in address book (case-insensitive)
+  const normalized = recipient.toLowerCase().trim();
+  return EMAIL_ADDRESS_BOOK[normalized] || null;
+}
+
 const TOOLS = [
   {
     name: "create_drop",
@@ -280,6 +308,36 @@ const TOOLS = [
         category: { type: "string", enum: ["tasks", "ideas", "bugs", "questions", "design", "inbox"] }
       },
       required: ["text"]
+    }
+  },
+  {
+    name: "send_email",
+    description: "Send email with content, optionally as Word document attachment. Use when user asks to send, email, or share something. Can use names from address book (Alex, Бухгалтерия, etc.) or direct email addresses.",
+    input_schema: {
+      type: "object",
+      properties: {
+        to: { 
+          type: "string", 
+          description: "Recipient: name from address book (Alex, мне, Бухгалтерия) or email address" 
+        },
+        subject: { 
+          type: "string", 
+          description: "Email subject line" 
+        },
+        content: { 
+          type: "string", 
+          description: "Email body content (text or HTML)" 
+        },
+        as_word: { 
+          type: "boolean", 
+          description: "If true, convert content to Word document and attach" 
+        },
+        filename: {
+          type: "string",
+          description: "Filename for Word attachment (without extension). Default: 'document'"
+        }
+      },
+      required: ["to", "subject", "content"]
     }
   },
   {
@@ -848,6 +906,24 @@ When user asks to see, list, or show reminders:
 
 **Создать дроп?** — ТОЛЬКО если пользователь явно попросил "запиши/сохрани"
 
+## 📧 EMAIL — Отправка писем:
+
+Используй send_email когда пользователь просит отправить, переслать, поделиться информацией по почте.
+
+**Адресная книга:**
+- "мне", "me", "alex", "алекс" → личная почта пользователя
+- Можно указать email напрямую: "отправь на test@example.com"
+
+**Параметры:**
+- to: имя из книги или email
+- subject: тема письма
+- content: содержимое (текст или HTML)
+- as_word: true — прикрепить как документ
+
+**Примеры:**
+- "Отправь мне на почту" → send_email(to: "мне", ...)
+- "Пришли отчёт как документ" → send_email(..., as_word: true)
+
 ## LANGUAGE:
 - Always respond in same language as user
 - Support Russian and English seamlessly`;
@@ -935,6 +1011,105 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
         sync_local: true,
         message: 'Создано'
       };
+    }
+    
+    case 'send_email': {
+      const RESEND_API_KEY = process.env.RESEND_API_KEY;
+      
+      if (!RESEND_API_KEY) {
+        return { success: false, error: 'Email service not configured', action: 'send_email' };
+      }
+      
+      const recipient = input.to;
+      const subject = input.subject;
+      const content = input.content;
+      const asWord = input.as_word || false;
+      const filename = input.filename || 'document';
+      
+      // Resolve recipient
+      const toEmail = resolveEmailAddress(recipient);
+      if (!toEmail) {
+        return { 
+          success: false, 
+          error: `Не могу найти адрес для "${recipient}". Укажи email напрямую или имя из адресной книги.`,
+          action: 'send_email'
+        };
+      }
+      
+      console.log('[send_email] Sending to:', toEmail, 'Subject:', subject);
+      
+      try {
+        let emailBody = {
+          from: 'ASKI <aski@syntrise.com>',
+          to: toEmail,
+          subject: subject,
+          html: content.includes('<') ? content : `<div style="font-family: Arial, sans-serif;">${content.replace(/\n/g, '<br>')}</div>`
+        };
+        
+        // If Word attachment requested, create it
+        if (asWord) {
+          // Convert HTML/text to simple Word-compatible format
+          // For now, send as HTML attachment (proper .docx requires more complex library)
+          const wordContent = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${subject}</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 40px; }
+h1, h2, h3 { color: #333; }
+</style>
+</head>
+<body>
+${content.includes('<') ? content : content.replace(/\n/g, '<br>')}
+</body>
+</html>`;
+          
+          const base64Content = Buffer.from(wordContent).toString('base64');
+          
+          emailBody.attachments = [{
+            filename: `${filename}.html`,
+            content: base64Content,
+            type: 'text/html'
+          }];
+          
+          // Also add plain text version
+          emailBody.text = content.replace(/<[^>]*>/g, '');
+        }
+        
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${RESEND_API_KEY}`
+          },
+          body: JSON.stringify(emailBody)
+        });
+        
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('[send_email] Failed:', error);
+          return { success: false, error: `Email failed: ${error}`, action: 'send_email' };
+        }
+        
+        const result = await response.json();
+        console.log('[send_email] Success! ID:', result.id);
+        
+        return {
+          success: true,
+          action: 'send_email',
+          message: `Письмо отправлено на ${toEmail}`,
+          email_id: result.id,
+          to: toEmail,
+          subject: subject,
+          has_attachment: asWord
+        };
+        
+      } catch (error) {
+        console.error('[send_email] Exception:', error);
+        return { success: false, error: error.message, action: 'send_email' };
+      }
     }
     
     case 'get_summary': {
