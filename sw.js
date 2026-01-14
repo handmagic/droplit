@@ -1,9 +1,13 @@
 // ============================================
-// DropLit Service Worker v1.1.0
-// Caching + Offline + Push Notifications
+// DropLit Service Worker v2.0.0
+// Caching + Offline + Push + Command Executor
 // ============================================
 
-const CACHE_NAME = 'droplit-v1.1.0';
+const CACHE_NAME = 'droplit-v2.0.0';
+const EXECUTOR_ID = 'service_worker';
+const CHECK_INTERVAL = 15000; // 15 seconds
+const CLAIM_TIMEOUT = 60000; // 60 seconds
+
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -13,11 +17,18 @@ const ASSETS_TO_CACHE = [
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
 ];
 
+// Supabase config (injected from main app)
+let SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
+let SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE';
+
+// Command check interval
+let commandCheckInterval = null;
+
 // ============================================
 // INSTALL: Cache core assets
 // ============================================
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing v1.1.0...');
+  console.log('[SW] Installing v2.0.0...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -29,7 +40,7 @@ self.addEventListener('install', (event) => {
 });
 
 // ============================================
-// ACTIVATE: Clean old caches
+// ACTIVATE: Clean old caches, start scheduler
 // ============================================
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating...');
@@ -45,7 +56,11 @@ self.addEventListener('activate', (event) => {
             })
         );
       })
-      .then(() => self.clients.claim())
+      .then(() => {
+        // Start command scheduler
+        startCommandScheduler();
+        return self.clients.claim();
+      })
   );
 });
 
@@ -53,16 +68,12 @@ self.addEventListener('activate', (event) => {
 // FETCH: Network first, fallback to cache
 // ============================================
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
-  
-  // Skip chrome-extension and other non-http(s) requests
   if (!event.request.url.startsWith('http')) return;
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone and cache successful responses
         if (response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -72,13 +83,11 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        // Network failed, try cache
         return caches.match(event.request)
           .then((cachedResponse) => {
             if (cachedResponse) {
               return cachedResponse;
             }
-            // Return offline fallback for navigation requests
             if (event.request.mode === 'navigate') {
               return caches.match('/index.html');
             }
@@ -87,6 +96,204 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// ============================================
+// COMMAND SCHEDULER
+// ============================================
+
+function startCommandScheduler() {
+  if (commandCheckInterval) {
+    clearInterval(commandCheckInterval);
+  }
+  
+  console.log('[SW] Starting command scheduler');
+  
+  // Check immediately
+  setTimeout(checkCommands, 3000);
+  
+  // Then periodically
+  commandCheckInterval = setInterval(checkCommands, CHECK_INTERVAL);
+}
+
+async function checkCommands() {
+  try {
+    // Method 1: Check IndexedDB for local commands
+    const localCommands = await getLocalPendingCommands();
+    
+    for (const cmd of localCommands) {
+      if (new Date(cmd.scheduled_at) <= new Date()) {
+        await executeLocalCommand(cmd);
+      }
+    }
+    
+    // Method 2: Check Supabase for synced commands (if online)
+    if (navigator.onLine) {
+      await checkSupabaseCommands();
+    }
+    
+  } catch (error) {
+    console.error('[SW] Command check error:', error);
+  }
+}
+
+// ============================================
+// LOCAL COMMAND EXECUTION (IndexedDB)
+// ============================================
+
+async function getLocalPendingCommands() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('droplit_commands', 1);
+    
+    request.onerror = () => reject(request.error);
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('commands')) {
+        const store = db.createObjectStore('commands', { keyPath: 'id' });
+        store.createIndex('status', 'status', { unique: false });
+        store.createIndex('scheduled_at', 'scheduled_at', { unique: false });
+      }
+    };
+    
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction('commands', 'readonly');
+      const store = tx.objectStore('commands');
+      const index = store.index('status');
+      const query = index.getAll('pending');
+      
+      query.onsuccess = () => {
+        const commands = query.result.filter(cmd => 
+          new Date(cmd.scheduled_at) <= new Date()
+        );
+        resolve(commands);
+      };
+      
+      query.onerror = () => reject(query.error);
+    };
+  });
+}
+
+async function executeLocalCommand(cmd) {
+  console.log('[SW] Executing local command:', cmd.title);
+  
+  try {
+    // Show notification
+    await self.registration.showNotification(`⚡ ${cmd.title}`, {
+      body: cmd.content || cmd.title,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/badge-72.png',
+      tag: `command-${cmd.id}`,
+      vibrate: [200, 100, 200],
+      requireInteraction: true,
+      data: {
+        command_id: cmd.id,
+        action: 'open_command'
+      },
+      actions: [
+        { action: 'done', title: '✓ Done' },
+        { action: 'snooze', title: '⏰ Snooze' }
+      ]
+    });
+    
+    // Update status in IndexedDB
+    await updateLocalCommandStatus(cmd.id, 'executed');
+    
+    // Notify main app
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'COMMAND_EXECUTED',
+        command_id: cmd.id,
+        executor: EXECUTOR_ID
+      });
+    });
+    
+    console.log('[SW] Command executed:', cmd.id);
+    
+  } catch (error) {
+    console.error('[SW] Execute error:', error);
+  }
+}
+
+async function updateLocalCommandStatus(id, status) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('droplit_commands', 1);
+    
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction('commands', 'readwrite');
+      const store = tx.objectStore('commands');
+      
+      const getRequest = store.get(id);
+      getRequest.onsuccess = () => {
+        const cmd = getRequest.result;
+        if (cmd) {
+          cmd.status = status;
+          cmd.executed_at = new Date().toISOString();
+          cmd.executor = EXECUTOR_ID;
+          store.put(cmd);
+        }
+        resolve();
+      };
+      
+      getRequest.onerror = () => reject(getRequest.error);
+    };
+    
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// ============================================
+// SUPABASE COMMAND CHECK
+// ============================================
+
+async function checkSupabaseCommands() {
+  try {
+    // Check for pending notifications from Supabase
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/pending_notifications?status=eq.pending&limit=5`,
+      {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      }
+    );
+    
+    if (!response.ok) return;
+    
+    const notifications = await response.json();
+    
+    for (const notif of notifications) {
+      await self.registration.showNotification(notif.title, {
+        body: notif.body,
+        icon: '/icons/icon-192.png',
+        badge: '/icons/badge-72.png',
+        tag: `notif-${notif.id}`,
+        vibrate: [200, 100, 200],
+        data: notif.data
+      });
+      
+      // Mark as delivered
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/pending_notifications?id=eq.${notif.id}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status: 'delivered', delivered_at: new Date().toISOString() })
+        }
+      );
+    }
+    
+  } catch (error) {
+    console.error('[SW] Supabase check error:', error);
+  }
+}
 
 // ============================================
 // PUSH: Handle incoming push notifications
@@ -135,85 +342,183 @@ self.addEventListener('push', (event) => {
 // NOTIFICATION CLICK: Handle user interaction
 // ============================================
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.action);
+  console.log('[SW] Notification clicked:', event.action, event.notification.tag);
   
   event.notification.close();
+  
+  const data = event.notification.data || {};
+  
+  // Handle command-specific actions
+  if (event.action === 'done' && data.command_id) {
+    // Mark as completed
+    event.waitUntil(
+      updateLocalCommandStatus(data.command_id, 'completed')
+        .then(() => notifyClients({ type: 'COMMAND_COMPLETED', command_id: data.command_id }))
+    );
+    return;
+  }
+  
+  if (event.action === 'snooze' && data.command_id) {
+    // Snooze for 10 minutes
+    event.waitUntil(
+      snoozeCommand(data.command_id, 10)
+        .then(() => notifyClients({ type: 'COMMAND_SNOOZED', command_id: data.command_id }))
+    );
+    return;
+  }
   
   if (event.action === 'dismiss') {
     return;
   }
   
-  // Open or focus the app
+  // Default: open or focus the app
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // If app is already open, focus it
         for (const client of clientList) {
           if (client.url.includes('droplit') && 'focus' in client) {
             return client.focus();
           }
         }
-        // Otherwise open new window
         if (clients.openWindow) {
-          const url = event.notification.data?.url || '/';
+          const url = data.url || '/';
           return clients.openWindow(url);
         }
       })
   );
 });
 
+async function snoozeCommand(id, minutes) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('droplit_commands', 1);
+    
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction('commands', 'readwrite');
+      const store = tx.objectStore('commands');
+      
+      const getRequest = store.get(id);
+      getRequest.onsuccess = () => {
+        const cmd = getRequest.result;
+        if (cmd) {
+          cmd.status = 'pending';
+          cmd.scheduled_at = new Date(Date.now() + minutes * 60000).toISOString();
+          store.put(cmd);
+        }
+        resolve();
+      };
+      
+      getRequest.onerror = () => reject(getRequest.error);
+    };
+    
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function notifyClients(message) {
+  const clientList = await clients.matchAll();
+  clientList.forEach(client => client.postMessage(message));
+}
+
 // ============================================
 // MESSAGE: Communication with main app
 // ============================================
-self.addEventListener('message', (event) => {
+self.addEventListener('message', async (event) => {
   console.log('[SW] Message received:', event.data);
   
-  if (event.data.action === 'skipWaiting') {
-    self.skipWaiting();
-  }
+  const { type, data } = event.data;
   
-  if (event.data.type === 'SHOW_NOTIFICATION') {
-    self.registration.showNotification(event.data.title, {
-      body: event.data.body,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/badge-72.png',
-      tag: event.data.tag || 'droplit-local',
-      data: event.data.data
-    });
-  }
-});
-
-// ============================================
-// PERIODIC SYNC: Proactive checks (when supported)
-// ============================================
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'check-insights') {
-    event.waitUntil(checkForInsights());
-  }
-});
-
-// Check for pending insights from Supabase
-async function checkForInsights() {
-  try {
-    const response = await fetch('https://ughfdhmyflotgsysvrrc.supabase.co/rest/v1/core_insights?status=eq.pending&limit=5', {
-      headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE'
-      }
-    });
-    
-    const insights = await response.json();
-    
-    for (const insight of insights) {
-      await self.registration.showNotification(insight.title, {
-        body: insight.content,
+  switch (type) {
+    case 'SKIP_WAITING':
+      self.skipWaiting();
+      break;
+      
+    case 'SHOW_NOTIFICATION':
+      await self.registration.showNotification(data.title, {
+        body: data.body,
         icon: '/icons/icon-192.png',
-        tag: `insight-${insight.id}`,
-        data: { insightId: insight.id }
+        badge: '/icons/badge-72.png',
+        tag: data.tag || 'droplit-local',
+        data: data.data
       });
-    }
-  } catch (error) {
-    console.error('[SW] Check insights error:', error);
+      break;
+      
+    case 'SYNC_COMMAND':
+      // Save command to IndexedDB for background execution
+      await saveCommandToIndexedDB(data);
+      break;
+      
+    case 'CANCEL_COMMAND':
+      await updateLocalCommandStatus(data.command_id, 'cancelled');
+      break;
+      
+    case 'UPDATE_CONFIG':
+      if (data.supabase_url) SUPABASE_URL = data.supabase_url;
+      if (data.supabase_key) SUPABASE_KEY = data.supabase_key;
+      break;
+      
+    case 'CHECK_COMMANDS_NOW':
+      await checkCommands();
+      break;
   }
+});
+
+async function saveCommandToIndexedDB(cmd) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('droplit_commands', 1);
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('commands')) {
+        const store = db.createObjectStore('commands', { keyPath: 'id' });
+        store.createIndex('status', 'status', { unique: false });
+        store.createIndex('scheduled_at', 'scheduled_at', { unique: false });
+      }
+    };
+    
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction('commands', 'readwrite');
+      const store = tx.objectStore('commands');
+      store.put(cmd);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    };
+    
+    request.onerror = () => reject(request.error);
+  });
 }
 
-console.log('[SW] DropLit Service Worker v1.1.0 loaded');
+// ============================================
+// PERIODIC SYNC: Background checks
+// ============================================
+self.addEventListener('periodicsync', (event) => {
+  console.log('[SW] Periodic sync:', event.tag);
+  
+  if (event.tag === 'check-commands') {
+    event.waitUntil(checkCommands());
+  }
+  
+  if (event.tag === 'check-insights') {
+    event.waitUntil(checkSupabaseCommands());
+  }
+});
+
+// ============================================
+// SYNC: Online recovery
+// ============================================
+self.addEventListener('sync', (event) => {
+  console.log('[SW] Background sync:', event.tag);
+  
+  if (event.tag === 'sync-commands') {
+    event.waitUntil(syncCommandsToSupabase());
+  }
+});
+
+async function syncCommandsToSupabase() {
+  // Sync locally executed commands to Supabase
+  // Implementation depends on your sync strategy
+  console.log('[SW] Syncing commands to Supabase...');
+}
+
+console.log('[SW] DropLit Service Worker v2.0.0 loaded');
