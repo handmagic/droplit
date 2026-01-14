@@ -2010,6 +2010,8 @@ async function handleStreamingResponse(response) {
   let buffer = '';
   let createDropData = null;
   let createEventData = null; // Command drops support
+  let cancelEventData = null; // Cancel reminder support
+  let listEventsData = null;  // List reminders support
   
   // Start WebSocket streaming TTS if enabled
   // TEMPORARILY DISABLED for debugging
@@ -2076,6 +2078,8 @@ async function handleStreamingResponse(response) {
             if (parsed.type === 'done') {
               createDropData = parsed.createDrop;
               createEventData = parsed.createEvent; // Command drops support
+              cancelEventData = parsed.cancelEvent; // Cancel reminder support
+              listEventsData = parsed.listEvents;   // List reminders support
             }
             
             // Legacy format (v4.4 and earlier)
@@ -2191,6 +2195,33 @@ async function handleStreamingResponse(response) {
     }
     
     toast(`⚡ Command at ${commandDrop.scheduled_time}`, 'success');
+  }
+  
+  // Handle AI-initiated cancel event (streaming)
+  if (cancelEventData?.action === 'cancel_event' && cancelEventData?.cancelled) {
+    const cancelled = cancelEventData.cancelled;
+    console.log('🗑️ AI cancelled reminder:', cancelled.title);
+    
+    // Update local drop status
+    const idx = ideas.findIndex(i => 
+      i.supabase_id === cancelled.id || 
+      i.id === cancelled.id ||
+      (i.category === 'commands' && i.text === cancelled.title && i.status === 'pending')
+    );
+    
+    if (idx !== -1) {
+      ideas[idx].status = 'cancelled';
+      save(ideas[idx]);
+      render();
+    }
+    
+    toast(`🗑️ Reminder cancelled: ${cancelled.title}`, 'success');
+  }
+  
+  // Handle AI-initiated list events (streaming) 
+  if (listEventsData?.action === 'list_events' && listEventsData?.events) {
+    console.log('📋 AI listed', listEventsData.count, 'reminders');
+    // No special UI action needed - ASKI will describe them in text response
   }
   
   if (localStorage.getItem('droplit_autodrop') === 'true') autoSaveMessageAsDrop(fullText, false);
