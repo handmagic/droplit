@@ -757,7 +757,7 @@ async function semanticSearch(userId, queryText, supabaseUrl, supabaseKey, opena
 // ============================================
 // SYSTEM PROMPT
 // ============================================
-function buildSystemPrompt(dropContext, userProfile, coreContext, isExpansion = false, userTimezone = 'UTC') {
+function buildSystemPrompt(dropContext, userProfile, coreContext, isExpansion = false, userTimezone = 'UTC', currentFeed = []) {
   const now = new Date();
   const currentDate = now.toLocaleDateString('en-US', { 
     weekday: 'long', 
@@ -777,10 +777,18 @@ function buildSystemPrompt(dropContext, userProfile, coreContext, isExpansion = 
   const cleanMemory = filterMemory(coreContext?.memory);
   const hasMemory = cleanMemory?.length > 0;
   const hasEntities = coreContext?.entities?.length > 0;
+  const hasFeed = currentFeed?.length > 0;
 
   let basePrompt = `You are Aski — a highly capable AI assistant with access to user's personal knowledge base.
 
 ## CURRENT: ${currentDate}, ${currentTime} (${userTimezone})
+
+## ⚠️ CRITICAL: CURRENT FEED (what user sees right now)
+${hasFeed ? `You have ${currentFeed.length} drops from user's actual feed:` : 'No feed data available'}
+${hasFeed ? currentFeed.map((d, i) => `${i+1}. [${d.type || 'note'}] ${d.content?.substring(0, 100) || '[encrypted]'}${d.is_encrypted ? ' 🔒' : ''} (id: ${d.id})`).join('\n') : ''}
+
+IMPORTANT: This is the ACTUAL feed user sees. Use these IDs for delete/update operations.
+Do NOT use old cached data from memory - use THIS feed data!
 
 ## ⚠️ CRITICAL: ALWAYS CHECK CORE MEMORY FIRST!
 Before answering ANY question about people, places, dates, or personal info:
@@ -1658,19 +1666,42 @@ async function executeDeleteDrop(input, userId) {
     
     // Find drop by ID or search
     if (input.drop_id) {
+      const dropId = String(input.drop_id);
+      const isUUID = dropId.includes('-') && dropId.length > 30;
+      
       // Try command_drops first
-      let response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?id=eq.${input.drop_id}&user_id=eq.${userId}`, {
+      let searchField = isUUID ? 'id' : 'local_id';
+      let response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
         headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
       });
       let data = await response.json();
-      if (data.length > 0) {
-        dropToDelete = { ...data[0], table: 'command_drops' };
-      } else {
-        // Try drops table
-        response = await fetch(`${SUPABASE_URL}/rest/v1/drops?id=eq.${input.drop_id}&user_id=eq.${userId}`, {
+      
+      // If not found by local_id, try by id (UUID)
+      if (data.length === 0 && !isUUID) {
+        response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?id=eq.${dropId}&user_id=eq.${userId}`, {
           headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
         });
         data = await response.json();
+      }
+      
+      if (data.length > 0) {
+        dropToDelete = { ...data[0], table: 'command_drops' };
+      } else {
+        // Try drops table with same logic
+        searchField = isUUID ? 'id' : 'local_id';
+        response = await fetch(`${SUPABASE_URL}/rest/v1/drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
+          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+        });
+        data = await response.json();
+        
+        // If not found by local_id, try by id
+        if (data.length === 0 && !isUUID) {
+          response = await fetch(`${SUPABASE_URL}/rest/v1/drops?id=eq.${dropId}&user_id=eq.${userId}`, {
+            headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+          });
+          data = await response.json();
+        }
+        
         if (data.length > 0) {
           dropToDelete = { ...data[0], table: 'drops' };
         }
@@ -1718,8 +1749,10 @@ async function executeDeleteDrop(input, userId) {
       success: true,
       action: 'delete_drop',
       deleted_id: dropToDelete.id,
+      local_id: dropToDelete.local_id || input.drop_id, // For frontend to remove from localStorage
       deleted_title: dropToDelete.title || dropToDelete.content?.substring(0, 50),
-      table: dropToDelete.table
+      table: dropToDelete.table,
+      sync_local: true // Signal frontend to sync localStorage
     };
     
   } catch (error) {
@@ -1962,6 +1995,8 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   let createEventAction = null;
   let cancelEventAction = null;
   let listEventsAction = null;
+  let deleteDropAction = null;
+  let updateDropAction = null;
   
   // Use provided model or default to Sonnet
   const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
@@ -2119,6 +2154,16 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
           listEventsAction = toolResult;
         }
         
+        // Track delete_drop action (v4.17)
+        if (toolBlock.name === 'delete_drop' && toolResult.action === 'delete_drop') {
+          deleteDropAction = toolResult;
+        }
+        
+        // Track update_drop action (v4.17)
+        if (toolBlock.name === 'update_drop' && toolResult.action === 'update_drop') {
+          updateDropAction = toolResult;
+        }
+        
         // Notify client about tool result
         sendEvent({ 
           type: 'tool_result', 
@@ -2168,6 +2213,8 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     createEvent: createEventAction,
     cancelEvent: cancelEventAction,
     listEvents: listEventsAction,
+    deleteDrop: deleteDropAction,
+    updateDrop: updateDropAction,
     usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens }, // NEW
     _debug: debugInfo
   });
@@ -2311,7 +2358,8 @@ export default async function handler(req) {
       userId,  // Accept userId from frontend
       uid,     // Alternative userId field
       model,   // Model selection: 'sonnet', 'opus', 'haiku', 'auto'
-      voiceMode  // NEW: if true, auto-select model based on query
+      voiceMode,  // NEW: if true, auto-select model based on query
+      currentFeed // v4.17: Actual drops from user's feed (localStorage)
     } = await req.json();
 
     // Auto-select model for voice mode
@@ -2405,7 +2453,7 @@ export default async function handler(req) {
       const isExpansion = lastAssistant?.text?.includes('?') && isShortAffirmative(text);
       
       const maxTokens = isExpansion ? 2500 : 1000;
-      const systemPrompt = buildSystemPrompt(formattedContext, userProfile, coreContext, isExpansion, userTimezone);
+      const systemPrompt = buildSystemPrompt(formattedContext, userProfile, coreContext, isExpansion, userTimezone, currentFeed);
       
       // Add system prompt debug info (AFTER systemPrompt is built)
       coreDebug.systemPromptHasCoreMemory = systemPrompt.includes('### Known facts:');
@@ -2455,6 +2503,8 @@ export default async function handler(req) {
       const createEventAction = toolResults.find(t => t.toolName === 'create_event');
       const cancelEventAction = toolResults.find(t => t.toolName === 'cancel_event');
       const listEventsAction = toolResults.find(t => t.toolName === 'list_events');
+      const deleteDropAction = toolResults.find(t => t.toolName === 'delete_drop');
+      const updateDropAction = toolResults.find(t => t.toolName === 'update_drop');
 
       return new Response(JSON.stringify({ 
         success: true,
@@ -2466,6 +2516,8 @@ export default async function handler(req) {
         createEvent: createEventAction?.result || null,
         cancelEvent: cancelEventAction?.result || null,
         listEvents: listEventsAction?.result || null,
+        deleteDrop: deleteDropAction?.result || null,
+        updateDrop: updateDropAction?.result || null,
         geo: { timezone: userTimezone, country: userCountry, city: userCity },
         model: modelConfig.id,  // Which model was used
         // DEBUG INFO
