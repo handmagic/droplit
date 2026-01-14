@@ -271,45 +271,6 @@ function rateLimitResponse(resetIn) {
 // ============================================
 const TOOLS = [
   {
-    name: "fetch_recent_drops",
-    description: "Get user's recent notes from their knowledge base. Use when user asks about their notes, tasks, ideas for a specific period.",
-    input_schema: {
-      type: "object",
-      properties: {
-        hours: { type: "number", description: "How many hours back (default 24)" },
-        limit: { type: "number", description: "Max records (default 10)" },
-        category: { type: "string", description: "Filter: tasks, ideas, bugs, questions, design, inbox" }
-      },
-      required: []
-    }
-  },
-  {
-    name: "search_drops",
-    description: "Search user's notes and commands by keywords. Searches both regular drops and command drops. Can decrypt encrypted content.",
-    input_schema: {
-      type: "object",
-      properties: {
-        query: { type: "string", description: "Search keywords" },
-        limit: { type: "number", description: "Max results (default 5)" },
-        include_commands: { type: "boolean", description: "Also search command_drops (default true)" }
-      },
-      required: ["query"]
-    }
-  },
-  {
-    name: "get_recent_drops",
-    description: "Get most recent drops from user's feed. Use this to see latest notes, ideas, or commands. Shows actual current content.",
-    input_schema: {
-      type: "object",
-      properties: {
-        limit: { type: "number", description: "How many drops to return (default 5, max 20)" },
-        include_commands: { type: "boolean", description: "Include command drops like reminders (default true)" },
-        category: { type: "string", description: "Filter by category (optional)" }
-      },
-      required: []
-    }
-  },
-  {
     name: "create_drop",
     description: "Create note. Use ONLY when user EXPLICITLY asks to save/remember.",
     input_schema: {
@@ -423,13 +384,13 @@ const TOOLS = [
   },
   {
     name: "delete_drop",
-    description: "Delete a drop from user's feed by ID. Get the ID from CURRENT FEED section in your context.",
+    description: "Delete a drop from user's feed. Look at ЛЕНТА/FEED section in your context to find the ID. Returns action for frontend to execute.",
     input_schema: {
       type: "object",
       properties: {
         drop_id: {
           type: "string",
-          description: "ID of the drop to delete (from CURRENT FEED list)"
+          description: "ID of the drop from ЛЕНТА/FEED list"
         }
       },
       required: ["drop_id"]
@@ -437,24 +398,20 @@ const TOOLS = [
   },
   {
     name: "update_drop",
-    description: "Edit/update content of an existing drop in user's feed. Use when user asks to change, edit, or modify text of a note or idea.",
+    description: "Edit content of a drop in user's feed. Look at ЛЕНТА/FEED section to find the ID. Returns action for frontend to execute.",
     input_schema: {
       type: "object",
       properties: {
         drop_id: {
           type: "string",
-          description: "ID of the drop to update (UUID format)"
-        },
-        search_query: {
-          type: "string",
-          description: "Text to search for if ID not provided"
+          description: "ID of the drop from ЛЕНТА/FEED list"
         },
         new_content: {
           type: "string",
           description: "New text content for the drop"
         }
       },
-      required: ["new_content"]
+      required: ["drop_id", "new_content"]
     }
   },
   {
@@ -879,27 +836,17 @@ When user asks to see, list, or show reminders:
 3. Present results in a clear, concise format
 4. Include event ID for reference if user wants to cancel specific one
 
-## DROP MANAGEMENT (ASKI как оператор ленты):
+## DROP MANAGEMENT — ТОЛЬКО ЛЕНТА:
 
-⚠️ ЛЕНТА = источник истины. Все операции работают с ЛЕНТОЙ пользователя!
+⚠️ ЛЕНТА (секция выше) = единственный источник. НЕ ходи в базу!
 
-Когда пользователь спрашивает что в ленте / последние записи:
-- Отвечай из секции "ЛЕНТА / FEED" выше — там актуальные данные
-- Инструмент get_recent_drops тоже берёт данные из ЛЕНТЫ
-- НЕ используй данные из памяти/контекста — они могут быть устаревшими
+**Что в ленте?** — смотри секцию "ЛЕНТА / FEED" выше, там всё есть
 
-Когда нужно найти конкретную запись:
-- Используй search_drops — он ищет В ЛЕНТЕ
-- Если не нашёл в ленте — значит дропа там нет
+**Удалить дроп?** — возьми ID из ленты, вызови delete_drop(drop_id)
 
-Когда пользователь просит удалить:
-1. Найди дроп в секции "ЛЕНТА / FEED" выше
-2. Используй delete_drop с ID из ленты
-3. ВСЕГДА подтверждай перед удалением
+**Изменить дроп?** — возьми ID из ленты, вызови update_drop(drop_id, new_content)
 
-Когда пользователь просит изменить:
-1. Используй update_drop с ID из ленты
-2. Укажи new_content с новым текстом
+**Создать дроп?** — ТОЛЬКО если пользователь явно попросил "запиши/сохрани"
 
 ## LANGUAGE:
 - Always respond in same language as user
@@ -967,130 +914,6 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   switch (toolName) {
-    case 'fetch_recent_drops': {
-      const hours = input.hours || 24;
-      const limit = input.limit || 10;
-      const category = input.category;
-      
-      if (!SUPABASE_KEY || !userId) {
-        return { success: false, error: 'No SUPABASE_KEY or userId' };
-      }
-      
-      let url = `${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`;
-      if (category) url += `&category=eq.${category}`;
-      
-      const response = await fetch(url, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-      });
-      
-      if (!response.ok) return { success: false, error: 'Fetch failed' };
-      const drops = await response.json();
-      return { success: true, drops, count: drops.length };
-    }
-    
-    case 'search_drops': {
-      const query = input.query?.toLowerCase();
-      const limit = input.limit || 5;
-      
-      if (!query) return { success: false, error: 'No query' };
-      
-      // PRIORITY: Search in currentFeed (what user actually sees)
-      if (currentFeed?.length > 0) {
-        const matches = currentFeed.filter(d => {
-          const content = (d.content || d.text || '').toLowerCase();
-          return content.includes(query);
-        }).slice(0, limit);
-        
-        if (matches.length > 0) {
-          return { 
-            success: true, 
-            drops: matches.map(d => ({
-              id: d.id,
-              content: d.content || d.text,
-              category: d.category || 'inbox',
-              type: d.type || 'note',
-              created_at: d.created_at,
-              source: 'feed' // Mark as from actual feed
-            })),
-            count: matches.length, 
-            query,
-            source: 'currentFeed'
-          };
-        }
-      }
-      
-      // Fallback: search command_drops only (for active reminders)
-      if (SUPABASE_KEY && userId) {
-        const cmdUrl = `${SUPABASE_URL}/rest/v1/command_drops?user_id=eq.${userId}&status=eq.pending&or=(title.ilike.*${encodeURIComponent(query)}*,content.ilike.*${encodeURIComponent(query)}*)&order=created_at.desc&limit=${limit}`;
-        const cmdResponse = await fetch(cmdUrl, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-        });
-        if (cmdResponse.ok) {
-          const cmds = await cmdResponse.json();
-          if (cmds.length > 0) {
-            return {
-              success: true,
-              drops: cmds.map(c => ({
-                id: c.id,
-                content: c.title,
-                type: 'command',
-                status: c.status,
-                scheduled_at: c.scheduled_at,
-                source: 'command_drops'
-              })),
-              count: cmds.length,
-              query,
-              source: 'command_drops'
-            };
-          }
-        }
-      }
-      
-      return { success: true, drops: [], count: 0, query, message: 'Nothing found in feed' };
-    }
-    
-    case 'get_recent_drops': {
-      const limit = Math.min(input.limit || 5, 20);
-      const category = input.category;
-      
-      // PRIORITY: Use currentFeed (what user actually sees)
-      if (currentFeed?.length > 0) {
-        let drops = [...currentFeed];
-        
-        // Filter by category if specified
-        if (category) {
-          drops = drops.filter(d => d.category === category);
-        }
-        
-        drops = drops.slice(0, limit);
-        
-        return { 
-          success: true, 
-          drops: drops.map(d => ({
-            id: d.id,
-            content: d.content || d.text || '[no content]',
-            category: d.category || 'inbox',
-            type: d.type || 'note',
-            created_at: d.created_at,
-            time_ago: getTimeAgo(d.created_at),
-            is_encrypted: d.is_encrypted || false,
-            source: 'feed'
-          })),
-          count: drops.length,
-          source: 'currentFeed',
-          timestamp: new Date().toISOString()
-        };
-      }
-      
-      // Fallback message if no feed data
-      return { 
-        success: false, 
-        error: 'Feed data not available. Please refresh the app.',
-        drops: [],
-        count: 0
-      };
-    }
-    
     case 'create_drop': {
       const text = input.text;
       const category = input.category || 'inbox';
@@ -1603,150 +1426,53 @@ async function executeListEvents(input, userId) {
 }
 
 // ============================================
-// DELETE DROP - Remove any drop from feed
+// DELETE DROP - Just signal frontend to remove from localStorage
 // ============================================
 async function executeDeleteDrop(input, userId) {
-  try {
-    console.log('[delete_drop] Input:', JSON.stringify(input));
-    
-    const dropId = input.drop_id ? String(input.drop_id) : null;
-    
-    if (!dropId) {
-      return { success: false, error: 'No drop_id provided', action: 'delete_drop' };
-    }
-    
-    // Try to also delete from Supabase if it exists there
-    let deletedFromDb = false;
-    
-    if (SUPABASE_URL && SUPABASE_SERVICE_KEY && userId) {
-      try {
-        const isUUID = dropId.includes('-') && dropId.length > 30;
-        const searchField = isUUID ? 'id' : 'local_id';
-        
-        // Try command_drops
-        await fetch(`${SUPABASE_URL}/rest/v1/command_drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
-          method: 'DELETE',
-          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
-        });
-        
-        // Try drops table
-        await fetch(`${SUPABASE_URL}/rest/v1/drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
-          method: 'DELETE',
-          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
-        });
-        
-        deletedFromDb = true;
-      } catch (e) {
-        console.log('[delete_drop] DB delete error (non-critical):', e.message);
-      }
-    }
-    
-    console.log('[delete_drop] Success, signaling frontend to remove:', dropId);
-    
-    // Return success - frontend will remove from localStorage
-    return {
-      success: true,
-      action: 'delete_drop',
-      deleted_id: dropId,
-      local_id: dropId,
-      sync_local: true,
-      message: 'Удалено'
-    };
-    
-  } catch (error) {
-    console.error('[delete_drop] Exception:', error);
-    return { success: false, error: error.message, action: 'delete_drop' };
+  console.log('[delete_drop] Input:', JSON.stringify(input));
+  
+  const dropId = input.drop_id ? String(input.drop_id) : null;
+  
+  if (!dropId) {
+    return { success: false, error: 'Укажи ID дропа из ленты', action: 'delete_drop' };
   }
+  
+  // Just return action for frontend - no DB operations
+  return {
+    success: true,
+    action: 'delete_drop',
+    deleted_id: dropId,
+    local_id: dropId,
+    sync_local: true,
+    message: 'Удалено'
+  };
 }
 
 // ============================================
-// UPDATE DROP - Edit drop content
+// UPDATE DROP - Just signal frontend to update localStorage
 // ============================================
 async function executeUpdateDrop(input, userId) {
-  try {
-    console.log('[update_drop] Updating drop for user:', userId);
-    
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      return { success: false, error: 'Database not configured' };
-    }
-    
-    if (!userId) {
-      return { success: false, error: 'User not authenticated' };
-    }
-    
-    if (!input.new_content) {
-      return { success: false, error: 'New content is required' };
-    }
-    
-    let dropToUpdate = null;
-    
-    // Find drop by ID or search
-    if (input.drop_id) {
-      // Try drops table first (most common)
-      let response = await fetch(`${SUPABASE_URL}/rest/v1/drops?id=eq.${input.drop_id}&user_id=eq.${userId}`, {
-        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
-      });
-      let data = await response.json();
-      if (data.length > 0) {
-        dropToUpdate = { ...data[0], table: 'drops', contentField: 'content' };
-      } else {
-        // Try command_drops
-        response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?id=eq.${input.drop_id}&user_id=eq.${userId}`, {
-          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
-        });
-        data = await response.json();
-        if (data.length > 0) {
-          dropToUpdate = { ...data[0], table: 'command_drops', contentField: 'content' };
-        }
-      }
-    } else if (input.search_query) {
-      // Search in drops
-      let response = await fetch(`${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&content=ilike.*${encodeURIComponent(input.search_query)}*&order=created_at.desc&limit=1`, {
-        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
-      });
-      let data = await response.json();
-      if (data.length > 0) {
-        dropToUpdate = { ...data[0], table: 'drops', contentField: 'content' };
-      }
-    }
-    
-    if (!dropToUpdate) {
-      return { success: false, error: 'Drop not found', action: 'update_drop' };
-    }
-    
-    // Update the drop
-    const updateData = { [dropToUpdate.contentField]: input.new_content, updated_at: new Date().toISOString() };
-    
-    const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/${dropToUpdate.table}?id=eq.${dropToUpdate.id}`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      },
-      body: JSON.stringify(updateData)
-    });
-    
-    if (!updateResponse.ok) {
-      return { success: false, error: 'Failed to update drop', action: 'update_drop' };
-    }
-    
-    const updated = await updateResponse.json();
-    console.log('[update_drop] Updated:', dropToUpdate.id);
-    
-    return {
-      success: true,
-      action: 'update_drop',
-      updated_id: dropToUpdate.id,
-      old_content: dropToUpdate.content?.substring(0, 50),
-      new_content: input.new_content.substring(0, 50)
-    };
-    
-  } catch (error) {
-    console.error('[update_drop] Exception:', error);
-    return { success: false, error: error.message, action: 'update_drop' };
+  console.log('[update_drop] Input:', JSON.stringify(input));
+  
+  const dropId = input.drop_id ? String(input.drop_id) : null;
+  
+  if (!dropId) {
+    return { success: false, error: 'Укажи ID дропа из ленты', action: 'update_drop' };
   }
+  
+  if (!input.new_content) {
+    return { success: false, error: 'Укажи новый текст', action: 'update_drop' };
+  }
+  
+  // Just return action for frontend - no DB operations
+  return {
+    success: true,
+    action: 'update_drop',
+    updated_id: dropId,
+    new_content: input.new_content,
+    sync_local: true,
+    message: 'Обновлено'
+  };
 }
 
 // ============================================
