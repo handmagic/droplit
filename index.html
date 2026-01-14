@@ -3179,7 +3179,7 @@ async function createCommand() {
     console.log('[Command] Creating:', { text, scheduledAt: scheduledAt.toISOString() });
     
     // Create command via RPC
-    const { data, error } = await window.supabase.rpc('create_command_drop', {
+    const { data, error } = await window._supabaseClient.rpc('create_command_drop', {
       p_text: text,
       p_command_type: 'reminder',
       p_scheduled_at: scheduledAt.toISOString(),
