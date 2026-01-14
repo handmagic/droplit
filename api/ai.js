@@ -273,11 +273,11 @@ function rateLimitResponse(resetIn) {
 // Address book for email recipients
 const EMAIL_ADDRESS_BOOK = {
   // Personal
-  'alex': 'order.ipan@gmail.com',
-  'алекс': 'order.ipan@gmail.com',
-  'я': 'order.ipan@gmail.com',
-  'мне': 'order.ipan@gmail.com',
-  'me': 'order.ipan@gmail.com',
+  'alex': 'hqrar@hotmail.com',
+  'алекс': 'hqrar@hotmail.com',
+  'я': 'hqrar@hotmail.com',
+  'мне': 'hqrar@hotmail.com',
+  'me': 'hqrar@hotmail.com',
   
   // Business contacts (examples - customize as needed)
   // 'бухгалтерия': 'accounting@company.com',
@@ -1036,47 +1036,30 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
         };
       }
       
-      console.log('[send_email] Sending to:', toEmail, 'Subject:', subject);
+      console.log('[send_email] Sending to:', toEmail, 'Subject:', subject, 'asWord:', asWord);
       
+      // If Word attachment requested, delegate to frontend for docx generation
+      if (asWord) {
+        return {
+          success: true,
+          action: 'send_email_with_docx',
+          needs_docx: true,
+          to: toEmail,
+          subject: subject,
+          content: content,
+          filename: filename,
+          message: 'Подготавливаю документ...'
+        };
+      }
+      
+      // Simple email without attachment - send directly
       try {
-        let emailBody = {
+        const emailBody = {
           from: 'ASKI <aski@syntrise.com>',
           to: toEmail,
           subject: subject,
-          html: content.includes('<') ? content : `<div style="font-family: Arial, sans-serif;">${content.replace(/\n/g, '<br>')}</div>`
+          html: content.includes('<') ? content : `<div style="font-family: Arial, sans-serif; line-height: 1.6;">${content.replace(/\n/g, '<br>')}</div>`
         };
-        
-        // If Word attachment requested, create it
-        if (asWord) {
-          // Convert HTML/text to simple Word-compatible format
-          // For now, send as HTML attachment (proper .docx requires more complex library)
-          const wordContent = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>${subject}</title>
-<style>
-body { font-family: Arial, sans-serif; margin: 40px; }
-h1, h2, h3 { color: #333; }
-</style>
-</head>
-<body>
-${content.includes('<') ? content : content.replace(/\n/g, '<br>')}
-</body>
-</html>`;
-          
-          const base64Content = Buffer.from(wordContent).toString('base64');
-          
-          emailBody.attachments = [{
-            filename: `${filename}.html`,
-            content: base64Content,
-            type: 'text/html'
-          }];
-          
-          // Also add plain text version
-          emailBody.text = content.replace(/<[^>]*>/g, '');
-        }
         
         const response = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -1102,8 +1085,7 @@ ${content.includes('<') ? content : content.replace(/\n/g, '<br>')}
           message: `Письмо отправлено на ${toEmail}`,
           email_id: result.id,
           to: toEmail,
-          subject: subject,
-          has_attachment: asWord
+          subject: subject
         };
         
       } catch (error) {
@@ -1752,6 +1734,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   let listEventsAction = null;
   let deleteDropAction = null;
   let updateDropAction = null;
+  let sendEmailAction = null;
   
   // Use provided model or default to Sonnet
   const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
@@ -1929,6 +1912,12 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
           updateDropAction = toolResult;
         }
         
+        // Track send_email action (v4.19)
+        if (toolBlock.name === 'send_email') {
+          sendEmailAction = toolResult;
+          console.log('[send_email] Tracked:', JSON.stringify(toolResult));
+        }
+        
         // Notify client about tool result
         sendEvent({ 
           type: 'tool_result', 
@@ -1983,7 +1972,8 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     listEvents: listEventsAction,
     deleteDrop: deleteDropAction,
     updateDrop: updateDropAction,
-    usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens }, // NEW
+    sendEmail: sendEmailAction,
+    usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens },
     _debug: debugInfo
   });
   
@@ -2162,6 +2152,79 @@ export default async function handler(req) {
     const userTimezone = req.headers.get('x-timezone') || 'UTC';
     const userCountry = req.headers.get('x-country') || null;
     const userCity = req.headers.get('x-city') || null;
+
+    // === SEND EMAIL WITH ATTACHMENT ACTION ===
+    if (action === 'send_email_with_attachment') {
+      const RESEND_API_KEY = process.env.RESEND_API_KEY;
+      
+      if (!RESEND_API_KEY) {
+        return new Response(JSON.stringify({ error: 'Email service not configured' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      const { to, subject, filename, docxBase64 } = await req.json();
+      
+      if (!to || !subject || !docxBase64) {
+        return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      console.log('[send_email_with_attachment] Sending to:', to, 'Subject:', subject);
+      
+      try {
+        const emailBody = {
+          from: 'ASKI <aski@syntrise.com>',
+          to: to,
+          subject: subject,
+          html: `<p>Документ "${subject}" во вложении.</p><p style="color: #666; font-size: 12px;">Отправлено через ASKI</p>`,
+          attachments: [{
+            filename: `${filename || 'document'}.docx`,
+            content: docxBase64
+          }]
+        };
+        
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${RESEND_API_KEY}`
+          },
+          body: JSON.stringify(emailBody)
+        });
+        
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('[send_email_with_attachment] Failed:', error);
+          return new Response(JSON.stringify({ success: false, error }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        const result = await response.json();
+        console.log('[send_email_with_attachment] Success! ID:', result.id);
+        
+        return new Response(JSON.stringify({
+          success: true,
+          message: `Письмо с документом отправлено на ${to}`,
+          email_id: result.id
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+        
+      } catch (error) {
+        console.error('[send_email_with_attachment] Exception:', error);
+        return new Response(JSON.stringify({ success: false, error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     // === MODELS ACTION ===
     if (action === 'models') {
