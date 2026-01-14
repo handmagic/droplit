@@ -3176,23 +3176,48 @@ async function createCommand() {
       }
     }
     
-    console.log('[Command] Creating:', { text, scheduledAt: scheduledAt.toISOString() });
+    // Get values from Details view if available
+    const titleInput = document.getElementById('commandTitleInput');
+    const timeInput = document.getElementById('commandTimeInput');
+    const typeSelect = document.getElementById('commandTypeSelect');
+    const notifySelect = document.getElementById('commandNotifySelect');
     
-    // Create command via RPC
-    const { data, error } = await window._supabaseClient.rpc('create_command_drop', {
-      p_text: text,
-      p_command_type: 'reminder',
-      p_scheduled_at: scheduledAt.toISOString(),
-      p_action_type: 'push',
-      p_category: 'personal'
-    });
-    
-    if (error) {
-      console.error('[Command] RPC error:', error);
-      throw error;
+    if (timeInput && timeInput.value) {
+      scheduledAt = new Date(timeInput.value);
     }
     
-    console.log('[Command] Created:', data);
+    const commandType = typeSelect ? typeSelect.value : 'reminder';
+    const actionType = notifySelect ? notifySelect.value : 'push';
+    const title = (titleInput && titleInput.value.trim()) || text;
+    
+    console.log('[Command] Creating:', { title, scheduledAt: scheduledAt.toISOString(), commandType, actionType });
+    
+    // Create command drop (same structure as regular drops + command fields)
+    const commandDrop = {
+      id: Date.now(),
+      text: title,
+      category: 'COMMANDS',
+      timestamp: new Date().toISOString(),
+      date: new Date().toLocaleDateString('ru-RU'),
+      time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+      isMedia: false,
+      encrypted: window.DROPLIT_PRIVACY_ENABLED || false,
+      // Command-specific fields
+      type: 'command',
+      command_type: commandType,
+      scheduled_at: scheduledAt.toISOString(),
+      scheduled_date: scheduledAt.toLocaleDateString('ru-RU'),
+      scheduled_time: scheduledAt.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+      action_type: actionType,
+      status: 'pending'
+    };
+    
+    // Add to ideas array and save (same as regular drops)
+    ideas.push(commandDrop);
+    save(commandDrop);
+    render();
+    
+    console.log('[Command] Created:', commandDrop);
     
     // Show success
     showCommandView('success');
