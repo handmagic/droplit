@@ -783,12 +783,19 @@ function buildSystemPrompt(dropContext, userProfile, coreContext, isExpansion = 
 
 ## CURRENT: ${currentDate}, ${currentTime} (${userTimezone})
 
-## ⚠️ CRITICAL: CURRENT FEED (what user sees right now)
-${hasFeed ? `You have ${currentFeed.length} drops from user's actual feed:` : 'No feed data available'}
+## 📋 ЛЕНТА / FEED — Source of Truth
+**Лента (Feed)** = то, что пользователь РЕАЛЬНО видит в приложении прямо сейчас.
+Это localStorage на устройстве пользователя. НЕ база данных Supabase!
+
+${hasFeed ? `✅ В ленте ${currentFeed.length} дропов:` : '⚠️ Лента пуста или не загружена'}
 ${hasFeed ? currentFeed.map((d, i) => `${i+1}. [${d.type || 'note'}] ${d.content?.substring(0, 100) || '[encrypted]'}${d.is_encrypted ? ' 🔒' : ''} (id: ${d.id})`).join('\n') : ''}
 
-IMPORTANT: This is the ACTUAL feed user sees. Use these IDs for delete/update operations.
-Do NOT use old cached data from memory - use THIS feed data!
+⚠️ КРИТИЧЕСКИ ВАЖНО:
+- ЭТО и есть лента пользователя — доверяй ТОЛЬКО этим данным
+- Если пользователь спрашивает "что в ленте" — отвечай из ЭТОГО списка
+- Для удаления/редактирования используй ID из ЭТОГО списка
+- В базе Supabase могут быть старые удалённые дропы — ИГНОРИРУЙ их!
+- Инструменты get_recent_drops и search_drops теперь ищут В ЛЕНТЕ, не в базе
 
 ## ⚠️ CRITICAL: ALWAYS CHECK CORE MEMORY FIRST!
 Before answering ANY question about people, places, dates, or personal info:
@@ -873,32 +880,27 @@ When user asks to see, list, or show reminders:
 3. Present results in a clear, concise format
 4. Include event ID for reference if user wants to cancel specific one
 
-## DROP MANAGEMENT (ASKI as operator):
+## DROP MANAGEMENT (ASKI как оператор ленты):
 
-When user asks to see recent drops, last notes, or what's in feed:
-1. Use the get_recent_drops tool - it shows CURRENT data from database
-2. Default returns 5 most recent, can request up to 20
-3. Shows both regular drops and command drops
-4. Includes time_ago for easy reference
+⚠️ ЛЕНТА = источник истины. Все операции работают с ЛЕНТОЙ пользователя!
 
-When user asks to search or find a specific note:
-1. Use search_drops with query keywords
-2. Searches both drops and command_drops tables
-3. Can handle encrypted content
+Когда пользователь спрашивает что в ленте / последние записи:
+- Отвечай из секции "ЛЕНТА / FEED" выше — там актуальные данные
+- Инструмент get_recent_drops тоже берёт данные из ЛЕНТЫ
+- НЕ используй данные из памяти/контекста — они могут быть устаревшими
 
-When user asks to delete a note/drop from feed:
-1. Use the delete_drop tool with confirm=true
-2. Search by drop_id or search_query
-3. ALWAYS confirm with user before deleting
-4. Works for any drop type including command drops
+Когда нужно найти конкретную запись:
+- Используй search_drops — он ищет В ЛЕНТЕ
+- Если не нашёл в ленте — значит дропа там нет
 
-When user asks to edit/change a note/drop:
-1. Use the update_drop tool
-2. Provide new_content with the updated text
-3. Search by drop_id or search_query
+Когда пользователь просит удалить:
+1. Найди дроп в секции "ЛЕНТА / FEED" выше
+2. Используй delete_drop с ID из ленты
+3. ВСЕГДА подтверждай перед удалением
 
-IMPORTANT: To see actual current drops, ALWAYS use get_recent_drops or search_drops tools.
-Do NOT rely on context/memory for current feed state - use the tools!
+Когда пользователь просит изменить:
+1. Используй update_drop с ID из ленты
+2. Укажи new_content с новым текстом
 
 ## LANGUAGE:
 - Always respond in same language as user
@@ -962,7 +964,7 @@ User has asked to expand on a previous topic. Give a more detailed response cove
 // ============================================
 // TOOL EXECUTION
 // ============================================
-async function executeTool(toolName, input, dropContext, userId = null) {
+async function executeTool(toolName, input, dropContext, userId = null, currentFeed = []) {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   switch (toolName) {
@@ -988,147 +990,105 @@ async function executeTool(toolName, input, dropContext, userId = null) {
     }
     
     case 'search_drops': {
-      const query = input.query;
+      const query = input.query?.toLowerCase();
       const limit = input.limit || 5;
-      const includeCommands = input.include_commands !== false;
       
       if (!query) return { success: false, error: 'No query' };
-      if (!SUPABASE_KEY || !userId) {
-        return { success: false, error: 'No SUPABASE_KEY or userId' };
+      
+      // PRIORITY: Search in currentFeed (what user actually sees)
+      if (currentFeed?.length > 0) {
+        const matches = currentFeed.filter(d => {
+          const content = (d.content || d.text || '').toLowerCase();
+          return content.includes(query);
+        }).slice(0, limit);
+        
+        if (matches.length > 0) {
+          return { 
+            success: true, 
+            drops: matches.map(d => ({
+              id: d.id,
+              content: d.content || d.text,
+              category: d.category || 'inbox',
+              type: d.type || 'note',
+              created_at: d.created_at,
+              source: 'feed' // Mark as from actual feed
+            })),
+            count: matches.length, 
+            query,
+            source: 'currentFeed'
+          };
+        }
       }
       
-      let allDrops = [];
-      
-      // Search in drops table
-      const dropsUrl = `${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&content=ilike.*${encodeURIComponent(query)}*&order=created_at.desc&limit=${limit}`;
-      const dropsResponse = await fetch(dropsUrl, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-      });
-      if (dropsResponse.ok) {
-        const drops = await dropsResponse.json();
-        allDrops = drops.map(d => ({ ...d, source: 'drops', display_content: d.content }));
-      }
-      
-      // Also search in command_drops if enabled
-      if (includeCommands) {
-        const cmdUrl = `${SUPABASE_URL}/rest/v1/command_drops?user_id=eq.${userId}&or=(title.ilike.*${encodeURIComponent(query)}*,content.ilike.*${encodeURIComponent(query)}*)&order=created_at.desc&limit=${limit}`;
+      // Fallback: search command_drops only (for active reminders)
+      if (SUPABASE_KEY && userId) {
+        const cmdUrl = `${SUPABASE_URL}/rest/v1/command_drops?user_id=eq.${userId}&status=eq.pending&or=(title.ilike.*${encodeURIComponent(query)}*,content.ilike.*${encodeURIComponent(query)}*)&order=created_at.desc&limit=${limit}`;
         const cmdResponse = await fetch(cmdUrl, {
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
         });
         if (cmdResponse.ok) {
           const cmds = await cmdResponse.json();
-          const cmdDrops = cmds.map(c => ({
-            id: c.id,
-            content: c.title,
-            description: c.content,
-            created_at: c.created_at,
-            category: 'command',
-            type: 'command',
-            status: c.status,
-            scheduled_at: c.scheduled_at,
-            source: 'command_drops',
-            display_content: c.title
-          }));
-          allDrops = [...allDrops, ...cmdDrops];
+          if (cmds.length > 0) {
+            return {
+              success: true,
+              drops: cmds.map(c => ({
+                id: c.id,
+                content: c.title,
+                type: 'command',
+                status: c.status,
+                scheduled_at: c.scheduled_at,
+                source: 'command_drops'
+              })),
+              count: cmds.length,
+              query,
+              source: 'command_drops'
+            };
+          }
         }
       }
       
-      // Sort by created_at desc
-      allDrops.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      allDrops = allDrops.slice(0, limit);
-      
-      return { success: true, drops: allDrops, count: allDrops.length, query };
+      return { success: true, drops: [], count: 0, query, message: 'Nothing found in feed' };
     }
     
     case 'get_recent_drops': {
       const limit = Math.min(input.limit || 5, 20);
-      const includeCommands = input.include_commands !== false;
       const category = input.category;
       
-      if (!SUPABASE_KEY || !userId) {
-        return { success: false, error: 'No SUPABASE_KEY or userId' };
-      }
-      
-      let allDrops = [];
-      
-      // Get recent drops
-      let dropsUrl = `${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`;
-      if (category) {
-        dropsUrl += `&category=eq.${category}`;
-      }
-      
-      const dropsResponse = await fetch(dropsUrl, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-      });
-      
-      if (dropsResponse.ok) {
-        const drops = await dropsResponse.json();
-        allDrops = drops.map(d => {
-          // Handle encrypted content
-          let displayContent = d.content;
-          if (d.is_encrypted && d.content) {
-            // For encrypted drops, show that they're encrypted but include any available metadata
-            displayContent = d.content; // Content should already be decrypted by RLS or show encrypted marker
-          }
-          return {
-            id: d.id,
-            content: displayContent,
-            category: d.category || 'inbox',
-            created_at: d.created_at,
-            is_encrypted: d.is_encrypted || false,
-            source: 'drops',
-            type: 'note'
-          };
-        });
-      }
-      
-      // Get recent command drops if enabled
-      if (includeCommands) {
-        const cmdUrl = `${SUPABASE_URL}/rest/v1/command_drops?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`;
-        const cmdResponse = await fetch(cmdUrl, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-        });
+      // PRIORITY: Use currentFeed (what user actually sees)
+      if (currentFeed?.length > 0) {
+        let drops = [...currentFeed];
         
-        if (cmdResponse.ok) {
-          const cmds = await cmdResponse.json();
-          const cmdDrops = cmds.map(c => ({
-            id: c.id,
-            content: c.title,
-            description: c.content,
-            category: 'command',
-            type: 'command',
-            status: c.status,
-            scheduled_at: c.scheduled_at,
-            created_at: c.created_at,
-            creator: c.creator,
-            source: 'command_drops'
-          }));
-          allDrops = [...allDrops, ...cmdDrops];
+        // Filter by category if specified
+        if (category) {
+          drops = drops.filter(d => d.category === category);
         }
+        
+        drops = drops.slice(0, limit);
+        
+        return { 
+          success: true, 
+          drops: drops.map(d => ({
+            id: d.id,
+            content: d.content || d.text || '[no content]',
+            category: d.category || 'inbox',
+            type: d.type || 'note',
+            created_at: d.created_at,
+            time_ago: getTimeAgo(d.created_at),
+            is_encrypted: d.is_encrypted || false,
+            source: 'feed'
+          })),
+          count: drops.length,
+          source: 'currentFeed',
+          timestamp: new Date().toISOString()
+        };
       }
       
-      // Sort combined by created_at desc
-      allDrops.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      allDrops = allDrops.slice(0, limit);
-      
-      // Format for display
-      const formattedDrops = allDrops.map(d => ({
-        id: d.id,
-        content: d.content?.substring(0, 200) || '[no content]',
-        type: d.type,
-        category: d.category,
-        created_at: d.created_at,
-        time_ago: getTimeAgo(d.created_at),
-        status: d.status,
-        is_encrypted: d.is_encrypted,
-        source: d.source
-      }));
-      
+      // Fallback message if no feed data
       return { 
-        success: true, 
-        drops: formattedDrops, 
-        count: formattedDrops.length,
-        timestamp: new Date().toISOString()
+        success: false, 
+        error: 'Feed data not available. Please refresh the app.',
+        drops: [],
+        count: 0
       };
     }
     
@@ -2131,7 +2091,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
       const toolResultsContent = [];
       
       for (const toolBlock of toolBlocks) {
-        const toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId);
+        const toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed);
         toolResults.push({ toolName: toolBlock.name, result: toolResult });
         
         // Track create_drop action
@@ -2266,7 +2226,7 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
     const toolBlock = data.content?.find(b => b.type === 'tool_use');
     if (!toolBlock) break;
     
-    const toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId);
+    const toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed);
     toolResults.push({ toolName: toolBlock.name, result: toolResult });
     
     messages.push({ role: 'assistant', content: data.content });
