@@ -95,6 +95,7 @@ function selectModelForVoice(text) {
 // API COST TRACKING (NEW in v4.16)
 // ============================================
 const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 // Pricing per 1M tokens (USD)
 const API_PRICING = {
