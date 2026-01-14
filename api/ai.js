@@ -1608,112 +1608,72 @@ async function executeListEvents(input, userId) {
 // ============================================
 async function executeDeleteDrop(input, userId) {
   try {
-    console.log('[delete_drop] Deleting drop for user:', userId);
-    
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      return { success: false, error: 'Database not configured' };
-    }
-    
-    if (!userId) {
-      return { success: false, error: 'User not authenticated' };
-    }
+    console.log('[delete_drop] Deleting drop:', input.drop_id || input.search_query);
     
     if (!input.confirm) {
-      return { success: false, error: 'Deletion not confirmed. Please confirm before deleting.' };
+      return { success: false, error: 'Deletion not confirmed. Please confirm before deleting.', action: 'delete_drop' };
     }
     
-    let dropToDelete = null;
+    const dropId = input.drop_id ? String(input.drop_id) : null;
     
-    // Find drop by ID or search
-    if (input.drop_id) {
-      const dropId = String(input.drop_id);
-      const isUUID = dropId.includes('-') && dropId.length > 30;
+    // For local feed drops, we just need to tell frontend to remove it
+    // The ID from currentFeed is what matters
+    if (dropId) {
+      // Try to also delete from Supabase if it exists there
+      let deletedFromDb = false;
       
-      // Try command_drops first
-      let searchField = isUUID ? 'id' : 'local_id';
-      let response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
-        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
-      });
-      let data = await response.json();
-      
-      // If not found by local_id, try by id (UUID)
-      if (data.length === 0 && !isUUID) {
-        response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?id=eq.${dropId}&user_id=eq.${userId}`, {
-          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
-        });
-        data = await response.json();
-      }
-      
-      if (data.length > 0) {
-        dropToDelete = { ...data[0], table: 'command_drops' };
-      } else {
-        // Try drops table with same logic
-        searchField = isUUID ? 'id' : 'local_id';
-        response = await fetch(`${SUPABASE_URL}/rest/v1/drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
-          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
-        });
-        data = await response.json();
+      if (SUPABASE_URL && SUPABASE_SERVICE_KEY && userId) {
+        const isUUID = dropId.includes('-') && dropId.length > 30;
         
-        // If not found by local_id, try by id
-        if (data.length === 0 && !isUUID) {
+        // Try command_drops
+        let searchField = isUUID ? 'id' : 'local_id';
+        let response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+        });
+        if (response.ok) deletedFromDb = true;
+        
+        // Try drops table too
+        response = await fetch(`${SUPABASE_URL}/rest/v1/drops?${searchField}=eq.${dropId}&user_id=eq.${userId}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+        });
+        if (response.ok) deletedFromDb = true;
+        
+        // Also try by id if we searched by local_id
+        if (!isUUID) {
           response = await fetch(`${SUPABASE_URL}/rest/v1/drops?id=eq.${dropId}&user_id=eq.${userId}`, {
+            method: 'DELETE',
             headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
           });
-          data = await response.json();
-        }
-        
-        if (data.length > 0) {
-          dropToDelete = { ...data[0], table: 'drops' };
         }
       }
-    } else if (input.search_query) {
-      // Search in command_drops
-      let response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops?user_id=eq.${userId}&title=ilike.*${encodeURIComponent(input.search_query)}*&order=created_at.desc&limit=1`, {
-        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
-      });
-      let data = await response.json();
-      if (data.length > 0) {
-        dropToDelete = { ...data[0], table: 'command_drops' };
-      } else {
-        // Search in drops
-        response = await fetch(`${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&content=ilike.*${encodeURIComponent(input.search_query)}*&order=created_at.desc&limit=1`, {
-          headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
-        });
-        data = await response.json();
-        if (data.length > 0) {
-          dropToDelete = { ...data[0], table: 'drops' };
-        }
-      }
+      
+      console.log('[delete_drop] Signaling frontend to remove:', dropId, 'DB deleted:', deletedFromDb);
+      
+      // Return success - frontend will remove from localStorage
+      return {
+        success: true,
+        action: 'delete_drop',
+        deleted_id: dropId,
+        local_id: dropId,
+        sync_local: true,
+        deleted_from_db: deletedFromDb
+      };
     }
     
-    if (!dropToDelete) {
-      return { success: false, error: 'Drop not found', action: 'delete_drop' };
+    // Search by query - need to find in feed first
+    if (input.search_query) {
+      // This should be handled by ASKI looking at currentFeed in prompt
+      // and providing the ID
+      return {
+        success: false,
+        error: `Не могу найти дроп по запросу "${input.search_query}". Посмотри в ленту и укажи конкретный ID.`,
+        action: 'delete_drop'
+      };
     }
     
-    // Delete the drop
-    const deleteResponse = await fetch(`${SUPABASE_URL}/rest/v1/${dropToDelete.table}?id=eq.${dropToDelete.id}`, {
-      method: 'DELETE',
-      headers: {
-        'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-      }
-    });
-    
-    if (!deleteResponse.ok) {
-      return { success: false, error: 'Failed to delete drop', action: 'delete_drop' };
-    }
-    
-    console.log('[delete_drop] Deleted:', dropToDelete.id, 'from', dropToDelete.table);
-    
-    return {
-      success: true,
-      action: 'delete_drop',
-      deleted_id: dropToDelete.id,
-      local_id: dropToDelete.local_id || input.drop_id, // For frontend to remove from localStorage
-      deleted_title: dropToDelete.title || dropToDelete.content?.substring(0, 50),
-      table: dropToDelete.table,
-      sync_local: true // Signal frontend to sync localStorage
-    };
+    return { success: false, error: 'No drop_id provided', action: 'delete_drop' };
     
   } catch (error) {
     console.error('[delete_drop] Exception:', error);
