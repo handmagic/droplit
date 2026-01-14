@@ -2957,6 +2957,31 @@ window.CommandSystem = CommandSystem;
 window.createCommandDrop = (options) => CommandSystem.create(options);
 window.parseTimeFromText = parseTimeFromText;
 
+// ============================================
+// DROP SOUND (signature feedback)
+// ============================================
+let dropSoundAudio = null;
+
+function playDropSound() {
+  try {
+    // Use Web Audio API for reliable playback
+    if (!dropSoundAudio) {
+      dropSoundAudio = new Audio('data:audio/wav;base64,UklGRl4AAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YToAAAAAPz8/Pz8/Pz8/Pz8/Pz8/Pz8+Pj09PDw7Ozo5ODc2NTQzMjEvLi0sKyopKCcmJSQjIiEgHx4dHBsaGRgXFhUUExIREA8ODQwLCgkIBwYFBAMCAQA=');
+    }
+    dropSoundAudio.currentTime = 0;
+    dropSoundAudio.volume = 0.3;
+    dropSoundAudio.play().catch(() => {
+      // Fallback: vibration
+      if (navigator.vibrate) navigator.vibrate(50);
+    });
+  } catch (e) {
+    // Silent fail, try vibration
+    if (navigator.vibrate) navigator.vibrate(50);
+  }
+}
+
+window.playDropSound = playDropSound;
+
 // Initialize
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => CommandSystem.init());
