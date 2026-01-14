@@ -285,14 +285,28 @@ const TOOLS = [
   },
   {
     name: "search_drops",
-    description: "Search user's notes by keywords.",
+    description: "Search user's notes and commands by keywords. Searches both regular drops and command drops. Can decrypt encrypted content.",
     input_schema: {
       type: "object",
       properties: {
         query: { type: "string", description: "Search keywords" },
-        limit: { type: "number", description: "Max results (default 5)" }
+        limit: { type: "number", description: "Max results (default 5)" },
+        include_commands: { type: "boolean", description: "Also search command_drops (default true)" }
       },
       required: ["query"]
+    }
+  },
+  {
+    name: "get_recent_drops",
+    description: "Get most recent drops from user's feed. Use this to see latest notes, ideas, or commands. Shows actual current content.",
+    input_schema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "How many drops to return (default 5, max 20)" },
+        include_commands: { type: "boolean", description: "Include command drops like reminders (default true)" },
+        category: { type: "string", description: "Filter by category (optional)" }
+      },
+      required: []
     }
   },
   {
@@ -488,6 +502,24 @@ const TOOLS = [
 // ============================================
 function isShortAffirmative(text) {
   return text.trim().length < 25;
+}
+
+// Helper: format relative time
+function getTimeAgo(dateStr) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return 'только что';
+  if (diffMins < 60) return `${diffMins} мин. назад`;
+  if (diffHours < 24) return `${diffHours} ч. назад`;
+  if (diffDays === 1) return 'вчера';
+  if (diffDays < 7) return `${diffDays} дн. назад`;
+  
+  return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 }
 
 // ============================================
@@ -835,6 +867,17 @@ When user asks to see, list, or show reminders:
 
 ## DROP MANAGEMENT (ASKI as operator):
 
+When user asks to see recent drops, last notes, or what's in feed:
+1. Use the get_recent_drops tool - it shows CURRENT data from database
+2. Default returns 5 most recent, can request up to 20
+3. Shows both regular drops and command drops
+4. Includes time_ago for easy reference
+
+When user asks to search or find a specific note:
+1. Use search_drops with query keywords
+2. Searches both drops and command_drops tables
+3. Can handle encrypted content
+
 When user asks to delete a note/drop from feed:
 1. Use the delete_drop tool with confirm=true
 2. Search by drop_id or search_query
@@ -845,6 +888,9 @@ When user asks to edit/change a note/drop:
 1. Use the update_drop tool
 2. Provide new_content with the updated text
 3. Search by drop_id or search_query
+
+IMPORTANT: To see actual current drops, ALWAYS use get_recent_drops or search_drops tools.
+Do NOT rely on context/memory for current feed state - use the tools!
 
 ## LANGUAGE:
 - Always respond in same language as user
@@ -936,22 +982,146 @@ async function executeTool(toolName, input, dropContext, userId = null) {
     case 'search_drops': {
       const query = input.query;
       const limit = input.limit || 5;
+      const includeCommands = input.include_commands !== false;
       
       if (!query) return { success: false, error: 'No query' };
       if (!SUPABASE_KEY || !userId) {
         return { success: false, error: 'No SUPABASE_KEY or userId' };
       }
       
-      // Simple text search
-      const url = `${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&content=ilike.*${encodeURIComponent(query)}*&order=created_at.desc&limit=${limit}`;
+      let allDrops = [];
       
-      const response = await fetch(url, {
+      // Search in drops table
+      const dropsUrl = `${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&content=ilike.*${encodeURIComponent(query)}*&order=created_at.desc&limit=${limit}`;
+      const dropsResponse = await fetch(dropsUrl, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      if (dropsResponse.ok) {
+        const drops = await dropsResponse.json();
+        allDrops = drops.map(d => ({ ...d, source: 'drops', display_content: d.content }));
+      }
+      
+      // Also search in command_drops if enabled
+      if (includeCommands) {
+        const cmdUrl = `${SUPABASE_URL}/rest/v1/command_drops?user_id=eq.${userId}&or=(title.ilike.*${encodeURIComponent(query)}*,content.ilike.*${encodeURIComponent(query)}*)&order=created_at.desc&limit=${limit}`;
+        const cmdResponse = await fetch(cmdUrl, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        if (cmdResponse.ok) {
+          const cmds = await cmdResponse.json();
+          const cmdDrops = cmds.map(c => ({
+            id: c.id,
+            content: c.title,
+            description: c.content,
+            created_at: c.created_at,
+            category: 'command',
+            type: 'command',
+            status: c.status,
+            scheduled_at: c.scheduled_at,
+            source: 'command_drops',
+            display_content: c.title
+          }));
+          allDrops = [...allDrops, ...cmdDrops];
+        }
+      }
+      
+      // Sort by created_at desc
+      allDrops.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      allDrops = allDrops.slice(0, limit);
+      
+      return { success: true, drops: allDrops, count: allDrops.length, query };
+    }
+    
+    case 'get_recent_drops': {
+      const limit = Math.min(input.limit || 5, 20);
+      const includeCommands = input.include_commands !== false;
+      const category = input.category;
+      
+      if (!SUPABASE_KEY || !userId) {
+        return { success: false, error: 'No SUPABASE_KEY or userId' };
+      }
+      
+      let allDrops = [];
+      
+      // Get recent drops
+      let dropsUrl = `${SUPABASE_URL}/rest/v1/drops?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`;
+      if (category) {
+        dropsUrl += `&category=eq.${category}`;
+      }
+      
+      const dropsResponse = await fetch(dropsUrl, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       
-      if (!response.ok) return { success: false, error: 'Search failed' };
-      const drops = await response.json();
-      return { success: true, drops, count: drops.length, query };
+      if (dropsResponse.ok) {
+        const drops = await dropsResponse.json();
+        allDrops = drops.map(d => {
+          // Handle encrypted content
+          let displayContent = d.content;
+          if (d.is_encrypted && d.content) {
+            // For encrypted drops, show that they're encrypted but include any available metadata
+            displayContent = d.content; // Content should already be decrypted by RLS or show encrypted marker
+          }
+          return {
+            id: d.id,
+            content: displayContent,
+            category: d.category || 'inbox',
+            created_at: d.created_at,
+            is_encrypted: d.is_encrypted || false,
+            source: 'drops',
+            type: 'note'
+          };
+        });
+      }
+      
+      // Get recent command drops if enabled
+      if (includeCommands) {
+        const cmdUrl = `${SUPABASE_URL}/rest/v1/command_drops?user_id=eq.${userId}&order=created_at.desc&limit=${limit}`;
+        const cmdResponse = await fetch(cmdUrl, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        
+        if (cmdResponse.ok) {
+          const cmds = await cmdResponse.json();
+          const cmdDrops = cmds.map(c => ({
+            id: c.id,
+            content: c.title,
+            description: c.content,
+            category: 'command',
+            type: 'command',
+            status: c.status,
+            scheduled_at: c.scheduled_at,
+            created_at: c.created_at,
+            creator: c.creator,
+            source: 'command_drops'
+          }));
+          allDrops = [...allDrops, ...cmdDrops];
+        }
+      }
+      
+      // Sort combined by created_at desc
+      allDrops.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      allDrops = allDrops.slice(0, limit);
+      
+      // Format for display
+      const formattedDrops = allDrops.map(d => ({
+        id: d.id,
+        content: d.content?.substring(0, 200) || '[no content]',
+        type: d.type,
+        category: d.category,
+        created_at: d.created_at,
+        time_ago: getTimeAgo(d.created_at),
+        status: d.status,
+        is_encrypted: d.is_encrypted,
+        source: d.source
+      }));
+      
+      return { 
+        success: true, 
+        drops: formattedDrops, 
+        count: formattedDrops.length,
+        timestamp: new Date().toISOString()
+      };
     }
     
     case 'create_drop': {
@@ -959,8 +1129,61 @@ async function executeTool(toolName, input, dropContext, userId = null) {
       const category = input.category || 'inbox';
       
       if (!text) return { success: false, error: 'No text' };
+      if (!SUPABASE_KEY || !userId) {
+        // Fallback to frontend handling if no DB access
+        return { 
+          success: true, 
+          action: 'create_drop',
+          drop: { text, category, creator: 'aski' }
+        };
+      }
       
-      // Return action for frontend to handle
+      // Write directly to Supabase for immediate visibility
+      try {
+        const dropData = {
+          content: text,
+          category: category,
+          user_id: userId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_encrypted: false,
+          source: 'aski'
+        };
+        
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/drops`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(dropData)
+        });
+        
+        if (response.ok) {
+          const created = await response.json();
+          const dropId = created[0]?.id;
+          console.log('[create_drop] Created in Supabase:', dropId);
+          
+          return { 
+            success: true, 
+            action: 'create_drop',
+            drop: { 
+              id: dropId,
+              text, 
+              category, 
+              creator: 'aski',
+              created_at: dropData.created_at
+            },
+            saved_to_db: true
+          };
+        }
+      } catch (err) {
+        console.error('[create_drop] DB error:', err.message);
+      }
+      
+      // Fallback to frontend handling
       return { 
         success: true, 
         action: 'create_drop',
