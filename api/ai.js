@@ -395,8 +395,8 @@ const TOOLS = [
       properties: {
         status: {
           type: "string",
-          enum: ["active", "executed", "cancelled", "all"],
-          description: "Filter by status. Default: active"
+          enum: ["pending", "executed", "cancelled", "all"],
+          description: "Filter by status. Default: pending (active reminders)"
         },
         limit: {
           type: "number",
@@ -1156,7 +1156,7 @@ async function executeCancelEvent(input, userId) {
     
     // If no ID or not found, search by query
     if (!eventToCancel && input.search_query) {
-      const searchResponse = await fetch(`${SUPABASE_URL}/rest/v1/aski_commands?user_id=eq.${userId}&status=eq.active&title=ilike.*${encodeURIComponent(input.search_query)}*&order=created_at.desc&limit=1`, {
+      const searchResponse = await fetch(`${SUPABASE_URL}/rest/v1/aski_commands?user_id=eq.${userId}&status=eq.pending&title=ilike.*${encodeURIComponent(input.search_query)}*&order=created_at.desc&limit=1`, {
         method: 'GET',
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
@@ -1175,7 +1175,7 @@ async function executeCancelEvent(input, userId) {
     
     // If still not found, get the most recent active event
     if (!eventToCancel && !input.event_id && !input.search_query) {
-      const recentResponse = await fetch(`${SUPABASE_URL}/rest/v1/aski_commands?user_id=eq.${userId}&status=eq.active&order=created_at.desc&limit=1`, {
+      const recentResponse = await fetch(`${SUPABASE_URL}/rest/v1/aski_commands?user_id=eq.${userId}&status=eq.pending&order=created_at.desc&limit=1`, {
         method: 'GET',
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
@@ -1252,7 +1252,7 @@ async function executeListEvents(input, userId) {
       return { success: false, error: 'User not authenticated' };
     }
     
-    const status = input.status || 'active';
+    const status = input.status || 'pending';
     const limit = input.limit || 10;
     
     let url = `${SUPABASE_URL}/rest/v1/aski_commands?user_id=eq.${userId}&order=scheduled_at.asc&limit=${limit}`;
