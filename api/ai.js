@@ -1755,33 +1755,41 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
       const toolResultsContent = [];
       
       for (const toolBlock of toolBlocks) {
-        const toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed);
+        let toolResult;
+        try {
+          console.log('[Tool] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
+          toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed);
+          console.log('[Tool] Result:', toolBlock.name, JSON.stringify(toolResult));
+        } catch (toolError) {
+          console.error('[Tool] Error executing', toolBlock.name, ':', toolError.message);
+          toolResult = { success: false, error: toolError.message, action: toolBlock.name };
+        }
+        
         toolResults.push({ toolName: toolBlock.name, result: toolResult });
         
         // Track create_drop action
-        if (toolBlock.name === 'create_drop' && toolResult.action === 'create_drop') {
+        if (toolBlock.name === 'create_drop' && toolResult?.action === 'create_drop') {
           createDropAction = toolResult;
         }
         
         // Track create_event action
-        if (toolBlock.name === 'create_event' && toolResult.action === 'create_event') {
+        if (toolBlock.name === 'create_event' && toolResult?.action === 'create_event') {
           createEventAction = toolResult;
         }
         
         // Track cancel_event action
-        if (toolBlock.name === 'cancel_event' && toolResult.action === 'cancel_event') {
+        if (toolBlock.name === 'cancel_event' && toolResult?.action === 'cancel_event') {
           cancelEventAction = toolResult;
         }
         
         // Track list_events action
-        if (toolBlock.name === 'list_events' && toolResult.action === 'list_events') {
+        if (toolBlock.name === 'list_events' && toolResult?.action === 'list_events') {
           listEventsAction = toolResult;
         }
         
         // Track delete_drop action (v4.17)
         if (toolBlock.name === 'delete_drop') {
           deleteDropAction = toolResult;
-          console.log('[delete_drop] Tool result:', JSON.stringify(toolResult));
         }
         
         // Track update_drop action (v4.17)
@@ -1793,13 +1801,14 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
         sendEvent({ 
           type: 'tool_result', 
           tool: toolBlock.name, 
-          success: toolResult.success 
+          success: toolResult?.success || false,
+          error: toolResult?.error || null
         });
         
         toolResultsContent.push({
           type: 'tool_result',
           tool_use_id: toolBlock.id,
-          content: JSON.stringify(toolResult)
+          content: JSON.stringify(toolResult || { success: false, error: 'Tool execution failed' })
         });
       }
       
@@ -1807,10 +1816,12 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
       messages.push({ role: 'user', content: toolResultsContent });
       
       // Continue to next iteration to get Claude's response after tools
+      console.log('[Streaming] Tool iteration done, continuing to get Claude response...');
       continue;
     }
     
     // No more tools needed, we're done
+    console.log('[Streaming] Loop done. Final text length:', contentBlocks.filter(b => b.type === 'text').map(b => b.text).join('').length);
     break;
   }
   
@@ -1891,7 +1902,16 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
     const toolBlock = data.content?.find(b => b.type === 'tool_use');
     if (!toolBlock) break;
     
-    const toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed);
+    let toolResult;
+    try {
+      console.log('[Tool Non-Stream] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
+      toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed);
+      console.log('[Tool Non-Stream] Result:', toolBlock.name, JSON.stringify(toolResult));
+    } catch (toolError) {
+      console.error('[Tool Non-Stream] Error:', toolBlock.name, toolError.message);
+      toolResult = { success: false, error: toolError.message };
+    }
+    
     toolResults.push({ toolName: toolBlock.name, result: toolResult });
     
     messages.push({ role: 'assistant', content: data.content });
@@ -1900,7 +1920,7 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
       content: [{ 
         type: 'tool_result', 
         tool_use_id: toolBlock.id, 
-        content: JSON.stringify(toolResult) 
+        content: JSON.stringify(toolResult || { success: false, error: 'Tool failed' }) 
       }]
     });
     
