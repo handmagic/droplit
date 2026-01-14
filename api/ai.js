@@ -368,6 +368,43 @@ const TOOLS = [
       },
       required: ["name", "trigger_type", "action_type"]
     }
+  },
+  {
+    name: "cancel_event",
+    description: "Cancel/delete an existing reminder or scheduled event. Use when user asks to cancel, delete, remove a reminder. Trigger phrases: 'cancel reminder...', 'delete reminder...', 'remove alarm...', 'отмени напоминание...', 'удали напоминание...', 'отмена...'",
+    input_schema: {
+      type: "object",
+      properties: {
+        event_id: {
+          type: "string",
+          description: "ID of the event to cancel (from list_events or recent context)"
+        },
+        search_query: {
+          type: "string",
+          description: "Search text to find the reminder to cancel (if ID not known). Searches in reminder titles."
+        }
+      },
+      required: []
+    }
+  },
+  {
+    name: "list_events",
+    description: "List all active reminders and scheduled events. Use when user asks to see, show, list reminders. Trigger phrases: 'show my reminders', 'what reminders...', 'list alarms', 'покажи напоминания', 'какие напоминания', 'мои напоминания'",
+    input_schema: {
+      type: "object",
+      properties: {
+        status: {
+          type: "string",
+          enum: ["active", "executed", "cancelled", "all"],
+          description: "Filter by status. Default: active"
+        },
+        limit: {
+          type: "number",
+          description: "Max number of events to return. Default: 10"
+        }
+      },
+      required: []
+    }
   }
 ];
 
@@ -704,6 +741,18 @@ When user asks to remind, wake up, notify, or schedule:
 3. Set appropriate priority: alarms=8-10, reminders=5, notifications=3
 4. Confirm what was scheduled in your response
 
+When user asks to cancel, delete, or remove a reminder:
+1. Use the cancel_event tool
+2. If user mentions specific reminder text, use search_query
+3. If no specifics given, the most recent active reminder will be cancelled
+4. Confirm what was cancelled
+
+When user asks to see, list, or show reminders:
+1. Use the list_events tool
+2. Default shows active reminders
+3. Present results in a clear, concise format
+4. Include event ID for reference if user wants to cancel specific one
+
 ## LANGUAGE:
 - Always respond in same language as user
 - Support Russian and English seamlessly`;
@@ -908,6 +957,14 @@ async function executeTool(toolName, input, dropContext, userId = null) {
       return await handleCreateEvent(input, userId);
     }
     
+    case 'cancel_event': {
+      return await executeCancelEvent(input, userId);
+    }
+    
+    case 'list_events': {
+      return await executeListEvents(input, userId);
+    }
+    
     default:
       return { success: false, error: `Unknown tool: ${toolName}` };
   }
@@ -1059,6 +1116,198 @@ async function handleCreateEvent(input, userId) {
 }
 
 // ============================================
+// CANCEL EVENT TOOL
+// ============================================
+async function executeCancelEvent(input, userId) {
+  try {
+    console.log('[cancel_event] Cancelling event for user:', userId);
+    
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      console.error('[cancel_event] No SUPABASE_SERVICE_KEY');
+      return { success: false, error: 'Database not configured' };
+    }
+    
+    if (!userId) {
+      console.error('[cancel_event] No userId');
+      return { success: false, error: 'User not authenticated' };
+    }
+    
+    let eventToCancel = null;
+    
+    // If we have event_id, use it directly
+    if (input.event_id) {
+      // Fetch the event to verify ownership
+      const fetchResponse = await fetch(`${SUPABASE_URL}/rest/v1/aski_commands?id=eq.${input.event_id}&user_id=eq.${userId}`, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (fetchResponse.ok) {
+        const events = await fetchResponse.json();
+        if (events.length > 0) {
+          eventToCancel = events[0];
+        }
+      }
+    }
+    
+    // If no ID or not found, search by query
+    if (!eventToCancel && input.search_query) {
+      const searchResponse = await fetch(`${SUPABASE_URL}/rest/v1/aski_commands?user_id=eq.${userId}&status=eq.active&title=ilike.*${encodeURIComponent(input.search_query)}*&order=created_at.desc&limit=1`, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (searchResponse.ok) {
+        const events = await searchResponse.json();
+        if (events.length > 0) {
+          eventToCancel = events[0];
+        }
+      }
+    }
+    
+    // If still not found, get the most recent active event
+    if (!eventToCancel && !input.event_id && !input.search_query) {
+      const recentResponse = await fetch(`${SUPABASE_URL}/rest/v1/aski_commands?user_id=eq.${userId}&status=eq.active&order=created_at.desc&limit=1`, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (recentResponse.ok) {
+        const events = await recentResponse.json();
+        if (events.length > 0) {
+          eventToCancel = events[0];
+        }
+      }
+    }
+    
+    if (!eventToCancel) {
+      return { success: false, error: 'No matching reminder found', action: 'cancel_event' };
+    }
+    
+    // Update status to cancelled
+    const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/aski_commands?id=eq.${eventToCancel.id}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        status: 'cancelled',
+        updated_at: new Date().toISOString()
+      })
+    });
+    
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.error('[cancel_event] Update error:', errorText);
+      return { success: false, error: 'Failed to cancel reminder' };
+    }
+    
+    console.log('[cancel_event] Cancelled event:', eventToCancel.title);
+    
+    return {
+      success: true,
+      action: 'cancel_event',
+      cancelled: {
+        id: eventToCancel.id,
+        title: eventToCancel.title,
+        scheduled_at: eventToCancel.scheduled_at
+      }
+    };
+    
+  } catch (error) {
+    console.error('[cancel_event] Exception:', error);
+    return { success: false, error: error.message, action: 'cancel_event' };
+  }
+}
+
+// ============================================
+// LIST EVENTS TOOL
+// ============================================
+async function executeListEvents(input, userId) {
+  try {
+    console.log('[list_events] Listing events for user:', userId);
+    
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      console.error('[list_events] No SUPABASE_SERVICE_KEY');
+      return { success: false, error: 'Database not configured' };
+    }
+    
+    if (!userId) {
+      console.error('[list_events] No userId');
+      return { success: false, error: 'User not authenticated' };
+    }
+    
+    const status = input.status || 'active';
+    const limit = input.limit || 10;
+    
+    let url = `${SUPABASE_URL}/rest/v1/aski_commands?user_id=eq.${userId}&order=scheduled_at.asc&limit=${limit}`;
+    
+    if (status !== 'all') {
+      url += `&status=eq.${status}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[list_events] Fetch error:', errorText);
+      return { success: false, error: 'Failed to fetch reminders' };
+    }
+    
+    const events = await response.json();
+    console.log('[list_events] Found', events.length, 'events');
+    
+    // Format events for display
+    const formattedEvents = events.map(e => ({
+      id: e.id,
+      title: e.title,
+      scheduled_at: e.scheduled_at,
+      scheduled_time: new Date(e.scheduled_at).toLocaleString('ru-RU', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      status: e.status,
+      action_type: e.action_type
+    }));
+    
+    return {
+      success: true,
+      action: 'list_events',
+      events: formattedEvents,
+      count: formattedEvents.length
+    };
+    
+  } catch (error) {
+    console.error('[list_events] Exception:', error);
+    return { success: false, error: error.message, action: 'list_events' };
+  }
+}
+
+// ============================================
 // PARSE SSE STREAM FROM CLAUDE
 // ============================================
 async function* parseSSEStream(response) {
@@ -1099,6 +1348,8 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   let toolResults = [];
   let createDropAction = null;
   let createEventAction = null;
+  let cancelEventAction = null;
+  let listEventsAction = null;
   
   // Use provided model or default to Sonnet
   const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
@@ -1246,6 +1497,16 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
           createEventAction = toolResult;
         }
         
+        // Track cancel_event action
+        if (toolBlock.name === 'cancel_event' && toolResult.action === 'cancel_event') {
+          cancelEventAction = toolResult;
+        }
+        
+        // Track list_events action
+        if (toolBlock.name === 'list_events' && toolResult.action === 'list_events') {
+          listEventsAction = toolResult;
+        }
+        
         // Notify client about tool result
         sendEvent({ 
           type: 'tool_result', 
@@ -1293,6 +1554,8 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     toolsUsed: toolResults.map(t => t.toolName),
     createDrop: createDropAction,
     createEvent: createEventAction,
+    cancelEvent: cancelEventAction,
+    listEvents: listEventsAction,
     usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens }, // NEW
     _debug: debugInfo
   });
@@ -1578,6 +1841,8 @@ export default async function handler(req) {
       
       const createDropAction = toolResults.find(t => t.toolName === 'create_drop');
       const createEventAction = toolResults.find(t => t.toolName === 'create_event');
+      const cancelEventAction = toolResults.find(t => t.toolName === 'cancel_event');
+      const listEventsAction = toolResults.find(t => t.toolName === 'list_events');
 
       return new Response(JSON.stringify({ 
         success: true,
@@ -1587,6 +1852,8 @@ export default async function handler(req) {
         toolsUsed: toolResults.map(t => t.toolName),
         createDrop: createDropAction?.result || null,
         createEvent: createEventAction?.result || null,
+        cancelEvent: cancelEventAction?.result || null,
+        listEvents: listEventsAction?.result || null,
         geo: { timezone: userTimezone, country: userCountry, city: userCity },
         model: modelConfig.id,  // Which model was used
         // DEBUG INFO
