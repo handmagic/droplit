@@ -918,66 +918,22 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
       const text = input.text;
       const category = input.category || 'inbox';
       
-      if (!text) return { success: false, error: 'No text' };
-      if (!SUPABASE_KEY || !userId) {
-        // Fallback to frontend handling if no DB access
-        return { 
-          success: true, 
-          action: 'create_drop',
-          drop: { text, category, creator: 'aski' }
-        };
-      }
+      if (!text) return { success: false, error: 'No text', action: 'create_drop' };
       
-      // Write directly to Supabase for immediate visibility
-      try {
-        const dropData = {
-          content: text,
-          category: category,
-          user_id: userId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_encrypted: false,
-          source: 'aski'
-        };
-        
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/drops`, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify(dropData)
-        });
-        
-        if (response.ok) {
-          const created = await response.json();
-          const dropId = created[0]?.id;
-          console.log('[create_drop] Created in Supabase:', dropId);
-          
-          return { 
-            success: true, 
-            action: 'create_drop',
-            drop: { 
-              id: dropId,
-              text, 
-              category, 
-              creator: 'aski',
-              created_at: dropData.created_at
-            },
-            saved_to_db: true
-          };
-        }
-      } catch (err) {
-        console.error('[create_drop] DB error:', err.message);
-      }
+      console.log('[create_drop] Creating drop:', text.substring(0, 50));
       
-      // Fallback to frontend handling
+      // Just return action for frontend to add to localStorage
       return { 
         success: true, 
         action: 'create_drop',
-        drop: { text, category, creator: 'aski' }
+        drop: { 
+          text, 
+          category, 
+          creator: 'aski',
+          created_at: new Date().toISOString()
+        },
+        sync_local: true,
+        message: 'Создано'
       };
     }
     
@@ -1770,6 +1726,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
         // Track create_drop action
         if (toolBlock.name === 'create_drop' && toolResult?.action === 'create_drop') {
           createDropAction = toolResult;
+          console.log('[create_drop] Tracked for frontend:', JSON.stringify(toolResult));
         }
         
         // Track create_event action
