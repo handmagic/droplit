@@ -2160,6 +2160,29 @@ async function handleStreamingResponse(response) {
                   }
                 }
               }
+              
+              // Handle send_email_with_docx - generate docx on frontend and send (v4.19)
+              if (parsed.sendEmail?.action === 'send_email_with_docx' && parsed.sendEmail?.needs_docx) {
+                console.log('[Email] Generating DOCX for email...');
+                toast('Создаю документ...', 'info');
+                
+                // Generate docx on frontend using existing library
+                generateAndSendDocxEmail(parsed.sendEmail).then(result => {
+                  if (result.success) {
+                    toast(`Письмо с документом отправлено на ${parsed.sendEmail.to}`, 'success');
+                  } else {
+                    toast(`Ошибка отправки: ${result.error}`, 'error');
+                  }
+                }).catch(err => {
+                  console.error('[Email] Error:', err);
+                  toast('Ошибка при создании документа', 'error');
+                });
+              }
+              
+              // Handle simple send_email (without docx)
+              if (parsed.sendEmail?.action === 'send_email' && !parsed.sendEmail?.needs_docx) {
+                toast(`Письмо отправлено на ${parsed.sendEmail.to}`, 'success');
+              }
             }
             
             // Legacy format (v4.4 and earlier)
@@ -2816,3 +2839,166 @@ window.DropLitChat = {
   askiSpeak,
   askiStopSpeaking
 };
+
+// ============================================
+// GENERATE DOCX AND SEND EMAIL (v4.19)
+// ============================================
+async function generateAndSendDocxEmail(emailData) {
+  const { to, subject, content, filename } = emailData;
+  
+  console.log('[Email] Generating DOCX:', subject);
+  
+  try {
+    // Load docx library if not loaded
+    if (typeof docx === 'undefined' && !window.docx) {
+      console.log('[Email] Loading docx library...');
+      await loadScriptForEmail('https://unpkg.com/docx@8.5.0/build/index.umd.js');
+    }
+    
+    const docxLib = window.docx || (typeof docx !== 'undefined' ? docx : null);
+    if (!docxLib) throw new Error('DOCX library not loaded');
+    
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docxLib;
+    
+    // Parse content - remove HTML and split into paragraphs
+    let cleanContent = content
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<\/h[1-6]>/gi, '\n\n')
+      .replace(/<h[1-6][^>]*>/gi, '### ')
+      .replace(/<strong>|<b>/gi, '**')
+      .replace(/<\/strong>|<\/b>/gi, '**')
+      .replace(/<li>/gi, '• ')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .trim();
+    
+    const paragraphs = cleanContent.split(/\n\n+/).filter(p => p.trim());
+    
+    // Build document paragraphs
+    const docParagraphs = [];
+    
+    // Title
+    docParagraphs.push(new Paragraph({
+      text: subject,
+      heading: HeadingLevel.TITLE,
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 400 }
+    }));
+    
+    // Content paragraphs
+    for (const para of paragraphs) {
+      // Check if header (starts with # or ###)
+      if (para.startsWith('###') || para.startsWith('##') || para.startsWith('#')) {
+        const headerText = para.replace(/^#+\s*/, '');
+        docParagraphs.push(new Paragraph({
+          text: headerText,
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 300, after: 150 }
+        }));
+      } else if (para.startsWith('•')) {
+        // Bullet point
+        docParagraphs.push(new Paragraph({
+          children: [new TextRun({ text: para.replace('• ', ''), size: 24 })],
+          bullet: { level: 0 },
+          spacing: { after: 100 }
+        }));
+      } else {
+        // Regular paragraph - handle bold markers
+        const runs = [];
+        const parts = para.split(/\*\*(.*?)\*\*/g);
+        for (let i = 0; i < parts.length; i++) {
+          if (parts[i]) {
+            runs.push(new TextRun({
+              text: parts[i],
+              bold: i % 2 === 1,
+              size: 24,
+              font: 'Calibri'
+            }));
+          }
+        }
+        
+        docParagraphs.push(new Paragraph({
+          children: runs.length > 0 ? runs : [new TextRun({ text: para, size: 24, font: 'Calibri' })],
+          spacing: { after: 200 }
+        }));
+      }
+    }
+    
+    // Footer
+    docParagraphs.push(new Paragraph({
+      children: [new TextRun({ text: 'Документ создан через ASKI', size: 18, color: '888888', italics: true })],
+      alignment: AlignmentType.RIGHT,
+      spacing: { before: 400 }
+    }));
+    
+    // Create document
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: docParagraphs
+      }]
+    });
+    
+    // Generate blob and convert to base64
+    const blob = await Packer.toBlob(doc);
+    const base64 = await blobToBase64(blob);
+    
+    console.log('[Email] DOCX generated, size:', Math.round(base64.length / 1024), 'KB');
+    
+    // Send to server
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'send_email_with_attachment',
+        to: to,
+        subject: subject,
+        filename: filename || 'document',
+        docxBase64: base64
+      })
+    });
+    
+    const result = await response.json();
+    console.log('[Email] Server response:', result);
+    
+    return result;
+    
+  } catch (error) {
+    console.error('[Email] Error generating/sending DOCX:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Helper: Convert blob to base64
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Helper: Load external script for email
+function loadScriptForEmail(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
