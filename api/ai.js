@@ -914,15 +914,14 @@ When user asks to see, list, or show reminders:
 - "мне", "me", "alex", "алекс" → личная почта пользователя
 - Можно указать email напрямую: "отправь на test@example.com"
 
-**Параметры:**
-- to: имя из книги или email
-- subject: тема письма
-- content: содержимое (текст или HTML)
-- as_word: true — прикрепить как документ
+**ВАЖНО — as_word параметр:**
+- Если пользователь говорит "как документ", "word", "вордом", "файлом", "документом" → ОБЯЗАТЕЛЬНО as_word: true
+- Без этого параметра отправится просто текст письма без вложения!
 
 **Примеры:**
-- "Отправь мне на почту" → send_email(to: "мне", ...)
-- "Пришли отчёт как документ" → send_email(..., as_word: true)
+- "Отправь мне на почту" → send_email(to: "мне", as_word: false)
+- "Пришли как документ" → send_email(to: "мне", as_word: true)  
+- "Отправь word файл" → send_email(to: "мне", as_word: true)
 
 ## LANGUAGE:
 - Always respond in same language as user
