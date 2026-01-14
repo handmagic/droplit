@@ -2101,6 +2101,34 @@ async function handleStreamingResponse(response) {
                 createDropData = null;
               }
               
+              // Handle create_event in streaming mode (v4.18) - add command drop to feed
+              if (parsed.createEvent?.action === 'create_event' && parsed.createEvent?.command) {
+                const cmd = parsed.createEvent.command;
+                const now = new Date();
+                const newIdea = {
+                  id: cmd.id || Date.now().toString(),
+                  text: `⏰ ${cmd.title}`,
+                  content: `⏰ ${cmd.title}`,
+                  category: 'command',
+                  type: 'command',
+                  timestamp: now.toISOString(),
+                  created_at: now.toISOString(),
+                  scheduled_at: cmd.scheduled_at,
+                  status: 'pending',
+                  date: now.toLocaleDateString('ru-RU'),
+                  time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+                  isMedia: false,
+                  source: 'aski_command',
+                  creator: 'aski'
+                };
+                ideas.unshift(newIdea);
+                localStorage.setItem('ideas', JSON.stringify(ideas));
+                render();
+                counts();
+                console.log('✅ [Streaming] AI created command drop in local feed:', newIdea.id);
+                toast('Напоминание создано', 'success');
+              }
+              
               // Handle delete_drop in streaming mode (v4.17)
               if (parsed.deleteDrop?.action === 'delete_drop' && parsed.deleteDrop?.sync_local) {
                 const deleteId = parsed.deleteDrop.local_id || parsed.deleteDrop.deleted_id;
@@ -2177,27 +2205,8 @@ async function handleStreamingResponse(response) {
   
   askAIMessages.push({ text: fullText, isUser: false });
   
-  if (createDropData && createDropData.drop) {
-    const drop = createDropData.drop;
-    const now = new Date();
-    const newIdea = {
-      id: Date.now().toString(),
-      text: drop.text,
-      category: drop.category || 'inbox',
-      timestamp: now.toISOString(),
-      date: now.toLocaleDateString('ru-RU'),
-      time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
-      isMedia: false,
-      source: 'aski_tool',
-      creator: 'aski',
-      sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null,
-      encrypted: window.DROPLIT_PRIVACY_ENABLED || false
-    };
-    ideas.unshift(newIdea);
-    save(newIdea);
-    counts();  // NO render() - causes delays!
-    toast('Drop created by ASKI', 'success');
-  }
+  // createDrop is now handled in streaming 'done' event (v4.18)
+  // Old code removed to prevent duplicate drops
   
   if (localStorage.getItem('droplit_autodrop') === 'true') autoSaveMessageAsDrop(fullText, false);
   
