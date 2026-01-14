@@ -2009,6 +2009,7 @@ async function handleStreamingResponse(response) {
   let fullText = '';
   let buffer = '';
   let createDropData = null;
+  let createEventData = null; // Command drops support
   
   // Start WebSocket streaming TTS if enabled
   // TEMPORARILY DISABLED for debugging
@@ -2074,6 +2075,7 @@ async function handleStreamingResponse(response) {
             // Stream done
             if (parsed.type === 'done') {
               createDropData = parsed.createDrop;
+              createEventData = parsed.createEvent; // Command drops support
             }
             
             // Legacy format (v4.4 and earlier)
@@ -2137,8 +2139,58 @@ async function handleStreamingResponse(response) {
     };
     ideas.unshift(newIdea);
     save(newIdea);
+    if (typeof playDropSound === 'function') playDropSound();
     counts();  // NO render() - causes delays!
     toast('Drop created by ASKI', 'success');
+  }
+  
+  // Handle AI-initiated command/event creation (Command Drops v2.0)
+  if (createEventData?.action === 'create_event' && createEventData?.event) {
+    const event = createEventData.event;
+    const command = createEventData.command;
+    
+    console.log('🎯 AI created command (streaming):', event.name);
+    
+    const now = new Date();
+    const scheduledDate = new Date(event.trigger_at || command?.scheduled_at);
+    
+    const commandDrop = {
+      id: command?.id || Date.now(),
+      supabase_id: command?.id || event.id,
+      text: event.name,
+      title: event.name,
+      content: event.name,
+      category: 'commands',
+      type: 'command',
+      creator: 'aski',
+      acceptor: 'user',
+      sense_type: 'reminder',
+      runtime_type: 'scheduled',
+      scheduled_at: scheduledDate.toISOString(),
+      scheduled_date: scheduledDate.toLocaleDateString('ru-RU'),
+      scheduled_time: scheduledDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      action_type: event.action_type || 'push',
+      status: 'pending',
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('ru-RU'),
+      time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      isMedia: false,
+      encrypted: window.DROPLIT_PRIVACY_ENABLED || false,
+      synced_at: now.toISOString()
+    };
+    
+    ideas.unshift(commandDrop);
+    save(commandDrop);
+    render();
+    counts();
+    
+    if (typeof playDropSound === 'function') playDropSound();
+    
+    if (typeof CommandSystem !== 'undefined' && CommandSystem.sendToSW) {
+      CommandSystem.sendToSW('SYNC_COMMAND', commandDrop);
+    }
+    
+    toast(`⚡ Command at ${commandDrop.scheduled_time}`, 'success');
   }
   
   if (localStorage.getItem('droplit_autodrop') === 'true') autoSaveMessageAsDrop(fullText, false);
