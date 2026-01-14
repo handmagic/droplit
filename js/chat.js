@@ -1,5 +1,4 @@
 // ============================================
-// ============================================
 // DROPLIT CHAT v1.4 - Sensitive Data Protection
 // ASKI Chat, Voice Mode, Streaming
 // ============================================
@@ -2164,8 +2163,8 @@ async function handleStreamingResponse(response) {
               
               // Handle send_email_with_docx - generate docx on frontend and send (v4.19)
               if (parsed.sendEmail?.action === 'send_email_with_docx' && parsed.sendEmail?.needs_docx) {
-                console.log('[Email] Generating DOCX for email...');
-                toast('Создаю документ...', 'info');
+                console.log('[Email] Got send_email_with_docx action:', parsed.sendEmail);
+                toast('Создаю документ Word...', 'info');
                 
                 // Generate docx on frontend using existing library
                 generateAndSendDocxEmail(parsed.sendEmail).then(result => {
@@ -2176,13 +2175,19 @@ async function handleStreamingResponse(response) {
                   }
                 }).catch(err => {
                   console.error('[Email] Error:', err);
-                  toast('Ошибка при создании документа', 'error');
+                  toast('Ошибка при создании документа: ' + err.message, 'error');
                 });
               }
               
               // Handle simple send_email (without docx)
               if (parsed.sendEmail?.action === 'send_email' && !parsed.sendEmail?.needs_docx) {
+                console.log('[Email] Simple email sent:', parsed.sendEmail);
                 toast(`Письмо отправлено на ${parsed.sendEmail.to}`, 'success');
+              }
+              
+              // Debug: log if sendEmail exists but action is unexpected
+              if (parsed.sendEmail && !['send_email', 'send_email_with_docx'].includes(parsed.sendEmail.action)) {
+                console.warn('[Email] Unexpected sendEmail action:', parsed.sendEmail);
               }
             }
             
