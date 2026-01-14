@@ -2299,7 +2299,8 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
 
 // ============================================
-// COMMAND DROPS SYSTEM (v0.9.60)
+// COMMAND DROPS SYSTEM v2.0
+// Multi-executor architecture
 // ============================================
 
 // Add commands category to CATS
@@ -2313,121 +2314,655 @@ if (typeof CATS !== 'undefined') {
   };
 }
 
-// Command scheduler - checks every 30 seconds
-let commandSchedulerInterval = null;
+// ============================================
+// COMMAND SYSTEM (Multi-executor)
+// ============================================
 
-function startCommandScheduler() {
-  if (commandSchedulerInterval) return;
+const CommandSystem = {
+  // Executor identification
+  EXECUTOR_ID: 'browser',
   
-  commandSchedulerInterval = setInterval(() => {
-    checkPendingCommands();
-  }, 15000); // Check every 15 seconds
+  // Intervals
+  CHECK_INTERVAL: 15000, // 15 seconds
+  CLAIM_TIMEOUT: 60000,  // 60 seconds
   
-  // Also check immediately on start
-  setTimeout(checkPendingCommands, 2000);
-  console.log('[Commands] Scheduler started');
+  // State
+  schedulerInterval: null,
+  isOnline: navigator.onLine,
+  swRegistration: null,
+  debugMode: true, // Set to false in production
   
-  // DEBUG: Show that scheduler is running (remove later)
-  // toast('⚡ Command scheduler active', 'info', 2000);
-}
-
-function checkPendingCommands() {
-  const now = new Date();
-  const pendingCommands = ideas.filter(i => 
-    i.type === 'command' && 
-    i.status === 'pending' && 
-    i.scheduled_at
-  );
+  // ============================================
+  // INITIALIZATION
+  // ============================================
   
-  console.log('[Commands] Checking', pendingCommands.length, 'pending at', now.toLocaleTimeString());
-  
-  for (const cmd of pendingCommands) {
-    const scheduledTime = new Date(cmd.scheduled_at);
-    const diff = scheduledTime - now;
+  async init() {
+    console.log('[CommandSystem] Initializing v2.0...');
     
-    console.log('[Commands]', cmd.text, '| Scheduled:', scheduledTime.toLocaleTimeString(), '| Diff:', Math.round(diff/1000), 'sec');
+    // Start browser scheduler (fallback level)
+    this.startBrowserScheduler();
     
-    if (scheduledTime <= now) {
-      executeCommand(cmd);
+    // Register Service Worker communication
+    this.setupServiceWorker();
+    
+    // Listen for online/offline
+    window.addEventListener('online', () => this.handleOnline());
+    window.addEventListener('offline', () => this.handleOffline());
+    
+    // Listen for SW messages
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', (e) => this.handleSWMessage(e));
     }
-  }
-}
-
-function executeCommand(cmd) {
-  console.log('[Commands] Executing:', cmd.text);
+    
+    // Request notification permission
+    this.requestNotificationPermission();
+    
+    console.log('[CommandSystem] Initialized');
+  },
   
-  // Update status
-  cmd.status = 'executed';
-  cmd.executed_at = new Date().toISOString();
-  save();
+  // ============================================
+  // SERVICE WORKER COMMUNICATION
+  // ============================================
   
-  // Show notification
-  const title = cmd.text || 'Reminder';
+  async setupServiceWorker() {
+    if (!('serviceWorker' in navigator)) {
+      console.log('[CommandSystem] Service Worker not supported');
+      return;
+    }
+    
+    try {
+      // Get existing registration
+      this.swRegistration = await navigator.serviceWorker.ready;
+      console.log('[CommandSystem] SW ready:', this.swRegistration.scope);
+      
+      // Sync existing commands to SW IndexedDB
+      this.syncAllCommandsToSW();
+      
+    } catch (error) {
+      console.error('[CommandSystem] SW setup error:', error);
+    }
+  },
   
-  // Try push notification first
-  if (cmd.action_type === 'push' && 'Notification' in window && Notification.permission === 'granted') {
-    new Notification('⚡ ' + title, {
-      body: 'Время: ' + cmd.scheduled_time,
-      icon: 'icons/icon-192.png',
-      tag: 'command-' + cmd.id,
-      requireInteraction: true
+  sendToSW(type, data) {
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type, data });
+    }
+  },
+  
+  syncAllCommandsToSW() {
+    const commands = ideas.filter(i => i.type === 'command' && i.status === 'pending');
+    for (const cmd of commands) {
+      this.sendToSW('SYNC_COMMAND', cmd);
+    }
+    console.log('[CommandSystem] Synced', commands.length, 'commands to SW');
+  },
+  
+  handleSWMessage(event) {
+    const { type, command_id, executor } = event.data;
+    
+    switch (type) {
+      case 'COMMAND_EXECUTED':
+        console.log('[CommandSystem] SW executed command:', command_id);
+        this.markExecutedLocally(command_id, executor);
+        render();
+        break;
+        
+      case 'COMMAND_COMPLETED':
+        this.markCompleted(command_id);
+        render();
+        break;
+        
+      case 'COMMAND_SNOOZED':
+        render();
+        break;
+    }
+  },
+  
+  // ============================================
+  // BROWSER SCHEDULER (Fallback Level)
+  // ============================================
+  
+  startBrowserScheduler() {
+    if (this.schedulerInterval) {
+      clearInterval(this.schedulerInterval);
+    }
+    
+    console.log('[CommandSystem] Browser scheduler started');
+    
+    // Check immediately after short delay
+    setTimeout(() => this.checkPendingCommands(), 2000);
+    
+    // Then periodically
+    this.schedulerInterval = setInterval(() => {
+      this.checkPendingCommands();
+    }, this.CHECK_INTERVAL);
+  },
+  
+  checkPendingCommands() {
+    const now = new Date();
+    
+    const pendingCommands = ideas.filter(i => 
+      i.type === 'command' && 
+      i.status === 'pending' && 
+      i.scheduled_at
+    );
+    
+    // Debug badge
+    if (this.debugMode && pendingCommands.length > 0) {
+      const nextCmd = pendingCommands.sort((a, b) => 
+        new Date(a.scheduled_at) - new Date(b.scheduled_at)
+      )[0];
+      const diff = Math.round((new Date(nextCmd.scheduled_at) - now) / 1000);
+      this.updateDebugBadge(pendingCommands.length, diff);
+    } else {
+      this.hideDebugBadge();
+    }
+    
+    // Execute due commands
+    for (const cmd of pendingCommands) {
+      const scheduledTime = new Date(cmd.scheduled_at);
+      
+      if (scheduledTime <= now) {
+        this.executeCommand(cmd);
+      }
+    }
+  },
+  
+  // ============================================
+  // COMMAND EXECUTION
+  // ============================================
+  
+  async executeCommand(cmd) {
+    // Check if already executed or claimed
+    if (cmd.status !== 'pending') {
+      console.log('[CommandSystem] Already processed:', cmd.id);
+      return;
+    }
+    
+    // Check claim (prevent duplicates from multiple executors)
+    if (cmd.claimed_by && cmd.claimed_at) {
+      const claimedAge = Date.now() - new Date(cmd.claimed_at).getTime();
+      if (claimedAge < this.CLAIM_TIMEOUT) {
+        console.log('[CommandSystem] Claimed by:', cmd.claimed_by, '- skipping');
+        return;
+      }
+      // Claim expired - take over (failover)
+      console.log('[CommandSystem] Taking over expired claim');
+    }
+    
+    // Claim command
+    cmd.claimed_by = this.EXECUTOR_ID;
+    cmd.claimed_at = new Date().toISOString();
+    save();
+    
+    console.log('[CommandSystem] Executing:', cmd.text);
+    
+    try {
+      // Perform notification action
+      await this.performAction(cmd);
+      
+      // Mark as executed
+      this.markExecutedLocally(cmd.id, this.EXECUTOR_ID);
+      
+      // Handle recurring
+      if (cmd.command_type === 'cron' && cmd.cron_interval) {
+        this.scheduleNextOccurrence(cmd);
+      }
+      
+      render();
+      
+    } catch (error) {
+      console.error('[CommandSystem] Execution error:', error);
+      // Release claim on error
+      cmd.claimed_by = null;
+      cmd.claimed_at = null;
+      save();
+    }
+  },
+  
+  async performAction(cmd) {
+    const title = cmd.title || cmd.text || 'Reminder';
+    
+    // Always show toast (guaranteed to work)
+    toast(`⚡ ${title}`, 'warning', 10000);
+    
+    // Vibrate if available
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200, 100, 200]);
+    }
+    
+    // Push notification
+    if (cmd.action_type === 'push' || !cmd.action_type) {
+      await this.showNotification(cmd);
+    }
+    
+    // TTS (Text-to-Speech)
+    if (cmd.action_type === 'tts') {
+      this.speakText(title);
+    }
+  },
+  
+  async showNotification(cmd) {
+    const title = cmd.title || cmd.text || 'Reminder';
+    
+    if (!('Notification' in window)) return;
+    
+    if (Notification.permission === 'granted') {
+      // Prefer SW for better reliability and actions support
+      if (this.swRegistration) {
+        try {
+          await this.swRegistration.showNotification(`⚡ ${title}`, {
+            body: cmd.content || `Scheduled: ${cmd.scheduled_time}`,
+            icon: '/icons/icon-192.png',
+            badge: '/icons/badge-72.png',
+            tag: `command-${cmd.id}`,
+            vibrate: [200, 100, 200],
+            requireInteraction: true,
+            data: { command_id: cmd.id },
+            actions: [
+              { action: 'done', title: '✓ Done' },
+              { action: 'snooze', title: '⏰ +10min' }
+            ]
+          });
+        } catch (e) {
+          // Fallback to basic notification
+          new Notification(`⚡ ${title}`, {
+            body: cmd.content || `Scheduled: ${cmd.scheduled_time}`,
+            icon: '/icons/icon-192.png',
+            tag: `command-${cmd.id}`
+          });
+        }
+      } else {
+        new Notification(`⚡ ${title}`, {
+          body: cmd.content || `Scheduled: ${cmd.scheduled_time}`,
+          icon: '/icons/icon-192.png',
+          tag: `command-${cmd.id}`
+        });
+      }
+    } else if (Notification.permission === 'default') {
+      this.requestNotificationPermission();
+    }
+  },
+  
+  speakText(text) {
+    if ('speechSynthesis' in window) {
+      // Cancel any ongoing speech
+      speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ru-RU';
+      utterance.rate = 0.9;
+      utterance.volume = 1;
+      speechSynthesis.speak(utterance);
+    }
+  },
+  
+  // ============================================
+  // STATUS MANAGEMENT
+  // ============================================
+  
+  markExecutedLocally(id, executor) {
+    const cmd = ideas.find(i => i.id === id || i.id === parseInt(id));
+    if (!cmd) return;
+    
+    cmd.status = 'executed';
+    cmd.executor = executor;
+    cmd.executed_at = new Date().toISOString();
+    cmd.editability = 'uneditable';
+    
+    // Track execution attempt
+    if (!cmd.execution_attempts) cmd.execution_attempts = [];
+    cmd.execution_attempts.push({
+      executor,
+      at: new Date().toISOString(),
+      success: true
     });
+    
+    save();
+    
+    // Sync to Supabase if available
+    if (this.isOnline && window._supabaseClient && typeof currentUser !== 'undefined' && currentUser) {
+      this.syncToSupabase(cmd);
+    }
+    
+    console.log('[CommandSystem] Marked executed:', id, 'by', executor);
+  },
+  
+  markCompleted(id) {
+    const cmd = ideas.find(i => i.id === id || i.id === parseInt(id));
+    if (!cmd) return;
+    
+    cmd.status = 'completed';
+    cmd.completed_at = new Date().toISOString();
+    save();
+  },
+  
+  scheduleNextOccurrence(cmd) {
+    const nextCmd = {
+      ...cmd,
+      id: Date.now(),
+      status: 'pending',
+      claimed_by: null,
+      claimed_at: null,
+      executed_at: null,
+      executor: null,
+      scheduled_at: new Date(Date.now() + (cmd.cron_interval || 3600000)).toISOString(),
+      timestamp: new Date().toISOString(),
+      date: new Date().toLocaleDateString('ru-RU'),
+      time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})
+    };
+    
+    const nextTime = new Date(nextCmd.scheduled_at);
+    nextCmd.scheduled_date = nextTime.toLocaleDateString('ru-RU');
+    nextCmd.scheduled_time = nextTime.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+    
+    ideas.push(nextCmd);
+    save();
+    
+    // Sync to SW
+    this.sendToSW('SYNC_COMMAND', nextCmd);
+    
+    console.log('[CommandSystem] Next occurrence:', nextCmd.scheduled_time);
+  },
+  
+  // ============================================
+  // COMMAND CREATION (Unified API)
+  // ============================================
+  
+  create(options = {}) {
+    const {
+      text = '',
+      title = null,
+      content = null,
+      creator = 'user',
+      acceptor = 'user',
+      sense_type = 'reminder',
+      command_type = 'reminder', // legacy support
+      runtime_type = 'scheduled',
+      scheduled_at = null,
+      action_type = 'push',
+      action_params = {},
+      cron_interval = null,
+      approval = 'not_required'
+    } = options;
+    
+    if (!text.trim()) {
+      console.error('[CommandSystem] Empty text');
+      return null;
+    }
+    
+    // Parse time if not provided
+    const scheduledTime = scheduled_at 
+      ? new Date(scheduled_at) 
+      : parseTimeFromText(text);
+    
+    const now = new Date();
+    
+    const commandDrop = {
+      // Identity
+      id: Date.now(),
+      title: title || this.extractTitle(text),
+      text: text.trim(),
+      content: content || text.trim(),
+      
+      // Drops system compatibility
+      category: 'commands',
+      type: 'command',
+      isMedia: false,
+      encrypted: window.DROPLIT_PRIVACY_ENABLED || false,
+      
+      // Actors
+      creator,
+      acceptor,
+      controller: 'system',
+      
+      // Classification
+      relation_type: 'user',
+      sense_type: sense_type || command_type,
+      command_type: command_type, // legacy
+      runtime_type,
+      
+      // Execution
+      scheduled_at: scheduledTime.toISOString(),
+      scheduled_date: scheduledTime.toLocaleDateString('ru-RU'),
+      scheduled_time: scheduledTime.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      action_type,
+      action_params,
+      cron_interval,
+      
+      // State
+      status: 'pending',
+      approval,
+      visibility: 'visible',
+      editability: 'editable',
+      storage_type: 'local',
+      
+      // Metadata
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('ru-RU'),
+      time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      created_at: now.toISOString()
+    };
+    
+    // Add to ideas
+    ideas.push(commandDrop);
+    save(commandDrop);
+    render();
+    
+    // Sync to Service Worker
+    this.sendToSW('SYNC_COMMAND', commandDrop);
+    
+    // Sync to Supabase
+    if (this.isOnline && window._supabaseClient && typeof currentUser !== 'undefined' && currentUser) {
+      this.syncToSupabase(commandDrop);
+    }
+    
+    // Request notification permission
+    this.requestNotificationPermission();
+    
+    console.log('[CommandSystem] Created:', commandDrop);
+    return commandDrop;
+  },
+  
+  extractTitle(text) {
+    return text
+      .replace(/через\s+\d*\s*(мин|час|секунд|минуту|минутку|полчаса)\w*/gi, '')
+      .replace(/в\s+\d{1,2}(:\d{2})?/gi, '')
+      .replace(/завтра/gi, '')
+      .replace(/in\s+\d*\s*(min|hour|sec|minute)\w*/gi, '')
+      .replace(/at\s+\d{1,2}(:\d{2})?/gi, '')
+      .replace(/tomorrow/gi, '')
+      .replace(/^\s*[-–—]\s*/, '')
+      .trim() || text;
+  },
+  
+  // ============================================
+  // SUPABASE SYNC
+  // ============================================
+  
+  async syncToSupabase(cmd) {
+    if (!window._supabaseClient || !currentUser) return;
+    
+    try {
+      const { data, error } = await window._supabaseClient.rpc('sync_command_from_local', {
+        p_local_id: cmd.id,
+        p_user_id: currentUser.id,
+        p_title: cmd.title || cmd.text,
+        p_content: cmd.content || cmd.text,
+        p_creator: cmd.creator,
+        p_scheduled_at: cmd.scheduled_at,
+        p_action_type: cmd.action_type,
+        p_sense_type: cmd.sense_type || 'reminder',
+        p_runtime_type: cmd.runtime_type || 'scheduled',
+        p_status: cmd.status
+      });
+      
+      if (error) {
+        // RPC might not exist yet - that's OK
+        if (!error.message.includes('does not exist')) {
+          console.error('[CommandSystem] Sync error:', error);
+        }
+      } else {
+        cmd.supabase_id = data;
+        cmd.synced_at = new Date().toISOString();
+        save();
+        console.log('[CommandSystem] Synced to Supabase:', data);
+      }
+    } catch (error) {
+      console.log('[CommandSystem] Supabase sync skipped');
+    }
+  },
+  
+  // ============================================
+  // ONLINE/OFFLINE
+  // ============================================
+  
+  handleOnline() {
+    console.log('[CommandSystem] Online');
+    this.isOnline = true;
+    
+    // Sync unsynced commands
+    const unsynced = ideas.filter(i => 
+      i.type === 'command' && !i.synced_at
+    );
+    
+    for (const cmd of unsynced) {
+      this.syncToSupabase(cmd);
+    }
+  },
+  
+  handleOffline() {
+    console.log('[CommandSystem] Offline');
+    this.isOnline = false;
+  },
+  
+  // ============================================
+  // NOTIFICATIONS
+  // ============================================
+  
+  async requestNotificationPermission() {
+    if (!('Notification' in window)) return false;
+    
+    if (Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      console.log('[CommandSystem] Notification permission:', permission);
+      return permission === 'granted';
+    }
+    
+    return Notification.permission === 'granted';
+  },
+  
+  // ============================================
+  // DEBUG UI
+  // ============================================
+  
+  updateDebugBadge(count, secondsToNext) {
+    let badge = document.getElementById('cmdDebugBadge');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'cmdDebugBadge';
+      badge.style.cssText = 'position:fixed;top:60px;right:10px;background:#22C55E;color:white;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;z-index:9999;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
+      badge.onclick = () => { this.debugMode = false; badge.style.display = 'none'; };
+      document.body.appendChild(badge);
+    }
+    badge.style.display = 'block';
+    const timeStr = secondsToNext > 0 ? secondsToNext + 's' : 'NOW!';
+    badge.textContent = `⚡${count} | ${timeStr}`;
+    badge.style.background = secondsToNext <= 0 ? '#EF4444' : '#22C55E';
+  },
+  
+  hideDebugBadge() {
+    const badge = document.getElementById('cmdDebugBadge');
+    if (badge) badge.style.display = 'none';
+  },
+  
+  // ============================================
+  // UTILITIES
+  // ============================================
+  
+  getPendingCount() {
+    return ideas.filter(i => i.type === 'command' && i.status === 'pending').length;
+  },
+  
+  getNextCommand() {
+    return ideas
+      .filter(i => i.type === 'command' && i.status === 'pending')
+      .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at))[0] || null;
+  },
+  
+  cancel(id) {
+    const cmd = ideas.find(i => i.id === id);
+    if (!cmd || cmd.type !== 'command') return false;
+    
+    cmd.status = 'cancelled';
+    cmd.cancelled_at = new Date().toISOString();
+    save();
+    render();
+    
+    this.sendToSW('CANCEL_COMMAND', { command_id: id });
+    return true;
   }
-  
-  // Always show toast
-  toast('⚡ ' + title, 'warning', 10000);
-  
-  // TTS if enabled
-  if (cmd.action_type === 'tts' && typeof speakText === 'function') {
-    speakText(title);
-  }
-  
-  // Handle recurring commands
-  if (cmd.command_type === 'cron' && cmd.cron_interval) {
-    scheduleNextOccurrence(cmd);
-  }
-  
-  render();
-}
+};
 
-function scheduleNextOccurrence(cmd) {
-  // Clone command for next occurrence
-  const nextCmd = {
-    ...cmd,
-    id: Date.now(),
-    status: 'pending',
-    scheduled_at: new Date(Date.now() + (cmd.cron_interval || 3600000)).toISOString(),
-    timestamp: new Date().toISOString(),
-    date: new Date().toLocaleDateString('ru-RU'),
-    time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})
+// ============================================
+// TIME PARSING
+// ============================================
+
+function parseTimeFromText(text) {
+  const t = text.toLowerCase();
+  
+  // Russian word forms (without numbers)
+  if (/через\s+минуту|через\s+минутку|через\s+1\s+мин/i.test(t)) {
+    return new Date(Date.now() + 60000);
+  }
+  if (/через\s+час(?!\s*\d)/i.test(t)) {
+    return new Date(Date.now() + 3600000);
+  }
+  if (/через\s+полчаса/i.test(t)) {
+    return new Date(Date.now() + 1800000);
+  }
+  
+  const timePatterns = {
+    'через\\s+(\\d+)\\s*мин': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
+    'через\\s+(\\d+)\\s*час': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
+    'через\\s+(\\d+)\\s*секунд': (m) => new Date(Date.now() + parseInt(m[1]) * 1000),
+    'завтра\\s+в\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); return d; },
+    'завтра': () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9,0,0,0); return d; },
+    'в\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; },
+    'in\\s+(\\d+)\\s*min': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
+    'in\\s+a\\s+minute': () => new Date(Date.now() + 60000),
+    'in\\s+(\\d+)\\s*hour': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
+    'in\\s+an?\\s+hour': () => new Date(Date.now() + 3600000),
+    'in\\s+(\\d+)\\s*sec': (m) => new Date(Date.now() + parseInt(m[1]) * 1000),
+    'tomorrow\\s+at\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); return d; },
+    'tomorrow': () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9,0,0,0); return d; },
+    'at\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; }
   };
   
-  const nextTime = new Date(nextCmd.scheduled_at);
-  nextCmd.scheduled_date = nextTime.toLocaleDateString('ru-RU');
-  nextCmd.scheduled_time = nextTime.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
-  
-  ideas.push(nextCmd);
-  save();
-  console.log('[Commands] Next occurrence scheduled:', nextCmd.scheduled_time);
-}
-
-// Request notification permission
-function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
+  for (const [pattern, fn] of Object.entries(timePatterns)) {
+    const match = text.match(new RegExp(pattern, 'i'));
+    if (match) {
+      return fn(match);
+    }
   }
+  
+  return new Date(Date.now() + 3600000); // Default: 1 hour
 }
 
-// Start scheduler when page loads
+// ============================================
+// EXPOSE GLOBALLY
+// ============================================
+
+window.CommandSystem = CommandSystem;
+window.createCommandDrop = (options) => CommandSystem.create(options);
+window.parseTimeFromText = parseTimeFromText;
+
+// Initialize
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startCommandScheduler);
+  document.addEventListener('DOMContentLoaded', () => CommandSystem.init());
 } else {
-  // DOMContentLoaded already fired
-  startCommandScheduler();
+  CommandSystem.init();
 }
-
-// Also request notification permission early
-requestNotificationPermission();
 
 // ============================================
 // AUTO-FIX: Repair string IDs (v0.9.58)
@@ -3281,7 +3816,7 @@ async function createCommand() {
   
   const btn = document.getElementById('commandActionBtn');
   btn.querySelector('.icon').textContent = '⏳';
-  btn.querySelector('.text').textContent = 'Создаю...';
+  btn.querySelector('.text').textContent = 'Creating...';
   btn.disabled = true;
   
   try {
@@ -3294,6 +3829,7 @@ async function createCommand() {
     const options = {
       text: (titleInput && titleInput.value.trim()) || text,
       command_type: typeSelect ? typeSelect.value : 'reminder',
+      sense_type: typeSelect ? typeSelect.value : 'reminder',
       action_type: notifySelect ? notifySelect.value : 'push',
       creator: 'user'
     };
@@ -3303,13 +3839,14 @@ async function createCommand() {
       options.scheduled_at = new Date(timeInput.value).toISOString();
     }
     
-    const commandDrop = createCommandDrop(options);
+    // Use CommandSystem.create()
+    const commandDrop = CommandSystem.create(options);
     
     if (commandDrop) {
       showCommandView('success');
-      toast('⚡ Command at ' + commandDrop.scheduled_time, 'success');
+      toast(`⚡ Command at ${commandDrop.scheduled_time}`, 'success');
     } else {
-      throw new Error('Не удалось создать команду');
+      throw new Error('Failed to create command');
     }
     
   } catch (err) {
@@ -3349,107 +3886,7 @@ function applyCommandTemplate(template) {
 }
 
 // ============================================
-// UNIFIED COMMAND CREATION (for UI and ASKI)
-// ============================================
-function createCommandDrop(options = {}) {
-  const {
-    text = '',
-    command_type = 'reminder',
-    scheduled_at = null,
-    action_type = 'push',
-    creator = 'user',
-    cron_interval = null
-  } = options;
-  
-  if (!text.trim()) {
-    console.error('[Command] Empty text');
-    return null;
-  }
-  
-  // Parse time if not provided
-  let scheduledTime = scheduled_at ? new Date(scheduled_at) : parseTimeFromText(text);
-  
-  const now = new Date();
-  const commandDrop = {
-    id: Date.now(),
-    text: text.trim(),
-    category: 'commands',
-    timestamp: now.toISOString(),
-    date: now.toLocaleDateString('ru-RU'),
-    time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
-    isMedia: false,
-    encrypted: window.DROPLIT_PRIVACY_ENABLED || false,
-    creator: creator,
-    // Command-specific fields
-    type: 'command',
-    command_type: command_type,
-    scheduled_at: scheduledTime.toISOString(),
-    scheduled_date: scheduledTime.toLocaleDateString('ru-RU'),
-    scheduled_time: scheduledTime.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
-    action_type: action_type,
-    status: 'pending',
-    cron_interval: cron_interval
-  };
-  
-  // Request notification permission
-  requestNotificationPermission();
-  
-  // Add to ideas and save
-  ideas.push(commandDrop);
-  save(commandDrop);
-  render();
-  
-  console.log('[Command] Created via API:', commandDrop);
-  return commandDrop;
-}
-
-// Parse time from natural language text
-function parseTimeFromText(text) {
-  const t = text.toLowerCase();
-  
-  // Russian word forms (without numbers)
-  if (/через\s+минуту|через\s+минутку|через\s+1\s+мин/i.test(t)) {
-    return new Date(Date.now() + 60000); // 1 minute
-  }
-  if (/через\s+час(?!\s*\d)/i.test(t)) {
-    return new Date(Date.now() + 3600000); // 1 hour
-  }
-  if (/через\s+полчаса/i.test(t)) {
-    return new Date(Date.now() + 1800000); // 30 min
-  }
-  
-  const timePatterns = {
-    // Russian with numbers
-    'через\\s+(\\d+)\\s*мин': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
-    'через\\s+(\\d+)\\s*час': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
-    'через\\s+(\\d+)\\s*секунд': (m) => new Date(Date.now() + parseInt(m[1]) * 1000),
-    'завтра\\s+в\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); return d; },
-    'завтра': () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9,0,0,0); return d; },
-    'в\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; },
-    // English
-    'in\\s+(\\d+)\\s*min': (m) => new Date(Date.now() + parseInt(m[1]) * 60000),
-    'in\\s+a\\s+minute': () => new Date(Date.now() + 60000),
-    'in\\s+(\\d+)\\s*hour': (m) => new Date(Date.now() + parseInt(m[1]) * 3600000),
-    'in\\s+an?\\s+hour': () => new Date(Date.now() + 3600000),
-    'in\\s+(\\d+)\\s*sec': (m) => new Date(Date.now() + parseInt(m[1]) * 1000),
-    'tomorrow\\s+at\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); return d; },
-    'tomorrow': () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9,0,0,0); return d; },
-    'at\\s+(\\d{1,2})(?::(\\d{2}))?': (m) => { const d = new Date(); d.setHours(parseInt(m[1]), parseInt(m[2]||0), 0, 0); if(d < new Date()) d.setDate(d.getDate()+1); return d; }
-  };
-  
-  for (const [pattern, fn] of Object.entries(timePatterns)) {
-    const match = text.match(new RegExp(pattern, 'i'));
-    if (match) {
-      return fn(match);
-    }
-  }
-  
-  // Default: 1 hour from now
-  return new Date(Date.now() + 3600000);
-}
-
-// Expose for ASKI
-window.createCommandDrop = createCommandDrop;
+// (Command creation now handled by CommandSystem.create())
 
 function closeTextInput(){
   document.getElementById('textInputModal').classList.remove('show');
