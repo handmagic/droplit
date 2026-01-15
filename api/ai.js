@@ -270,9 +270,50 @@ function rateLimitResponse(resetIn) {
 // TOOL DEFINITIONS
 // ============================================
 
+// Parse contacts from Knowledge Base text
+// Supports formats: "Name: email", "Name - email", "Name | email"
+function parseContactsFromKnowledge(knowledge) {
+  if (!knowledge) return {};
+  
+  const contacts = {};
+  const lines = knowledge.split('\n');
+  
+  // Email regex
+  const emailRegex = /[\w.-]+@[\w.-]+\.\w+/;
+  
+  for (const line of lines) {
+    // Skip headers and empty lines
+    if (line.startsWith('#') || !line.trim()) continue;
+    
+    // Try to extract name and email
+    // Format: "Name: email" or "Name - email" or "Name | email"
+    const match = line.match(/^[\-\*]?\s*([^:|\-]+)[:\|\-]\s*([\w.-]+@[\w.-]+\.\w+)/i);
+    if (match) {
+      const name = match[1].trim().toLowerCase();
+      const email = match[2].trim().toLowerCase();
+      contacts[name] = email;
+      
+      // Also add without common prefixes/suffixes
+      const simpleName = name.replace(/^(mr|mrs|ms|dr|prof)\.?\s*/i, '').trim();
+      if (simpleName !== name) {
+        contacts[simpleName] = email;
+      }
+      
+      // Add first name only
+      const firstName = name.split(/\s+/)[0];
+      if (firstName && firstName !== name && !contacts[firstName]) {
+        contacts[firstName] = email;
+      }
+    }
+  }
+  
+  console.log('[Contacts] Parsed from knowledge:', Object.keys(contacts).length, 'contacts');
+  return contacts;
+}
+
 // Resolve recipient name to email address
-// userEmail comes from frontend settings
-function resolveEmailAddress(recipient, userEmail) {
+// userEmail comes from frontend settings, askiKnowledge for contact lookup
+function resolveEmailAddress(recipient, userEmail, askiKnowledge = '') {
   if (!recipient) return null;
   
   // Check if it's already an email
@@ -287,9 +328,20 @@ function resolveEmailAddress(recipient, userEmail) {
     return userEmail || null;
   }
   
-  // Future: could add business contacts lookup here
-  // const businessContacts = { 'бухгалтерия': 'accounting@company.com' };
-  // if (businessContacts[normalized]) return businessContacts[normalized];
+  // Parse contacts from Knowledge Base
+  const knowledgeContacts = parseContactsFromKnowledge(askiKnowledge);
+  if (knowledgeContacts[normalized]) {
+    console.log('[Contacts] Found in knowledge:', normalized, '->', knowledgeContacts[normalized]);
+    return knowledgeContacts[normalized];
+  }
+  
+  // Try partial match (e.g. "john" matches "john smith")
+  for (const [name, email] of Object.entries(knowledgeContacts)) {
+    if (name.includes(normalized) || normalized.includes(name)) {
+      console.log('[Contacts] Partial match:', normalized, '->', email);
+      return email;
+    }
+  }
   
   return null;
 }
@@ -877,11 +929,17 @@ When you find CONTRADICTORY facts about the same topic:
    Don't guess between contradictory facts. User knows their own life better.
 
 ## SCHEDULING & REMINDERS:
-When user asks to remind, wake up, notify, or schedule:
-1. Use the create_event tool
+
+⚠️ КРИТИЧЕСКИ ВАЖНО: Для напоминаний используй ТОЛЬКО create_event, НЕ create_drop!
+
+Когда пользователь говорит "напомни", "разбуди", "через X минут/часов", "завтра в X":
+1. ВСЕГДА используй create_event (НЕ create_drop!)
 2. Convert relative time ("через 5 минут") to absolute ISO datetime
 3. Set appropriate priority: alarms=8-10, reminders=5, notifications=3
 4. Confirm what was scheduled in your response
+
+**НЕПРАВИЛЬНО:** create_drop("напомнить о встрече") - это создаст обычный текст!
+**ПРАВИЛЬНО:** create_event(name: "встреча", trigger_at: "2026-01-16T10:00:00Z", ...)
 
 When user asks to cancel, delete, or remove a reminder:
 1. Use the cancel_event tool
@@ -991,7 +1049,7 @@ User has asked to expand on a previous topic. Give a more detailed response cove
 // ============================================
 // TOOL EXECUTION
 // ============================================
-async function executeTool(toolName, input, dropContext, userId = null, currentFeed = [], userEmail = null) {
+async function executeTool(toolName, input, dropContext, userId = null, currentFeed = [], userEmail = null, askiKnowledge = '') {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   switch (toolName) {
@@ -1032,7 +1090,7 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
       const filename = input.filename || 'document';
       
       // Resolve recipient (pass userEmail for personal aliases)
-      const toEmail = resolveEmailAddress(recipient, userEmail);
+      const toEmail = resolveEmailAddress(recipient, userEmail, askiKnowledge);
       if (!toEmail) {
         return { 
           success: false, 
@@ -1212,24 +1270,13 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
 async function handleCreateEvent(input, userId) {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
-  if (!SUPABASE_KEY) {
-    console.error('[create_event] No SUPABASE_SERVICE_KEY');
-    return { success: false, error: 'Server configuration error' };
-  }
-  
-  if (!userId) {
-    console.error('[create_event] No userId');
-    return { success: false, error: 'User not authenticated' };
-  }
+  // Generate local ID for fallback
+  const localCommandId = `cmd_${Date.now()}`;
   
   try {
     // Validate required fields
     if (!input.name) {
-      return { success: false, error: 'Event name is required' };
-    }
-    
-    if (input.trigger_type === 'datetime' && !input.trigger_at) {
-      return { success: false, error: 'trigger_at is required for datetime events' };
+      return { success: false, error: 'Event name is required', action: 'create_event' };
     }
     
     // Calculate scheduled_at
@@ -1239,12 +1286,50 @@ async function handleCreateEvent(input, userId) {
     } else if (input.trigger_type === 'cron') {
       // For cron, calculate next occurrence (simplified - use current time + 1 hour as placeholder)
       scheduledAt = new Date(Date.now() + 3600000).toISOString();
+    } else if (!input.trigger_at) {
+      // Default 1 hour if no time specified
+      scheduledAt = new Date(Date.now() + 3600000).toISOString();
     } else {
-      scheduledAt = new Date(Date.now() + 3600000).toISOString(); // Default 1 hour
+      scheduledAt = input.trigger_at;
     }
     
     // Map action_type
     const actionType = input.action_type || 'push';
+    
+    // Format time for display
+    const scheduledDate = new Date(scheduledAt);
+    const timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      timeZone: 'UTC'
+    });
+    
+    // If no Supabase or userId, create local-only command drop
+    if (!SUPABASE_KEY || !userId) {
+      console.log('[create_event] No Supabase/userId - creating local-only command drop');
+      
+      return { 
+        success: true, 
+        action: 'create_event',
+        local_only: true,
+        event: {
+          id: localCommandId,
+          name: input.name,
+          trigger_at: scheduledAt,
+          scheduled_time: timeStr,
+          action_type: actionType,
+          creator: 'aski'
+        },
+        command: {
+          id: localCommandId,
+          title: input.name,
+          scheduled_at: scheduledAt,
+          scheduled_time: timeStr,
+          status: 'pending',
+          creator: 'aski'
+        }
+      };
+    }
     
     // Determine sense_type based on priority and keywords
     let senseType = 'reminder';
@@ -1315,14 +1400,6 @@ async function handleCreateEvent(input, userId) {
     
     console.log('[create_event] Success! Command ID:', commandId);
     
-    // Format time for display
-    const scheduledDate = new Date(scheduledAt);
-    const timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      timeZone: 'UTC'
-    });
-    
     return { 
       success: true, 
       action: 'create_event',
@@ -1347,7 +1424,7 @@ async function handleCreateEvent(input, userId) {
     
   } catch (error) {
     console.error('[create_event] Exception:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, action: 'create_event' };
   }
 }
 
@@ -1458,6 +1535,7 @@ async function executeCancelEvent(input, userId) {
     return {
       success: true,
       action: 'cancel_event',
+      sync_local: true, // Signal frontend to remove from feed
       cancelled: {
         id: eventToCancel.id,
         title: eventToCancel.title,
@@ -1730,7 +1808,7 @@ async function* parseSSEStream(response) {
 // ============================================
 // STREAMING CHAT WITH TOOLS (with cost tracking)
 // ============================================
-async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null, userId = null, modelConfig = null, currentFeed = [], userEmail = null) {
+async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null, userId = null, modelConfig = null, currentFeed = [], userEmail = null, askiKnowledge = '') {
   const encoder = new TextEncoder();
   let toolResults = [];
   let createDropAction = null;
@@ -1877,7 +1955,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
         let toolResult;
         try {
           console.log('[Tool] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
-          toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail);
+          toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge);
           console.log('[Tool] Result:', toolBlock.name, JSON.stringify(toolResult));
         } catch (toolError) {
           console.error('[Tool] Error executing', toolBlock.name, ':', toolError.message);
@@ -1895,6 +1973,12 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
         // Track create_event action
         if (toolBlock.name === 'create_event' && toolResult?.action === 'create_event') {
           createEventAction = toolResult;
+          console.log('[create_event] Tracked for frontend:', JSON.stringify(toolResult));
+        }
+        
+        // DEBUG: Log if create_event was called but not tracked
+        if (toolBlock.name === 'create_event' && toolResult?.action !== 'create_event') {
+          console.warn('[create_event] NOT tracked - action was:', toolResult?.action, 'error:', toolResult?.error);
         }
         
         // Track cancel_event action
@@ -1988,7 +2072,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
 // ============================================
 // NON-STREAMING CHAT HANDLER (fallback, with cost tracking)
 // ============================================
-async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens, dropContext, userId = null, modelConfig = null, currentFeed = [], userEmail = null) {
+async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens, dropContext, userId = null, modelConfig = null, currentFeed = [], userEmail = null, askiKnowledge = '') {
   // Use provided model or default to Sonnet
   const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
   
@@ -2032,7 +2116,7 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
     let toolResult;
     try {
       console.log('[Tool Non-Stream] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
-      toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail);
+      toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge);
       console.log('[Tool Non-Stream] Result:', toolBlock.name, JSON.stringify(toolResult));
     } catch (toolError) {
       console.error('[Tool Non-Stream] Error:', toolBlock.name, toolError.message);
@@ -2326,8 +2410,8 @@ export default async function handler(req) {
         const { readable, writable } = new TransformStream();
         const writer = writable.getWriter();
         
-        // Start streaming in background, pass debug info, userId, model config, and userEmail
-        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId, modelConfig, currentFeed, userEmail)
+        // Start streaming in background, pass debug info, userId, model config, userEmail and askiKnowledge
+        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId, modelConfig, currentFeed, userEmail, askiKnowledge)
           .catch(error => {
             console.error('Streaming error:', error);
             const encoder = new TextEncoder();
@@ -2347,7 +2431,7 @@ export default async function handler(req) {
 
       // NON-STREAMING MODE (fallback)
       const { resultText, toolResults, usage } = await handleNonStreamingChat(
-        apiKey, systemPrompt, messages, maxTokens, formattedContext, effectiveUserId, modelConfig, currentFeed, userEmail
+        apiKey, systemPrompt, messages, maxTokens, formattedContext, effectiveUserId, modelConfig, currentFeed, userEmail, askiKnowledge
       );
       
       const createDropAction = toolResults.find(t => t.toolName === 'create_drop');
