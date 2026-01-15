@@ -5849,13 +5849,14 @@ function cleanupCommandDrops() {
 // Run cleanup on filter change to "today"
 function onFilterToday() {
   cleanupCommandDrops();
+  render(); // Always render after filter change
   // Scroll to newest drop
   setTimeout(() => {
-    const wrap = document.getElementById('ideasList');
+    const wrap = document.getElementById('ideasWrap');
     if (wrap) {
-      wrap.scrollTop = wrap.scrollHeight;
+      wrap.scrollTo({top: wrap.scrollHeight, behavior: 'auto'});
     }
-  }, 100);
+  }, 50);
 }
 
 document.getElementById('timeRow').addEventListener('click',e=>{
