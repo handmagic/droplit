@@ -2219,6 +2219,7 @@ async function handleStreamingResponse(response) {
                 let removed = false;
                 
                 console.log('[Cancel] Looking for command drop:', cancelledId, cancelledTitle);
+                alert('[DEBUG] Cancel received!\nID: ' + cancelledId + '\nTitle: ' + cancelledTitle);
                 
                 if (cancelledId) {
                   // Find by ID (exact match) or event_id field
