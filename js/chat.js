@@ -2611,7 +2611,10 @@ async function sendAskAIMessage() {
     
     const response = await fetch(AI_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      },
       body: JSON.stringify({
         action: 'chat',
         text: textForAI,  // Masked text for AI (v0.9.103)
@@ -3162,7 +3165,10 @@ async function generateAndSendDocxEmail(emailData) {
     // Send to server
     const response = await fetch(AI_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      },
       body: JSON.stringify({
         action: 'send_email_with_attachment',
         to: to,
