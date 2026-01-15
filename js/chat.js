@@ -2112,7 +2112,7 @@ async function handleStreamingResponse(response) {
                   creator: 'aski'
                 };
                 ideas.unshift(newIdea);
-                localStorage.setItem('ideas', JSON.stringify(ideas));
+                localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
                 
                 // Refresh feed: filter today, render, scroll to bottom
                 if (typeof setTimeFilter === 'function') setTimeFilter('today');
@@ -2188,7 +2188,7 @@ async function handleStreamingResponse(response) {
                 
                 // Add to end of array (like saveTextNote)
                 ideas.push(newIdea);
-                localStorage.setItem('ideas', JSON.stringify(ideas));
+                localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
                 
                 // Play sound for feedback (like saveTextNote)
                 if (typeof playDropSound === 'function') {
@@ -2228,7 +2228,7 @@ async function handleStreamingResponse(response) {
                   );
                   if (idx !== -1) {
                     const removedDrop = ideas.splice(idx, 1)[0];
-                    localStorage.setItem('ideas', JSON.stringify(ideas));
+                    localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
                     console.log('✅ [Streaming] Removed command drop by ID:', cancelledId, removedDrop.text);
                     removed = true;
                   }
@@ -2242,7 +2242,7 @@ async function handleStreamingResponse(response) {
                   );
                   if (idx !== -1) {
                     const removedDrop = ideas.splice(idx, 1)[0];
-                    localStorage.setItem('ideas', JSON.stringify(ideas));
+                    localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
                     console.log('✅ [Streaming] Removed command drop by title:', cancelledTitle);
                     removed = true;
                   }
@@ -2268,7 +2268,7 @@ async function handleStreamingResponse(response) {
                   const idx = ideas.findIndex(i => String(i.id) === String(deleteId));
                   if (idx !== -1) {
                     ideas.splice(idx, 1);
-                    localStorage.setItem('ideas', JSON.stringify(ideas));
+                    localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
                     
                     // Refresh feed: filter today, render, scroll to bottom
                     if (typeof setTimeFilter === 'function') setTimeFilter('today');
@@ -2290,7 +2290,7 @@ async function handleStreamingResponse(response) {
                   if (item && parsed.updateDrop.new_content) {
                     item.text = parsed.updateDrop.new_content;
                     item.content = parsed.updateDrop.new_content;
-                    localStorage.setItem('ideas', JSON.stringify(ideas));
+                    localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
                     
                     // Refresh feed after update
                     if (typeof setTimeFilter === 'function') setTimeFilter('today');
@@ -2694,7 +2694,7 @@ async function sendAskAIMessage() {
           const idx = ideas.findIndex(i => String(i.id) === String(deleteId));
           if (idx !== -1) {
             ideas.splice(idx, 1);
-            localStorage.setItem('ideas', JSON.stringify(ideas));
+            localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
             render();
             counts();
             console.log('✅ AI deleted drop from local feed:', deleteId);
@@ -2711,7 +2711,7 @@ async function sendAskAIMessage() {
           if (item && data.updateDrop.new_content) {
             item.text = data.updateDrop.new_content;
             item.content = data.updateDrop.new_content;
-            localStorage.setItem('ideas', JSON.stringify(ideas));
+            localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
             render();
             console.log('✅ AI updated drop in local feed:', updateId);
             toast('Обновлено', 'success');
