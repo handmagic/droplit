@@ -116,9 +116,12 @@ function startCommandScheduler() {
 }
 
 async function checkCommands() {
+  console.log('[SW] === checkCommands started ===');
+  
   try {
     // Method 1: Check IndexedDB for local commands
     const localCommands = await getLocalPendingCommands();
+    console.log('[SW] Local commands found:', localCommands.length);
     
     for (const cmd of localCommands) {
       if (new Date(cmd.scheduled_at) <= new Date()) {
@@ -127,13 +130,18 @@ async function checkCommands() {
     }
     
     // Method 2: Check Supabase for synced commands (if online)
+    console.log('[SW] Online status:', navigator.onLine);
     if (navigator.onLine) {
       await checkSupabaseCommands();
+    } else {
+      console.log('[SW] Offline, skipping Supabase check');
     }
     
   } catch (error) {
     console.error('[SW] Command check error:', error);
   }
+  
+  console.log('[SW] === checkCommands finished ===');
 }
 
 // ============================================
@@ -249,31 +257,44 @@ async function updateLocalCommandStatus(id, status) {
 // ============================================
 
 async function checkSupabaseCommands() {
+  console.log('[SW] checkSupabaseCommands called, online:', navigator.onLine);
+  
   try {
     // Check for pending notifications from Supabase
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/pending_notifications?status=eq.pending&limit=5`,
-      {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
-      }
-    );
+    const url = `${SUPABASE_URL}/rest/v1/pending_notifications?status=eq.pending&limit=5`;
+    console.log('[SW] Fetching:', url);
     
-    if (!response.ok) return;
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    
+    console.log('[SW] Response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('[SW] Response not ok:', response.status, response.statusText);
+      return;
+    }
     
     const notifications = await response.json();
+    console.log('[SW] Found notifications:', notifications.length, notifications);
     
     for (const notif of notifications) {
+      console.log('[SW] Showing notification:', notif.title);
+      
       await self.registration.showNotification(notif.title, {
         body: notif.body,
-        icon: '/icons/icon-192.png',
-        badge: '/icons/badge-72.png',
-        tag: `notif-${notif.id}`,
+        icon: notif.icon || '/icons/icon-192.png',
+        badge: notif.badge || '/icons/badge-72.png',
+        tag: notif.tag || `notif-${notif.id}`,
         vibrate: [200, 100, 200],
+        requireInteraction: true,
         data: notif.data
       });
+      
+      console.log('[SW] Notification shown, marking as delivered');
       
       // Mark as delivered
       await fetch(
@@ -288,6 +309,8 @@ async function checkSupabaseCommands() {
           body: JSON.stringify({ status: 'delivered', delivered_at: new Date().toISOString() })
         }
       );
+      
+      console.log('[SW] Marked as delivered:', notif.id);
     }
     
   } catch (error) {
