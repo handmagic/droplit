@@ -109,6 +109,15 @@
     .card-row2 .card-chars {
       margin-left: 0;
     }
+    /* Command drop (reminder) styling */
+    .card-cat.command {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+      color: white !important;
+      font-weight: 600;
+    }
+    .card.command-drop {
+      border-left: 3px solid #f59e0b;
+    }
   </style>
   
   <!-- Eruda Mobile Console (Debug) -->
@@ -2193,6 +2202,25 @@ let sendId=null,delId=null,catChangeId=null,editId=null,activeCardId=null,creato
 let selectMode=false,selectedIds=[];
 let lastScrollTop=0,longPressTimer=null;
 
+// Date utility functions
+function isToday(dateStr) {
+  if (!dateStr) return false;
+  const today = new Date().toLocaleDateString('ru-RU');
+  return dateStr === today;
+}
+
+function inDays(dateStr, days) {
+  if (!dateStr) return false;
+  // Parse ru-RU date format (DD.MM.YYYY)
+  const parts = dateStr.split('.');
+  if (parts.length !== 3) return false;
+  const itemDate = new Date(parts[2], parts[1] - 1, parts[0]);
+  const now = new Date();
+  const diffTime = now - itemDate;
+  const diffDays = diffTime / (1000 * 60 * 60 * 24);
+  return diffDays >= 0 && diffDays <= days;
+}
+
 // AI Configuration
 const AI_API_URL = '/api/ai';
 const STREAMING_ENABLED = true;
@@ -2425,7 +2453,9 @@ function handleCardClick(id,e){
   // Ignore clicks on audio player buttons only
   if(e.target.closest('.audio-btn'))return;
   
-  const item=ideas.find(x=>x.id===id);
+  // Convert id to string for comparison (handles UUID strings)
+  const idStr = String(id);
+  const item=ideas.find(x=>String(x.id)===idStr);
   
   if(selectMode){
     // In select mode - always toggle selection
@@ -3932,8 +3962,11 @@ function render(){
       // Verified badge SVG (checkmark)
       const badgeSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
       const verifiedBadge = creatorStatus ? '<span class="verified-badge '+creatorStatus+'">'+badgeSvg+'</span>' : '';
+      // Check if command drop
+      const isCommand = i.type === 'command' || i.category === 'command';
       // Card with full width, avatar inside
-      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+i.id+',event)" ontouchstart="cardTouchStart('+i.id+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
+      const idStr = typeof i.id === 'string' ? "'"+i.id+"'" : i.id;
+      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+(isCommand?' command-drop':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+idStr+',event)" ontouchstart="cardTouchStart('+idStr+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
       // Header: Avatar left, two rows right
       h+='<div class="card-header">';
@@ -3946,7 +3979,12 @@ function render(){
       h+='</div>';
       // Row 2: Category + params + NEW
       h+='<div class="card-row2">';
-      h+='<span class="card-cat '+i.category+'" onclick="openCatModal('+i.id+')">'+(CATS[i.category]?.single||'INBOX')+'</span>';
+      // Special handling for command drops (reminders)
+      const catLabel = (i.type === 'command' || i.category === 'command') 
+        ? '⏰ REMINDER' 
+        : (CATS[i.category]?.single||'INBOX');
+      const catClass = (i.type === 'command' || i.category === 'command') ? 'command' : i.category;
+      h+='<span class="card-cat '+catClass+'" onclick="openCatModal('+i.id+')">'+catLabel+'</span>';
       // Encrypted lock icon (shows if drop is encrypted)
       if(i.encrypted){
         h+='<span class="encrypted-lock" title="Encrypted"><svg viewBox="0 0 24 24"><path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none" stroke-width="2"/></svg></span>';
