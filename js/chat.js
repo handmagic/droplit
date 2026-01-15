@@ -2147,12 +2147,21 @@ async function handleStreamingResponse(response) {
                 
                 // Format scheduled time for display (use device local time)
                 let scheduledTimeStr = '';
+                console.log('[Command] scheduled_at from server:', cmd.scheduled_at, 'scheduled_time:', cmd.scheduled_time);
+                
                 if (cmd.scheduled_at) {
                   const scheduledDate = new Date(cmd.scheduled_at);
-                  scheduledTimeStr = scheduledDate.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
-                } else if (cmd.scheduled_time) {
+                  console.log('[Command] Parsed date:', scheduledDate, 'valid:', !isNaN(scheduledDate.getTime()));
+                  if (!isNaN(scheduledDate.getTime())) {
+                    scheduledTimeStr = scheduledDate.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+                  }
+                }
+                // Fallback to scheduled_time if scheduled_at failed
+                if (!scheduledTimeStr && cmd.scheduled_time) {
                   scheduledTimeStr = cmd.scheduled_time;
                 }
+                
+                console.log('[Command] Final time string:', scheduledTimeStr);
                 
                 // Text format: ⏰ HH:MM Title
                 const dropText = scheduledTimeStr 
@@ -2176,16 +2185,30 @@ async function handleStreamingResponse(response) {
                   source: 'aski_command',
                   creator: 'aski'
                 };
-                ideas.unshift(newIdea);
+                
+                // Add to end of array (like saveTextNote)
+                ideas.push(newIdea);
                 localStorage.setItem('ideas', JSON.stringify(ideas));
                 
-                // Refresh feed: filter today, render, scroll to bottom
-                if (typeof setTimeFilter === 'function') setTimeFilter('today');
-                render();
-                counts();
-                if (typeof scrollToBottom === 'function') scrollToBottom();
+                // Play sound for feedback (like saveTextNote)
+                if (typeof playDropSound === 'function') {
+                  playDropSound();
+                }
                 
-                console.log('✅ [Streaming] AI created command drop:', eventId);
+                // Use resetToShowAll pattern (like saveTextNote)
+                if (typeof resetToShowAll === 'function') {
+                  resetToShowAll();
+                } else {
+                  // Fallback
+                  render();
+                  counts();
+                  setTimeout(() => {
+                    const wrap = document.getElementById('ideasWrap');
+                    if (wrap) wrap.scrollTo({top: wrap.scrollHeight, behavior: 'auto'});
+                  }, 50);
+                }
+                
+                console.log('✅ [Streaming] AI created command drop:', eventId, dropText);
                 toast('Напоминание создано', 'success');
               }
               
@@ -2194,6 +2217,8 @@ async function handleStreamingResponse(response) {
                 const cancelledId = parsed.cancelEvent.cancelled?.id;
                 const cancelledTitle = parsed.cancelEvent.cancelled?.title;
                 let removed = false;
+                
+                console.log('[Cancel] Looking for command drop:', cancelledId, cancelledTitle);
                 
                 if (cancelledId) {
                   // Find by ID (exact match) or event_id field
@@ -2212,7 +2237,7 @@ async function handleStreamingResponse(response) {
                 // Fallback: find by title
                 if (!removed && cancelledTitle) {
                   const idx = ideas.findIndex(i => 
-                    i.type === 'command' && 
+                    (i.type === 'command' || i.category === 'command') && 
                     (i.text?.includes(cancelledTitle) || i.content?.includes(cancelledTitle))
                   );
                   if (idx !== -1) {
@@ -2224,15 +2249,15 @@ async function handleStreamingResponse(response) {
                 }
                 
                 if (removed) {
-                  // Refresh feed: filter today, render, scroll to bottom
-                  if (typeof setTimeFilter === 'function') setTimeFilter('today');
+                  // Simple render + counts (no filter change, no scroll)
                   render();
                   counts();
-                  if (typeof scrollToBottom === 'function') scrollToBottom();
                   toast('Напоминание отменено', 'success');
                 } else {
                   console.warn('[Streaming] Could not find command drop to remove:', cancelledId, cancelledTitle);
-                  toast('Напоминание отменено (дроп не найден)', 'warning');
+                  // Still update counts in case of sync issues
+                  counts();
+                  toast('Напоминание отменено', 'warning');
                 }
               }
               
