@@ -1772,6 +1772,33 @@
           <div style="font-size: 0.7rem; color: var(--color-text-muted);">ASKI будет отправлять письма на этот адрес по запросу "отправь мне"</div>
         </div>
         
+        <div class="section-divider"><span>ASKI Knowledge</span></div>
+        
+        <div class="settings-item no-border" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+          <div class="settings-item-left">
+            <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+            <span class="settings-item-label">Personal Knowledge Base</span>
+          </div>
+          <div style="font-size: 0.7rem; color: var(--color-text-muted); margin-bottom: 8px;">
+            Информация о тебе, контакты, предпочтения — ASKI будет использовать это в каждом разговоре
+          </div>
+          <textarea id="askiKnowledgeInput" 
+            placeholder="# About Me&#10;Имя: ...&#10;&#10;# Contacts&#10;John: john@example.com&#10;&#10;# Preferences&#10;- Отвечай кратко" 
+            style="width: 100%; min-height: 200px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: 'SF Mono', Monaco, monospace; font-size: 0.8rem; background: var(--color-bg); resize: vertical; line-height: 1.5;"
+            oninput="saveAskiKnowledge()"></textarea>
+          <div style="display: flex; gap: 8px; width: 100%;">
+            <button class="pill-m" onclick="exportAskiKnowledge()" style="flex: 1;">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export
+            </button>
+            <button class="pill-m" onclick="document.getElementById('askiKnowledgeFileInput').click()" style="flex: 1;">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Import
+            </button>
+            <input type="file" id="askiKnowledgeFileInput" accept=".md,.txt" style="display: none;" onchange="importAskiKnowledge(event)">
+          </div>
+        </div>
+        
         <div class="section-divider"><span>Security</span></div>
         
         <div class="settings-item">
@@ -7122,6 +7149,62 @@ function getUserEmail() {
   return localStorage.getItem('droplit_user_email') || '';
 }
 
+// ASKI Knowledge Base functions
+function saveAskiKnowledge() {
+  const input = document.getElementById('askiKnowledgeInput');
+  if (input) {
+    localStorage.setItem('droplit_aski_knowledge', input.value);
+    console.log('[Knowledge] Saved:', input.value.length, 'chars');
+  }
+}
+
+function loadAskiKnowledge() {
+  const knowledge = localStorage.getItem('droplit_aski_knowledge') || '';
+  const input = document.getElementById('askiKnowledgeInput');
+  if (input) {
+    input.value = knowledge;
+  }
+  return knowledge;
+}
+
+function getAskiKnowledge() {
+  return localStorage.getItem('droplit_aski_knowledge') || '';
+}
+
+function exportAskiKnowledge() {
+  const knowledge = getAskiKnowledge();
+  if (!knowledge) {
+    toast('Knowledge base is empty', 'warning');
+    return;
+  }
+  
+  const blob = new Blob([knowledge], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'aski-knowledge.md';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Knowledge exported', 'success');
+}
+
+function importAskiKnowledge(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const content = e.target.result;
+    localStorage.setItem('droplit_aski_knowledge', content);
+    loadAskiKnowledge();
+    toast('Knowledge imported: ' + file.name, 'success');
+  };
+  reader.readAsText(file);
+  
+  // Reset input
+  event.target.value = '';
+}
+
 function autoSaveMessageAsDrop(text, isUser) {
   const isEnabled = localStorage.getItem('droplit_autodrop') === 'true';
   
@@ -7791,6 +7874,9 @@ function openMainMenu() {
   
   // Load user email
   loadUserEmail();
+  
+  // Load ASKI Knowledge Base
+  loadAskiKnowledge();
   
   // Update account info
   updateAccountUI();
