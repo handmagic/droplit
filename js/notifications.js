@@ -93,6 +93,164 @@ function dismissNotifBanner() {
 }
 
 // ============================================
+// SYNC COMMAND STATUS (update local drops from Supabase)
+// ============================================
+
+async function syncCommandStatus() {
+  if (typeof currentUser === 'undefined' || !currentUser) {
+    return;
+  }
+  
+  try {
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+      return;
+    }
+    
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+      return;
+    }
+    
+    // Get local command drops
+    let ideas = [];
+    try {
+      ideas = JSON.parse(localStorage.getItem('droplit_ideas') || '[]');
+    } catch (e) {
+      return;
+    }
+    
+    const commandDrops = ideas.filter(i => 
+      (i.category === 'command' || i.type === 'command') && i.event_id
+    );
+    
+    if (commandDrops.length === 0) {
+      return;
+    }
+    
+    const token = session.access_token;
+    const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE';
+    
+    // Get event IDs
+    const eventIds = commandDrops.map(d => d.event_id);
+    
+    // Fetch statuses from Supabase
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/command_drops?id=in.(${eventIds.join(',')})&select=id,status`,
+      {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      return;
+    }
+    
+    const serverCommands = await response.json();
+    let updated = false;
+    
+    // Update local drops with server status
+    for (const serverCmd of serverCommands) {
+      const localDrop = ideas.find(i => i.event_id === serverCmd.id);
+      if (localDrop && localDrop.status !== serverCmd.status) {
+        localDrop.status = serverCmd.status;
+        updated = true;
+        console.log('[Notifications] Updated command status:', serverCmd.id, serverCmd.status);
+      }
+    }
+    
+    // Remove local drops for commands that don't exist in server anymore
+    const serverIds = serverCommands.map(c => c.id);
+    const orphanDrops = commandDrops.filter(d => !serverIds.includes(d.event_id));
+    if (orphanDrops.length > 0) {
+      for (const orphan of orphanDrops) {
+        const idx = ideas.findIndex(i => i.id === orphan.id);
+        if (idx !== -1) {
+          ideas.splice(idx, 1);
+          updated = true;
+          console.log('[Notifications] Removed orphan command drop:', orphan.id);
+        }
+      }
+    }
+    
+    if (updated) {
+      localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
+      // Trigger re-render if render function exists
+      if (typeof render === 'function') {
+        render();
+      }
+      if (typeof counts === 'function') {
+        counts();
+      }
+    }
+    
+  } catch (error) {
+    console.log('[Notifications] Sync command status error:', error.message);
+  }
+}
+
+// ============================================
+// CANCEL COMMAND DROP (when user deletes from feed)
+// ============================================
+
+async function cancelCommandDrop(eventId) {
+  if (!eventId) {
+    console.log('[Notifications] No eventId to cancel');
+    return false;
+  }
+  
+  try {
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) {
+      console.log('[Notifications] Supabase not ready for cancel');
+      return false;
+    }
+    
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+      console.log('[Notifications] No session for cancel');
+      return false;
+    }
+    
+    const token = session.access_token;
+    const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE';
+    
+    // Cancel in command_drops table
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/command_drops?id=eq.${eventId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ 
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString()
+        })
+      }
+    );
+    
+    if (response.ok) {
+      console.log('[Notifications] Command cancelled in Supabase:', eventId);
+      return true;
+    } else {
+      console.warn('[Notifications] Cancel failed:', response.status);
+      return false;
+    }
+    
+  } catch (error) {
+    console.error('[Notifications] Cancel command error:', error);
+    return false;
+  }
+}
+
+// ============================================
 // PENDING NOTIFICATIONS (Command Reminders)
 // ============================================
 
@@ -377,6 +535,9 @@ function initProactiveFeatures() {
   // Check notification permission status
   checkNotificationPermission();
   
+  // Sync command status from server (2 seconds delay)
+  setTimeout(syncCommandStatus, 2000);
+  
   // Check pending command notifications after auth is ready (3 seconds delay)
   setTimeout(checkPendingNotifications, 3000);
   
@@ -385,6 +546,7 @@ function initProactiveFeatures() {
   
   // Periodic check for new notifications and insights
   setInterval(checkPendingNotifications, 30000); // Every 30 seconds
+  setInterval(syncCommandStatus, 60000); // Sync status every minute
   setInterval(checkPendingInsights, INSIGHTS_CHECK_INTERVAL);
   
   console.log('[Notifications] Proactive features initialized');
@@ -403,6 +565,8 @@ window.DropLitNotifications = {
   checkNotificationPermission,
   requestNotifPermission,
   dismissNotifBanner,
+  syncCommandStatus,
+  cancelCommandDrop,
   checkPendingNotifications,
   showCommandNotification,
   markNotificationDelivered,
