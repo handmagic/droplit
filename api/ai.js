@@ -761,7 +761,7 @@ async function semanticSearch(userId, queryText, supabaseUrl, supabaseKey, opena
 // ============================================
 // SYSTEM PROMPT
 // ============================================
-function buildSystemPrompt(dropContext, userProfile, coreContext, isExpansion = false, userTimezone = 'UTC', currentFeed = []) {
+function buildSystemPrompt(dropContext, userProfile, coreContext, isExpansion = false, userTimezone = 'UTC', currentFeed = [], askiKnowledge = '') {
   const now = new Date();
   const currentDate = now.toLocaleDateString('en-US', { 
     weekday: 'long', 
@@ -782,10 +782,19 @@ function buildSystemPrompt(dropContext, userProfile, coreContext, isExpansion = 
   const hasMemory = cleanMemory?.length > 0;
   const hasEntities = coreContext?.entities?.length > 0;
   const hasFeed = currentFeed?.length > 0;
+  const hasKnowledge = askiKnowledge?.trim()?.length > 0;
 
   let basePrompt = `You are Aski — a highly capable AI assistant with access to user's personal knowledge base.
 
 ## CURRENT: ${currentDate}, ${currentTime} (${userTimezone})
+
+${hasKnowledge ? `## 📚 PERSONAL KNOWLEDGE BASE
+Пользователь настроил для тебя персональную базу знаний. ВСЕГДА учитывай эту информацию:
+
+${askiKnowledge}
+
+---
+` : ''}
 
 ## 📋 ЛЕНТА / FEED — Source of Truth
 **Лента (Feed)** = то, что пользователь РЕАЛЬНО видит в приложении прямо сейчас.
@@ -2124,6 +2133,7 @@ export default async function handler(req) {
       voiceMode,  // NEW: if true, auto-select model based on query
       currentFeed, // v4.17: Actual drops from user's feed (localStorage)
       userEmail, // v4.19: User email for send_email tool
+      askiKnowledge, // v4.20: Personal knowledge base
       // Email attachment fields (for send_email_with_attachment action)
       to: emailTo,
       subject: emailSubject,
@@ -2294,7 +2304,7 @@ export default async function handler(req) {
       const isExpansion = lastAssistant?.text?.includes('?') && isShortAffirmative(text);
       
       const maxTokens = isExpansion ? 2500 : 1000;
-      const systemPrompt = buildSystemPrompt(formattedContext, userProfile, coreContext, isExpansion, userTimezone, currentFeed);
+      const systemPrompt = buildSystemPrompt(formattedContext, userProfile, coreContext, isExpansion, userTimezone, currentFeed, askiKnowledge);
       
       // Add system prompt debug info (AFTER systemPrompt is built)
       coreDebug.systemPromptHasCoreMemory = systemPrompt.includes('### Known facts:');
