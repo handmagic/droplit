@@ -109,15 +109,6 @@
     .card-row2 .card-chars {
       margin-left: 0;
     }
-    /* Command drop (reminder) styling */
-    .card-cat.command {
-      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
-      color: white !important;
-      font-weight: 600;
-    }
-    .card.command-drop {
-      border-left: 3px solid #f59e0b;
-    }
   </style>
   
   <!-- Eruda Mobile Console (Debug) -->
@@ -3966,7 +3957,7 @@ function render(){
       const isCommand = i.type === 'command' || i.category === 'command';
       // Card with full width, avatar inside
       const idStr = typeof i.id === 'string' ? "'"+i.id+"'" : i.id;
-      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+(isCommand?' command-drop':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+idStr+',event)" ontouchstart="cardTouchStart('+idStr+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
+      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+(isCommand?' command':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+idStr+',event)" ontouchstart="cardTouchStart('+idStr+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
       // Header: Avatar left, two rows right
       h+='<div class="card-header">';
@@ -3979,11 +3970,9 @@ function render(){
       h+='</div>';
       // Row 2: Category + params + NEW
       h+='<div class="card-row2">';
-      // Special handling for command drops (reminders)
-      const catLabel = (i.type === 'command' || i.category === 'command') 
-        ? '⏰ REMINDER' 
-        : (CATS[i.category]?.single||'INBOX');
-      const catClass = (i.type === 'command' || i.category === 'command') ? 'command' : i.category;
+      // Category label and class (command drops use 'command' category from CATS)
+      const catLabel = CATS[i.category]?.single || 'INBOX';
+      const catClass = i.category || 'inbox';
       h+='<span class="card-cat '+catClass+'" onclick="openCatModal('+i.id+')">'+catLabel+'</span>';
       // Encrypted lock icon (shows if drop is encrypted)
       if(i.encrypted){
