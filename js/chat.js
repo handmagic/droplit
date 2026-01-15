@@ -2082,6 +2082,16 @@ async function handleStreamingResponse(response) {
             
             // Stream done
             if (parsed.type === 'done') {
+              // DEBUG: Log what we received
+              console.log('[Streaming DONE] Full parsed:', JSON.stringify({
+                createDrop: parsed.createDrop,
+                createEvent: parsed.createEvent,
+                cancelEvent: parsed.cancelEvent,
+                deleteDrop: parsed.deleteDrop,
+                updateDrop: parsed.updateDrop,
+                toolsUsed: parsed.toolsUsed
+              }));
+              
               createDropData = parsed.createDrop;
               
               // Handle create_drop in streaming mode (v4.18)
@@ -2105,7 +2115,7 @@ async function handleStreamingResponse(response) {
                 localStorage.setItem('ideas', JSON.stringify(ideas));
                 
                 // Refresh feed: filter today, render, scroll to bottom
-                if (typeof setFilter === 'function') setFilter('today');
+                if (typeof setTimeFilter === 'function') setTimeFilter('today');
                 render();
                 counts();
                 if (typeof scrollToBottom === 'function') scrollToBottom();
@@ -2117,6 +2127,14 @@ async function handleStreamingResponse(response) {
               }
               
               // Handle create_event in streaming mode (v4.18) - add command drop to feed
+              console.log('[Streaming DEBUG] createEvent check:', {
+                hasCreateEvent: !!parsed.createEvent,
+                action: parsed.createEvent?.action,
+                hasCommand: !!parsed.createEvent?.command,
+                command: parsed.createEvent?.command,
+                error: parsed.createEvent?.error
+              });
+              
               if (parsed.createEvent?.action === 'create_event' && parsed.createEvent?.command) {
                 const cmd = parsed.createEvent.command;
                 const now = new Date();
@@ -2148,7 +2166,7 @@ async function handleStreamingResponse(response) {
                 localStorage.setItem('ideas', JSON.stringify(ideas));
                 
                 // Refresh feed: filter today, render, scroll to bottom
-                if (typeof setFilter === 'function') setFilter('today');
+                if (typeof setTimeFilter === 'function') setTimeFilter('today');
                 render();
                 counts();
                 if (typeof scrollToBottom === 'function') scrollToBottom();
@@ -2193,7 +2211,7 @@ async function handleStreamingResponse(response) {
                 
                 if (removed) {
                   // Refresh feed: filter today, render, scroll to bottom
-                  if (typeof setFilter === 'function') setFilter('today');
+                  if (typeof setTimeFilter === 'function') setTimeFilter('today');
                   render();
                   counts();
                   if (typeof scrollToBottom === 'function') scrollToBottom();
@@ -2214,7 +2232,7 @@ async function handleStreamingResponse(response) {
                     localStorage.setItem('ideas', JSON.stringify(ideas));
                     
                     // Refresh feed: filter today, render, scroll to bottom
-                    if (typeof setFilter === 'function') setFilter('today');
+                    if (typeof setTimeFilter === 'function') setTimeFilter('today');
                     render();
                     counts();
                     if (typeof scrollToBottom === 'function') scrollToBottom();
@@ -2236,7 +2254,7 @@ async function handleStreamingResponse(response) {
                     localStorage.setItem('ideas', JSON.stringify(ideas));
                     
                     // Refresh feed after update
-                    if (typeof setFilter === 'function') setFilter('today');
+                    if (typeof setTimeFilter === 'function') setTimeFilter('today');
                     render();
                     if (typeof scrollToBottom === 'function') scrollToBottom();
                     
