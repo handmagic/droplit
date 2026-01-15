@@ -270,31 +270,28 @@ function rateLimitResponse(resetIn) {
 // TOOL DEFINITIONS
 // ============================================
 
-// Address book for email recipients
-const EMAIL_ADDRESS_BOOK = {
-  // Personal
-  'alex': 'order.ipan@gmail.com',
-  'алекс': 'order.ipan@gmail.com',
-  'я': 'order.ipan@gmail.com',
-  'мне': 'order.ipan@gmail.com',
-  'me': 'order.ipan@gmail.com',
-  
-  // Business contacts (examples - customize as needed)
-  // 'бухгалтерия': 'accounting@company.com',
-  // 'плановый отдел': 'planning@company.com',
-  // 'john': 'john.smith@example.com',
-};
-
 // Resolve recipient name to email address
-function resolveEmailAddress(recipient) {
+// userEmail comes from frontend settings
+function resolveEmailAddress(recipient, userEmail) {
   if (!recipient) return null;
   
   // Check if it's already an email
   if (recipient.includes('@')) return recipient;
   
-  // Look up in address book (case-insensitive)
+  // Normalize recipient
   const normalized = recipient.toLowerCase().trim();
-  return EMAIL_ADDRESS_BOOK[normalized] || null;
+  
+  // Personal pronouns → use userEmail from settings
+  const personalAliases = ['я', 'мне', 'me', 'myself', 'мой', 'себе', 'alex', 'алекс'];
+  if (personalAliases.includes(normalized)) {
+    return userEmail || null;
+  }
+  
+  // Future: could add business contacts lookup here
+  // const businessContacts = { 'бухгалтерия': 'accounting@company.com' };
+  // if (businessContacts[normalized]) return businessContacts[normalized];
+  
+  return null;
 }
 
 const TOOLS = [
@@ -985,7 +982,7 @@ User has asked to expand on a previous topic. Give a more detailed response cove
 // ============================================
 // TOOL EXECUTION
 // ============================================
-async function executeTool(toolName, input, dropContext, userId = null, currentFeed = []) {
+async function executeTool(toolName, input, dropContext, userId = null, currentFeed = [], userEmail = null) {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   switch (toolName) {
@@ -1025,12 +1022,12 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
       const asWord = input.as_word || false;
       const filename = input.filename || 'document';
       
-      // Resolve recipient
-      const toEmail = resolveEmailAddress(recipient);
+      // Resolve recipient (pass userEmail for personal aliases)
+      const toEmail = resolveEmailAddress(recipient, userEmail);
       if (!toEmail) {
         return { 
           success: false, 
-          error: `Не могу найти адрес для "${recipient}". Укажи email напрямую или имя из адресной книги.`,
+          error: `Не могу найти адрес для "${recipient}". Укажи email напрямую или настрой свою почту в Settings.`,
           action: 'send_email'
         };
       }
@@ -1724,7 +1721,7 @@ async function* parseSSEStream(response) {
 // ============================================
 // STREAMING CHAT WITH TOOLS (with cost tracking)
 // ============================================
-async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null, userId = null, modelConfig = null, currentFeed = []) {
+async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, dropContext, writer, debugInfo = null, userId = null, modelConfig = null, currentFeed = [], userEmail = null) {
   const encoder = new TextEncoder();
   let toolResults = [];
   let createDropAction = null;
@@ -1871,7 +1868,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
         let toolResult;
         try {
           console.log('[Tool] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
-          toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed);
+          toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail);
           console.log('[Tool] Result:', toolBlock.name, JSON.stringify(toolResult));
         } catch (toolError) {
           console.error('[Tool] Error executing', toolBlock.name, ':', toolError.message);
@@ -1982,7 +1979,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
 // ============================================
 // NON-STREAMING CHAT HANDLER (fallback, with cost tracking)
 // ============================================
-async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens, dropContext, userId = null, modelConfig = null) {
+async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens, dropContext, userId = null, modelConfig = null, currentFeed = [], userEmail = null) {
   // Use provided model or default to Sonnet
   const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
   
@@ -2026,7 +2023,7 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
     let toolResult;
     try {
       console.log('[Tool Non-Stream] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
-      toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed);
+      toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail);
       console.log('[Tool Non-Stream] Result:', toolBlock.name, JSON.stringify(toolResult));
     } catch (toolError) {
       console.error('[Tool Non-Stream] Error:', toolBlock.name, toolError.message);
@@ -2126,6 +2123,7 @@ export default async function handler(req) {
       model,   // Model selection: 'sonnet', 'opus', 'haiku', 'auto'
       voiceMode,  // NEW: if true, auto-select model based on query
       currentFeed, // v4.17: Actual drops from user's feed (localStorage)
+      userEmail, // v4.19: User email for send_email tool
       // Email attachment fields (for send_email_with_attachment action)
       to: emailTo,
       subject: emailSubject,
@@ -2318,8 +2316,8 @@ export default async function handler(req) {
         const { readable, writable } = new TransformStream();
         const writer = writable.getWriter();
         
-        // Start streaming in background, pass debug info, userId, and model config
-        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId, modelConfig, currentFeed)
+        // Start streaming in background, pass debug info, userId, model config, and userEmail
+        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId, modelConfig, currentFeed, userEmail)
           .catch(error => {
             console.error('Streaming error:', error);
             const encoder = new TextEncoder();
@@ -2339,7 +2337,7 @@ export default async function handler(req) {
 
       // NON-STREAMING MODE (fallback)
       const { resultText, toolResults, usage } = await handleNonStreamingChat(
-        apiKey, systemPrompt, messages, maxTokens, formattedContext, effectiveUserId, modelConfig
+        apiKey, systemPrompt, messages, maxTokens, formattedContext, effectiveUserId, modelConfig, currentFeed, userEmail
       );
       
       const createDropAction = toolResults.find(t => t.toolName === 'create_drop');
