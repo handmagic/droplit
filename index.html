@@ -5785,15 +5785,90 @@ function counts(){
   }catch(err){}
 }
 
+// Clean up expired/completed command drops (v4.20)
+function cleanupCommandDrops() {
+  const now = new Date();
+  let changed = false;
+  
+  ideas = ideas.filter(idea => {
+    // Keep non-command drops
+    if (idea.type !== 'command' && idea.category !== 'command') return true;
+    
+    // Check if command drop is expired (scheduled_at + 1 hour)
+    if (idea.scheduled_at) {
+      const scheduledTime = new Date(idea.scheduled_at);
+      const expireTime = new Date(scheduledTime.getTime() + 60 * 60 * 1000); // +1 hour
+      
+      if (now > expireTime && idea.status !== 'completed') {
+        console.log('[Cleanup] Removing expired command drop:', idea.text);
+        changed = true;
+        return false; // Remove
+      }
+    }
+    
+    // Keep active command drops
+    return true;
+  });
+  
+  if (changed) {
+    localStorage.setItem('ideas', JSON.stringify(ideas));
+    render();
+    counts();
+    console.log('[Cleanup] Feed updated after removing expired commands');
+  }
+}
+
+// Run cleanup on filter change to "today"
+function onFilterToday() {
+  cleanupCommandDrops();
+  // Scroll to newest drop
+  setTimeout(() => {
+    const wrap = document.getElementById('ideasList');
+    if (wrap) {
+      wrap.scrollTop = wrap.scrollHeight;
+    }
+  }, 100);
+}
+
 document.getElementById('timeRow').addEventListener('click',e=>{
   const b=e.target.closest('.time-btn');if(!b)return;
   document.querySelectorAll('.time-btn').forEach(x=>x.classList.remove('active'));
   if(b.dataset.time!=='all')b.classList.add('active');
   curTime=b.dataset.time;curCat='all';activeCardId=null;
   document.querySelectorAll('.cat').forEach(x=>x.classList.remove('active'));
-  render();
-  // counts already calculated, no need to recalculate
+  
+  // Cleanup expired command drops when switching to Today
+  if(b.dataset.time==='today') {
+    onFilterToday();
+  } else {
+    render();
+  }
 });
+
+// Programmatic time filter change (for ASKI drop operations)
+function setTimeFilter(filter) {
+  if (!['all', 'today', '7days'].includes(filter)) return;
+  
+  // Update UI
+  document.querySelectorAll('.time-btn').forEach(x => x.classList.remove('active'));
+  const btn = document.querySelector(`.time-btn[data-time="${filter}"]`);
+  if (btn && filter !== 'all') btn.classList.add('active');
+  
+  // Update state
+  curTime = filter;
+  curCat = 'all';
+  activeCardId = null;
+  document.querySelectorAll('.cat').forEach(x => x.classList.remove('active'));
+  
+  // Render
+  if (filter === 'today') {
+    onFilterToday();
+  } else {
+    render();
+  }
+  
+  console.log('[Filter] Set to:', filter);
+}
 
 document.getElementById('cats').addEventListener('click',e=>{
   const c=e.target.closest('.cat');if(!c)return;
