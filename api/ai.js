@@ -1049,7 +1049,7 @@ User has asked to expand on a previous topic. Give a more detailed response cove
 // ============================================
 // TOOL EXECUTION
 // ============================================
-async function executeTool(toolName, input, dropContext, userId = null, currentFeed = [], userEmail = null, askiKnowledge = '', userTimezone = 'UTC') {
+async function executeTool(toolName, input, dropContext, userId = null, currentFeed = [], userEmail = null, askiKnowledge = '') {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   switch (toolName) {
@@ -1236,7 +1236,7 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
     }
     
     case 'create_event': {
-      return await handleCreateEvent(input, userId, userTimezone);
+      return await handleCreateEvent(input, userId);
     }
     
     case 'cancel_event': {
@@ -1267,7 +1267,7 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
 // ============================================
 // CREATE EVENT HANDLER → COMMAND DROPS v2.0
 // ============================================
-async function handleCreateEvent(input, userId, userTimezone = 'UTC') {
+async function handleCreateEvent(input, userId) {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   // Generate local ID for fallback
@@ -1279,20 +1279,10 @@ async function handleCreateEvent(input, userId, userTimezone = 'UTC') {
       return { success: false, error: 'Event name is required', action: 'create_event' };
     }
     
-    console.log('[create_event] User timezone:', userTimezone, 'trigger_at:', input.trigger_at);
-    
-    // Calculate scheduled_at (stored in UTC, but interpret user input in their timezone)
+    // Calculate scheduled_at
     let scheduledAt;
     if (input.trigger_type === 'datetime' && input.trigger_at) {
-      // If trigger_at already has timezone info (ends with Z or +/-), use as-is
-      // Otherwise, interpret as user's local time
-      if (input.trigger_at.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(input.trigger_at)) {
-        scheduledAt = input.trigger_at;
-      } else {
-        // Interpret as user's timezone - append timezone offset
-        // For now, trust the time as provided (frontend sends correct UTC)
-        scheduledAt = input.trigger_at;
-      }
+      scheduledAt = input.trigger_at;
     } else if (input.trigger_type === 'cron') {
       // For cron, calculate next occurrence (simplified - use current time + 1 hour as placeholder)
       scheduledAt = new Date(Date.now() + 3600000).toISOString();
@@ -1306,25 +1296,13 @@ async function handleCreateEvent(input, userId, userTimezone = 'UTC') {
     // Map action_type
     const actionType = input.action_type || 'push';
     
-    // Format time for display in USER's timezone (not UTC!)
+    // Format time for display
     const scheduledDate = new Date(scheduledAt);
-    let timeStr;
-    try {
-      timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        timeZone: userTimezone
-      });
-    } catch (tzError) {
-      console.warn('[create_event] Invalid timezone, falling back to UTC:', userTimezone, tzError.message);
-      timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        timeZone: 'UTC'
-      });
-    }
-    
-    console.log('[create_event] Scheduled:', scheduledAt, '-> Display time:', timeStr, 'in', userTimezone);
+    const timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      timeZone: 'UTC'
+    });
     
     // If no Supabase or userId, create local-only command drop
     if (!SUPABASE_KEY || !userId) {
@@ -1340,8 +1318,7 @@ async function handleCreateEvent(input, userId, userTimezone = 'UTC') {
           trigger_at: scheduledAt,
           scheduled_time: timeStr,
           action_type: actionType,
-          creator: 'aski',
-          timezone: userTimezone
+          creator: 'aski'
         },
         command: {
           id: localCommandId,
@@ -1349,8 +1326,7 @@ async function handleCreateEvent(input, userId, userTimezone = 'UTC') {
           scheduled_at: scheduledAt,
           scheduled_time: timeStr,
           status: 'pending',
-          creator: 'aski',
-          timezone: userTimezone
+          creator: 'aski'
         }
       };
     }
@@ -1433,8 +1409,7 @@ async function handleCreateEvent(input, userId, userTimezone = 'UTC') {
         trigger_at: scheduledAt,
         scheduled_time: timeStr,
         action_type: actionType,
-        creator: 'aski',
-        timezone: userTimezone
+        creator: 'aski'
       },
       // Also return for frontend display
       command: {
@@ -1443,8 +1418,7 @@ async function handleCreateEvent(input, userId, userTimezone = 'UTC') {
         scheduled_at: scheduledAt,
         scheduled_time: timeStr,
         status: 'pending',
-        creator: 'aski',
-        timezone: userTimezone
+        creator: 'aski'
       }
     };
     
@@ -1981,7 +1955,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
         let toolResult;
         try {
           console.log('[Tool] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
-          toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge, userTimezone);
+          toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge);
           console.log('[Tool] Result:', toolBlock.name, JSON.stringify(toolResult));
         } catch (toolError) {
           console.error('[Tool] Error executing', toolBlock.name, ':', toolError.message);
@@ -2142,7 +2116,7 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
     let toolResult;
     try {
       console.log('[Tool Non-Stream] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
-      toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge, userTimezone);
+      toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge);
       console.log('[Tool Non-Stream] Result:', toolBlock.name, JSON.stringify(toolResult));
     } catch (toolError) {
       console.error('[Tool Non-Stream] Error:', toolBlock.name, toolError.message);
@@ -2244,7 +2218,6 @@ export default async function handler(req) {
       currentFeed, // v4.17: Actual drops from user's feed (localStorage)
       userEmail, // v4.19: User email for send_email tool
       askiKnowledge, // v4.20: Personal knowledge base
-      timezone: bodyTimezone, // v4.21: User timezone from body
       // Email attachment fields (for send_email_with_attachment action)
       to: emailTo,
       subject: emailSubject,
@@ -2271,21 +2244,8 @@ export default async function handler(req) {
     const modelConfig = getModelConfig(selectedModel);
     console.log(`[AI] Action: ${action}, Model: ${modelConfig.id}, Stream: ${stream}, VoiceMode: ${!!voiceMode}`);
 
-    // Get user timezone: body > header > askiKnowledge > UTC
-    let userTimezone = bodyTimezone || req.headers.get('x-timezone');
-    if (!userTimezone && askiKnowledge) {
-      // Try to extract timezone from askiKnowledge text
-      const tzMatch = askiKnowledge.match(/timezone[:\s]+([A-Za-z_\/]+)/i) ||
-                      askiKnowledge.match(/часовой пояс[:\s]+([A-Za-z_\/]+)/i) ||
-                      askiKnowledge.match(/(Europe\/\w+|America\/\w+|Asia\/\w+|UTC[+-]?\d*)/i);
-      if (tzMatch) {
-        userTimezone = tzMatch[1];
-        console.log('[AI] Timezone from askiKnowledge:', userTimezone);
-      }
-    }
-    userTimezone = userTimezone || 'UTC';
-    console.log('[AI] Using timezone:', userTimezone);
-    
+    // Get user timezone from headers
+    const userTimezone = req.headers.get('x-timezone') || 'UTC';
     const userCountry = req.headers.get('x-country') || null;
     const userCity = req.headers.get('x-city') || null;
 
