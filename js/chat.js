@@ -2611,10 +2611,7 @@ async function sendAskAIMessage() {
     
     const response = await fetch(AI_API_URL, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'x-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'chat',
         text: textForAI,  // Masked text for AI (v0.9.103)
@@ -2627,7 +2624,8 @@ async function sendAskAIMessage() {
         userId: currentUser?.id, // v3: For CORE Memory integration
         model: selectedModel, // v4.14: AI model selection (sonnet/opus/haiku)
         userEmail: getUserEmail(), // v4.19: User email for send_email tool
-        askiKnowledge: getAskiKnowledge() // v4.20: Personal knowledge base
+        askiKnowledge: getAskiKnowledge(), // v4.20: Personal knowledge base
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone // v4.21: Device timezone
       })
     });
     
@@ -3165,10 +3163,7 @@ async function generateAndSendDocxEmail(emailData) {
     // Send to server
     const response = await fetch(AI_API_URL, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'x-timezone': Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'send_email_with_attachment',
         to: to,
