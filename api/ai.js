@@ -2244,6 +2244,7 @@ export default async function handler(req) {
       currentFeed, // v4.17: Actual drops from user's feed (localStorage)
       userEmail, // v4.19: User email for send_email tool
       askiKnowledge, // v4.20: Personal knowledge base
+      timezone: bodyTimezone, // v4.21: User timezone from body
       // Email attachment fields (for send_email_with_attachment action)
       to: emailTo,
       subject: emailSubject,
@@ -2270,8 +2271,21 @@ export default async function handler(req) {
     const modelConfig = getModelConfig(selectedModel);
     console.log(`[AI] Action: ${action}, Model: ${modelConfig.id}, Stream: ${stream}, VoiceMode: ${!!voiceMode}`);
 
-    // Get user timezone from headers
-    const userTimezone = req.headers.get('x-timezone') || 'UTC';
+    // Get user timezone: body > header > askiKnowledge > UTC
+    let userTimezone = bodyTimezone || req.headers.get('x-timezone');
+    if (!userTimezone && askiKnowledge) {
+      // Try to extract timezone from askiKnowledge text
+      const tzMatch = askiKnowledge.match(/timezone[:\s]+([A-Za-z_\/]+)/i) ||
+                      askiKnowledge.match(/часовой пояс[:\s]+([A-Za-z_\/]+)/i) ||
+                      askiKnowledge.match(/(Europe\/\w+|America\/\w+|Asia\/\w+|UTC[+-]?\d*)/i);
+      if (tzMatch) {
+        userTimezone = tzMatch[1];
+        console.log('[AI] Timezone from askiKnowledge:', userTimezone);
+      }
+    }
+    userTimezone = userTimezone || 'UTC';
+    console.log('[AI] Using timezone:', userTimezone);
+    
     const userCountry = req.headers.get('x-country') || null;
     const userCity = req.headers.get('x-city') || null;
 
