@@ -5,6 +5,7 @@
 
 // Categories configuration
 const CATS = {
+  command: { name: 'COMMANDS', single: 'CMD', kw: ['reminder', 'alarm', 'напоминание', 'будильник', 'напомни', 'разбуди'], isMedia: false },
   tasks: { name: 'TASKS', single: 'TASK', kw: ['task', 'tasks', 'todo', 'задача', 'задачи', 'сделать', 'нужно', 'надо'], isMedia: false },
   ideas: { name: 'IDEAS', single: 'IDEA', kw: ['idea', 'ideas', 'идея', 'идеи', 'мысль', 'придумал'], isMedia: false },
   handmagic: { name: 'HANDMAGIC', single: 'HANDMAGIC', kw: ['handmagic', 'хендмеджик', 'магия', 'ручная магия'], isMedia: false },
