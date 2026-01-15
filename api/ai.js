@@ -273,11 +273,11 @@ function rateLimitResponse(resetIn) {
 // Address book for email recipients
 const EMAIL_ADDRESS_BOOK = {
   // Personal
-  'alex': 'order.ipan@gmail.com',
-  'алекс': 'order.ipan@gmail.com',
-  'я': 'order.ipan@gmail.com',
-  'мне': 'order.ipan@gmail.com',
-  'me': 'order.ipan@gmail.com',
+  'alex': 'hqrar@hotmail.com',
+  'алекс': 'hqrar@hotmail.com',
+  'я': 'hqrar@hotmail.com',
+  'мне': 'hqrar@hotmail.com',
+  'me': 'hqrar@hotmail.com',
   
   // Business contacts (examples - customize as needed)
   // 'бухгалтерия': 'accounting@company.com',
@@ -2125,7 +2125,12 @@ export default async function handler(req) {
       uid,     // Alternative userId field
       model,   // Model selection: 'sonnet', 'opus', 'haiku', 'auto'
       voiceMode,  // NEW: if true, auto-select model based on query
-      currentFeed // v4.17: Actual drops from user's feed (localStorage)
+      currentFeed, // v4.17: Actual drops from user's feed (localStorage)
+      // Email attachment fields (for send_email_with_attachment action)
+      to: emailTo,
+      subject: emailSubject,
+      filename: emailFilename,
+      docxBase64
     } = await req.json();
 
     // Auto-select model for voice mode
@@ -2163,25 +2168,24 @@ export default async function handler(req) {
         });
       }
       
-      const { to, subject, filename, docxBase64 } = await req.json();
-      
-      if (!to || !subject || !docxBase64) {
-        return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+      // Use already parsed fields from main request parsing
+      if (!emailTo || !emailSubject || !docxBase64) {
+        return new Response(JSON.stringify({ error: 'Missing required fields: to, subject, docxBase64' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
-      console.log('[send_email_with_attachment] Sending to:', to, 'Subject:', subject);
+      console.log('[send_email_with_attachment] Sending to:', emailTo, 'Subject:', emailSubject);
       
       try {
         const emailBody = {
           from: 'ASKI <aski@syntrise.com>',
-          to: to,
-          subject: subject,
-          html: `<p>Документ "${subject}" во вложении.</p><p style="color: #666; font-size: 12px;">Отправлено через ASKI</p>`,
+          to: emailTo,
+          subject: emailSubject,
+          html: `<p>Документ "${emailSubject}" во вложении.</p><p style="color: #666; font-size: 12px;">Отправлено через ASKI</p>`,
           attachments: [{
-            filename: `${filename || 'document'}.docx`,
+            filename: `${emailFilename || 'document'}.docx`,
             content: docxBase64
           }]
         };
@@ -2209,7 +2213,7 @@ export default async function handler(req) {
         
         return new Response(JSON.stringify({
           success: true,
-          message: `Письмо с документом отправлено на ${to}`,
+          message: `Письмо с документом отправлено на ${emailTo}`,
           email_id: result.id
         }), {
           status: 200,
