@@ -5814,6 +5814,7 @@ function counts(){
 }
 
 // Clean up expired/completed command drops (v4.20)
+// NOTE: Temporarily disabled aggressive cleanup - only removes if status is 'executed' or 'cancelled'
 function cleanupCommandDrops() {
   const now = new Date();
   let changed = false;
@@ -5822,27 +5823,22 @@ function cleanupCommandDrops() {
     // Keep non-command drops
     if (idea.type !== 'command' && idea.category !== 'command') return true;
     
-    // Check if command drop is expired (scheduled_at + 1 hour)
-    if (idea.scheduled_at) {
-      const scheduledTime = new Date(idea.scheduled_at);
-      const expireTime = new Date(scheduledTime.getTime() + 60 * 60 * 1000); // +1 hour
-      
-      if (now > expireTime && idea.status !== 'completed') {
-        console.log('[Cleanup] Removing expired command drop:', idea.text);
-        changed = true;
-        return false; // Remove
-      }
+    // Only remove if explicitly executed or cancelled
+    if (idea.status === 'executed' || idea.status === 'cancelled') {
+      console.log('[Cleanup] Removing completed/cancelled command drop:', idea.text, idea.status);
+      changed = true;
+      return false; // Remove
     }
     
-    // Keep active command drops
+    // Keep all pending/active command drops regardless of time
     return true;
   });
   
   if (changed) {
-    localStorage.setItem('ideas', JSON.stringify(ideas));
+    localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
     render();
     counts();
-    console.log('[Cleanup] Feed updated after removing expired commands');
+    console.log('[Cleanup] Feed updated after removing completed commands');
   }
 }
 
