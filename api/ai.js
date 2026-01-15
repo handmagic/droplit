@@ -1308,11 +1308,21 @@ async function handleCreateEvent(input, userId, userTimezone = 'UTC') {
     
     // Format time for display in USER's timezone (not UTC!)
     const scheduledDate = new Date(scheduledAt);
-    const timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      timeZone: userTimezone
-    });
+    let timeStr;
+    try {
+      timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: userTimezone
+      });
+    } catch (tzError) {
+      console.warn('[create_event] Invalid timezone, falling back to UTC:', userTimezone, tzError.message);
+      timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'UTC'
+      });
+    }
     
     console.log('[create_event] Scheduled:', scheduledAt, '-> Display time:', timeStr, 'in', userTimezone);
     
