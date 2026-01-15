@@ -7,6 +7,11 @@
 // ASK AI CHAT FUNCTIONS
 // ============================================
 
+// Get user email from localStorage (for send_email tool)
+function getUserEmail() {
+  return localStorage.getItem('droplit_user_email') || '';
+}
+
 // Markdown rendering helper (uses global renderMarkdown if available)
 function renderChatMarkdown(text) {
   if (typeof window.renderMarkdown === 'function') {
@@ -2480,7 +2485,8 @@ async function sendAskAIMessage() {
         stream: STREAMING_ENABLED,
         enableTools: true, // v4.18: Enable Tool Calling for drop operations
         userId: currentUser?.id, // v3: For CORE Memory integration
-        model: selectedModel // v4.14: AI model selection (sonnet/opus/haiku)
+        model: selectedModel, // v4.14: AI model selection (sonnet/opus/haiku)
+        userEmail: getUserEmail() // v4.19: User email for send_email tool
       })
     });
     
@@ -2991,7 +2997,7 @@ async function generateAndSendDocxEmail(emailData) {
     // Footer
     children.push(new Paragraph({
       children: [new TextRun({ 
-        text: 'Документ создан через ASKI', 
+        text: 'Документ создан ассистентом ASKI в приложении droplit.app', 
         size: 18, 
         color: '888888', 
         italics: true,
