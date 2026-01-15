@@ -12,6 +12,11 @@ function getUserEmail() {
   return localStorage.getItem('droplit_user_email') || '';
 }
 
+// Get ASKI Knowledge Base from localStorage
+function getAskiKnowledge() {
+  return localStorage.getItem('droplit_aski_knowledge') || '';
+}
+
 // Markdown rendering helper (uses global renderMarkdown if available)
 function renderChatMarkdown(text) {
   if (typeof window.renderMarkdown === 'function') {
@@ -2486,7 +2491,8 @@ async function sendAskAIMessage() {
         enableTools: true, // v4.18: Enable Tool Calling for drop operations
         userId: currentUser?.id, // v3: For CORE Memory integration
         model: selectedModel, // v4.14: AI model selection (sonnet/opus/haiku)
-        userEmail: getUserEmail() // v4.19: User email for send_email tool
+        userEmail: getUserEmail(), // v4.19: User email for send_email tool
+        askiKnowledge: getAskiKnowledge() // v4.20: Personal knowledge base
       })
     });
     
