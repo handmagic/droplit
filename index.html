@@ -2301,6 +2301,18 @@ function deleteSelected(){
   if(selectedIds.length===0)return;
   const count=selectedIds.length;
   if(confirm('Delete '+count+' selected items?')){
+    // Cancel any command drops in Supabase before deleting (v1.2)
+    const commandDrops = ideas.filter(i => 
+      selectedIds.includes(i.id) && 
+      (i.category === 'command' || i.type === 'command') && 
+      i.event_id
+    );
+    if (commandDrops.length > 0 && typeof DropLitNotifications !== 'undefined' && DropLitNotifications.cancelCommandDrop) {
+      commandDrops.forEach(cmd => {
+        DropLitNotifications.cancelCommandDrop(cmd.event_id);
+      });
+    }
+    
     ideas=ideas.filter(i=>!selectedIds.includes(i.id));
     save();
     cancelSelect();
@@ -3279,6 +3291,12 @@ function confirmDel(){
       if (syncEnabled && currentUser) {
         deleteDropFromServer(delId);
       }
+      // Cancel command in Supabase if it's a command drop (v1.2)
+      if ((delItem.category === 'command' || delItem.type === 'command') && delItem.event_id) {
+        if (typeof DropLitNotifications !== 'undefined' && DropLitNotifications.cancelCommandDrop) {
+          DropLitNotifications.cancelCommandDrop(delItem.event_id);
+        }
+      }
     }
     ideas=ideas.filter(x=>x.id!==delId);
     save();
@@ -3956,9 +3974,13 @@ function render(){
       const verifiedBadge = creatorStatus ? '<span class="verified-badge '+creatorStatus+'">'+badgeSvg+'</span>' : '';
       // Check if command drop
       const isCommand = i.type === 'command' || i.category === 'command';
+      // Check if command is expired (scheduled_at in the past)
+      const isExpired = isCommand && i.scheduled_at && new Date(i.scheduled_at) < new Date();
+      // Check if command is cancelled or executed
+      const isCancelled = isCommand && (i.status === 'cancelled' || i.status === 'executed');
       // Card with full width, avatar inside
       const idStr = typeof i.id === 'string' ? "'"+i.id+"'" : i.id;
-      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+(isCommand?' command':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+idStr+',event)" ontouchstart="cardTouchStart('+idStr+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
+      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+(isCommand?' command':'')+(isExpired?' expired':'')+(isCancelled?' cancelled':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+idStr+',event)" ontouchstart="cardTouchStart('+idStr+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
       // Header: Avatar left, two rows right
       h+='<div class="card-header">';
