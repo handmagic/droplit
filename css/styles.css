@@ -126,8 +126,8 @@ body.chat-open .header-add-btn { display: none; }
 .cat.active { border-color: var(--color-active); }
 .cat[data-category="tasks"] { background: var(--cat-tasks-bg); color: var(--cat-tasks-text); }
 .cat[data-category="tasks"] .cnt { background: rgba(146,64,14,0.15); }
-.cat[data-category="commands"] { background: linear-gradient(135deg, #DCFCE7, #BBF7D0); color: #166534; }
-.cat[data-category="commands"] .cnt { background: rgba(22,101,52,0.15); }
+.cat[data-category="command"] { background: linear-gradient(135deg, #DCFCE7, #BBF7D0); color: #166534; }
+.cat[data-category="command"] .cnt { background: rgba(22,101,52,0.15); }
 .cat[data-category="ideas"] { background: var(--cat-ideas-bg); color: var(--cat-ideas-text); }
 .cat[data-category="ideas"] .cnt { background: rgba(55,48,163,0.15); }
 .cat[data-category="handmagic"] { background: var(--cat-handmagic-bg); color: var(--cat-handmagic-text); }
@@ -190,7 +190,7 @@ body.font-large .card-header-content { height: 52px; }
 .card-cat.sketch { background: var(--cat-sketch-bg); color: var(--cat-sketch-text); }
 
 /* Command drops */
-.card-cat.commands { background: linear-gradient(135deg, #DCFCE7, #BBF7D0); color: #166534; }
+.card-cat.command { background: linear-gradient(135deg, #DCFCE7, #BBF7D0); color: #166534; }
 .card.command { background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%); border-left: 3px solid #22C55E; }
 .card.command.executed { opacity: 0.6; border-left-color: #9CA3AF; }
 .card.command.executed .cmd-scheduled-badge { text-decoration: line-through; }
