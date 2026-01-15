@@ -2103,9 +2103,14 @@ async function handleStreamingResponse(response) {
                 };
                 ideas.unshift(newIdea);
                 localStorage.setItem('ideas', JSON.stringify(ideas));
+                
+                // Refresh feed: filter today, render, scroll to bottom
+                if (typeof setFilter === 'function') setFilter('today');
                 render();
                 counts();
-                console.log('✅ [Streaming] AI created drop in local feed:', newIdea.id);
+                if (typeof scrollToBottom === 'function') scrollToBottom();
+                
+                console.log('✅ [Streaming] AI created drop:', newIdea.id, newIdea.text?.substring(0, 30));
                 toast('Дроп создан', 'success');
                 // Clear so it doesn't get processed again later
                 createDropData = null;
@@ -2115,8 +2120,15 @@ async function handleStreamingResponse(response) {
               if (parsed.createEvent?.action === 'create_event' && parsed.createEvent?.command) {
                 const cmd = parsed.createEvent.command;
                 const now = new Date();
+                
+                // CRITICAL: Use ID from server (UUID from Supabase)
+                const eventId = cmd.id;
+                if (!eventId) {
+                  console.warn('[Streaming] create_event: No ID from server!');
+                }
+                
                 const newIdea = {
-                  id: cmd.id || Date.now().toString(),
+                  id: eventId || Date.now().toString(), // Prefer server UUID
                   text: `⏰ ${cmd.title}`,
                   content: `⏰ ${cmd.title}`,
                   category: 'command',
@@ -2124,6 +2136,7 @@ async function handleStreamingResponse(response) {
                   timestamp: now.toISOString(),
                   created_at: now.toISOString(),
                   scheduled_at: cmd.scheduled_at,
+                  event_id: eventId, // Store separately for lookup
                   status: 'pending',
                   date: now.toLocaleDateString('ru-RU'),
                   time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
@@ -2133,10 +2146,62 @@ async function handleStreamingResponse(response) {
                 };
                 ideas.unshift(newIdea);
                 localStorage.setItem('ideas', JSON.stringify(ideas));
+                
+                // Refresh feed: filter today, render, scroll to bottom
+                if (typeof setFilter === 'function') setFilter('today');
                 render();
                 counts();
-                console.log('✅ [Streaming] AI created command drop in local feed:', newIdea.id);
+                if (typeof scrollToBottom === 'function') scrollToBottom();
+                
+                console.log('✅ [Streaming] AI created command drop:', eventId);
                 toast('Напоминание создано', 'success');
+              }
+              
+              // Handle cancel_event in streaming mode (v4.20) - remove command drop from feed
+              if (parsed.cancelEvent?.action === 'cancel_event' && parsed.cancelEvent?.sync_local) {
+                const cancelledId = parsed.cancelEvent.cancelled?.id;
+                const cancelledTitle = parsed.cancelEvent.cancelled?.title;
+                let removed = false;
+                
+                if (cancelledId) {
+                  // Find by ID (exact match) or event_id field
+                  const idx = ideas.findIndex(i => 
+                    String(i.id) === String(cancelledId) || 
+                    String(i.event_id) === String(cancelledId)
+                  );
+                  if (idx !== -1) {
+                    const removedDrop = ideas.splice(idx, 1)[0];
+                    localStorage.setItem('ideas', JSON.stringify(ideas));
+                    console.log('✅ [Streaming] Removed command drop by ID:', cancelledId, removedDrop.text);
+                    removed = true;
+                  }
+                }
+                
+                // Fallback: find by title
+                if (!removed && cancelledTitle) {
+                  const idx = ideas.findIndex(i => 
+                    i.type === 'command' && 
+                    (i.text?.includes(cancelledTitle) || i.content?.includes(cancelledTitle))
+                  );
+                  if (idx !== -1) {
+                    const removedDrop = ideas.splice(idx, 1)[0];
+                    localStorage.setItem('ideas', JSON.stringify(ideas));
+                    console.log('✅ [Streaming] Removed command drop by title:', cancelledTitle);
+                    removed = true;
+                  }
+                }
+                
+                if (removed) {
+                  // Refresh feed: filter today, render, scroll to bottom
+                  if (typeof setFilter === 'function') setFilter('today');
+                  render();
+                  counts();
+                  if (typeof scrollToBottom === 'function') scrollToBottom();
+                  toast('Напоминание отменено', 'success');
+                } else {
+                  console.warn('[Streaming] Could not find command drop to remove:', cancelledId, cancelledTitle);
+                  toast('Напоминание отменено (дроп не найден)', 'warning');
+                }
               }
               
               // Handle delete_drop in streaming mode (v4.17)
@@ -2147,9 +2212,14 @@ async function handleStreamingResponse(response) {
                   if (idx !== -1) {
                     ideas.splice(idx, 1);
                     localStorage.setItem('ideas', JSON.stringify(ideas));
+                    
+                    // Refresh feed: filter today, render, scroll to bottom
+                    if (typeof setFilter === 'function') setFilter('today');
                     render();
                     counts();
-                    console.log('✅ [Streaming] AI deleted drop from local feed:', deleteId);
+                    if (typeof scrollToBottom === 'function') scrollToBottom();
+                    
+                    console.log('✅ [Streaming] AI deleted drop:', deleteId);
                     toast('Удалено из ленты', 'success');
                   }
                 }
@@ -2164,8 +2234,13 @@ async function handleStreamingResponse(response) {
                     item.text = parsed.updateDrop.new_content;
                     item.content = parsed.updateDrop.new_content;
                     localStorage.setItem('ideas', JSON.stringify(ideas));
+                    
+                    // Refresh feed after update
+                    if (typeof setFilter === 'function') setFilter('today');
                     render();
-                    console.log('✅ [Streaming] AI updated drop in local feed:', updateId);
+                    if (typeof scrollToBottom === 'function') scrollToBottom();
+                    
+                    console.log('✅ [Streaming] AI updated drop:', updateId);
                     toast('Обновлено', 'success');
                   }
                 }
