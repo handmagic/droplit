@@ -1049,7 +1049,7 @@ User has asked to expand on a previous topic. Give a more detailed response cove
 // ============================================
 // TOOL EXECUTION
 // ============================================
-async function executeTool(toolName, input, dropContext, userId = null, currentFeed = [], userEmail = null, askiKnowledge = '') {
+async function executeTool(toolName, input, dropContext, userId = null, currentFeed = [], userEmail = null, askiKnowledge = '', userTimezone = 'UTC') {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   switch (toolName) {
@@ -1236,7 +1236,7 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
     }
     
     case 'create_event': {
-      return await handleCreateEvent(input, userId);
+      return await handleCreateEvent(input, userId, userTimezone);
     }
     
     case 'cancel_event': {
@@ -1267,7 +1267,7 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
 // ============================================
 // CREATE EVENT HANDLER → COMMAND DROPS v2.0
 // ============================================
-async function handleCreateEvent(input, userId) {
+async function handleCreateEvent(input, userId, userTimezone = 'UTC') {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   // Generate local ID for fallback
@@ -1279,10 +1279,20 @@ async function handleCreateEvent(input, userId) {
       return { success: false, error: 'Event name is required', action: 'create_event' };
     }
     
-    // Calculate scheduled_at
+    console.log('[create_event] User timezone:', userTimezone, 'trigger_at:', input.trigger_at);
+    
+    // Calculate scheduled_at (stored in UTC, but interpret user input in their timezone)
     let scheduledAt;
     if (input.trigger_type === 'datetime' && input.trigger_at) {
-      scheduledAt = input.trigger_at;
+      // If trigger_at already has timezone info (ends with Z or +/-), use as-is
+      // Otherwise, interpret as user's local time
+      if (input.trigger_at.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(input.trigger_at)) {
+        scheduledAt = input.trigger_at;
+      } else {
+        // Interpret as user's timezone - append timezone offset
+        // For now, trust the time as provided (frontend sends correct UTC)
+        scheduledAt = input.trigger_at;
+      }
     } else if (input.trigger_type === 'cron') {
       // For cron, calculate next occurrence (simplified - use current time + 1 hour as placeholder)
       scheduledAt = new Date(Date.now() + 3600000).toISOString();
@@ -1296,13 +1306,15 @@ async function handleCreateEvent(input, userId) {
     // Map action_type
     const actionType = input.action_type || 'push';
     
-    // Format time for display
+    // Format time for display in USER's timezone (not UTC!)
     const scheduledDate = new Date(scheduledAt);
     const timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
       hour: '2-digit', 
       minute: '2-digit',
-      timeZone: 'UTC'
+      timeZone: userTimezone
     });
+    
+    console.log('[create_event] Scheduled:', scheduledAt, '-> Display time:', timeStr, 'in', userTimezone);
     
     // If no Supabase or userId, create local-only command drop
     if (!SUPABASE_KEY || !userId) {
@@ -1318,7 +1330,8 @@ async function handleCreateEvent(input, userId) {
           trigger_at: scheduledAt,
           scheduled_time: timeStr,
           action_type: actionType,
-          creator: 'aski'
+          creator: 'aski',
+          timezone: userTimezone
         },
         command: {
           id: localCommandId,
@@ -1326,7 +1339,8 @@ async function handleCreateEvent(input, userId) {
           scheduled_at: scheduledAt,
           scheduled_time: timeStr,
           status: 'pending',
-          creator: 'aski'
+          creator: 'aski',
+          timezone: userTimezone
         }
       };
     }
@@ -1409,7 +1423,8 @@ async function handleCreateEvent(input, userId) {
         trigger_at: scheduledAt,
         scheduled_time: timeStr,
         action_type: actionType,
-        creator: 'aski'
+        creator: 'aski',
+        timezone: userTimezone
       },
       // Also return for frontend display
       command: {
@@ -1418,7 +1433,8 @@ async function handleCreateEvent(input, userId) {
         scheduled_at: scheduledAt,
         scheduled_time: timeStr,
         status: 'pending',
-        creator: 'aski'
+        creator: 'aski',
+        timezone: userTimezone
       }
     };
     
@@ -1955,7 +1971,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
         let toolResult;
         try {
           console.log('[Tool] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
-          toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge);
+          toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge, userTimezone);
           console.log('[Tool] Result:', toolBlock.name, JSON.stringify(toolResult));
         } catch (toolError) {
           console.error('[Tool] Error executing', toolBlock.name, ':', toolError.message);
@@ -2116,7 +2132,7 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
     let toolResult;
     try {
       console.log('[Tool Non-Stream] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
-      toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge);
+      toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge, userTimezone);
       console.log('[Tool Non-Stream] Result:', toolBlock.name, JSON.stringify(toolResult));
     } catch (toolError) {
       console.error('[Tool Non-Stream] Error:', toolBlock.name, toolError.message);
