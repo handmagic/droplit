@@ -2145,10 +2145,24 @@ async function handleStreamingResponse(response) {
                   console.warn('[Streaming] create_event: No ID from server!');
                 }
                 
+                // Format scheduled time for display (use device local time)
+                let scheduledTimeStr = '';
+                if (cmd.scheduled_at) {
+                  const scheduledDate = new Date(cmd.scheduled_at);
+                  scheduledTimeStr = scheduledDate.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+                } else if (cmd.scheduled_time) {
+                  scheduledTimeStr = cmd.scheduled_time;
+                }
+                
+                // Text format: ⏰ HH:MM Title
+                const dropText = scheduledTimeStr 
+                  ? `⏰ ${scheduledTimeStr} ${cmd.title}`
+                  : `⏰ ${cmd.title}`;
+                
                 const newIdea = {
                   id: eventId || Date.now().toString(), // Prefer server UUID
-                  text: `⏰ ${cmd.title}`,
-                  content: `⏰ ${cmd.title}`,
+                  text: dropText,
+                  content: dropText,
                   category: 'command',
                   type: 'command',
                   timestamp: now.toISOString(),
