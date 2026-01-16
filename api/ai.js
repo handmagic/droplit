@@ -862,6 +862,14 @@ ${hasFeed ? currentFeed.map((d, i) => `${i+1}. [${d.type || 'note'}] ${d.content
 - В базе Supabase могут быть старые удалённые дропы — ИГНОРИРУЙ их!
 - Инструменты get_recent_drops и search_drops теперь ищут В ЛЕНТЕ, не в базе
 
+## ⏰ COMMAND DROPS (Напоминания в ленте)
+Дропы с типом [command] — это активные напоминания. Формат: "⏰ HH:MM Название"
+- **Время в content — это ЛОКАЛЬНОЕ время пользователя!**
+- После создания напоминания — НЕ называй время из UTC, смотри на созданный [command] дроп в ленте
+- Если пользователь спрашивает "во сколько напоминание" — читай время из content дропа
+- Для удаления напоминания — используй delete_drop с ID командного дропа
+- status: pending = ожидает, executed = выполнено, cancelled = отменено
+
 ## ⚠️ CRITICAL: ALWAYS CHECK CORE MEMORY FIRST!
 Before answering ANY question about people, places, dates, or personal info:
 1. SCAN the "CORE MEMORY" section below
@@ -936,7 +944,14 @@ When you find CONTRADICTORY facts about the same topic:
 1. ВСЕГДА используй create_event (НЕ create_drop!)
 2. Convert relative time ("через 5 минут") to absolute ISO datetime
 3. Set appropriate priority: alarms=8-10, reminders=5, notifications=3
-4. Confirm what was scheduled in your response
+4. После создания — в ленте появится [command] дроп с временем в формате "⏰ HH:MM Название"
+5. Это время — ЛОКАЛЬНОЕ время пользователя. Используй его в ответе!
+
+**ВРЕМЯ В ОТВЕТЕ:**
+- После успешного create_event смотри в ленту на созданный [command] дроп
+- Там время уже в локальном формате пользователя (например "⏰ 15:30 Встреча")
+- Говори это время: "Напомню в 15:30"
+- НИКОГДА не называй время в UTC!
 
 **НЕПРАВИЛЬНО:** create_drop("напомнить о встрече") - это создаст обычный текст!
 **ПРАВИЛЬНО:** create_event(name: "встреча", trigger_at: "2026-01-16T10:00:00Z", ...)
@@ -1049,7 +1064,7 @@ User has asked to expand on a previous topic. Give a more detailed response cove
 // ============================================
 // TOOL EXECUTION
 // ============================================
-async function executeTool(toolName, input, dropContext, userId = null, currentFeed = [], userEmail = null, askiKnowledge = '') {
+async function executeTool(toolName, input, dropContext, userId = null, currentFeed = [], userEmail = null, askiKnowledge = '', userTimezone = 'UTC') {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   switch (toolName) {
