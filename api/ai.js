@@ -1251,7 +1251,7 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
     }
     
     case 'create_event': {
-      return await handleCreateEvent(input, userId);
+      return await handleCreateEvent(input, userId, userTimezone);
     }
     
     case 'cancel_event': {
@@ -1282,7 +1282,7 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
 // ============================================
 // CREATE EVENT HANDLER → COMMAND DROPS v2.0
 // ============================================
-async function handleCreateEvent(input, userId) {
+async function handleCreateEvent(input, userId, userTimezone = 'UTC') {
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   // Generate local ID for fallback
@@ -1311,13 +1311,24 @@ async function handleCreateEvent(input, userId) {
     // Map action_type
     const actionType = input.action_type || 'push';
     
-    // Format time for display
+    // Format time for display in USER'S TIMEZONE (not UTC!)
     const scheduledDate = new Date(scheduledAt);
-    const timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      timeZone: 'UTC'
-    });
+    let timeStr;
+    try {
+      timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: userTimezone
+      });
+      console.log('[create_event] Formatted time in', userTimezone, ':', timeStr);
+    } catch (tzError) {
+      console.warn('[create_event] Invalid timezone, using UTC:', userTimezone);
+      timeStr = scheduledDate.toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'UTC'
+      });
+    }
     
     // If no Supabase or userId, create local-only command drop
     if (!SUPABASE_KEY || !userId) {
@@ -1970,7 +1981,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
         let toolResult;
         try {
           console.log('[Tool] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
-          toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge);
+          toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge, userTimezone);
           console.log('[Tool] Result:', toolBlock.name, JSON.stringify(toolResult));
         } catch (toolError) {
           console.error('[Tool] Error executing', toolBlock.name, ':', toolError.message);
@@ -2131,7 +2142,7 @@ async function handleNonStreamingChat(apiKey, systemPrompt, messages, maxTokens,
     let toolResult;
     try {
       console.log('[Tool Non-Stream] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
-      toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge);
+      toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge, userTimezone);
       console.log('[Tool Non-Stream] Result:', toolBlock.name, JSON.stringify(toolResult));
     } catch (toolError) {
       console.error('[Tool Non-Stream] Error:', toolBlock.name, toolError.message);
@@ -2259,8 +2270,9 @@ export default async function handler(req) {
     const modelConfig = getModelConfig(selectedModel);
     console.log(`[AI] Action: ${action}, Model: ${modelConfig.id}, Stream: ${stream}, VoiceMode: ${!!voiceMode}`);
 
-    // Get user timezone from headers
-    const userTimezone = req.headers.get('x-timezone') || 'UTC';
+    // Get user timezone from body or headers
+    const userTimezone = body.timezone || req.headers.get('x-timezone') || 'UTC';
+    console.log('[AI] User timezone:', userTimezone);
     const userCountry = req.headers.get('x-country') || null;
     const userCity = req.headers.get('x-city') || null;
 
