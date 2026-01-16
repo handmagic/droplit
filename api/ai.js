@@ -2244,6 +2244,7 @@ export default async function handler(req) {
       currentFeed, // v4.17: Actual drops from user's feed (localStorage)
       userEmail, // v4.19: User email for send_email tool
       askiKnowledge, // v4.20: Personal knowledge base
+      timezone: bodyTimezone, // v4.22: User timezone from device
       // Email attachment fields (for send_email_with_attachment action)
       to: emailTo,
       subject: emailSubject,
@@ -2271,7 +2272,7 @@ export default async function handler(req) {
     console.log(`[AI] Action: ${action}, Model: ${modelConfig.id}, Stream: ${stream}, VoiceMode: ${!!voiceMode}`);
 
     // Get user timezone from body or headers
-    const userTimezone = body.timezone || req.headers.get('x-timezone') || 'UTC';
+    const userTimezone = bodyTimezone || req.headers.get('x-timezone') || 'UTC';
     console.log('[AI] User timezone:', userTimezone);
     const userCountry = req.headers.get('x-country') || null;
     const userCity = req.headers.get('x-city') || null;
