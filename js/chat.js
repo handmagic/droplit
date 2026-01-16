@@ -2210,6 +2210,28 @@ async function handleStreamingResponse(response) {
                 
                 console.log('✅ [Streaming] AI created command drop:', eventId, dropText);
                 toast('Напоминание создано', 'success');
+                
+                // === E2E ENCRYPTION FOR COMMAND DROPS (v4.23) ===
+                // Encrypt the command after it's created in Supabase
+                if (eventId && window.DropLitCommandEncrypt && window.DROPLIT_PRIVACY_ENABLED) {
+                  // Run encryption async - don't block UI
+                  (async () => {
+                    try {
+                      const encrypted = await window.DropLitCommandEncrypt.encryptExistingCommand(
+                        eventId,           // command UUID from Supabase
+                        cmd.title,         // original title
+                        cmd.title          // content (same as title for now)
+                      );
+                      if (encrypted) {
+                        console.log('🔐 [Streaming] Command encrypted:', eventId);
+                      }
+                    } catch (e) {
+                      console.warn('[Streaming] Command encryption skipped:', e.message);
+                      // Non-critical: plaintext version works as fallback
+                    }
+                  })();
+                }
+                // === END E2E ENCRYPTION ===
               }
               
               // Handle cancel_event in streaming mode (v4.20) - remove command drop from feed
