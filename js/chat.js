@@ -2594,17 +2594,25 @@ async function sendAskAIMessage() {
     let currentFeed = [];
     try {
       if (typeof ideas !== 'undefined' && Array.isArray(ideas)) {
-        // Get last 20 drops from the actual feed user sees
-        currentFeed = ideas.slice(0, 20).map(d => ({
+        // Sort by timestamp descending and get last 20 drops (including command drops!)
+        const sortedIdeas = [...ideas].sort((a, b) => {
+          const timeA = new Date(a.timestamp || a.created_at || 0).getTime();
+          const timeB = new Date(b.timestamp || b.created_at || 0).getTime();
+          return timeB - timeA; // Newest first
+        });
+        
+        currentFeed = sortedIdeas.slice(0, 20).map(d => ({
           id: d.id,
           content: d.text || d.content || '',
           category: d.category || 'inbox',
-          type: d.type || 'note',
+          type: d.type || d.category || 'note', // v4.22: Include command type
           created_at: d.created_at || d.timestamp,
           status: d.status,
+          scheduled_at: d.scheduled_at, // v4.22: For command drops
+          event_id: d.event_id, // v4.22: For command drops
           is_encrypted: d.encrypted || d.is_encrypted || false
         }));
-        console.log('[ASKI] Sending currentFeed:', currentFeed.length, 'drops');
+        console.log('[ASKI] Sending currentFeed:', currentFeed.length, 'drops, types:', [...new Set(currentFeed.map(d => d.type))].join(', '));
       }
     } catch (e) {
       console.warn('Could not get currentFeed:', e);
