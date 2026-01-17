@@ -4061,7 +4061,16 @@ function render(){
         }
       }
       if(i.text){
-        h+='<div class="card-text'+(isTruncated?' truncated':'')+'" id="text-'+i.id+'">'+renderMarkdown(i.text)+'</div>';
+        // v1.1: Command drops get status icon prefix
+        let displayText = i.text;
+        if (isCommand) {
+          const statusIcons = {pending:'⏰', completed:'✅', executed:'✅', failed:'❌', cancelled:'🚫'};
+          const statusIcon = statusIcons[i.status] || '⏰';
+          // Remove old icon if present (for backward compatibility)
+          displayText = displayText.replace(/^[⏰✅❌🚫]\s*/, '');
+          displayText = statusIcon + ' ' + displayText;
+        }
+        h+='<div class="card-text'+(isTruncated?' truncated':'')+'" id="text-'+i.id+'">'+renderMarkdown(displayText)+'</div>';
         if(isTruncated)h+='<div class="card-more show" onclick="toggleExpand('+i.id+',event)">Show more</div>';
       }
       if(!i.isMedia){
