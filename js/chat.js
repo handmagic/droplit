@@ -2147,12 +2147,15 @@ async function handleStreamingResponse(response) {
                 
                 // Format scheduled time for display (use device local time)
                 let scheduledTimeStr = '';
+                let scheduledDateStr = '';
                 console.log('[Command] scheduled_at from server:', cmd.scheduled_at, 'scheduled_time:', cmd.scheduled_time);
                 
                 if (cmd.scheduled_at) {
                   const scheduledDate = new Date(cmd.scheduled_at);
                   console.log('[Command] Parsed date:', scheduledDate, 'valid:', !isNaN(scheduledDate.getTime()));
                   if (!isNaN(scheduledDate.getTime())) {
+                    // Абсолютная дата: ДД.ММ (локальная система пользователя)
+                    scheduledDateStr = scheduledDate.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'});
                     scheduledTimeStr = scheduledDate.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
                   }
                 }
@@ -2161,12 +2164,17 @@ async function handleStreamingResponse(response) {
                   scheduledTimeStr = cmd.scheduled_time;
                 }
                 
-                console.log('[Command] Final time string:', scheduledTimeStr);
+                console.log('[Command] Final date:', scheduledDateStr, 'time:', scheduledTimeStr);
                 
-                // Text format: ⏰ HH:MM Title
-                const dropText = scheduledTimeStr 
-                  ? `⏰ ${scheduledTimeStr} ${cmd.title}`
-                  : `⏰ ${cmd.title}`;
+                // Text format: ДД.ММ ЧЧ:ММ Title (без иконки — она рендерится динамически)
+                let dropText;
+                if (scheduledDateStr && scheduledTimeStr) {
+                  dropText = `${scheduledDateStr} ${scheduledTimeStr} ${cmd.title}`;
+                } else if (scheduledTimeStr) {
+                  dropText = `${scheduledTimeStr} ${cmd.title}`;
+                } else {
+                  dropText = cmd.title;
+                }
                 
                 const newIdea = {
                   id: eventId || Date.now().toString(), // Prefer server UUID
