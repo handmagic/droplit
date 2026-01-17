@@ -2342,3 +2342,50 @@ body.font-large .pv-counter { height: 36px; padding: 0 16px; font-size: 0.9rem; 
 }
 .image-viewer-nav.prev { left: 16px !important; }
 .image-viewer-nav.next { right: 16px !important; }
+
+/* ============================================
+   ENCRYPTED LOCK ICON STYLES
+   Перенесено из index.html (Шаг 1.1)
+   ============================================ */
+.encrypted-lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 1px;
+  margin-right: 0;
+  vertical-align: middle;
+}
+.encrypted-lock svg {
+  width: 14px;
+  height: 14px;
+  fill: #6DD890;
+  stroke: #6DD890;
+  stroke-width: 1;
+}
+/* Slightly larger in active card */
+.card.active .encrypted-lock svg {
+  width: 16px;
+  height: 16px;
+}
+/* Roll-up mode */
+.card.roll-up .encrypted-lock svg {
+  width: 12px;
+  height: 12px;
+}
+/* Edit panel */
+.edit-panel .encrypted-lock svg {
+  width: 14px;
+  height: 14px;
+}
+/* Tighter spacing in card-row2 */
+.card-row2 {
+  gap: 4px !important;
+}
+.card-row2 .card-cat {
+  margin-right: 0;
+}
+.card-row2 .card-chars {
+  margin-left: 0;
+}
