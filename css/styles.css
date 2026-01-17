@@ -192,22 +192,8 @@ body.font-large .card-header-content { height: 52px; }
 /* Command drops */
 .card-cat.command { background: linear-gradient(135deg, #DCFCE7, #BBF7D0); color: #166534; }
 .card.command { background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%); border-left: 3px solid #22C55E; }
-.card.command.executed { border-left-color: #9CA3AF; }
-.card.command.executed .card-header,
-.card.command.executed .card-text { opacity: 0.6; }
+.card.command.executed { opacity: 0.6; border-left-color: #9CA3AF; }
 .card.command.executed .cmd-scheduled-badge { text-decoration: line-through; }
-/* Expired command drops - past scheduled time */
-.card.command.expired { background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%); border-left-color: #9CA3AF; }
-.card.command.expired .card-header,
-.card.command.expired .card-text { opacity: 0.5; }
-.card.command.expired .card-time { text-decoration: line-through; color: #9CA3AF; }
-.card.command.expired .cmd-time-badge { background: #E5E7EB; color: #6B7280; text-decoration: line-through; }
-/* Cancelled command drops */
-.card.command.cancelled { background: #F9FAFB; border-left-color: #D1D5DB; }
-.card.command.cancelled .card-header,
-.card.command.cancelled .card-text { opacity: 0.4; }
-.card.command.cancelled .card-time { text-decoration: line-through; color: #9CA3AF; }
-.card.command.cancelled .card-text { text-decoration: line-through; }
 .cmd-scheduled-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; background: #DCFCE7; color: #166534; font-size: 0.65rem; font-weight: 600; border-radius: 10px; margin-left: 6px; }
 .cmd-scheduled-badge.done { background: #E5E7EB; color: #6B7280; text-decoration: line-through; }
 /* Command roll-up mode */
@@ -218,6 +204,54 @@ body.font-large .card-header-content { height: 52px; }
 .cmd-time-badge { font-size: 0.75rem; font-weight: 700; color: #166534; background: #DCFCE7; padding: 2px 8px; border-radius: 8px; }
 .cmd-text-short { font-size: 0.8rem; color: var(--color-text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cmd-status.done { color: #22C55E; font-weight: 700; }
+
+/* ============================================
+   COMMAND DROP: SENSE TYPES (v1.0)
+   Разные типы command drops с разным поведением
+   ============================================ */
+
+/* --- REMINDER (sense-reminder) --- */
+/* Тип уведомления вместо счётчика символов */
+.card.command.sense-reminder .card-chars { display: none; }
+.card.command.sense-reminder .cmd-action-type { 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 4px; 
+  font-size: 0.7rem; 
+  color: #166534; 
+  font-weight: 500;
+}
+.card.command.sense-reminder .cmd-action-type .cmd-action-icon { 
+  font-size: 0.85rem; 
+}
+
+/* Скрыть маркеры для reminder */
+.card.command.sense-reminder .card-marker { display: none; }
+.card.command.sense-reminder .card-markers { display: none !important; }
+
+/* Скрыть кнопки действий в активном режиме для reminder */
+.card.command.sense-reminder.active .card-actions { display: none; }
+
+/* Статусы reminder */
+.card.command.sense-reminder.status-completed { 
+  border-left-color: #22C55E; 
+}
+.card.command.sense-reminder.status-completed .card-text { 
+  opacity: 0.7; 
+}
+.card.command.sense-reminder.status-failed { 
+  border-left-color: #EF4444; 
+  background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%); 
+}
+
+/* --- ASSIGNMENT (sense-assignment) - будущее --- */
+/* .card.command.sense-assignment { } */
+
+/* --- ACTION (sense-action) - будущее --- */
+/* .card.command.sense-action { } */
+
+/* --- MANAGEMENT (sense-management) - будущее --- */
+/* .card.command.sense-management { } */
 
 /* Card markers */
 .card-marker { font-size: 0.9rem; margin-left: 6px; opacity: 0.9; }
