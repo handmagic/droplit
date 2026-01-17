@@ -2487,34 +2487,51 @@ async function createCommandFromUI() {
     // Get values from Details view
     const titleInput = document.getElementById('commandTitleInput');
     const timeInput = document.getElementById('commandTimeInput');
-    const typeSelect = document.getElementById('commandTypeSelect');
     const notifySelect = document.getElementById('commandNotifySelect');
     
     const title = (titleInput && titleInput.value.trim()) || text;
-    const actionType = notifySelect ? notifySelect.value : 'push';
     
     // Build message for ASKI
     let askiMessage = title;
     if (timeInput && timeInput.value) {
       const d = new Date(timeInput.value);
       askiMessage = `Напомни ${d.toLocaleDateString('ru-RU')} в ${d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})} ${title}`;
+    } else {
+      // If no time specified, add "напомни" prefix for ASKI to recognize as command
+      if (!askiMessage.toLowerCase().includes('напомни')) {
+        askiMessage = 'Напомни ' + askiMessage;
+      }
     }
     
-    // Send to ASKI via existing chat system
-    if (typeof sendMessageToAI === 'function') {
-      await sendMessageToAI(askiMessage);
-      showCommandView('success');
+    // Send to ASKI via chat input
+    const askiInput = document.getElementById('askAIInput');
+    if (askiInput && typeof sendAskAIMessage === 'function') {
+      // Put message in ASKI input and send
+      askiInput.value = askiMessage;
+      
+      // Close command modal first
+      closeCreateCommand();
+      
+      // Open ASKI panel if not open
+      const askPanel = document.getElementById('askAIPanel');
+      if (askPanel && !askPanel.classList.contains('show')) {
+        if (typeof openAskAI === 'function') openAskAI();
+      }
+      
+      // Send message
+      await sendAskAIMessage();
+      
+      toast('⚡ Command sent to ASKI', 'success');
     } else {
-      throw new Error('ASKI not available');
+      throw new Error('ASKI chat not available');
     }
     
   } catch (err) {
     console.error('[Command] Error:', err);
     toast('Error: ' + (err.message || 'failed to create'), 'error');
     updateCommandButton();
+    btn.disabled = false;
   }
-  
-  btn.disabled = false;
 }
 
 // Quick time buttons
