@@ -3057,6 +3057,29 @@ function closeCreatorModal() {
   creatorModalId = null;
 }
 
+// Mark reminder as done (v2.0)
+function markReminderDone(id) {
+  const drop = ideas.find(x => x.id == id || x.id === id);
+  if (drop) {
+    drop.status = 'completed';
+    localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
+    
+    // Cancel on server if has event_id
+    if (drop.event_id && typeof DropLitNotifications !== 'undefined' && DropLitNotifications.cancelCommandDrop) {
+      DropLitNotifications.cancelCommandDrop(drop.event_id);
+    }
+    
+    render();
+    toast('✓ Reminder marked as done', 'success');
+  }
+}
+
+// Close active card
+function closeActiveCard() {
+  activeCardId = null;
+  render();
+}
+
 function reqDel(id){delId=id;document.getElementById('delModal').classList.add('show');}
 function closeDelModal(){stopAllAudio();document.getElementById('delModal').classList.remove('show');delId=null;}
 function confirmDel(){
@@ -3861,6 +3884,11 @@ function render(){
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
         h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
         h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
+      } else if(isCommand){
+        // Command drop actions: Mark done, Delete, Close
+        h+='<button class="act" onclick="markReminderDone(\''+i.id+'\')">✓ Done</button>';
+        h+='<button class="act danger" onclick="reqDel(\''+i.id+'\')">Delete</button>';
+        h+='<button class="act" onclick="closeActiveCard()">Close</button>';
       } else if(i.isMedia){
         h+='<button class="act" onclick="viewImage('+i.id+',event)">View</button>';
         h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">Read</button>';
