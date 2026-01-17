@@ -2139,6 +2139,29 @@ async function handleStreamingResponse(response) {
                 const cmd = parsed.createEvent.command;
                 const now = new Date();
                 
+                // === CLIENT-SIDE VALIDATION v1.0 ===
+                if (window.CommandValidator) {
+                  const clientValidation = window.CommandValidator.validate(
+                    {
+                      title: cmd.title,
+                      scheduled_at: cmd.scheduled_at,
+                      action_type: 'push',
+                      sense_type: 'reminder',
+                      runtime_type: 'scheduled',
+                      relation_type: 'user',
+                      creator: 'aski',
+                      acceptor: 'user',
+                      status: 'pending'
+                    },
+                    window.lastUserMessage || cmd.title
+                  );
+                  console.log('[Validator]', window.CommandValidator.formatBriefReport(clientValidation));
+                  if (clientValidation.warnings.length > 0) {
+                    console.warn('[Validator] Warnings:', clientValidation.warnings);
+                  }
+                }
+                // === END CLIENT-SIDE VALIDATION ===
+                
                 // CRITICAL: Use ID from server (UUID from Supabase)
                 const eventId = cmd.id;
                 if (!eventId) {
