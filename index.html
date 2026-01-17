@@ -3084,7 +3084,7 @@ function reqDel(id){delId=id;document.getElementById('delModal').classList.add('
 function closeDelModal(){stopAllAudio();document.getElementById('delModal').classList.remove('show');delId=null;}
 function confirmDel(){
   if(delId){
-    const delItem=ideas.find(x=>x.id===delId);
+    const delItem=ideas.find(x=>x.id==delId);
     if(delItem) {
       saveUndo('delete',{...delItem});
       // Sync delete to Supabase (v0.9.58)
@@ -3098,7 +3098,7 @@ function confirmDel(){
         }
       }
     }
-    ideas=ideas.filter(x=>x.id!==delId);
+    ideas=ideas.filter(x=>x.id!=delId);
     save();
     activeCardId=null;
     render();
