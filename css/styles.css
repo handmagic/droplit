@@ -231,7 +231,8 @@ body.font-large .card-header-content { height: 52px; }
 .card.command.sense-reminder .card-markers { display: none !important; }
 
 /* Скрыть кнопки действий в активном режиме для reminder */
-.card.command.sense-reminder.active .card-actions { display: none; }
+/* Command drops: show actions in active mode (v2.0) */
+.card.command.sense-reminder.active .card-actions { display: flex; }
 
 /* Скрыть copyright для reminder */
 .card.command.sense-reminder .card-copyright { display: none !important; }
