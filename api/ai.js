@@ -1390,6 +1390,76 @@ async function handleCreateEvent(input, userId) {
     
     console.log('[create_event] Creating command drop:', commandData.title, 'at:', commandData.scheduled_at, 'for user:', userId);
     
+    // === COMMAND VALIDATOR v1.0 ===
+    // Серверная валидация перед сохранением в БД
+    const serverValidation = { valid: true, errors: [], warnings: [] };
+    const now = new Date();
+    const scheduledDate = new Date(scheduledAt);
+    
+    // Проверка 1: Время в будущем (с допуском 30 сек)
+    if (scheduledDate.getTime() < now.getTime() - 30000) {
+      serverValidation.valid = false;
+      serverValidation.errors.push({
+        code: 'TIME_IN_PAST',
+        message: 'Время напоминания в прошлом',
+        details: { scheduled_at: scheduledAt, now: now.toISOString() }
+      });
+    }
+    
+    // Проверка 2: Разумный горизонт (не более 365 дней)
+    const daysAhead = (scheduledDate - now) / (1000 * 60 * 60 * 24);
+    if (daysAhead > 365) {
+      serverValidation.valid = false;
+      serverValidation.errors.push({
+        code: 'SCHEDULE_TOO_FAR',
+        message: `Напоминание запланировано слишком далеко (${Math.round(daysAhead)} дней)`,
+        details: { days_ahead: Math.round(daysAhead), max: 365 }
+      });
+    }
+    
+    // Проверка 3: Title не пустой
+    if (!input.name || input.name.trim().length === 0) {
+      serverValidation.valid = false;
+      serverValidation.errors.push({
+        code: 'EMPTY_TITLE',
+        message: 'Заголовок напоминания не может быть пустым'
+      });
+    }
+    
+    // Проверка 4: Отклонение времени от запроса
+    const originalRequest = input.original_request || input.name || '';
+    const throughMinutesMatch = originalRequest.toLowerCase().match(/через\s+(\d+)\s*минут/);
+    if (throughMinutesMatch) {
+      const requestedMinutes = parseInt(throughMinutesMatch[1]);
+      const expectedTime = new Date(now.getTime() + requestedMinutes * 60000);
+      const deviation = Math.abs(scheduledDate - expectedTime) / 60000;
+      if (deviation > 5) {
+        serverValidation.warnings.push({
+          code: 'TIME_DEVIATION',
+          message: `Отклонение: ${Math.round(deviation)} мин от запрошенных ${requestedMinutes} мин`,
+          details: { requested: requestedMinutes, deviation: Math.round(deviation) }
+        });
+      }
+    }
+    
+    // Если валидация не прошла — возвращаем ошибку
+    if (!serverValidation.valid) {
+      console.error('[create_event] ❌ Validation FAILED:', serverValidation.errors);
+      return {
+        success: false,
+        action: 'create_event',
+        blocked: true,
+        validation: serverValidation,
+        error: serverValidation.errors.map(e => e.message).join('; ')
+      };
+    }
+    
+    if (serverValidation.warnings.length > 0) {
+      console.warn('[create_event] ⚠️ Validation warnings:', serverValidation.warnings);
+    }
+    console.log('[create_event] ✓ Validation PASSED');
+    // === END COMMAND VALIDATOR ===
+    
     // Insert into command_drops table
     const response = await fetch(`${SUPABASE_URL}/rest/v1/command_drops`, {
       method: 'POST',
@@ -1416,6 +1486,7 @@ async function handleCreateEvent(input, userId) {
     return { 
       success: true, 
       action: 'create_event',
+      validation: serverValidation,
       event: {
         id: commandId,
         name: input.name,
