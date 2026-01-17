@@ -2490,6 +2490,7 @@ async function createCommandFromUI() {
     const notifySelect = document.getElementById('commandNotifySelect');
     
     const title = (titleInput && titleInput.value.trim()) || text;
+    const actionType = notifySelect ? notifySelect.value : 'push';
     
     // Build message for ASKI
     let askiMessage = title;
@@ -2497,34 +2498,49 @@ async function createCommandFromUI() {
       const d = new Date(timeInput.value);
       askiMessage = `Напомни ${d.toLocaleDateString('ru-RU')} в ${d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})} ${title}`;
     } else {
-      // If no time specified, add "напомни" prefix for ASKI to recognize as command
+      // If no time specified, add "напомни через 5 минут" as default
       if (!askiMessage.toLowerCase().includes('напомни')) {
-        askiMessage = 'Напомни ' + askiMessage;
+        askiMessage = 'Напомни через 5 минут ' + askiMessage;
       }
     }
     
-    // Send to ASKI via chat input
-    const askiInput = document.getElementById('askAIInput');
-    if (askiInput && typeof sendAskAIMessage === 'function') {
-      // Put message in ASKI input and send
-      askiInput.value = askiMessage;
-      
-      // Close command modal first
-      closeCreateCommand();
-      
-      // Open ASKI panel if not open
-      const askPanel = document.getElementById('askAIPanel');
-      if (askPanel && !askPanel.classList.contains('show')) {
-        if (typeof openAskAI === 'function') openAskAI();
-      }
-      
-      // Send message
-      await sendAskAIMessage();
-      
-      toast('⚡ Command sent to ASKI', 'success');
-    } else {
-      throw new Error('ASKI chat not available');
+    console.log('[Command UI] Sending to AI:', askiMessage);
+    
+    // Direct API call (без UI чата)
+    const response = await fetch(AI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'chat',
+        text: askiMessage,
+        history: [],
+        stream: true,
+        enableTools: true,
+        userId: window.currentUser?.id,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('API error: ' + response.status);
     }
+    
+    // Handle streaming response
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('text/event-stream')) {
+      await handleCommandStreamResponse(response);
+    } else {
+      const data = await response.json();
+      if (data.createEvent?.command) {
+        // Non-streaming: manually create the drop
+        processCommandEvent(data.createEvent.command);
+      } else if (data.error) {
+        throw new Error(data.error);
+      }
+    }
+    
+    // Success!
+    showCommandView('success');
     
   } catch (err) {
     console.error('[Command] Error:', err);
@@ -2532,6 +2548,113 @@ async function createCommandFromUI() {
     updateCommandButton();
     btn.disabled = false;
   }
+}
+
+// Handle streaming response for command creation
+async function handleCommandStreamResponse(response) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6);
+        if (data === '[DONE]') continue;
+        
+        try {
+          const parsed = JSON.parse(data);
+          
+          // Check for command creation
+          if (parsed.createEvent?.action === 'create_event' && parsed.createEvent?.command) {
+            processCommandEvent(parsed.createEvent.command);
+          }
+          
+          // Check for validation error
+          if (parsed.createEvent?.error) {
+            toast(parsed.createEvent.error, 'error');
+          }
+        } catch (e) {
+          // Ignore parse errors for text chunks
+        }
+      }
+    }
+  }
+}
+
+// Process command event and create local drop
+function processCommandEvent(cmd) {
+  const now = new Date();
+  const eventId = cmd.id;
+  
+  // Format scheduled time
+  let scheduledDateStr = '';
+  let scheduledTimeStr = '';
+  
+  if (cmd.scheduled_at) {
+    const scheduledDate = new Date(cmd.scheduled_at);
+    if (!isNaN(scheduledDate.getTime())) {
+      scheduledDateStr = scheduledDate.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'});
+      scheduledTimeStr = scheduledDate.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+    }
+  }
+  
+  // Build drop text (без иконки — она рендерится динамически)
+  let dropText;
+  if (scheduledDateStr && scheduledTimeStr) {
+    dropText = `${scheduledDateStr} ${scheduledTimeStr} ${cmd.title}`;
+  } else if (scheduledTimeStr) {
+    dropText = `${scheduledTimeStr} ${cmd.title}`;
+  } else {
+    dropText = cmd.title;
+  }
+  
+  const newIdea = {
+    id: eventId || Date.now().toString(),
+    text: dropText,
+    content: dropText,
+    category: 'command',
+    type: 'command',
+    timestamp: now.toISOString(),
+    created_at: now.toISOString(),
+    scheduled_at: cmd.scheduled_at,
+    event_id: eventId,
+    status: 'pending',
+    date: now.toLocaleDateString('ru-RU'),
+    time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+    isMedia: false,
+    source: 'command_modal',
+    creator: 'user',
+    sense_type: 'reminder',
+    action_type: cmd.action_type || 'push',
+    encrypted: window.DROPLIT_PRIVACY_ENABLED || false
+  };
+  
+  // Add to ideas
+  ideas.push(newIdea);
+  localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
+  
+  // Play sound
+  if (typeof playDropSound === 'function') {
+    playDropSound();
+  }
+  
+  // Refresh feed
+  if (typeof resetToShowAll === 'function') {
+    resetToShowAll();
+  } else {
+    render();
+  }
+  
+  console.log('✅ [Command UI] Created:', newIdea.id, dropText);
+  toast('⚡ ' + scheduledTimeStr + ' ' + cmd.title, 'success');
 }
 
 // Quick time buttons
