@@ -1394,10 +1394,10 @@ async function handleCreateEvent(input, userId) {
     // Серверная валидация перед сохранением в БД
     const serverValidation = { valid: true, errors: [], warnings: [] };
     const now = new Date();
-    const scheduledDate = new Date(scheduledAt);
+    const valDate = new Date(scheduledAt);
     
     // Проверка 1: Время в будущем (с допуском 30 сек)
-    if (scheduledDate.getTime() < now.getTime() - 30000) {
+    if (valDate.getTime() < now.getTime() - 30000) {
       serverValidation.valid = false;
       serverValidation.errors.push({
         code: 'TIME_IN_PAST',
@@ -1407,7 +1407,7 @@ async function handleCreateEvent(input, userId) {
     }
     
     // Проверка 2: Разумный горизонт (не более 365 дней)
-    const daysAhead = (scheduledDate - now) / (1000 * 60 * 60 * 24);
+    const daysAhead = (valDate - now) / (1000 * 60 * 60 * 24);
     if (daysAhead > 365) {
       serverValidation.valid = false;
       serverValidation.errors.push({
@@ -1432,7 +1432,7 @@ async function handleCreateEvent(input, userId) {
     if (throughMinutesMatch) {
       const requestedMinutes = parseInt(throughMinutesMatch[1]);
       const expectedTime = new Date(now.getTime() + requestedMinutes * 60000);
-      const deviation = Math.abs(scheduledDate - expectedTime) / 60000;
+      const deviation = Math.abs(valDate - expectedTime) / 60000;
       if (deviation > 5) {
         serverValidation.warnings.push({
           code: 'TIME_DEVIATION',
