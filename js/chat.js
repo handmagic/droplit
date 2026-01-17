@@ -2139,29 +2139,6 @@ async function handleStreamingResponse(response) {
                 const cmd = parsed.createEvent.command;
                 const now = new Date();
                 
-                // === CLIENT-SIDE VALIDATION v1.0 ===
-                if (window.CommandValidator) {
-                  const clientValidation = window.CommandValidator.validate(
-                    {
-                      title: cmd.title,
-                      scheduled_at: cmd.scheduled_at,
-                      action_type: 'push',
-                      sense_type: 'reminder',
-                      runtime_type: 'scheduled',
-                      relation_type: 'user',
-                      creator: 'aski',
-                      acceptor: 'user',
-                      status: 'pending'
-                    },
-                    window.lastUserMessage || cmd.title
-                  );
-                  console.log('[Validator]', window.CommandValidator.formatBriefReport(clientValidation));
-                  if (clientValidation.warnings.length > 0) {
-                    console.warn('[Validator] Warnings:', clientValidation.warnings);
-                  }
-                }
-                // === END CLIENT-SIDE VALIDATION ===
-                
                 // CRITICAL: Use ID from server (UUID from Supabase)
                 const eventId = cmd.id;
                 if (!eventId) {
@@ -2170,12 +2147,15 @@ async function handleStreamingResponse(response) {
                 
                 // Format scheduled time for display (use device local time)
                 let scheduledTimeStr = '';
+                let scheduledDateStr = '';
                 console.log('[Command] scheduled_at from server:', cmd.scheduled_at, 'scheduled_time:', cmd.scheduled_time);
                 
                 if (cmd.scheduled_at) {
                   const scheduledDate = new Date(cmd.scheduled_at);
                   console.log('[Command] Parsed date:', scheduledDate, 'valid:', !isNaN(scheduledDate.getTime()));
                   if (!isNaN(scheduledDate.getTime())) {
+                    // Абсолютная дата: ДД.ММ (локальная система пользователя)
+                    scheduledDateStr = scheduledDate.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'});
                     scheduledTimeStr = scheduledDate.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
                   }
                 }
@@ -2184,12 +2164,17 @@ async function handleStreamingResponse(response) {
                   scheduledTimeStr = cmd.scheduled_time;
                 }
                 
-                console.log('[Command] Final time string:', scheduledTimeStr);
+                console.log('[Command] Final date:', scheduledDateStr, 'time:', scheduledTimeStr);
                 
-                // Text format: ⏰ HH:MM Title
-                const dropText = scheduledTimeStr 
-                  ? `⏰ ${scheduledTimeStr} ${cmd.title}`
-                  : `⏰ ${cmd.title}`;
+                // Text format: ⏰ ДД.ММ ЧЧ:ММ Title (абсолютная дата всегда)
+                let dropText;
+                if (scheduledDateStr && scheduledTimeStr) {
+                  dropText = `⏰ ${scheduledDateStr} ${scheduledTimeStr} ${cmd.title}`;
+                } else if (scheduledTimeStr) {
+                  dropText = `⏰ ${scheduledTimeStr} ${cmd.title}`;
+                } else {
+                  dropText = `⏰ ${cmd.title}`;
+                }
                 
                 const newIdea = {
                   id: eventId || Date.now().toString(), // Prefer server UUID
