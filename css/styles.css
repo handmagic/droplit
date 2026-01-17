@@ -198,7 +198,8 @@ body.font-large .card-header-content { height: 52px; }
 .cmd-scheduled-badge.done { background: #E5E7EB; color: #6B7280; text-decoration: line-through; }
 /* Command roll-up mode */
 .cmd-rollup { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
-.card.command.roll-up .card-header { display: none; }
+/* v1.1: Command drops в roll-up показывают header как обычные дропы */
+/* .card.command.roll-up .card-header { display: none; } — УБРАНО */
 .card.command.roll-up .card-text { display: none; }
 .cmd-icon { font-size: 1rem; }
 .cmd-time-badge { font-size: 0.75rem; font-weight: 700; color: #166534; background: #DCFCE7; padding: 2px 8px; border-radius: 8px; }
@@ -231,6 +232,9 @@ body.font-large .card-header-content { height: 52px; }
 
 /* Скрыть кнопки действий в активном режиме для reminder */
 .card.command.sense-reminder.active .card-actions { display: none; }
+
+/* Скрыть copyright для reminder */
+.card.command.sense-reminder .card-copyright { display: none !important; }
 
 /* Статусы reminder */
 .card.command.sense-reminder.status-completed { 
