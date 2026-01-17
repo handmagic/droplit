@@ -65,7 +65,51 @@
     console.log('[DropLit] Privacy modules loaded v' + window.DROPLIT_PRIVACY_VERSION);
   </script>
   
-  <!-- Encrypted Lock Icon Style - moved to styles.css -->
+  <!-- Encrypted Lock Icon Style -->
+  <style>
+    .encrypted-lock {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      margin-left: 1px;
+      margin-right: 0;
+      vertical-align: middle;
+    }
+    .encrypted-lock svg {
+      width: 14px;
+      height: 14px;
+      fill: #6DD890;
+      stroke: #6DD890;
+      stroke-width: 1;
+    }
+    /* Slightly larger in active card */
+    .card.active .encrypted-lock svg {
+      width: 16px;
+      height: 16px;
+    }
+    /* Roll-up mode */
+    .card.roll-up .encrypted-lock svg {
+      width: 12px;
+      height: 12px;
+    }
+    /* Edit panel */
+    .edit-panel .encrypted-lock svg {
+      width: 14px;
+      height: 14px;
+    }
+    /* Tighter spacing in card-row2 */
+    .card-row2 {
+      gap: 4px !important;
+    }
+    .card-row2 .card-cat {
+      margin-right: 0;
+    }
+    .card-row2 .card-chars {
+      margin-left: 0;
+    }
+  </style>
   
   <!-- Eruda Mobile Console (Debug) -->
   <script src="https://cdn.jsdelivr.net/npm/eruda@3.0.1/eruda.min.js"></script>
@@ -226,8 +270,699 @@
     </div>
   </div>
   
-  <!-- Onboarding, Security & Export Modal Styles - moved to styles.css -->
-
+  <style>
+    /* ============================================
+       ONBOARDING STYLES
+       ============================================ */
+    .onboarding-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+      z-index: 10000;
+      overflow-y: auto;
+    }
+    .onboarding-modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .onboarding-container {
+      width: 100%;
+      max-width: 400px;
+      padding: 40px 24px;
+      text-align: center;
+    }
+    .onboarding-step {
+      display: none;
+    }
+    .onboarding-step.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .onboarding-logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      background: linear-gradient(135deg, #8B5CF6, #6366F1);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    .onboarding-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+      margin: 0 0 8px;
+    }
+    .onboarding-subtitle {
+      font-size: 16px;
+      color: #94A3B8;
+      margin: 0 0 16px;
+    }
+    .onboarding-beta-badge {
+      display: inline-block;
+      background: rgba(139, 92, 246, 0.2);
+      color: #A78BFA;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 32px;
+    }
+    
+    .onboarding-invite-section {
+      margin-bottom: 24px;
+    }
+    .onboarding-label {
+      display: block;
+      color: #CBD5E1;
+      font-size: 14px;
+      margin-bottom: 8px;
+      text-align: left;
+    }
+    .onboarding-input {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      box-sizing: border-box;
+    }
+    .onboarding-input:focus {
+      border-color: #8B5CF6;
+      background: rgba(139, 92, 246, 0.1);
+    }
+    .onboarding-input::placeholder {
+      color: #64748B;
+      text-transform: none;
+      letter-spacing: normal;
+    }
+    
+    .onboarding-invite-status {
+      min-height: 24px;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    .onboarding-invite-status.checking {
+      color: #94A3B8;
+    }
+    .onboarding-invite-status.valid {
+      color: #4ADE80;
+    }
+    .onboarding-invite-status.invalid {
+      color: #F87171;
+    }
+    
+    .onboarding-btn {
+      width: 100%;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+    .onboarding-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .onboarding-btn.primary {
+      background: linear-gradient(135deg, #8B5CF6, #6366F1);
+      color: white;
+    }
+    .onboarding-btn.primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+    }
+    .onboarding-btn.secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .onboarding-btn.secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .onboarding-btn.oauth {
+      background: white;
+      color: #1F2937;
+    }
+    .onboarding-btn.oauth:hover {
+      background: #F3F4F6;
+    }
+    .onboarding-btn.oauth.apple {
+      background: #000;
+      color: white;
+    }
+    .onboarding-btn.oauth.apple:hover {
+      background: #1a1a1a;
+    }
+    
+    .onboarding-divider {
+      display: flex;
+      align-items: center;
+      margin: 20px 0;
+      color: #64748B;
+      font-size: 14px;
+    }
+    .onboarding-divider::before,
+    .onboarding-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .onboarding-divider span {
+      padding: 0 16px;
+    }
+    
+    .onboarding-auth-buttons {
+      margin-top: 32px;
+    }
+    
+    .onboarding-footer {
+      margin-top: 32px;
+      color: #64748B;
+      font-size: 14px;
+    }
+    .onboarding-footer a {
+      color: #8B5CF6;
+      text-decoration: none;
+    }
+    .onboarding-footer a:hover {
+      text-decoration: underline;
+    }
+    
+    .onboarding-back {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: none;
+      color: #94A3B8;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 8px 0;
+      margin-bottom: 24px;
+    }
+    .onboarding-back:hover {
+      color: white;
+    }
+    
+    .onboarding-form {
+      margin-top: 24px;
+    }
+    .onboarding-form .onboarding-input {
+      text-align: left;
+      text-transform: none;
+      letter-spacing: normal;
+      margin-bottom: 12px;
+    }
+    
+    .onboarding-error {
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+      color: #F87171;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 16px;
+    }
+    
+    .onboarding-success {
+      background: rgba(74, 222, 128, 0.1);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+      color: #4ADE80;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 16px;
+    }
+    
+    /* ============================================
+       ACCOUNT CARD STYLES
+       ============================================ */
+    .account-card {
+      margin: 16px 16px 0 16px;
+      padding: 16px;
+      background: linear-gradient(135deg, #8B5CF6, #6366F1);
+      border-radius: 16px;
+      color: white;
+    }
+    .account-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .account-avatar {
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .account-avatar svg {
+      width: 24px;
+      height: 24px;
+      color: white;
+    }
+    .account-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .account-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .account-name {
+      font-size: 16px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .account-email {
+      font-size: 12px;
+      opacity: 0.8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .account-logout-btn {
+      width: 36px;
+      height: 36px;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .account-logout-btn:hover {
+      background: rgba(255,255,255,0.25);
+    }
+    .account-logout-btn svg {
+      color: white;
+    }
+    .account-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.2);
+      margin: 12px 0;
+    }
+    .account-balance {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .account-balance .balance-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .account-balance .balance-label {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+    .account-balance .balance-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .account-balance .balance-hint {
+      font-size: 11px;
+      opacity: 0.7;
+    }
+    /* Plan badge and name row */
+    .account-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .account-plan-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.25);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .account-plan-badge.plan-free { background: rgba(100,116,139,0.5); }
+    .account-plan-badge.plan-beta { background: rgba(139,92,246,0.5); }
+    .account-plan-badge.plan-pro { background: rgba(14,165,233,0.5); }
+    .account-plan-badge.plan-business { background: rgba(245,158,11,0.5); }
+    .account-plan-badge.plan-owner { 
+      background: linear-gradient(90deg, #8B5CF6, #EC4899, #F59E0B);
+      background-size: 200% 100%;
+      animation: badge-shimmer 2s ease infinite;
+    }
+    @keyframes badge-shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    /* Security Pill Button */
+    .security-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: calc(100% - 32px);
+      margin: 12px 16px 0 16px;
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 50px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .security-pill:active {
+      transform: scale(0.98);
+    }
+    .security-pill svg {
+      flex-shrink: 0;
+    }
+    /* Security Info Modal - matching app style */
+    .security-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 10000;
+    }
+    .security-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      border-radius: 16px;
+      max-width: 320px;
+      width: 90%;
+      z-index: 10001;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .security-modal-header {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .security-modal-header-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+    .security-modal-header-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .security-modal-header-status {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+    .security-modal-body {
+      padding: 20px;
+      color: #333;
+    }
+    .security-modal-details {
+      font-size: 13px;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .security-modal-warning {
+      font-size: 12px;
+      color: #92400E;
+      background: #FEF3C7;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .security-modal-actions {
+      display: flex;
+      justify-content: center;
+    }
+    .security-modal-btn {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    /* File Export Modal */
+    .export-file-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      border-radius: 16px;
+      max-width: 360px;
+      width: 92%;
+      z-index: 10001;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .export-file-header {
+      background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .export-file-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .export-file-header p {
+      margin: 6px 0 0;
+      font-size: 12px;
+      opacity: 0.85;
+    }
+    .export-file-body {
+      padding: 20px;
+    }
+    .export-format-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .export-format-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 6px;
+      border: 2px solid #E5E7EB;
+      border-radius: 12px;
+      background: #fff;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .export-format-btn:hover {
+      border-color: #3B82F6;
+      background: #EFF6FF;
+    }
+    .export-format-btn.active {
+      border-color: #3B82F6;
+      background: #3B82F6;
+      color: white;
+    }
+    .export-format-btn .format-icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+    .export-format-btn .format-name {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .export-field {
+      margin-bottom: 16px;
+    }
+    .export-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    .export-field input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .export-field input[type="text"]:focus {
+      outline: none;
+      border-color: #3B82F6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .export-scope-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .export-scope-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .export-scope-option:hover {
+      background: #F9FAFB;
+    }
+    .export-scope-option.active {
+      border-color: #3B82F6;
+      background: #EFF6FF;
+    }
+    .export-scope-option input {
+      margin: 0;
+    }
+    .export-scope-option span {
+      font-size: 13px;
+      color: #374151;
+    }
+    .export-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .export-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #374151;
+    }
+    .export-option input {
+      margin: 0;
+      width: 16px;
+      height: 16px;
+    }
+    .export-file-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .export-file-actions button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: none;
+    }
+    .export-btn-cancel {
+      background: #F3F4F6;
+      color: #374151;
+    }
+    .export-btn-download {
+      background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+      color: white;
+    }
+    /* Plan-specific card gradients */
+    .account-card.plan-free { background: linear-gradient(135deg, #64748B, #475569); }
+    .account-card.plan-beta { background: linear-gradient(135deg, #8B5CF6, #6366F1); }
+    .account-card.plan-pro { background: linear-gradient(135deg, #0EA5E9, #06B6D4); }
+    .account-card.plan-business { background: linear-gradient(135deg, #F59E0B, #D97706); }
+    .account-card.plan-owner { 
+      background: linear-gradient(135deg, #8B5CF6, #EC4899, #F59E0B, #10B981);
+      background-size: 300% 300%;
+      animation: owner-gradient 5s ease infinite;
+    }
+    @keyframes owner-gradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    /* Header layout fix */
+    .header {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      position: relative !important;
+    }
+    .header-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+    }
+    /* Header Lock Indicator */
+    .header-lock {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+    .header-lock:hover, .header-lock:active {
+      opacity: 1;
+    }
+    .header-lock svg {
+      color: #10B981;
+    }
+  </style>
 
   <!-- Fullscreen Edit Panel - v0.9.95 -->
   <div class="edit-panel" id="editPanel">
@@ -373,81 +1108,69 @@
     </button>
   </div>
 
-  <!-- Plus Menu v3 - Two Column Layout -->
+  <!-- Plus menu backdrop -->
   <div class="plus-menu-backdrop" id="plusBackdrop" onclick="closePlusMenu()"></div>
 
+  <!-- Plus menu -->
   <div class="plus-menu" id="plusMenu">
-    
-    <!-- === AI MAGIC (top, furthest from finger) === -->
-    <div class="section-divider"><span>AI Magic</span></div>
-    <div class="menu-row-2">
-      <button class="menu-item magic compact" onclick="openMagic('poem')">
-        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
-        <div class="info"><div class="title">Poem</div></div>
-      </button>
-      <button class="menu-item magic compact" onclick="openMagic('greeting')">
-        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span>
-        <div class="info"><div class="title">Greeting</div></div>
-      </button>
-    </div>
-    <div class="menu-row-2">
-      <button class="menu-item magic compact" onclick="openMagic('speech')">
-        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M12 3C8.5 3 6 5.5 6 9v3c0 1.5-1 2-1 2h14s-1-.5-1-2V9c0-3.5-2.5-6-6-6z"/></svg></span>
-        <div class="info"><div class="title">Speech</div></div>
-      </button>
-      <button class="menu-item magic compact" onclick="openMagic('story')">
-        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></span>
-        <div class="info"><div class="title">Story</div></div>
-      </button>
-    </div>
-
-    <!-- === UPLOAD (middle, 3 columns) === -->
-    <div class="section-divider"><span>Upload</span></div>
-    <div class="menu-row-3">
-      <button class="menu-item compact" onclick="uploadImage()">
-        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span>
-        <div class="info"><div class="title">Photo</div></div>
-      </button>
-      <button class="menu-item compact" onclick="uploadFile()">
-        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-        <div class="info"><div class="title">File</div></div>
-      </button>
-      <button class="menu-item compact" onclick="pasteLink()">
-        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
-        <div class="info"><div class="title">Link</div></div>
-      </button>
-    </div>
-
-    <!-- === CREATE (bottom, closest to finger) === -->
     <div class="section-divider"><span>Create</span></div>
-    
-    <!-- 3rd: Audio Record -->
-    <button class="menu-item audio" onclick="openAudioRecorder()">
-      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span>
-      <div class="info">
-        <div class="title">Audio Record</div>
-        <div class="desc">Any sound, speech or music</div>
-      </div>
-    </button>
-    
-    <!-- 2nd: New Reminder -->
-    <button class="menu-item command" onclick="openReminderModal()">
-      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
-      <div class="info">
-        <div class="title">New Reminder</div>
-        <div class="desc">Set a time-based notification</div>
-      </div>
-    </button>
-    
-    <!-- 1st (closest to finger): New Drop -->
-    <button class="menu-item primary" onclick="openTextInput()">
+    <button class="plus-menu-item" onclick="openTextInput()">
       <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>
       <div class="info">
         <div class="title">New Drop</div>
         <div class="desc">Text note or idea</div>
       </div>
     </button>
-
+    <button class="plus-menu-item" onclick="pasteLink()">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
+      <div class="info">
+        <div class="title">Paste Link</div>
+        <div class="desc">Save URL from clipboard</div>
+      </div>
+    </button>
+    <button class="plus-menu-item" onclick="uploadImage()">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span>
+      <div class="info">
+        <div class="title">Upload Image</div>
+        <div class="desc">Photo from gallery</div>
+      </div>
+    </button>
+    <button class="plus-menu-item" onclick="uploadFile()">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+      <div class="info">
+        <div class="title">Upload File</div>
+        <div class="desc">Document or PDF</div>
+      </div>
+    </button>
+    <button class="plus-menu-item" onclick="openAudioRecorder()" style="border-color: #F59E0B;">
+      <span class="icon" style="background: linear-gradient(135deg, #FEF3C7, #FDE68A); color: #92400E;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span>
+      <div class="info">
+        <div class="title">Record Audio</div>
+        <div class="desc">Voice memo or sound</div>
+      </div>
+    </button>
+    <div class="section-divider"><span>AI Magic</span></div>
+    <button class="plus-menu-item magic" onclick="openMagic('poem')">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
+      <div class="info">
+        <div class="title">Create Poem</div>
+        <div class="desc">AI-generated poetry</div>
+      </div>
+    </button>
+    <button class="plus-menu-item magic" onclick="openMagic('greeting')">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span>
+      <div class="info">
+        <div class="title">Create Greeting</div>
+        <div class="desc">Birthday, holiday wishes</div>
+      </div>
+    </button>
+    <button class="plus-menu-item magic" onclick="openMagic('speech')">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span>
+      <div class="info">
+        <div class="title">Create Speech</div>
+        <div class="desc">Toast or presentation</div>
+      </div>
+    </button>
   </div>
 
   <!-- Text input modal -->
@@ -461,70 +1184,6 @@
       <div class="text-input-actions">
         <button class="text-input-btn cancel" onclick="closeTextInput()">Cancel</button>
         <button class="text-input-btn save" onclick="saveTextNote()">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Reminder Modal (Create + Edit) -->
-  <div class="reminder-modal" id="reminderModal" onclick="if(event.target===this)closeReminderModal()">
-    <div class="reminder-content">
-      <!-- Header -->
-      <div class="reminder-header">
-        <div class="reminder-title">
-          <span class="icon">⏰</span>
-          <span id="reminderModalTitle">New Reminder</span>
-        </div>
-        <button class="reminder-close" onclick="closeReminderModal()">×</button>
-      </div>
-      
-      <!-- Body -->
-      <div class="reminder-body">
-        <!-- Text input -->
-        <div class="reminder-field">
-          <label>What?</label>
-          <div class="reminder-input-wrap">
-            <textarea 
-              class="reminder-input" 
-              id="reminderInput" 
-              placeholder="Call mom, take medicine, check email..."
-              rows="2"
-            ></textarea>
-          </div>
-        </div>
-        
-        <!-- Quick times -->
-        <div class="reminder-field">
-          <label>When?</label>
-          <div class="reminder-quick-times">
-            <button type="button" onclick="setReminderQuickTime(5)">5 min</button>
-            <button type="button" onclick="setReminderQuickTime(15)">15 min</button>
-            <button type="button" onclick="setReminderQuickTime(30)">30 min</button>
-            <button type="button" onclick="setReminderQuickTime(60)">1 hour</button>
-            <button type="button" onclick="setReminderQuickTime(1440)">Tomorrow</button>
-          </div>
-          <input type="datetime-local" id="reminderTimeInput" class="reminder-datetime">
-        </div>
-        
-        <!-- Voice button -->
-        <button class="reminder-voice-btn" id="reminderVoiceBtn" onclick="toggleReminderVoice()">
-          <span class="icon">🎤</span>
-          <span class="text">Tap to speak</span>
-        </button>
-        
-        <!-- Status (only in edit mode) -->
-        <div class="reminder-status" id="reminderStatus" style="display:none;">
-          <span class="status-label">Status:</span>
-          <span class="status-value" id="reminderStatusValue">pending</span>
-        </div>
-      </div>
-      
-      <!-- Footer -->
-      <div class="reminder-footer">
-        <button class="reminder-btn delete" id="reminderDeleteBtn" onclick="deleteReminder()" style="display:none;">Delete</button>
-        <div class="reminder-footer-right">
-          <button class="reminder-btn cancel" onclick="closeReminderModal()">Cancel</button>
-          <button class="reminder-btn primary" id="reminderActionBtn" onclick="saveReminder()">Create</button>
-        </div>
       </div>
     </div>
   </div>
@@ -2248,337 +2907,6 @@ function closePlusMenu(){
   document.getElementById('plusBackdrop').classList.remove('show');
 }
 
-// ============================================
-// REMINDER MODAL (Create + Edit) v2.0
-// ============================================
-
-// State
-let reminderRecognition = null;
-let isReminderRecording = false;
-let editingReminderId = null; // null = create mode, id = edit mode
-
-// Open modal (create or edit)
-function openReminderModal(dropId = null) {
-  closePlusMenu();
-  editingReminderId = dropId;
-  
-  const modal = document.getElementById('reminderModal');
-  const titleEl = document.getElementById('reminderModalTitle');
-  const actionBtn = document.getElementById('reminderActionBtn');
-  const deleteBtn = document.getElementById('reminderDeleteBtn');
-  const statusEl = document.getElementById('reminderStatus');
-  const inputEl = document.getElementById('reminderInput');
-  const timeEl = document.getElementById('reminderTimeInput');
-  
-  if (dropId) {
-    // Edit mode
-    const drop = ideas.find(i => i.id == dropId || i.id === dropId);
-    if (drop) {
-      titleEl.textContent = 'Edit Reminder';
-      actionBtn.textContent = 'Save';
-      deleteBtn.style.display = 'block';
-      statusEl.style.display = 'flex';
-      
-      // Parse text to extract title (remove date/time prefix)
-      let title = drop.text || '';
-      title = title.replace(/^\d{2}\.\d{2}\s+\d{2}:\d{2}\s*/, ''); // Remove "DD.MM HH:MM "
-      title = title.replace(/^\d{2}:\d{2}\s*/, ''); // Remove "HH:MM "
-      inputEl.value = title;
-      
-      // Set time from scheduled_at
-      if (drop.scheduled_at) {
-        const d = new Date(drop.scheduled_at);
-        if (!isNaN(d.getTime())) {
-          timeEl.value = d.toISOString().slice(0, 16);
-        }
-      }
-      
-      // Show status
-      document.getElementById('reminderStatusValue').textContent = drop.status || 'pending';
-    }
-  } else {
-    // Create mode
-    titleEl.textContent = 'New Reminder';
-    actionBtn.textContent = 'Create';
-    deleteBtn.style.display = 'none';
-    statusEl.style.display = 'none';
-    inputEl.value = '';
-    timeEl.value = '';
-  }
-  
-  // Init voice
-  initReminderVoice();
-  
-  // Show modal
-  modal.classList.add('show');
-  setTimeout(() => inputEl.focus(), 100);
-}
-
-// Close modal
-function closeReminderModal() {
-  document.getElementById('reminderModal').classList.remove('show');
-  document.getElementById('reminderInput').value = '';
-  document.getElementById('reminderTimeInput').value = '';
-  editingReminderId = null;
-  isReminderRecording = false;
-  updateReminderVoiceButton();
-}
-
-// Quick time buttons
-function setReminderQuickTime(minutes) {
-  const input = document.getElementById('reminderTimeInput');
-  if (!input) return;
-  const d = new Date(Date.now() + minutes * 60000);
-  input.value = d.toISOString().slice(0, 16);
-}
-
-// Voice recognition
-function initReminderVoice() {
-  if (reminderRecognition) return;
-  
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
-  
-  reminderRecognition = new SR();
-  reminderRecognition.lang = 'ru-RU';
-  reminderRecognition.continuous = false;
-  reminderRecognition.interimResults = true;
-  
-  reminderRecognition.onstart = () => {
-    isReminderRecording = true;
-    updateReminderVoiceButton();
-  };
-  
-  reminderRecognition.onresult = (event) => {
-    let text = '';
-    for (let i = 0; i < event.results.length; i++) {
-      text += event.results[i][0].transcript;
-    }
-    document.getElementById('reminderInput').value = text;
-  };
-  
-  reminderRecognition.onerror = () => {
-    isReminderRecording = false;
-    updateReminderVoiceButton();
-  };
-  
-  reminderRecognition.onend = () => {
-    isReminderRecording = false;
-    updateReminderVoiceButton();
-  };
-}
-
-function toggleReminderVoice() {
-  if (isReminderRecording) {
-    reminderRecognition?.stop();
-  } else if (reminderRecognition) {
-    reminderRecognition.start();
-  } else {
-    toast('Voice not supported', 'error');
-  }
-}
-
-function updateReminderVoiceButton() {
-  const btn = document.getElementById('reminderVoiceBtn');
-  if (!btn) return;
-  const icon = btn.querySelector('.icon');
-  const text = btn.querySelector('.text');
-  
-  if (isReminderRecording) {
-    icon.textContent = '⏹';
-    text.textContent = 'Tap to stop';
-    btn.classList.add('recording');
-  } else {
-    icon.textContent = '🎤';
-    text.textContent = 'Tap to speak';
-    btn.classList.remove('recording');
-  }
-}
-
-// Save reminder (create or update)
-async function saveReminder() {
-  const text = document.getElementById('reminderInput').value.trim();
-  const timeInput = document.getElementById('reminderTimeInput');
-  
-  if (!text) {
-    toast('Enter reminder text', 'warning');
-    return;
-  }
-  
-  const btn = document.getElementById('reminderActionBtn');
-  btn.textContent = 'Saving...';
-  btn.disabled = true;
-  
-  try {
-    // Build message for ASKI
-    let askiMessage = text;
-    if (timeInput && timeInput.value) {
-      const d = new Date(timeInput.value);
-      askiMessage = `Напомни ${d.toLocaleDateString('ru-RU')} в ${d.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})} ${text}`;
-    } else {
-      // Default: 5 minutes
-      askiMessage = 'Напомни через 5 минут ' + text;
-    }
-    
-    if (editingReminderId) {
-      // Edit mode: delete old, create new
-      // TODO: implement proper update via API
-      // For now: delete old and create new
-      const oldDrop = ideas.find(i => i.id == editingReminderId);
-      if (oldDrop) {
-        ideas = ideas.filter(i => i.id != editingReminderId);
-        localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
-      }
-    }
-    
-    console.log('[Reminder] Sending to AI:', askiMessage);
-    
-    // Direct API call
-    const response = await fetch(AI_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'chat',
-        text: askiMessage,
-        history: [],
-        stream: true,
-        enableTools: true,
-        userId: window.currentUser?.id,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error('API error: ' + response.status);
-    }
-    
-    // Handle streaming response
-    const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('text/event-stream')) {
-      await handleReminderStreamResponse(response);
-    } else {
-      const data = await response.json();
-      if (data.createEvent?.command) {
-        processReminderEvent(data.createEvent.command);
-      } else if (data.error) {
-        throw new Error(data.error);
-      }
-    }
-    
-    // Success
-    closeReminderModal();
-    toast('⏰ Reminder ' + (editingReminderId ? 'updated' : 'created'), 'success');
-    
-  } catch (err) {
-    console.error('[Reminder] Error:', err);
-    toast('Error: ' + (err.message || 'failed'), 'error');
-    btn.textContent = editingReminderId ? 'Save' : 'Create';
-    btn.disabled = false;
-  }
-}
-
-// Delete reminder
-function deleteReminder() {
-  if (!editingReminderId) return;
-  
-  if (confirm('Delete this reminder?')) {
-    ideas = ideas.filter(i => i.id != editingReminderId);
-    localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
-    render();
-    closeReminderModal();
-    toast('Reminder deleted', 'success');
-  }
-}
-
-// Handle streaming response
-async function handleReminderStreamResponse(response) {
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-    
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const data = line.slice(6);
-        if (data === '[DONE]') continue;
-        
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.createEvent?.action === 'create_event' && parsed.createEvent?.command) {
-            processReminderEvent(parsed.createEvent.command);
-          }
-          if (parsed.createEvent?.error) {
-            toast(parsed.createEvent.error, 'error');
-          }
-        } catch (e) {}
-      }
-    }
-  }
-}
-
-// Process reminder event
-function processReminderEvent(cmd) {
-  const now = new Date();
-  const eventId = cmd.id;
-  
-  let scheduledDateStr = '';
-  let scheduledTimeStr = '';
-  
-  if (cmd.scheduled_at) {
-    const scheduledDate = new Date(cmd.scheduled_at);
-    if (!isNaN(scheduledDate.getTime())) {
-      scheduledDateStr = scheduledDate.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'});
-      scheduledTimeStr = scheduledDate.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
-    }
-  }
-  
-  let dropText;
-  if (scheduledDateStr && scheduledTimeStr) {
-    dropText = `${scheduledDateStr} ${scheduledTimeStr} ${cmd.title}`;
-  } else if (scheduledTimeStr) {
-    dropText = `${scheduledTimeStr} ${cmd.title}`;
-  } else {
-    dropText = cmd.title;
-  }
-  
-  const newIdea = {
-    id: eventId || Date.now().toString(),
-    text: dropText,
-    content: dropText,
-    category: 'command',
-    type: 'command',
-    timestamp: now.toISOString(),
-    created_at: now.toISOString(),
-    scheduled_at: cmd.scheduled_at,
-    event_id: eventId,
-    status: 'pending',
-    date: now.toLocaleDateString('ru-RU'),
-    time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
-    isMedia: false,
-    source: 'reminder_modal',
-    creator: 'user',
-    sense_type: 'reminder',
-    action_type: cmd.action_type || 'push',
-    encrypted: window.DROPLIT_PRIVACY_ENABLED || false
-  };
-  
-  ideas.push(newIdea);
-  localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
-  
-  if (typeof playDropSound === 'function') playDropSound();
-  if (typeof resetToShowAll === 'function') resetToShowAll();
-  else render();
-  
-  console.log('✅ [Reminder] Created:', newIdea.id, dropText);
-}
-
 // TEXT NOTE
 function openTextInput(){
   closePlusMenu();
@@ -3650,12 +3978,9 @@ function render(){
       const isExpired = isCommand && i.scheduled_at && new Date(i.scheduled_at) < new Date();
       // Check if command is cancelled or executed
       const isCancelled = isCommand && (i.status === 'cancelled' || i.status === 'executed');
-      // Command drop sense type and status classes (v1.0)
-      const senseClass = isCommand ? ' sense-' + (i.sense_type || 'reminder') : '';
-      const statusClass = isCommand && i.status ? ' status-' + i.status : '';
       // Card with full width, avatar inside
       const idStr = typeof i.id === 'string' ? "'"+i.id+"'" : i.id;
-      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+(isCommand?' command':'')+(isExpired?' expired':'')+(isCancelled?' cancelled':'')+senseClass+statusClass+'" data-id="'+i.id+'" onclick="handleCardClick('+idStr+',event)" ontouchstart="cardTouchStart('+idStr+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
+      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+(isCommand?' command':'')+(isExpired?' expired':'')+(isCancelled?' cancelled':'')+'" data-id="'+i.id+'" onclick="handleCardClick('+idStr+',event)" ontouchstart="cardTouchStart('+idStr+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
       // Header: Avatar left, two rows right
       h+='<div class="card-header">';
@@ -3676,17 +4001,9 @@ function render(){
       if(i.encrypted){
         h+='<span class="encrypted-lock" title="Encrypted"><svg viewBox="0 0 24 24"><path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none" stroke-width="2"/></svg></span>';
       }
-      // Counter: text=chars, audio=duration, image=dimensions, command=action type
+      // Counter: text=chars, audio=duration, image=dimensions
       if(i.category==='audio'){
         h+='<span class="card-chars">'+formatDuration(i.duration||0)+'</span>';
-      } else if(isCommand){
-        // Command drop: show action type instead of char count
-        const actionIcons = {push:'📱',email:'📧',telegram:'💬',webhook:'🔗',tts:'🔊'};
-        const actionLabels = {push:'Push',email:'Email',telegram:'Telegram',webhook:'Webhook',tts:'Голос'};
-        const actionType = i.action_type || 'push';
-        const actionIcon = actionIcons[actionType] || '📱';
-        const actionLabel = actionLabels[actionType] || 'Push';
-        h+='<span class="cmd-action-type"><span class="cmd-action-icon">'+actionIcon+'</span>'+actionLabel+'</span>';
       } else if(i.isMedia&&i.imageDimensions){
         h+='<span class="card-chars">'+i.imageDimensions+'</span>';
       } else if(i.isMedia){
@@ -3733,16 +4050,7 @@ function render(){
         }
       }
       if(i.text){
-        // v1.1: Command drops get status icon prefix
-        let displayText = i.text;
-        if (isCommand) {
-          const statusIcons = {pending:'⏰', completed:'✅', executed:'✅', failed:'❌', cancelled:'🚫'};
-          const statusIcon = statusIcons[i.status] || '⏰';
-          // Remove old icon if present (for backward compatibility)
-          displayText = displayText.replace(/^[⏰✅❌🚫]\s*/, '');
-          displayText = statusIcon + ' ' + displayText;
-        }
-        h+='<div class="card-text'+(isTruncated?' truncated':'')+'" id="text-'+i.id+'">'+renderMarkdown(displayText)+'</div>';
+        h+='<div class="card-text'+(isTruncated?' truncated':'')+'" id="text-'+i.id+'">'+renderMarkdown(i.text)+'</div>';
         if(isTruncated)h+='<div class="card-more show" onclick="toggleExpand('+i.id+',event)">Show more</div>';
       }
       if(!i.isMedia){
