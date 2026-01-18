@@ -1,10 +1,11 @@
 // ============================================
-// DROPLIT TTS STREAM v1.4
+// DROPLIT TTS STREAM v1.5
 // ElevenLabs WebSocket Streaming
 // Real-time text-to-speech with minimal latency
 // v1.2: flash model, auto_mode, jitter buffer
 // v1.3: Fixed callback architecture, cleanup helper
-// v1.4: Auto-end when all chunks played (don't wait for isFinal)
+// v1.4: Auto-end when all chunks played
+// v1.5: Wait for isFinal before checking completion (fix early trigger)
 // ============================================
 
 class TTSStream {
@@ -58,8 +59,9 @@ class TTSStream {
     // FIX v1.4: Reset end detection
     this.endTimeout = null;
     this.endTriggered = false;
+    this.flushTimeout = null;
     
-    console.log('[TTS Stream v1.4] Initialized with voice:', this.voiceId);
+    console.log('[TTS Stream v1.5] Initialized with voice:', this.voiceId);
   }
   
   // Connect to ElevenLabs WebSocket
@@ -192,6 +194,16 @@ class TTSStream {
     };
     
     this.ws.send(JSON.stringify(flushMessage));
+    
+    // FIX v1.5: Start fallback timer - if isFinal doesn't come in 15s, force end
+    // This handles cases where server doesn't send isFinal
+    this.flushTimeout = setTimeout(() => {
+      if (!this.isFinalReceived && !this.endTriggered) {
+        console.log('[TTS Stream] *** Flush timeout - server did not send isFinal, forcing end ***');
+        this.isFinalReceived = true; // Pretend we got it
+        this.checkPlaybackComplete();
+      }
+    }, 15000);
   }
   
   // Close connection
@@ -295,28 +307,25 @@ class TTSStream {
       playbackStarted: this.playbackStarted
     });
     
-    // FIX v1.3: More robust completion check
+    // FIX v1.5: Only check completion AFTER isFinal received
+    // This ensures we don't trigger early while more chunks are coming
+    
+    if (!this.isFinalReceived) {
+      // Still receiving chunks, don't trigger end yet
+      return;
+    }
+    
+    // isFinal received - now check if all audio played
     const allChunksPlayed = this.audioEndedCount >= this.totalChunksReceived && this.totalChunksReceived > 0;
     const noMoreBuffers = this.scheduledBuffers.length === 0;
     const noPendingBuffers = this.pendingBuffers.length === 0;
     
-    // Original condition: wait for isFinal
-    if (this.isFinalReceived && allChunksPlayed && noMoreBuffers && noPendingBuffers) {
-      console.log('[TTS Stream] *** All audio playback completed (with isFinal) ***');
+    if (allChunksPlayed && noMoreBuffers && noPendingBuffers) {
+      console.log('[TTS Stream] *** All audio playback completed ***');
       this.triggerEnd();
     }
-    // FIX v1.4: If all chunks played but no isFinal yet, wait 500ms then trigger
-    else if (allChunksPlayed && noMoreBuffers && noPendingBuffers && !this.isFinalReceived && !this.endTimeout) {
-      console.log('[TTS Stream] All chunks played, waiting 500ms for isFinal...');
-      this.endTimeout = setTimeout(() => {
-        if (!this.isFinalReceived) {
-          console.log('[TTS Stream] *** Timeout - triggering end without isFinal ***');
-          this.triggerEnd();
-        }
-      }, 500);
-    }
-    // FIX v1.2: If isFinal received but no audio came, trigger onEnd after short delay
-    else if (this.isFinalReceived && this.totalChunksReceived === 0 && !this.endTimeout) {
+    // Edge case: isFinal but no audio received
+    else if (this.totalChunksReceived === 0 && !this.endTimeout) {
       console.log('[TTS Stream] isFinal received but no audio chunks - triggering onEnd');
       this.endTimeout = setTimeout(() => {
         this.triggerEnd();
@@ -336,6 +345,10 @@ class TTSStream {
     if (this.endTimeout) {
       clearTimeout(this.endTimeout);
       this.endTimeout = null;
+    }
+    if (this.flushTimeout) {
+      clearTimeout(this.flushTimeout);
+      this.flushTimeout = null;
     }
     
     // Disconnect WebSocket
@@ -544,4 +557,4 @@ const streamingTTS = new StreamingTTSHelper();
 window.StreamingTTS = streamingTTS;
 window.TTSStream = TTSStream;
 
-console.log('[TTS Stream] Module v1.4 loaded - auto-end when chunks complete');
+console.log('[TTS Stream] Module v1.5 loaded - wait for isFinal before completion');
