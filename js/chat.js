@@ -83,10 +83,13 @@ function openAskAI() {
 }
 
 function handleChatControlLeft() {
-  // If ASKI is speaking - stop it
-  if (askiIsSpeaking || currentTTSAudio) {
+  // If ASKI is speaking (regular TTS or streaming TTS) - stop it
+  if (askiIsSpeaking || currentTTSAudio || streamingTTSIsActive) {
     askiStopSpeaking();
     stopTTS();
+    stopStreamingTTS();
+    // After stopping - transition to listening mode, not just HIDE
+    unlockVoiceMode();
     updateChatControlLeft('hide');
     return;
   }
@@ -125,11 +128,44 @@ function closeAskAI() {
   stopVoiceModeListening();
   askiStopSpeaking();
   stopTTS();
+  stopStreamingTTS();
   updateVoiceModeIndicator('');
   
   // Allow screen to sleep when chat is closed
   releaseWakeLock();
 }
+
+// Stop Streaming TTS (ElevenLabs WebSocket)
+function stopStreamingTTS() {
+  if (streamingTTSIsActive && window.StreamingTTS) {
+    console.log('[Chat] Stopping Streaming TTS...');
+    try {
+      window.StreamingTTS.stop();
+    } catch (e) {
+      console.error('[Chat] Error stopping Streaming TTS:', e);
+    }
+    streamingTTSIsActive = false;
+    askiIsSpeaking = false;
+  }
+}
+
+// Handle visibility change - stop TTS when page hidden/minimized
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    console.log('[Chat] Page hidden, stopping all TTS...');
+    askiStopSpeaking();
+    stopTTS();
+    stopStreamingTTS();
+  }
+});
+
+// Handle page unload - cleanup TTS
+window.addEventListener('pagehide', () => {
+  console.log('[Chat] Page unloading, stopping all TTS...');
+  askiStopSpeaking();
+  stopTTS();
+  stopStreamingTTS();
+});
 
 // Update UI based on Voice Mode setting
 function updateVoiceModeUI() {
@@ -204,6 +240,9 @@ let ttsProvider = localStorage.getItem('tts_provider') || 'openai'; // openai, e
 let elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
 let elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Nadia';
 let elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
+
+// Streaming TTS state (for ElevenLabs WebSocket)
+let streamingTTSIsActive = false;
 
 // ElevenLabs voices - Russian native speakers
 const ELEVENLABS_VOICES = {
@@ -2020,16 +2059,24 @@ async function handleStreamingResponse(response) {
   let createDropData = null;
   
   // Start WebSocket streaming TTS if enabled
-  // TEMPORARILY DISABLED for debugging
-  const useStreamingTTS = false; // isAutoSpeakEnabled() && 
-                          // localStorage.getItem('tts_provider') === 'elevenlabs' &&
-                          // window.StreamingTTS;
+  // FIX v4.19: Enable streaming TTS for ElevenLabs
+  const useStreamingTTS = isAutoSpeakEnabled() && 
+                          localStorage.getItem('tts_provider') === 'elevenlabs' &&
+                          localStorage.getItem('elevenlabs_tts_key') &&
+                          window.StreamingTTS;
   let streamingTTSActive = false;
   
   if (useStreamingTTS) {
     try {
+      console.log('[Chat] Starting Streaming TTS for ElevenLabs...');
       streamingTTSActive = await window.StreamingTTS.start();
       console.log('[Chat] Streaming TTS started:', streamingTTSActive);
+      if (streamingTTSActive) {
+        // Set global flags so STOP button works
+        streamingTTSIsActive = true;
+        askiIsSpeaking = true;
+        updateChatControlLeft('stop');
+      }
     } catch (e) {
       console.error('[Chat] Streaming TTS start failed:', e);
       streamingTTSActive = false;
@@ -2147,15 +2194,12 @@ async function handleStreamingResponse(response) {
                 
                 // Format scheduled time for display (use device local time)
                 let scheduledTimeStr = '';
-                let scheduledDateStr = '';
                 console.log('[Command] scheduled_at from server:', cmd.scheduled_at, 'scheduled_time:', cmd.scheduled_time);
                 
                 if (cmd.scheduled_at) {
                   const scheduledDate = new Date(cmd.scheduled_at);
                   console.log('[Command] Parsed date:', scheduledDate, 'valid:', !isNaN(scheduledDate.getTime()));
                   if (!isNaN(scheduledDate.getTime())) {
-                    // Абсолютная дата: ДД.ММ (локальная система пользователя)
-                    scheduledDateStr = scheduledDate.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'});
                     scheduledTimeStr = scheduledDate.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
                   }
                 }
@@ -2164,17 +2208,12 @@ async function handleStreamingResponse(response) {
                   scheduledTimeStr = cmd.scheduled_time;
                 }
                 
-                console.log('[Command] Final date:', scheduledDateStr, 'time:', scheduledTimeStr);
+                console.log('[Command] Final time string:', scheduledTimeStr);
                 
-                // Text format: ДД.ММ ЧЧ:ММ Title (без иконки — она рендерится динамически)
-                let dropText;
-                if (scheduledDateStr && scheduledTimeStr) {
-                  dropText = `${scheduledDateStr} ${scheduledTimeStr} ${cmd.title}`;
-                } else if (scheduledTimeStr) {
-                  dropText = `${scheduledTimeStr} ${cmd.title}`;
-                } else {
-                  dropText = cmd.title;
-                }
+                // Text format: ⏰ HH:MM Title
+                const dropText = scheduledTimeStr 
+                  ? `⏰ ${scheduledTimeStr} ${cmd.title}`
+                  : `⏰ ${cmd.title}`;
                 
                 const newIdea = {
                   id: eventId || Date.now().toString(), // Prefer server UUID
@@ -2191,11 +2230,7 @@ async function handleStreamingResponse(response) {
                   time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
                   isMedia: false,
                   source: 'aski_command',
-                  creator: 'aski',
-                  // v1.1: Command drop specific fields
-                  sense_type: 'reminder',
-                  action_type: cmd.action_type || 'push',
-                  encrypted: window.DROPLIT_PRIVACY_ENABLED || false
+                  creator: 'aski'
                 };
                 
                 // Add to end of array (like saveTextNote)
@@ -2421,6 +2456,10 @@ async function handleStreamingResponse(response) {
     // Set callback BEFORE finishing - prevents race condition
     window.StreamingTTS.onEnd(() => {
       console.log('[Chat] Streaming TTS ended, unlocking voice mode');
+      // Reset global flags
+      streamingTTSIsActive = false;
+      askiIsSpeaking = false;
+      updateChatControlLeft('hide');
       unlockVoiceMode();
     });
     // Now finish streaming TTS - audio continues playing
