@@ -288,7 +288,7 @@ function stopTTS() {
   }
   
   // Stop ElevenLabs Streaming TTS (WebSocket)
-  if (window.StreamingTTS) {
+  if (window.StreamingTTS && typeof window.StreamingTTS.stop === 'function') {
     try {
       window.StreamingTTS.stop();
       console.log('[TTS] Streaming TTS stopped');
