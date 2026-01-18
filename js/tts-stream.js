@@ -1,9 +1,10 @@
 // ============================================
-// DROPLIT TTS STREAM v1.3
+// DROPLIT TTS STREAM v1.4
 // ElevenLabs WebSocket Streaming
 // Real-time text-to-speech with minimal latency
 // v1.2: flash model, auto_mode, jitter buffer
 // v1.3: Fixed callback architecture, cleanup helper
+// v1.4: Auto-end when all chunks played (don't wait for isFinal)
 // ============================================
 
 class TTSStream {
@@ -54,7 +55,11 @@ class TTSStream {
     this.pendingBuffers = [];
     this.playbackStarted = false;
     
-    console.log('[TTS Stream v1.2] Initialized with voice:', this.voiceId);
+    // FIX v1.4: Reset end detection
+    this.endTimeout = null;
+    this.endTriggered = false;
+    
+    console.log('[TTS Stream v1.4] Initialized with voice:', this.voiceId);
   }
   
   // Connect to ElevenLabs WebSocket
@@ -290,31 +295,54 @@ class TTSStream {
       playbackStarted: this.playbackStarted
     });
     
-    // FIX v1.2: More robust completion check
+    // FIX v1.3: More robust completion check
     const allChunksPlayed = this.audioEndedCount >= this.totalChunksReceived && this.totalChunksReceived > 0;
     const noMoreBuffers = this.scheduledBuffers.length === 0;
     const noPendingBuffers = this.pendingBuffers.length === 0;
     
+    // Original condition: wait for isFinal
     if (this.isFinalReceived && allChunksPlayed && noMoreBuffers && noPendingBuffers) {
-      console.log('[TTS Stream] *** All audio playback completed ***');
-      this.isPlaying = false;
-      
-      // Disconnect WebSocket
-      this.disconnect();
-      
-      if (this.onEnd) {
-        this.onEnd();
-      }
+      console.log('[TTS Stream] *** All audio playback completed (with isFinal) ***');
+      this.triggerEnd();
+    }
+    // FIX v1.4: If all chunks played but no isFinal yet, wait 2 seconds then trigger
+    else if (allChunksPlayed && noMoreBuffers && noPendingBuffers && !this.isFinalReceived && !this.endTimeout) {
+      console.log('[TTS Stream] All chunks played, waiting 2s for isFinal...');
+      this.endTimeout = setTimeout(() => {
+        if (!this.isFinalReceived) {
+          console.log('[TTS Stream] *** Timeout - triggering end without isFinal ***');
+          this.triggerEnd();
+        }
+      }, 2000);
     }
     // FIX v1.2: If isFinal received but no audio came, trigger onEnd after short delay
-    else if (this.isFinalReceived && this.totalChunksReceived === 0) {
+    else if (this.isFinalReceived && this.totalChunksReceived === 0 && !this.endTimeout) {
       console.log('[TTS Stream] isFinal received but no audio chunks - triggering onEnd');
-      setTimeout(() => {
-        if (this.onEnd) {
-          this.disconnect();
-          this.onEnd();
-        }
+      this.endTimeout = setTimeout(() => {
+        this.triggerEnd();
       }, 500);
+    }
+  }
+  
+  // Helper to trigger end callback
+  triggerEnd() {
+    if (this.endTriggered) return; // Prevent double trigger
+    this.endTriggered = true;
+    
+    console.log('[TTS Stream] *** triggerEnd called ***');
+    this.isPlaying = false;
+    
+    // Clear any pending timeouts
+    if (this.endTimeout) {
+      clearTimeout(this.endTimeout);
+      this.endTimeout = null;
+    }
+    
+    // Disconnect WebSocket
+    this.disconnect();
+    
+    if (this.onEnd) {
+      this.onEnd();
     }
   }
   
@@ -516,4 +544,4 @@ const streamingTTS = new StreamingTTSHelper();
 window.StreamingTTS = streamingTTS;
 window.TTSStream = TTSStream;
 
-console.log('[TTS Stream] Module v1.3 loaded - fixed callback architecture');
+console.log('[TTS Stream] Module v1.4 loaded - auto-end when chunks complete');
