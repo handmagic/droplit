@@ -122,12 +122,14 @@ function closeAskAI() {
   // Stop everything and reset all voice states
   voiceModeLocked = true;
   voiceModeSleeping = false;
+  streamingTTSIsActive = false;
   
   clearVoiceModeTimeout();
   stopVoiceModeListening();
   askiStopSpeaking();
   stopTTS();
   updateVoiceModeIndicator('');
+  updateChatControlLeft('hide');
   
   // Allow screen to sleep when chat is closed
   releaseWakeLock();
