@@ -19,6 +19,52 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  
+  <!-- Archive System Styles (v0.9.105) -->
+  <style>
+    /* Archived card visual style */
+    .card.archived {
+      opacity: 0.65;
+      border-left: 3px solid #9CA3AF !important;
+    }
+    .card.archived::before {
+      content: '📦';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      font-size: 14px;
+      z-index: 5;
+    }
+    .card.archived .card-cat {
+      background: #9CA3AF !important;
+      color: white !important;
+    }
+    /* Archive toggle in settings or header */
+    .archive-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(156, 163, 175, 0.1);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .archive-toggle:hover {
+      background: rgba(156, 163, 175, 0.2);
+    }
+    .archive-toggle.active {
+      background: rgba(156, 163, 175, 0.3);
+    }
+    .archive-toggle-icon {
+      font-size: 16px;
+    }
+    .archive-toggle-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+  </style>
+
   <script src="js/utils.js"></script>
   <script src="js/tts.js"></script>
   <script src="js/tts-stream.js"></script>
@@ -1037,6 +1083,19 @@
         </div>
       </div>
       
+      <!-- View Settings Section (v0.9.105) -->
+      <div class="menu-section" style="border-bottom: none;">
+        <div class="section-divider"><span>View</span></div>
+        <div class="settings-item">
+          <div class="settings-item-left">
+            <span class="settings-item-icon">📦</span>
+            <span class="settings-item-label">Show Archived</span>
+            <span class="settings-item-hint" style="font-size: 0.7rem; color: var(--color-text-muted); margin-left: 8px;">Include archived drops in feed</span>
+          </div>
+          <div class="settings-toggle" id="showArchivedToggle" onclick="toggleShowArchived()"></div>
+        </div>
+      </div>
+      
       <!-- Undo Section -->
       <div class="menu-section" style="border-bottom: none;">
         <div class="section-divider"><span>Undo</span></div>
@@ -1358,7 +1417,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.104 • Syntrise Inc. © 2026</div>
+          <div class="menu-about-ver">v0.9.105 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1372,7 +1431,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.102 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.105 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -3107,6 +3166,87 @@ function confirmDel(){
   }
   closeDelModal();
 }
+
+// ============================================
+// ARCHIVE SYSTEM (v0.9.105)
+// ============================================
+
+function archiveDrop(id) {
+  const item = ideas.find(x => x.id == id);
+  if (!item) return;
+  
+  // Save undo
+  saveUndo('archive', {...item});
+  
+  // Mark as archived
+  item.lifecycle_state = 'archived';
+  item.archived_at = new Date().toISOString();
+  
+  // Save locally
+  save();
+  
+  // Sync to server
+  if (syncEnabled && currentUser) {
+    syncDropToServer(item, 'update');
+  }
+  
+  // Update UI
+  activeCardId = null;
+  render();
+  counts();
+  toast('📦 Archived', 'info');
+}
+
+function restoreDrop(id) {
+  const item = ideas.find(x => x.id == id);
+  if (!item) return;
+  
+  // Save undo
+  saveUndo('restore', {...item});
+  
+  // Restore to active
+  item.lifecycle_state = 'active';
+  delete item.archived_at;
+  
+  // Save locally
+  save();
+  
+  // Sync to server
+  if (syncEnabled && currentUser) {
+    syncDropToServer(item, 'update');
+  }
+  
+  // Update UI
+  render();
+  counts();
+  toast('✅ Restored', 'success');
+}
+
+function toggleShowArchived() {
+  showArchived = !showArchived;
+  localStorage.setItem('droplit_show_archived', showArchived ? 'true' : 'false');
+  
+  // Update toggle UI (div based toggle, not checkbox)
+  const toggle = document.getElementById('showArchivedToggle');
+  if (toggle) {
+    toggle.classList.toggle('active', showArchived);
+  }
+  
+  render();
+  counts();
+  
+  if (showArchived) {
+    toast('📦 Showing archived', 'info');
+  } else {
+    toast('Active only', 'info');
+  }
+}
+
+// Load showArchived preference
+(function loadArchivePreference() {
+  showArchived = localStorage.getItem('droplit_show_archived') === 'true';
+})();
+
 function startEdit(id){
   if(editId) cancelEditPanel();
   editId = id;
@@ -3694,6 +3834,13 @@ function isNewDrop(i) {
 function filtered(){
   let f=[...ideas].filter(x=>x&&x.date); // Filter out invalid entries
   
+  // Filter by lifecycle state (v0.9.105)
+  // By default hide archived/deleted, show only active
+  // Drops without lifecycle_state are treated as 'active' (backward compatible)
+  if (!showArchived) {
+    f = f.filter(x => !x.lifecycle_state || x.lifecycle_state === 'active');
+  }
+  
   // Apply search filter
   if(searchMode && searchQuery) {
     f = f.filter(x => {
@@ -3781,9 +3928,10 @@ function render(){
       // Command drop sense type and status classes (v1.0)
       const senseClass = isCommand ? ' sense-' + (i.sense_type || 'reminder') : '';
       const statusClass = isCommand && i.status ? ' status-' + i.status : '';
+      const isArchived = i.lifecycle_state === 'archived'; // v0.9.105
       // Card with full width, avatar inside
       const idStr = typeof i.id === 'string' ? "'"+i.id+"'" : i.id;
-      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+(isCommand?' command':'')+(isExpired?' expired':'')+(isCancelled?' cancelled':'')+senseClass+statusClass+'" data-id="'+i.id+'" onclick="handleCardClick('+idStr+',event)" ontouchstart="cardTouchStart('+idStr+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
+      h+='<div class="card'+(isActive?' active':'')+(isEditing?' editing':'')+(isSelected?' selected':'')+(isRollUp?' roll-up':'')+(isCommand?' command':'')+(isExpired?' expired':'')+(isCancelled?' cancelled':'')+(isArchived?' archived':'')+senseClass+statusClass+'" data-id="'+i.id+'" onclick="handleCardClick('+idStr+',event)" ontouchstart="cardTouchStart('+idStr+',event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd()" ontouchcancel="cardTouchEnd()">';
       h+='<div class="card-checkbox">'+(isSelected?'✓':'')+'</div>';
       // Header: Avatar left, two rows right
       h+='<div class="card-header">';
@@ -3883,6 +4031,12 @@ function render(){
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
         h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
+        // Archive or Restore (v0.9.105)
+        if(i.lifecycle_state === 'archived') {
+          h+='<button class="act" onclick="restoreDrop('+i.id+')">Restore</button>';
+        } else {
+          h+='<button class="act" onclick="archiveDrop('+i.id+')">Archive</button>';
+        }
         h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       } else if(isCommand){
         // Command drop actions: Mark done, Delete, Close
@@ -3895,6 +4049,12 @@ function render(){
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
         h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
+        // Archive or Restore (v0.9.105)
+        if(i.lifecycle_state === 'archived') {
+          h+='<button class="act" onclick="restoreDrop('+i.id+')">Restore</button>';
+        } else {
+          h+='<button class="act" onclick="archiveDrop('+i.id+')">Archive</button>';
+        }
         h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       } else {
         h+='<button class="act ai" onclick="openAITools('+i.id+')">AI Tools</button>';
@@ -3903,6 +4063,12 @@ function render(){
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
         h+='<button class="act" onclick="openFileExportModal('+i.id+')">Export</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
+        // Archive or Restore button (v0.9.105)
+        if(i.lifecycle_state === 'archived') {
+          h+='<button class="act" onclick="restoreDrop('+i.id+')">Restore</button>';
+        } else {
+          h+='<button class="act" onclick="archiveDrop('+i.id+')">Archive</button>';
+        }
         h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       }
       h+='</div>';
@@ -6924,6 +7090,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   
   // Initialize sensitive data protection settings
   initSensitiveSettings();
+  
+  // Initialize archive toggle (v0.9.105)
+  if (localStorage.getItem('droplit_show_archived') === 'true') {
+    showArchived = true;
+    document.getElementById('showArchivedToggle')?.classList.add('active');
+  }
 });
 
 // ============================================
