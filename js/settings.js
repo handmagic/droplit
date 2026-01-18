@@ -801,6 +801,11 @@ function clearAllData() {
   }
 }
 
+// Initialize undo UI on page load
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => updateUndoList(), 100);
+});
+
 
 // ============================================
 // EXPORTS
