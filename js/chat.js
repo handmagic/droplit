@@ -2020,16 +2020,14 @@ async function handleStreamingResponse(response) {
   let createDropData = null;
   
   // Start WebSocket streaming TTS if enabled
-  // FIX v4.19: Enable streaming TTS for ElevenLabs
-  const useStreamingTTS = isAutoSpeakEnabled() && 
-                          localStorage.getItem('tts_provider') === 'elevenlabs' &&
-                          localStorage.getItem('elevenlabs_tts_key') &&
-                          window.StreamingTTS;
+  // TEMPORARILY DISABLED for debugging
+  const useStreamingTTS = false; // isAutoSpeakEnabled() && 
+                          // localStorage.getItem('tts_provider') === 'elevenlabs' &&
+                          // window.StreamingTTS;
   let streamingTTSActive = false;
   
   if (useStreamingTTS) {
     try {
-      console.log('[Chat] Starting Streaming TTS for ElevenLabs...');
       streamingTTSActive = await window.StreamingTTS.start();
       console.log('[Chat] Streaming TTS started:', streamingTTSActive);
     } catch (e) {
@@ -2149,12 +2147,15 @@ async function handleStreamingResponse(response) {
                 
                 // Format scheduled time for display (use device local time)
                 let scheduledTimeStr = '';
+                let scheduledDateStr = '';
                 console.log('[Command] scheduled_at from server:', cmd.scheduled_at, 'scheduled_time:', cmd.scheduled_time);
                 
                 if (cmd.scheduled_at) {
                   const scheduledDate = new Date(cmd.scheduled_at);
                   console.log('[Command] Parsed date:', scheduledDate, 'valid:', !isNaN(scheduledDate.getTime()));
                   if (!isNaN(scheduledDate.getTime())) {
+                    // Абсолютная дата: ДД.ММ (локальная система пользователя)
+                    scheduledDateStr = scheduledDate.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'});
                     scheduledTimeStr = scheduledDate.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
                   }
                 }
@@ -2163,12 +2164,17 @@ async function handleStreamingResponse(response) {
                   scheduledTimeStr = cmd.scheduled_time;
                 }
                 
-                console.log('[Command] Final time string:', scheduledTimeStr);
+                console.log('[Command] Final date:', scheduledDateStr, 'time:', scheduledTimeStr);
                 
-                // Text format: ⏰ HH:MM Title
-                const dropText = scheduledTimeStr 
-                  ? `⏰ ${scheduledTimeStr} ${cmd.title}`
-                  : `⏰ ${cmd.title}`;
+                // Text format: ДД.ММ ЧЧ:ММ Title (без иконки — она рендерится динамически)
+                let dropText;
+                if (scheduledDateStr && scheduledTimeStr) {
+                  dropText = `${scheduledDateStr} ${scheduledTimeStr} ${cmd.title}`;
+                } else if (scheduledTimeStr) {
+                  dropText = `${scheduledTimeStr} ${cmd.title}`;
+                } else {
+                  dropText = cmd.title;
+                }
                 
                 const newIdea = {
                   id: eventId || Date.now().toString(), // Prefer server UUID
@@ -2185,7 +2191,11 @@ async function handleStreamingResponse(response) {
                   time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
                   isMedia: false,
                   source: 'aski_command',
-                  creator: 'aski'
+                  creator: 'aski',
+                  // v1.1: Command drop specific fields
+                  sense_type: 'reminder',
+                  action_type: cmd.action_type || 'push',
+                  encrypted: window.DROPLIT_PRIVACY_ENABLED || false
                 };
                 
                 // Add to end of array (like saveTextNote)
