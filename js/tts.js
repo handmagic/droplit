@@ -1,6 +1,7 @@
 // ============================================
-// DROPLIT TTS v1.0
+// DROPLIT TTS v1.1
 // Text-to-Speech and Sound functions
+// v1.1: Added StreamingTTS stop support
 // ============================================
 
 // ============================================
@@ -275,13 +276,32 @@ async function speakWithOpenAI(text, apiKey, voice) {
 }
 
 function stopTTS() {
+  // Stop regular Audio playback
   if (currentTTSAudio) {
     currentTTSAudio.pause();
     currentTTSAudio = null;
   }
+  
+  // Stop browser speech synthesis
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
+  
+  // Stop ElevenLabs Streaming TTS (WebSocket)
+  if (window.StreamingTTS && typeof window.StreamingTTS.stop === 'function') {
+    try {
+      window.StreamingTTS.stop();
+      console.log('[TTS] Streaming TTS stopped');
+    } catch (e) {
+      console.error('[TTS] Error stopping Streaming TTS:', e);
+    }
+  }
+  
+  // Reset global streaming flag if exists
+  if (typeof streamingTTSIsActive !== 'undefined') {
+    streamingTTSIsActive = false;
+  }
+  
   if (typeof updateChatControlLeft === 'function') updateChatControlLeft('hide');
 }
 
@@ -340,6 +360,16 @@ function updateTTSButton(id, isPlaying) {
 function stopAllTTS() {
   if ('speechSynthesis' in window) {
     speechSynthesis.cancel();
+  }
+  if (currentTTSAudio) {
+    currentTTSAudio.pause();
+    currentTTSAudio = null;
+  }
+  // Also stop streaming TTS
+  if (window.StreamingTTS) {
+    try {
+      window.StreamingTTS.stop();
+    } catch (e) {}
   }
   isTTSPlaying = false;
 }
