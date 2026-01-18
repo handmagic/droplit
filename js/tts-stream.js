@@ -1,579 +1,360 @@
 // ============================================
-// DROPLIT TTS STREAM v1.6
-// ElevenLabs WebSocket Streaming
-// Real-time text-to-speech with minimal latency
-// v1.2: flash model, auto_mode, jitter buffer
-// v1.3: Fixed callback architecture, cleanup helper
-// v1.4: Auto-end when all chunks played
-// v1.5: Wait for isFinal before checking completion (fix early trigger)
-// v1.6: Smart completion without isFinal (2s timeout), reduced flushTimeout to 5s
+// DROPLIT TTS v1.0
+// Text-to-Speech and Sound functions
 // ============================================
 
-class TTSStream {
-  constructor() {
-    this.ws = null;
-    this.audioContext = null;
-    this.audioQueue = [];
-    this.isPlaying = false;
-    this.isConnected = false;
-    this.voiceId = null;
-    this.apiKey = null;
-    this.onStart = null;
-    this.onEnd = null;
-    this.onError = null;
+// ============================================
+// DROP SOUND
+// Signature sound when creating a drop
+// ============================================
+let dropSoundCtx = null;
+
+function playDropSound() {
+  try {
+    if (!dropSoundCtx) dropSoundCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = dropSoundCtx;
+    if (ctx.state === 'suspended') ctx.resume();
     
-    // Audio playback state
-    this.nextStartTime = 0;
-    this.scheduledBuffers = [];
-    this.audioEndedCount = 0;
-    this.totalChunksReceived = 0;
-    this.isFinalReceived = false;
+    // Create a pleasant "drop" sound
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
     
-    // FIX v1.2: Jitter buffer - collect chunks before playing
-    this.pendingBuffers = [];
-    this.jitterBufferSize = 2; // Wait for 2 chunks before starting
-    this.playbackStarted = false;
-  }
-  
-  // Initialize with API key and voice
-  init(apiKey, voiceId) {
-    this.apiKey = apiKey;
-    this.voiceId = voiceId || 'gedzfqL7OGdPbwm0ynTP'; // Default: Nadia
+    osc1.type = 'sine';
+    osc2.type = 'sine';
+    osc1.frequency.setValueAtTime(880, ctx.currentTime); // A5
+    osc1.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15); // A4
+    osc2.frequency.setValueAtTime(1320, ctx.currentTime); // E6
+    osc2.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.15); // E5
     
-    // Create AudioContext
-    if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
     
-    // Reset state
-    this.audioEndedCount = 0;
-    this.totalChunksReceived = 0;
-    this.isFinalReceived = false;
-    this.scheduledBuffers = [];
-    this.nextStartTime = 0;
-    this.isPlaying = false;
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
     
-    // FIX v1.2: Reset jitter buffer
-    this.pendingBuffers = [];
-    this.playbackStarted = false;
-    
-    // FIX v1.4: Reset end detection
-    this.endTimeout = null;
-    this.endTriggered = false;
-    this.flushTimeout = null;
-    
-    // FIX v1.6: Timeout for completion without isFinal
-    this.noFinalTimeout = null;
-    
-    console.log('[TTS Stream v1.6] Initialized with voice:', this.voiceId);
-  }
-  
-  // Connect to ElevenLabs WebSocket
-  async connect() {
-    if (!this.apiKey) {
-      throw new Error('API key not set. Call init() first.');
-    }
-    
-    if (this.isConnected) {
-      console.log('[TTS Stream] Already connected');
-      return;
-    }
-    
-    return new Promise((resolve, reject) => {
-      // FIX v1.2: Use flash model for lowest latency + auto_mode
-      const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${this.voiceId}/stream-input?model_id=eleven_flash_v2_5&auto_mode=true`;
-      
-      console.log('[TTS Stream] Connecting to:', wsUrl);
-      
-      this.ws = new WebSocket(wsUrl);
-      
-      this.ws.onopen = () => {
-        console.log('[TTS Stream] WebSocket connected');
-        
-        // Send BOS (Beginning of Stream) message with settings
-        // FIX v1.2: Simplified settings, let auto_mode handle chunking
-        const bosMessage = {
-          text: ' ',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75
-          },
-          xi_api_key: this.apiKey
-        };
-        
-        this.ws.send(JSON.stringify(bosMessage));
-        this.isConnected = true;
-        resolve();
-      };
-      
-      this.ws.onmessage = async (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.audio) {
-            this.totalChunksReceived++;
-            console.log('[TTS Stream] Audio chunk received:', this.totalChunksReceived);
-            // Decode base64 audio and queue for playback
-            const audioData = this.base64ToArrayBuffer(data.audio);
-            await this.queueAudio(audioData);
-          }
-          
-          if (data.isFinal) {
-            console.log('[TTS Stream] Received final marker');
-            this.isFinalReceived = true;
-            
-            // FIX v1.2: Flush any pending buffers on final
-            if (this.pendingBuffers.length > 0 && !this.playbackStarted) {
-              this.playbackStarted = true;
-              console.log('[TTS Stream] Final received, flushing', this.pendingBuffers.length, 'pending chunks');
-              for (const buf of this.pendingBuffers) {
-                this.scheduleBuffer(buf);
-              }
-              this.pendingBuffers = [];
-              this.isPlaying = true;
-              if (this.onStart) this.onStart();
-            }
-            
-            this.checkPlaybackComplete();
-          }
-          
-          if (data.error) {
-            console.error('[TTS Stream] Server error:', data.error);
-            if (this.onError) this.onError(data.error);
-          }
-          
-        } catch (e) {
-          console.error('[TTS Stream] Error processing message:', e);
-        }
-      };
-      
-      this.ws.onerror = (error) => {
-        console.error('[TTS Stream] WebSocket error:', error);
-        this.isConnected = false;
-        if (this.onError) this.onError(error);
-        reject(error);
-      };
-      
-      this.ws.onclose = (event) => {
-        console.log('[TTS Stream] WebSocket closed:', event.code, event.reason);
-        this.isConnected = false;
-      };
-    });
-  }
-  
-  // Send text chunk for synthesis
-  sendText(text) {
-    if (!this.isConnected || !this.ws) {
-      console.warn('[TTS Stream] Not connected, cannot send text');
-      return false;
-    }
-    
-    if (!text || text.trim() === '') {
-      return false;
-    }
-    
-    console.log('[TTS Stream] Sending text:', text.substring(0, 60) + (text.length > 60 ? '...' : ''));
-    
-    const message = {
-      text: text,
-      try_trigger_generation: true
-    };
-    
-    this.ws.send(JSON.stringify(message));
-    return true;
-  }
-  
-  // Signal end of text input
-  flush() {
-    if (!this.isConnected || !this.ws) {
-      return;
-    }
-    
-    console.log('[TTS Stream] Flushing (EOS)');
-    
-    // Send flush to force generation of remaining text
-    const flushMessage = {
-      text: '',
-      flush: true
-    };
-    
-    this.ws.send(JSON.stringify(flushMessage));
-    
-    // FIX v1.6: Reduced from 15s to 5s - with noFinalTimeout (2s), this is last resort
-    this.flushTimeout = setTimeout(() => {
-      if (!this.isFinalReceived && !this.endTriggered) {
-        console.log('[TTS Stream] *** Flush timeout - server did not send isFinal, forcing end ***');
-        this.isFinalReceived = true; // Pretend we got it
-        this.checkPlaybackComplete();
-      }
-    }, 5000);
-  }
-  
-  // Close connection
-  disconnect() {
-    if (this.ws) {
-      console.log('[TTS Stream] Disconnecting');
-      this.ws.close();
-      this.ws = null;
-    }
-    this.isConnected = false;
-  }
-  
-  // Convert base64 to ArrayBuffer
-  base64ToArrayBuffer(base64) {
-    const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes.buffer;
-  }
-  
-  // Queue audio chunk for playback
-  async queueAudio(arrayBuffer) {
-    try {
-      // Resume AudioContext if suspended (mobile browsers)
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
-      }
-      
-      // Decode audio data (MP3)
-      const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer.slice(0));
-      
-      // FIX v1.2: Jitter buffer - collect chunks before playing
-      if (!this.playbackStarted) {
-        this.pendingBuffers.push(audioBuffer);
-        console.log('[TTS Stream] Buffering chunk:', this.pendingBuffers.length, '/', this.jitterBufferSize);
-        
-        // Start playback when we have enough chunks OR final received
-        if (this.pendingBuffers.length >= this.jitterBufferSize || this.isFinalReceived) {
-          this.playbackStarted = true;
-          console.log('[TTS Stream] Jitter buffer full, starting playback');
-          
-          // Schedule all pending buffers
-          for (const buf of this.pendingBuffers) {
-            this.scheduleBuffer(buf);
-          }
-          this.pendingBuffers = [];
-          
-          // Notify start
-          this.isPlaying = true;
-          if (this.onStart) this.onStart();
-        }
-      } else {
-        // Already playing - schedule immediately
-        this.scheduleBuffer(audioBuffer);
-      }
-      
-    } catch (e) {
-      console.error('[TTS Stream] Error decoding audio:', e);
-    }
-  }
-  
-  // Schedule audio buffer for gapless playback
-  scheduleBuffer(audioBuffer) {
-    const source = this.audioContext.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(this.audioContext.destination);
-    
-    // Calculate start time for gapless playback
-    const now = this.audioContext.currentTime;
-    const startTime = Math.max(now, this.nextStartTime);
-    
-    source.start(startTime);
-    this.nextStartTime = startTime + audioBuffer.duration;
-    
-    // Track for cleanup
-    this.scheduledBuffers.push(source);
-    
-    // Cleanup when done
-    source.onended = () => {
-      const index = this.scheduledBuffers.indexOf(source);
-      if (index > -1) {
-        this.scheduledBuffers.splice(index, 1);
-      }
-      this.audioEndedCount++;
-      console.log('[TTS Stream] Chunk ended:', this.audioEndedCount, '/', this.totalChunksReceived);
-      
-      // Check if all playback finished
-      this.checkPlaybackComplete();
-    };
-  }
-  
-  // Check if all audio has finished playing
-  checkPlaybackComplete() {
-    console.log('[TTS Stream] Check complete:', {
-      isFinal: this.isFinalReceived,
-      scheduled: this.scheduledBuffers.length,
-      ended: this.audioEndedCount,
-      total: this.totalChunksReceived,
-      playbackStarted: this.playbackStarted
-    });
-    
-    const allChunksPlayed = this.audioEndedCount >= this.totalChunksReceived && this.totalChunksReceived > 0;
-    const noMoreBuffers = this.scheduledBuffers.length === 0;
-    const noPendingBuffers = this.pendingBuffers.length === 0;
-    
-    // Case 1: isFinal received - check and complete
-    if (this.isFinalReceived) {
-      if (allChunksPlayed && noMoreBuffers && noPendingBuffers) {
-        console.log('[TTS Stream] *** All audio playback completed (isFinal received) ***');
-        this.triggerEnd();
-      }
-      // Edge case: isFinal but no audio received
-      else if (this.totalChunksReceived === 0 && !this.endTimeout) {
-        console.log('[TTS Stream] isFinal received but no audio chunks - triggering onEnd');
-        this.endTimeout = setTimeout(() => {
-          this.triggerEnd();
-        }, 500);
-      }
-      return;
-    }
-    
-    // Case 2: isFinal NOT received, but all chunks played
-    // FIX v1.6: Wait 2 seconds then complete (ElevenLabs sometimes doesn't send isFinal)
-    if (allChunksPlayed && noMoreBuffers && noPendingBuffers && !this.noFinalTimeout) {
-      console.log('[TTS Stream] All chunks played but no isFinal - waiting 2s...');
-      this.noFinalTimeout = setTimeout(() => {
-        if (!this.isFinalReceived && !this.endTriggered) {
-          console.log('[TTS Stream] *** Completing without isFinal (2s timeout) ***');
-          this.triggerEnd();
-        }
-      }, 2000);
-    }
-  }
-  
-  // Helper to trigger end callback
-  triggerEnd() {
-    if (this.endTriggered) return; // Prevent double trigger
-    this.endTriggered = true;
-    
-    console.log('[TTS Stream] *** triggerEnd called ***');
-    this.isPlaying = false;
-    
-    // Clear any pending timeouts
-    if (this.endTimeout) {
-      clearTimeout(this.endTimeout);
-      this.endTimeout = null;
-    }
-    if (this.flushTimeout) {
-      clearTimeout(this.flushTimeout);
-      this.flushTimeout = null;
-    }
-    if (this.noFinalTimeout) {
-      clearTimeout(this.noFinalTimeout);
-      this.noFinalTimeout = null;
-    }
-    
-    // Disconnect WebSocket
-    this.disconnect();
-    
-    if (this.onEnd) {
-      this.onEnd();
-    }
-  }
-  
-  // Stop all playback
-  stopPlayback() {
-    console.log('[TTS Stream] Stopping playback');
-    
-    this.scheduledBuffers.forEach(source => {
-      try {
-        source.stop();
-      } catch (e) {
-        // Ignore errors from already stopped sources
-      }
-    });
-    
-    this.scheduledBuffers = [];
-    this.nextStartTime = 0;
-    this.isPlaying = false;
-    this.isFinalReceived = true; // Prevent onEnd from firing again
-  }
-  
-  // Full stop - disconnect and stop audio
-  stop() {
-    this.stopPlayback();
-    this.disconnect();
-    if (this.onEnd) {
-      this.onEnd();
-    }
+    osc1.start(ctx.currentTime);
+    osc2.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.2);
+    osc2.stop(ctx.currentTime + 0.2);
+  } catch(e) {
+    console.log('Sound not available');
   }
 }
 
 // ============================================
-// STREAMING TTS HELPER
-// Integrates with ASKI streaming responses
+// TTS - TEXT TO SPEECH
+// Read drop content aloud
 // ============================================
+let currentTTSUtterance = null;
+let isTTSPlaying = false;
+let currentTTSAudio = null;
+let activeSpeakBtn = null;
 
-class StreamingTTSHelper {
-  constructor() {
-    this.ttsStream = null;
-    this.buffer = '';
-    // Sentence endings including Russian
-    this.sentenceEnders = /[.!?。！？\n]/;
-    // Minimum chars before sending - larger = better quality
-    this.minChunkLength = 80;
-    this.isActive = false;
-    this.endCallback = null;
-    this.startCallback = null;
-    this.errorCallback = null;
-    this.fallbackTimeout = null;
+function speakAskAIMessage(btn) {
+  // If this button is already playing - stop it
+  if (btn === activeSpeakBtn) {
+    stopTTS();
+    btn.classList.remove('speaking');
+    activeSpeakBtn = null;
+    return;
   }
   
-  // Start streaming session
-  async start() {
-    const apiKey = localStorage.getItem('elevenlabs_tts_key');
-    const voiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
-    
-    if (!apiKey) {
-      console.error('[Streaming TTS] No API key');
-      return false;
-    }
-    
-    try {
-      // Create fresh TTSStream for each session
-      this.ttsStream = new TTSStream();
-      
-      // Set up callbacks BEFORE connecting
-      this.ttsStream.onStart = () => {
-        console.log('[Streaming TTS] Audio started');
-        if (this.startCallback) this.startCallback();
+  // Stop any other playback
+  stopTTS();
+  if (activeSpeakBtn) {
+    activeSpeakBtn.classList.remove('speaking');
+  }
+  
+  const msgDiv = btn.closest('.ask-ai-message');
+  const bubble = msgDiv?.querySelector('.ask-ai-bubble');
+  if (!bubble) return;
+  
+  const text = bubble.textContent || bubble.innerText;
+  if (!text) return;
+  
+  // Mark button as active
+  btn.classList.add('speaking');
+  activeSpeakBtn = btn;
+  
+  speakTextWithCallback(text, function() {
+    btn.classList.remove('speaking');
+    activeSpeakBtn = null;
+  });
+}
+
+function speakTextWithCallback(text, onEnd) {
+  if (!text) return;
+  
+  stopTTS();
+  
+  const provider = localStorage.getItem('tts_provider') || 'browser';
+  const apiKey = localStorage.getItem('openai_tts_key');
+  const voice = localStorage.getItem('aski_voice') || 'nova';
+  
+  if (provider === 'openai' && apiKey && apiKey.startsWith('sk-')) {
+    speakWithOpenAICallback(text, apiKey, voice, onEnd);
+  } else {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ru-RU';
+      utterance.onend = function() {
+        if (onEnd) onEnd();
+        if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
       };
-      
-      this.ttsStream.onEnd = () => {
-        console.log('[Streaming TTS] *** TTSStream.onEnd fired ***');
-        this.cleanup();
-        if (this.endCallback) {
-          console.log('[Streaming TTS] Calling endCallback');
-          this.endCallback();
-        }
-      };
-      
-      this.ttsStream.onError = (err) => {
-        console.error('[Streaming TTS] Error:', err);
-        this.cleanup();
-        if (this.errorCallback) this.errorCallback(err);
-        // On error, also call endCallback to unlock voice mode
-        if (this.endCallback) this.endCallback();
-      };
-      
-      this.ttsStream.init(apiKey, voiceId);
-      await this.ttsStream.connect();
-      this.isActive = true;
-      this.buffer = '';
-      console.log('[Streaming TTS] Session started');
-      return true;
-    } catch (e) {
-      console.error('[Streaming TTS] Failed to start:', e);
-      return false;
+      window.speechSynthesis.speak(utterance);
     }
-  }
-  
-  // Cleanup helper
-  cleanup() {
-    if (this.fallbackTimeout) {
-      clearTimeout(this.fallbackTimeout);
-      this.fallbackTimeout = null;
-    }
-    this.isActive = false;
-  }
-  
-  // Feed text chunk from ASKI streaming
-  feedText(text) {
-    if (!this.isActive || !this.ttsStream) return;
-    
-    this.buffer += text;
-    
-    // Check if we have a complete sentence AND enough text
-    const trimmed = this.buffer.trim();
-    const lastChar = trimmed.slice(-1);
-    const isSentenceEnd = this.sentenceEnders.test(lastChar);
-    const isLongEnough = this.buffer.length >= this.minChunkLength;
-    
-    // Only send when we have a complete sentence with good length
-    // This ensures better audio quality and natural speech
-    if (isSentenceEnd && isLongEnough) {
-      console.log('[Streaming TTS] Sending buffer:', this.buffer.length, 'chars');
-      if (this.ttsStream) {
-        this.ttsStream.sendText(this.buffer);
-      }
-      this.buffer = '';
-    }
-  }
-  
-  // Finish streaming - send remaining buffer
-  finish() {
-    if (!this.isActive) {
-      console.log('[Streaming TTS] finish() called but not active');
-      return;
-    }
-    
-    console.log('[Streaming TTS] Finishing, remaining buffer:', this.buffer.length, 'chars');
-    
-    // Send any remaining text
-    if (this.buffer.trim() && this.ttsStream) {
-      this.ttsStream.sendText(this.buffer);
-      this.buffer = '';
-    }
-    
-    // Signal end of input
-    if (this.ttsStream) {
-      this.ttsStream.flush();
-    }
-    
-    console.log('[Streaming TTS] Session finished, waiting for audio to complete');
-    
-    // FIX v1.2: Fallback timeout - if onEnd doesn't fire in 30s, force it
-    this.fallbackTimeout = setTimeout(() => {
-      console.log('[Streaming TTS] *** Fallback timeout triggered - forcing onEnd ***');
-      this.cleanup();
-      if (this.ttsStream) {
-        this.ttsStream.disconnect();
-      }
-      if (this.endCallback) {
-        this.endCallback();
-      }
-    }, 30000);
-  }
-  
-  // Cancel streaming
-  cancel() {
-    this.cleanup();
-    if (this.ttsStream) {
-      this.ttsStream.stop();
-    }
-    this.buffer = '';
-    console.log('[Streaming TTS] Session cancelled');
-  }
-  
-  // Alias for cancel - used by stopTTS()
-  stop() {
-    this.cancel();
-  }
-  
-  // Set callbacks - these are stored and applied when start() is called
-  onStart(callback) {
-    this.startCallback = callback;
-  }
-  
-  onEnd(callback) {
-    console.log('[Streaming TTS] onEnd callback registered');
-    this.endCallback = callback;
-  }
-  
-  onError(callback) {
-    this.errorCallback = callback;
   }
 }
 
-// ============================================
-// GLOBAL INSTANCE
-// ============================================
-const streamingTTS = new StreamingTTSHelper();
+async function speakWithOpenAICallback(text, apiKey, voice, onEnd) {
+  try {
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: text,
+        voice: voice
+      })
+    });
+    
+    if (!response.ok) throw new Error('OpenAI TTS error');
+    
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    currentTTSAudio = new Audio(url);
+    
+    currentTTSAudio.onended = function() {
+      URL.revokeObjectURL(url);
+      currentTTSAudio = null;
+      if (onEnd) onEnd();
+      if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+    };
+    
+    currentTTSAudio.play();
+  } catch (e) {
+    console.error('OpenAI TTS error:', e);
+    if (onEnd) onEnd();
+    if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+  }
+}
 
-// Export for use in chat.js
-window.StreamingTTS = streamingTTS;
-window.TTSStream = TTSStream;
+function speakText(text) {
+  if (!text) return;
+  
+  stopTTS();
+  if (typeof updateChatControlLeft === 'function') updateChatControlLeft('stop');
+  
+  const provider = localStorage.getItem('tts_provider') || 'browser';
+  const openaiKey = localStorage.getItem('openai_tts_key');
+  const openaiVoice = localStorage.getItem('aski_voice') || 'nova';
+  const elevenlabsKey = localStorage.getItem('elevenlabs_tts_key');
+  const elevenlabsVoice = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
+  
+  if (provider === 'openai' && openaiKey && openaiKey.startsWith('sk-')) {
+    speakWithOpenAI(text, openaiKey, openaiVoice);
+  } else if (provider === 'elevenlabs' && elevenlabsKey) {
+    speakWithElevenLabs(text, elevenlabsKey, elevenlabsVoice);
+  } else {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ru-RU';
+      utterance.onend = function() { 
+        if (typeof unlockVoiceMode === 'function') unlockVoiceMode(); 
+      };
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+}
 
-console.log('[TTS Stream] Module v1.6 loaded - smart completion, faster timeouts');
+async function speakWithElevenLabs(text, apiKey, voiceId) {
+  try {
+    console.log('[ElevenLabs] Starting TTS...');
+    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
+      },
+      body: JSON.stringify({
+        text: text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75
+        }
+      })
+    });
+    
+    if (!response.ok) throw new Error('ElevenLabs TTS error: ' + response.status);
+    
+    const blob = await response.blob();
+    console.log('[ElevenLabs] Audio blob received:', blob.size, 'bytes');
+    const url = URL.createObjectURL(blob);
+    currentTTSAudio = new Audio(url);
+    
+    // Multiple event handlers for reliability
+    const cleanup = function() {
+      console.log('[ElevenLabs] Audio cleanup');
+      URL.revokeObjectURL(url);
+      currentTTSAudio = null;
+      if (typeof unlockVoiceMode === 'function') {
+        console.log('[ElevenLabs] Calling unlockVoiceMode');
+        unlockVoiceMode();
+      }
+    };
+    
+    currentTTSAudio.onended = function() {
+      console.log('[ElevenLabs] Audio onended');
+      cleanup();
+    };
+    
+    currentTTSAudio.onerror = function(e) {
+      console.error('[ElevenLabs] Audio error:', e);
+      cleanup();
+    };
+    
+    // Fallback timeout based on text length (~100ms per character for speech)
+    const estimatedDuration = Math.max(5000, text.length * 80);
+    setTimeout(function() {
+      if (currentTTSAudio) {
+        console.log('[ElevenLabs] Timeout fallback triggered');
+        cleanup();
+      }
+    }, estimatedDuration);
+    
+    await currentTTSAudio.play();
+    console.log('[ElevenLabs] Audio playing');
+    
+  } catch (e) {
+    console.error('ElevenLabs TTS error:', e);
+    if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+  }
+}
+
+async function speakWithOpenAI(text, apiKey, voice) {
+  try {
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: text,
+        voice: voice
+      })
+    });
+    
+    if (!response.ok) throw new Error('OpenAI TTS error');
+    
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    currentTTSAudio = new Audio(url);
+    
+    currentTTSAudio.onended = function() {
+      URL.revokeObjectURL(url);
+      currentTTSAudio = null;
+      if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+    };
+    
+    currentTTSAudio.play();
+  } catch (e) {
+    console.error('OpenAI TTS error:', e);
+    if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+  }
+}
+
+function stopTTS() {
+  if (currentTTSAudio) {
+    currentTTSAudio.pause();
+    currentTTSAudio = null;
+  }
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+  if (typeof updateChatControlLeft === 'function') updateChatControlLeft('hide');
+}
+
+function speakDrop(id, e) {
+  if (e) e.stopPropagation();
+  
+  // ideas is a global variable from main script
+  const item = typeof ideas !== 'undefined' ? ideas.find(x => x.id === id) : null;
+  if (!item) return;
+  
+  // Get text to speak
+  let textToSpeak = '';
+  if (item.category === 'audio' && item.transcription) {
+    textToSpeak = item.transcription;
+  } else if (item.text) {
+    textToSpeak = item.text;
+  } else if (item.notes) {
+    textToSpeak = item.notes;
+  }
+  
+  if (!textToSpeak) {
+    if (typeof toast === 'function') toast('Nothing to read', 'warning');
+    return;
+  }
+  
+  // Stop if already playing
+  if (isTTSPlaying || currentTTSAudio) {
+    stopTTS();
+    speechSynthesis.cancel();
+    isTTSPlaying = false;
+    updateTTSButton(id, false);
+    if (typeof toast === 'function') toast('Stopped', 'info');
+    return;
+  }
+  
+  // Use settings-based TTS
+  isTTSPlaying = true;
+  updateTTSButton(id, true);
+  
+  speakTextWithCallback(textToSpeak, function() {
+    isTTSPlaying = false;
+    updateTTSButton(id, false);
+  });
+  
+  if (typeof toast === 'function') toast('Reading...', 'info');
+}
+
+function updateTTSButton(id, isPlaying) {
+  const btn = document.querySelector(`.card[data-id="${id}"] .act-tts`);
+  if (btn) {
+    btn.innerHTML = isPlaying ? 'Stop' : 'Read';
+    btn.classList.toggle('playing', isPlaying);
+  }
+}
+
+function stopAllTTS() {
+  if ('speechSynthesis' in window) {
+    speechSynthesis.cancel();
+  }
+  isTTSPlaying = false;
+}
+
+// ============================================
+// EXPORTS (for future module use)
+// ============================================
+window.DropLitTTS = {
+  playDropSound,
+  speakText,
+  speakTextWithCallback,
+  speakAskAIMessage,
+  speakDrop,
+  stopTTS,
+  stopAllTTS,
+  speakWithOpenAI,
+  speakWithElevenLabs
+};
