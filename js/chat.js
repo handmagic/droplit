@@ -83,10 +83,13 @@ function openAskAI() {
 }
 
 function handleChatControlLeft() {
-  // If ASKI is speaking - stop it
-  if (askiIsSpeaking || currentTTSAudio) {
+  // If ASKI is speaking (regular TTS or streaming TTS) - stop it
+  if (askiIsSpeaking || currentTTSAudio || streamingTTSIsActive) {
     askiStopSpeaking();
     stopTTS();
+    stopStreamingTTS();
+    // After stopping - transition to listening mode, not just HIDE
+    unlockVoiceMode();
     updateChatControlLeft('hide');
     return;
   }
@@ -125,11 +128,44 @@ function closeAskAI() {
   stopVoiceModeListening();
   askiStopSpeaking();
   stopTTS();
+  stopStreamingTTS();
   updateVoiceModeIndicator('');
   
   // Allow screen to sleep when chat is closed
   releaseWakeLock();
 }
+
+// Stop Streaming TTS (ElevenLabs WebSocket)
+function stopStreamingTTS() {
+  if (streamingTTSIsActive && window.StreamingTTS) {
+    console.log('[Chat] Stopping Streaming TTS...');
+    try {
+      window.StreamingTTS.stop();
+    } catch (e) {
+      console.error('[Chat] Error stopping Streaming TTS:', e);
+    }
+    streamingTTSIsActive = false;
+    askiIsSpeaking = false;
+  }
+}
+
+// Handle visibility change - stop TTS when page hidden/minimized
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    console.log('[Chat] Page hidden, stopping all TTS...');
+    askiStopSpeaking();
+    stopTTS();
+    stopStreamingTTS();
+  }
+});
+
+// Handle page unload - cleanup TTS
+window.addEventListener('pagehide', () => {
+  console.log('[Chat] Page unloading, stopping all TTS...');
+  askiStopSpeaking();
+  stopTTS();
+  stopStreamingTTS();
+});
 
 // Update UI based on Voice Mode setting
 function updateVoiceModeUI() {
@@ -204,6 +240,9 @@ let ttsProvider = localStorage.getItem('tts_provider') || 'openai'; // openai, e
 let elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
 let elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Nadia';
 let elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
+
+// Streaming TTS state (for ElevenLabs WebSocket)
+let streamingTTSIsActive = false;
 
 // ElevenLabs voices - Russian native speakers
 const ELEVENLABS_VOICES = {
@@ -2032,6 +2071,12 @@ async function handleStreamingResponse(response) {
       console.log('[Chat] Starting Streaming TTS for ElevenLabs...');
       streamingTTSActive = await window.StreamingTTS.start();
       console.log('[Chat] Streaming TTS started:', streamingTTSActive);
+      if (streamingTTSActive) {
+        // Set global flags so STOP button works
+        streamingTTSIsActive = true;
+        askiIsSpeaking = true;
+        updateChatControlLeft('stop');
+      }
     } catch (e) {
       console.error('[Chat] Streaming TTS start failed:', e);
       streamingTTSActive = false;
@@ -2411,6 +2456,10 @@ async function handleStreamingResponse(response) {
     // Set callback BEFORE finishing - prevents race condition
     window.StreamingTTS.onEnd(() => {
       console.log('[Chat] Streaming TTS ended, unlocking voice mode');
+      // Reset global flags
+      streamingTTSIsActive = false;
+      askiIsSpeaking = false;
+      updateChatControlLeft('hide');
       unlockVoiceMode();
     });
     // Now finish streaming TTS - audio continues playing
