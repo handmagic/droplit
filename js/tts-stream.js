@@ -1,8 +1,9 @@
 // ============================================
-// DROPLIT TTS STREAM v1.1
+// DROPLIT TTS STREAM v1.3
 // ElevenLabs WebSocket Streaming
 // Real-time text-to-speech with minimal latency
-// Fixed: speed control, chunk scheduling, end detection
+// v1.2: flash model, auto_mode, jitter buffer
+// v1.3: Fixed callback architecture, cleanup helper
 // ============================================
 
 class TTSStream {
@@ -515,4 +516,4 @@ const streamingTTS = new StreamingTTSHelper();
 window.StreamingTTS = streamingTTS;
 window.TTSStream = TTSStream;
 
-console.log('[TTS Stream] Module v1.2 loaded - flash model + auto_mode + jitter buffer');
+console.log('[TTS Stream] Module v1.3 loaded - fixed callback architecture');
