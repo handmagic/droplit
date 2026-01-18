@@ -305,15 +305,15 @@ class TTSStream {
       console.log('[TTS Stream] *** All audio playback completed (with isFinal) ***');
       this.triggerEnd();
     }
-    // FIX v1.4: If all chunks played but no isFinal yet, wait 2 seconds then trigger
+    // FIX v1.4: If all chunks played but no isFinal yet, wait 500ms then trigger
     else if (allChunksPlayed && noMoreBuffers && noPendingBuffers && !this.isFinalReceived && !this.endTimeout) {
-      console.log('[TTS Stream] All chunks played, waiting 2s for isFinal...');
+      console.log('[TTS Stream] All chunks played, waiting 500ms for isFinal...');
       this.endTimeout = setTimeout(() => {
         if (!this.isFinalReceived) {
           console.log('[TTS Stream] *** Timeout - triggering end without isFinal ***');
           this.triggerEnd();
         }
-      }, 2000);
+      }, 500);
     }
     // FIX v1.2: If isFinal received but no audio came, trigger onEnd after short delay
     else if (this.isFinalReceived && this.totalChunksReceived === 0 && !this.endTimeout) {
