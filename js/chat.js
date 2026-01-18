@@ -83,10 +83,12 @@ function openAskAI() {
 }
 
 function handleChatControlLeft() {
-  // If ASKI is speaking - stop it
-  if (askiIsSpeaking || currentTTSAudio) {
+  // If ASKI is speaking (any TTS including streaming) - stop it
+  if (askiIsSpeaking || currentTTSAudio || streamingTTSIsActive) {
     askiStopSpeaking();
     stopTTS();
+    // Reset streaming flag
+    streamingTTSIsActive = false;
     updateChatControlLeft('hide');
     return;
   }
@@ -204,6 +206,9 @@ let ttsProvider = localStorage.getItem('tts_provider') || 'openai'; // openai, e
 let elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
 let elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Nadia';
 let elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
+
+// Streaming TTS state (for STOP button)
+let streamingTTSIsActive = false;
 
 // ElevenLabs voices - Russian native speakers
 const ELEVENLABS_VOICES = {
@@ -2032,6 +2037,11 @@ async function handleStreamingResponse(response) {
       console.log('[Chat] Starting Streaming TTS for ElevenLabs...');
       streamingTTSActive = await window.StreamingTTS.start();
       console.log('[Chat] Streaming TTS started:', streamingTTSActive);
+      if (streamingTTSActive) {
+        // Set global flag so STOP button works
+        streamingTTSIsActive = true;
+        updateChatControlLeft('stop');
+      }
     } catch (e) {
       console.error('[Chat] Streaming TTS start failed:', e);
       streamingTTSActive = false;
@@ -2411,6 +2421,9 @@ async function handleStreamingResponse(response) {
     // Set callback BEFORE finishing - prevents race condition
     window.StreamingTTS.onEnd(() => {
       console.log('[Chat] Streaming TTS ended, unlocking voice mode');
+      // Reset global flag and button
+      streamingTTSIsActive = false;
+      updateChatControlLeft('hide');
       unlockVoiceMode();
     });
     // Now finish streaming TTS - audio continues playing
