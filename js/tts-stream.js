@@ -352,7 +352,7 @@ class TTSStream {
 
 class StreamingTTSHelper {
   constructor() {
-    this.ttsStream = new TTSStream();
+    this.ttsStream = null;
     this.buffer = '';
     // Sentence endings including Russian
     this.sentenceEnders = /[.!?。！？\n]/;
@@ -360,6 +360,9 @@ class StreamingTTSHelper {
     this.minChunkLength = 80;
     this.isActive = false;
     this.endCallback = null;
+    this.startCallback = null;
+    this.errorCallback = null;
+    this.fallbackTimeout = null;
   }
   
   // Start streaming session
@@ -373,6 +376,32 @@ class StreamingTTSHelper {
     }
     
     try {
+      // Create fresh TTSStream for each session
+      this.ttsStream = new TTSStream();
+      
+      // Set up callbacks BEFORE connecting
+      this.ttsStream.onStart = () => {
+        console.log('[Streaming TTS] Audio started');
+        if (this.startCallback) this.startCallback();
+      };
+      
+      this.ttsStream.onEnd = () => {
+        console.log('[Streaming TTS] *** TTSStream.onEnd fired ***');
+        this.cleanup();
+        if (this.endCallback) {
+          console.log('[Streaming TTS] Calling endCallback');
+          this.endCallback();
+        }
+      };
+      
+      this.ttsStream.onError = (err) => {
+        console.error('[Streaming TTS] Error:', err);
+        this.cleanup();
+        if (this.errorCallback) this.errorCallback(err);
+        // On error, also call endCallback to unlock voice mode
+        if (this.endCallback) this.endCallback();
+      };
+      
       this.ttsStream.init(apiKey, voiceId);
       await this.ttsStream.connect();
       this.isActive = true;
@@ -385,9 +414,18 @@ class StreamingTTSHelper {
     }
   }
   
+  // Cleanup helper
+  cleanup() {
+    if (this.fallbackTimeout) {
+      clearTimeout(this.fallbackTimeout);
+      this.fallbackTimeout = null;
+    }
+    this.isActive = false;
+  }
+  
   // Feed text chunk from ASKI streaming
   feedText(text) {
-    if (!this.isActive) return;
+    if (!this.isActive || !this.ttsStream) return;
     
     this.buffer += text;
     
@@ -401,34 +439,43 @@ class StreamingTTSHelper {
     // This ensures better audio quality and natural speech
     if (isSentenceEnd && isLongEnough) {
       console.log('[Streaming TTS] Sending buffer:', this.buffer.length, 'chars');
-      this.ttsStream.sendText(this.buffer);
+      if (this.ttsStream) {
+        this.ttsStream.sendText(this.buffer);
+      }
       this.buffer = '';
     }
   }
   
   // Finish streaming - send remaining buffer
   finish() {
-    if (!this.isActive) return;
+    if (!this.isActive) {
+      console.log('[Streaming TTS] finish() called but not active');
+      return;
+    }
     
     console.log('[Streaming TTS] Finishing, remaining buffer:', this.buffer.length, 'chars');
     
     // Send any remaining text
-    if (this.buffer.trim()) {
+    if (this.buffer.trim() && this.ttsStream) {
       this.ttsStream.sendText(this.buffer);
       this.buffer = '';
     }
     
     // Signal end of input
-    this.ttsStream.flush();
-    this.isActive = false;
+    if (this.ttsStream) {
+      this.ttsStream.flush();
+    }
     
     console.log('[Streaming TTS] Session finished, waiting for audio to complete');
     
     // FIX v1.2: Fallback timeout - if onEnd doesn't fire in 30s, force it
     this.fallbackTimeout = setTimeout(() => {
-      console.log('[Streaming TTS] Fallback timeout - forcing onEnd');
-      if (this.endCallback) {
+      console.log('[Streaming TTS] *** Fallback timeout triggered - forcing onEnd ***');
+      this.cleanup();
+      if (this.ttsStream) {
         this.ttsStream.disconnect();
+      }
+      if (this.endCallback) {
         this.endCallback();
       }
     }, 30000);
@@ -436,31 +483,26 @@ class StreamingTTSHelper {
   
   // Cancel streaming
   cancel() {
-    if (this.fallbackTimeout) clearTimeout(this.fallbackTimeout);
-    this.ttsStream.stop();
-    this.isActive = false;
+    this.cleanup();
+    if (this.ttsStream) {
+      this.ttsStream.stop();
+    }
     this.buffer = '';
     console.log('[Streaming TTS] Session cancelled');
   }
   
-  // Set callbacks
+  // Set callbacks - these are stored and applied when start() is called
   onStart(callback) {
-    this.ttsStream.onStart = callback;
+    this.startCallback = callback;
   }
   
   onEnd(callback) {
+    console.log('[Streaming TTS] onEnd callback registered');
     this.endCallback = callback;
-    this.ttsStream.onEnd = () => {
-      console.log('[Streaming TTS] *** onEnd callback fired ***');
-      if (this.fallbackTimeout) clearTimeout(this.fallbackTimeout);
-      if (this.endCallback) {
-        this.endCallback();
-      }
-    };
   }
   
   onError(callback) {
-    this.ttsStream.onError = callback;
+    this.errorCallback = callback;
   }
 }
 
