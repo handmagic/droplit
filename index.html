@@ -20,48 +20,60 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   
-  <!-- Archive System Styles (v0.9.105) -->
+  <!-- Archive System Styles (v0.9.106) -->
   <style>
     /* Archived card visual style */
     .card.archived {
-      opacity: 0.65;
-      border-left: 3px solid #9CA3AF !important;
-    }
-    .card.archived::before {
-      content: '📦';
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      font-size: 14px;
-      z-index: 5;
+      opacity: 0.7;
+      border-left: 3px solid #F97316 !important; /* orange-500 */
     }
     .card.archived .card-cat {
       background: #9CA3AF !important;
       color: white !important;
     }
-    /* Archive toggle in settings or header */
+    /* Archived badge - same style as NEW but orange */
+    .archived-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 6px;
+      background: linear-gradient(135deg, #F97316 0%, #EA580C 100%); /* orange gradient */
+      color: white;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      margin-left: 6px;
+      white-space: nowrap;
+      box-shadow: 0 1px 2px rgba(249, 115, 22, 0.3);
+    }
+    /* Archive icon inside badge (SVG version) */
+    .archived-badge::before {
+      content: '';
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8v13H3V8'/%3E%3Cpath d='M1 3h22v5H1z'/%3E%3Cpath d='M10 12h4'/%3E%3C/svg%3E");
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+    /* Archive toggle in menu */
     .archive-toggle {
       display: flex;
       align-items: center;
       gap: 8px;
       padding: 8px 12px;
-      background: rgba(156, 163, 175, 0.1);
+      background: rgba(249, 115, 22, 0.1);
       border-radius: 8px;
       cursor: pointer;
       transition: background 0.2s;
     }
     .archive-toggle:hover {
-      background: rgba(156, 163, 175, 0.2);
+      background: rgba(249, 115, 22, 0.2);
     }
     .archive-toggle.active {
-      background: rgba(156, 163, 175, 0.3);
-    }
-    .archive-toggle-icon {
-      font-size: 16px;
-    }
-    .archive-toggle-text {
-      font-size: 13px;
-      color: var(--text-secondary);
+      background: rgba(249, 115, 22, 0.3);
     }
   </style>
 
@@ -1417,7 +1429,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.105 • Syntrise Inc. © 2026</div>
+          <div class="menu-about-ver">v0.9.106 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1431,7 +1443,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.105 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.106 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -3975,6 +3987,8 @@ function render(){
         h+='<span class="card-marker">'+i.markers.map(m=>MARKERS[m]||'').join('')+'</span>';
       }
       if(isNewDrop(i))h+='<span class="new-badge">NEW</span>';
+      // Archived badge (v0.9.106)
+      if(isArchived)h+='<span class="archived-badge">ARCHIVED</span>';
       h+='</div>';
       h+='</div>'; // close card-header-content
       h+='</div>'; // close card-header
