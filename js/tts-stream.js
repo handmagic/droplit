@@ -1,8 +1,9 @@
 // ============================================
-// DROPLIT TTS STREAM v1.1
+// DROPLIT TTS STREAM v1.3
 // ElevenLabs WebSocket Streaming
 // Real-time text-to-speech with minimal latency
-// Fixed: speed control, chunk scheduling, end detection
+// v1.2: flash model, auto_mode, jitter buffer
+// v1.3: Fixed EOS - send empty string to trigger isFinal
 // ============================================
 
 class TTSStream {
@@ -177,15 +178,22 @@ class TTSStream {
       return;
     }
     
-    console.log('[TTS Stream] Flushing (EOS)');
+    console.log('[TTS Stream] Flushing and sending EOS');
     
-    // Send flush to force generation of remaining text
+    // Step 1: Send flush to force generation of remaining text
     const flushMessage = {
       text: '',
       flush: true
     };
-    
     this.ws.send(JSON.stringify(flushMessage));
+    
+    // Step 2: Send EOS (empty string) to close connection and trigger isFinal
+    // Per ElevenLabs docs: "Send an empty string to close the WebSocket connection"
+    const eosMessage = {
+      text: ''
+    };
+    this.ws.send(JSON.stringify(eosMessage));
+    console.log('[TTS Stream] EOS sent, waiting for isFinal');
   }
   
   // Close connection
@@ -450,4 +458,4 @@ const streamingTTS = new StreamingTTSHelper();
 window.StreamingTTS = streamingTTS;
 window.TTSStream = TTSStream;
 
-console.log('[TTS Stream] Module v1.2 loaded - flash model + auto_mode + jitter buffer');
+console.log('[TTS Stream] Module v1.3 loaded - fixed EOS for isFinal');
