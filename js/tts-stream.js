@@ -1,12 +1,8 @@
 // ============================================
-// DROPLIT TTS STREAM v1.6
+// DROPLIT TTS STREAM v1.1
 // ElevenLabs WebSocket Streaming
 // Real-time text-to-speech with minimal latency
-// v1.2: flash model, auto_mode, jitter buffer
-// v1.3: Fixed callback architecture, cleanup helper
-// v1.4: Auto-end when all chunks played
-// v1.5: Wait for isFinal before checking completion (fix early trigger)
-// v1.6: Smart completion without isFinal (2s timeout), reduced flushTimeout to 5s
+// Fixed: speed control, chunk scheduling, end detection
 // ============================================
 
 class TTSStream {
@@ -57,15 +53,7 @@ class TTSStream {
     this.pendingBuffers = [];
     this.playbackStarted = false;
     
-    // FIX v1.4: Reset end detection
-    this.endTimeout = null;
-    this.endTriggered = false;
-    this.flushTimeout = null;
-    
-    // FIX v1.6: Timeout for completion without isFinal
-    this.noFinalTimeout = null;
-    
-    console.log('[TTS Stream v1.6] Initialized with voice:', this.voiceId);
+    console.log('[TTS Stream v1.2] Initialized with voice:', this.voiceId);
   }
   
   // Connect to ElevenLabs WebSocket
@@ -198,15 +186,6 @@ class TTSStream {
     };
     
     this.ws.send(JSON.stringify(flushMessage));
-    
-    // FIX v1.6: Reduced from 15s to 5s - with noFinalTimeout (2s), this is last resort
-    this.flushTimeout = setTimeout(() => {
-      if (!this.isFinalReceived && !this.endTriggered) {
-        console.log('[TTS Stream] *** Flush timeout - server did not send isFinal, forcing end ***');
-        this.isFinalReceived = true; // Pretend we got it
-        this.checkPlaybackComplete();
-      }
-    }, 5000);
   }
   
   // Close connection
@@ -306,70 +285,23 @@ class TTSStream {
       isFinal: this.isFinalReceived,
       scheduled: this.scheduledBuffers.length,
       ended: this.audioEndedCount,
-      total: this.totalChunksReceived,
-      playbackStarted: this.playbackStarted
+      total: this.totalChunksReceived
     });
     
-    const allChunksPlayed = this.audioEndedCount >= this.totalChunksReceived && this.totalChunksReceived > 0;
-    const noMoreBuffers = this.scheduledBuffers.length === 0;
-    const noPendingBuffers = this.pendingBuffers.length === 0;
-    
-    // Case 1: isFinal received - check and complete
-    if (this.isFinalReceived) {
-      if (allChunksPlayed && noMoreBuffers && noPendingBuffers) {
-        console.log('[TTS Stream] *** All audio playback completed (isFinal received) ***');
-        this.triggerEnd();
+    if (this.isFinalReceived && 
+        this.scheduledBuffers.length === 0 && 
+        this.audioEndedCount >= this.totalChunksReceived &&
+        this.totalChunksReceived > 0) {
+      
+      console.log('[TTS Stream] *** All audio playback completed ***');
+      this.isPlaying = false;
+      
+      // Disconnect WebSocket
+      this.disconnect();
+      
+      if (this.onEnd) {
+        this.onEnd();
       }
-      // Edge case: isFinal but no audio received
-      else if (this.totalChunksReceived === 0 && !this.endTimeout) {
-        console.log('[TTS Stream] isFinal received but no audio chunks - triggering onEnd');
-        this.endTimeout = setTimeout(() => {
-          this.triggerEnd();
-        }, 500);
-      }
-      return;
-    }
-    
-    // Case 2: isFinal NOT received, but all chunks played
-    // FIX v1.6: Wait 2 seconds then complete (ElevenLabs sometimes doesn't send isFinal)
-    if (allChunksPlayed && noMoreBuffers && noPendingBuffers && !this.noFinalTimeout) {
-      console.log('[TTS Stream] All chunks played but no isFinal - waiting 2s...');
-      this.noFinalTimeout = setTimeout(() => {
-        if (!this.isFinalReceived && !this.endTriggered) {
-          console.log('[TTS Stream] *** Completing without isFinal (2s timeout) ***');
-          this.triggerEnd();
-        }
-      }, 2000);
-    }
-  }
-  
-  // Helper to trigger end callback
-  triggerEnd() {
-    if (this.endTriggered) return; // Prevent double trigger
-    this.endTriggered = true;
-    
-    console.log('[TTS Stream] *** triggerEnd called ***');
-    this.isPlaying = false;
-    
-    // Clear any pending timeouts
-    if (this.endTimeout) {
-      clearTimeout(this.endTimeout);
-      this.endTimeout = null;
-    }
-    if (this.flushTimeout) {
-      clearTimeout(this.flushTimeout);
-      this.flushTimeout = null;
-    }
-    if (this.noFinalTimeout) {
-      clearTimeout(this.noFinalTimeout);
-      this.noFinalTimeout = null;
-    }
-    
-    // Disconnect WebSocket
-    this.disconnect();
-    
-    if (this.onEnd) {
-      this.onEnd();
     }
   }
   
@@ -408,7 +340,7 @@ class TTSStream {
 
 class StreamingTTSHelper {
   constructor() {
-    this.ttsStream = null;
+    this.ttsStream = new TTSStream();
     this.buffer = '';
     // Sentence endings including Russian
     this.sentenceEnders = /[.!?。！？\n]/;
@@ -416,9 +348,6 @@ class StreamingTTSHelper {
     this.minChunkLength = 80;
     this.isActive = false;
     this.endCallback = null;
-    this.startCallback = null;
-    this.errorCallback = null;
-    this.fallbackTimeout = null;
   }
   
   // Start streaming session
@@ -432,32 +361,6 @@ class StreamingTTSHelper {
     }
     
     try {
-      // Create fresh TTSStream for each session
-      this.ttsStream = new TTSStream();
-      
-      // Set up callbacks BEFORE connecting
-      this.ttsStream.onStart = () => {
-        console.log('[Streaming TTS] Audio started');
-        if (this.startCallback) this.startCallback();
-      };
-      
-      this.ttsStream.onEnd = () => {
-        console.log('[Streaming TTS] *** TTSStream.onEnd fired ***');
-        this.cleanup();
-        if (this.endCallback) {
-          console.log('[Streaming TTS] Calling endCallback');
-          this.endCallback();
-        }
-      };
-      
-      this.ttsStream.onError = (err) => {
-        console.error('[Streaming TTS] Error:', err);
-        this.cleanup();
-        if (this.errorCallback) this.errorCallback(err);
-        // On error, also call endCallback to unlock voice mode
-        if (this.endCallback) this.endCallback();
-      };
-      
       this.ttsStream.init(apiKey, voiceId);
       await this.ttsStream.connect();
       this.isActive = true;
@@ -470,18 +373,9 @@ class StreamingTTSHelper {
     }
   }
   
-  // Cleanup helper
-  cleanup() {
-    if (this.fallbackTimeout) {
-      clearTimeout(this.fallbackTimeout);
-      this.fallbackTimeout = null;
-    }
-    this.isActive = false;
-  }
-  
   // Feed text chunk from ASKI streaming
   feedText(text) {
-    if (!this.isActive || !this.ttsStream) return;
+    if (!this.isActive) return;
     
     this.buffer += text;
     
@@ -495,75 +389,55 @@ class StreamingTTSHelper {
     // This ensures better audio quality and natural speech
     if (isSentenceEnd && isLongEnough) {
       console.log('[Streaming TTS] Sending buffer:', this.buffer.length, 'chars');
-      if (this.ttsStream) {
-        this.ttsStream.sendText(this.buffer);
-      }
+      this.ttsStream.sendText(this.buffer);
       this.buffer = '';
     }
   }
   
   // Finish streaming - send remaining buffer
   finish() {
-    if (!this.isActive) {
-      console.log('[Streaming TTS] finish() called but not active');
-      return;
-    }
+    if (!this.isActive) return;
     
     console.log('[Streaming TTS] Finishing, remaining buffer:', this.buffer.length, 'chars');
     
     // Send any remaining text
-    if (this.buffer.trim() && this.ttsStream) {
+    if (this.buffer.trim()) {
       this.ttsStream.sendText(this.buffer);
       this.buffer = '';
     }
     
     // Signal end of input
-    if (this.ttsStream) {
-      this.ttsStream.flush();
-    }
+    this.ttsStream.flush();
+    this.isActive = false;
     
     console.log('[Streaming TTS] Session finished, waiting for audio to complete');
-    
-    // FIX v1.2: Fallback timeout - if onEnd doesn't fire in 30s, force it
-    this.fallbackTimeout = setTimeout(() => {
-      console.log('[Streaming TTS] *** Fallback timeout triggered - forcing onEnd ***');
-      this.cleanup();
-      if (this.ttsStream) {
-        this.ttsStream.disconnect();
-      }
-      if (this.endCallback) {
-        this.endCallback();
-      }
-    }, 30000);
   }
   
   // Cancel streaming
   cancel() {
-    this.cleanup();
-    if (this.ttsStream) {
-      this.ttsStream.stop();
-    }
+    this.ttsStream.stop();
+    this.isActive = false;
     this.buffer = '';
     console.log('[Streaming TTS] Session cancelled');
   }
   
-  // Alias for cancel - used by stopTTS()
-  stop() {
-    this.cancel();
-  }
-  
-  // Set callbacks - these are stored and applied when start() is called
+  // Set callbacks
   onStart(callback) {
-    this.startCallback = callback;
+    this.ttsStream.onStart = callback;
   }
   
   onEnd(callback) {
-    console.log('[Streaming TTS] onEnd callback registered');
     this.endCallback = callback;
+    this.ttsStream.onEnd = () => {
+      console.log('[Streaming TTS] *** onEnd callback fired ***');
+      if (this.endCallback) {
+        this.endCallback();
+      }
+    };
   }
   
   onError(callback) {
-    this.errorCallback = callback;
+    this.ttsStream.onError = callback;
   }
 }
 
@@ -576,4 +450,4 @@ const streamingTTS = new StreamingTTSHelper();
 window.StreamingTTS = streamingTTS;
 window.TTSStream = TTSStream;
 
-console.log('[TTS Stream] Module v1.6 loaded - smart completion, faster timeouts');
+console.log('[TTS Stream] Module v1.2 loaded - flash model + auto_mode + jitter buffer');
