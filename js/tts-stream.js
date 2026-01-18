@@ -24,6 +24,11 @@ class TTSStream {
     this.audioEndedCount = 0;
     this.totalChunksReceived = 0;
     this.isFinalReceived = false;
+    
+    // FIX v1.2: Jitter buffer - collect chunks before playing
+    this.pendingBuffers = [];
+    this.jitterBufferSize = 2; // Wait for 2 chunks before starting
+    this.playbackStarted = false;
   }
   
   // Initialize with API key and voice
@@ -44,7 +49,11 @@ class TTSStream {
     this.nextStartTime = 0;
     this.isPlaying = false;
     
-    console.log('[TTS Stream] Initialized with voice:', this.voiceId);
+    // FIX v1.2: Reset jitter buffer
+    this.pendingBuffers = [];
+    this.playbackStarted = false;
+    
+    console.log('[TTS Stream v1.2] Initialized with voice:', this.voiceId);
   }
   
   // Connect to ElevenLabs WebSocket
@@ -59,8 +68,8 @@ class TTSStream {
     }
     
     return new Promise((resolve, reject) => {
-      // Use turbo model for better quality with good speed
-      const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${this.voiceId}/stream-input?model_id=eleven_turbo_v2_5`;
+      // FIX v1.2: Use flash model for lowest latency + auto_mode
+      const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${this.voiceId}/stream-input?model_id=eleven_flash_v2_5&auto_mode=true`;
       
       console.log('[TTS Stream] Connecting to:', wsUrl);
       
@@ -70,18 +79,12 @@ class TTSStream {
         console.log('[TTS Stream] WebSocket connected');
         
         // Send BOS (Beginning of Stream) message with settings
+        // FIX v1.2: Simplified settings, let auto_mode handle chunking
         const bosMessage = {
           text: ' ',
           voice_settings: {
-            stability: 0.6,
-            similarity_boost: 0.75,
-            speed: 0.85  // Slow down for clarity (0.7-1.0 range)
-          },
-          generation_config: {
-            // Require more text before generating - better quality
-            // Default is [120, 160, 250, 290]
-            // Increasing values = more text buffered = better quality but more latency
-            chunk_length_schedule: [150, 200, 280, 350]
+            stability: 0.5,
+            similarity_boost: 0.75
           },
           xi_api_key: this.apiKey
         };
@@ -106,6 +109,19 @@ class TTSStream {
           if (data.isFinal) {
             console.log('[TTS Stream] Received final marker');
             this.isFinalReceived = true;
+            
+            // FIX v1.2: Flush any pending buffers on final
+            if (this.pendingBuffers.length > 0 && !this.playbackStarted) {
+              this.playbackStarted = true;
+              console.log('[TTS Stream] Final received, flushing', this.pendingBuffers.length, 'pending chunks');
+              for (const buf of this.pendingBuffers) {
+                this.scheduleBuffer(buf);
+              }
+              this.pendingBuffers = [];
+              this.isPlaying = true;
+              if (this.onStart) this.onStart();
+            }
+            
             this.checkPlaybackComplete();
           }
           
@@ -203,14 +219,29 @@ class TTSStream {
       // Decode audio data (MP3)
       const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer.slice(0));
       
-      // Schedule playback
-      this.scheduleBuffer(audioBuffer);
-      
-      // Notify start on first chunk
-      if (!this.isPlaying) {
-        this.isPlaying = true;
-        console.log('[TTS Stream] Audio playback started');
-        if (this.onStart) this.onStart();
+      // FIX v1.2: Jitter buffer - collect chunks before playing
+      if (!this.playbackStarted) {
+        this.pendingBuffers.push(audioBuffer);
+        console.log('[TTS Stream] Buffering chunk:', this.pendingBuffers.length, '/', this.jitterBufferSize);
+        
+        // Start playback when we have enough chunks OR final received
+        if (this.pendingBuffers.length >= this.jitterBufferSize || this.isFinalReceived) {
+          this.playbackStarted = true;
+          console.log('[TTS Stream] Jitter buffer full, starting playback');
+          
+          // Schedule all pending buffers
+          for (const buf of this.pendingBuffers) {
+            this.scheduleBuffer(buf);
+          }
+          this.pendingBuffers = [];
+          
+          // Notify start
+          this.isPlaying = true;
+          if (this.onStart) this.onStart();
+        }
+      } else {
+        // Already playing - schedule immediately
+        this.scheduleBuffer(audioBuffer);
       }
       
     } catch (e) {
@@ -419,4 +450,4 @@ const streamingTTS = new StreamingTTSHelper();
 window.StreamingTTS = streamingTTS;
 window.TTSStream = TTSStream;
 
-console.log('[TTS Stream] Module v1.1 loaded');
+console.log('[TTS Stream] Module v1.2 loaded - flash model + auto_mode + jitter buffer');
