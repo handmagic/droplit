@@ -125,13 +125,15 @@ const MAX_UNDO_HISTORY = 10;
 let undoHistory = JSON.parse(localStorage.getItem('droplit_undo') || '[]');
 
 const UNDO_ICONS = {
-  delete: '🗑️',
-  createTasks: '📋',
-  replace: '🔄',
-  edit: '✏️',
-  merge: '🔗',
-  category: '🏷️',
-  create: '➕'
+  delete: 'DEL',
+  createTasks: 'TSK',
+  replace: 'RPL',
+  edit: 'EDT',
+  merge: 'MRG',
+  category: 'CAT',
+  create: 'NEW',
+  archive: 'ARC',
+  restore: 'RST'
 };
 
 const UNDO_LABELS = {
@@ -141,7 +143,9 @@ const UNDO_LABELS = {
   edit: 'Edited',
   merge: 'Merged drops',
   category: 'Changed category',
-  create: 'Created'
+  create: 'Created',
+  archive: 'Archived',
+  restore: 'Restored'
 };
 
 function saveUndo(action, data) {
@@ -167,14 +171,14 @@ function performUndo(index) {
     case 'delete':
       // Restore deleted drop
       ideas.push(entry.data);
-      toast('Drop restored! ✓', 'success');
+      toast('Drop restored', 'success');
       break;
       
     case 'createTasks':
       // Remove created tasks
       const taskIds = entry.data.taskIds;
       ideas = ideas.filter(i => !taskIds.includes(i.id));
-      toast(`${taskIds.length} tasks removed! ✓`, 'success');
+      toast(`${taskIds.length} tasks removed`, 'success');
       break;
       
     case 'replace':
@@ -182,7 +186,7 @@ function performUndo(index) {
       const dropR = ideas.find(i => i.id === entry.data.id);
       if (dropR) {
         dropR.text = entry.data.originalText;
-        toast('Text restored! ✓', 'success');
+        toast('Text restored', 'success');
       }
       break;
       
@@ -191,14 +195,14 @@ function performUndo(index) {
       const dropE = ideas.find(i => i.id === entry.data.id);
       if (dropE) {
         dropE.text = entry.data.previousText;
-        toast('Edit undone! ✓', 'success');
+        toast('Edit undone', 'success');
       }
       break;
       
     case 'merge':
       // Remove merged drop
       ideas = ideas.filter(i => i.id !== entry.data.mergedId);
-      toast('Merge undone! ✓', 'success');
+      toast('Merge undone', 'success');
       break;
       
     case 'category':
@@ -206,14 +210,34 @@ function performUndo(index) {
       const dropC = ideas.find(i => i.id === entry.data.id);
       if (dropC) {
         dropC.category = entry.data.previousCategory;
-        toast('Category restored! ✓', 'success');
+        toast('Category restored', 'success');
       }
       break;
       
     case 'create':
       // Remove created drop
       ideas = ideas.filter(i => i.id !== entry.data.id);
-      toast('Creation undone! ✓', 'success');
+      toast('Creation undone', 'success');
+      break;
+      
+    case 'archive':
+      // Restore from archive
+      const dropA = ideas.find(i => i.id === entry.data.id);
+      if (dropA) {
+        dropA.lifecycle_state = 'active';
+        delete dropA.archived_at;
+        toast('Restored from archive', 'success');
+      }
+      break;
+      
+    case 'restore':
+      // Re-archive
+      const dropRe = ideas.find(i => i.id === entry.data.id);
+      if (dropRe) {
+        dropRe.lifecycle_state = 'archived';
+        dropRe.archived_at = entry.data.archived_at || new Date().toISOString();
+        toast('Archived again', 'success');
+      }
       break;
   }
   
@@ -300,9 +324,11 @@ function undoLast() {
 function getUndoPreview(entry) {
   switch (entry.action) {
     case 'delete':
+    case 'archive':
+    case 'restore':
       return truncateText(entry.data.text || 'Drop', 25);
     case 'createTasks':
-      return `${entry.data.taskIds.length} tasks`;
+      return `${entry.data.taskIds?.length || 0} tasks`;
     case 'replace':
     case 'edit':
       return truncateText(entry.data.previousText || entry.data.originalText || 'text', 25);
