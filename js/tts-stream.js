@@ -285,16 +285,14 @@ class TTSStream {
       isFinal: this.isFinalReceived,
       scheduled: this.scheduledBuffers.length,
       ended: this.audioEndedCount,
-      total: this.totalChunksReceived,
-      playbackStarted: this.playbackStarted
+      total: this.totalChunksReceived
     });
     
-    // FIX v1.2: More robust completion check
-    const allChunksPlayed = this.audioEndedCount >= this.totalChunksReceived && this.totalChunksReceived > 0;
-    const noMoreBuffers = this.scheduledBuffers.length === 0;
-    const noPendingBuffers = this.pendingBuffers.length === 0;
-    
-    if (this.isFinalReceived && allChunksPlayed && noMoreBuffers && noPendingBuffers) {
+    if (this.isFinalReceived && 
+        this.scheduledBuffers.length === 0 && 
+        this.audioEndedCount >= this.totalChunksReceived &&
+        this.totalChunksReceived > 0) {
+      
       console.log('[TTS Stream] *** All audio playback completed ***');
       this.isPlaying = false;
       
@@ -304,16 +302,6 @@ class TTSStream {
       if (this.onEnd) {
         this.onEnd();
       }
-    }
-    // FIX v1.2: If isFinal received but no audio came, trigger onEnd after short delay
-    else if (this.isFinalReceived && this.totalChunksReceived === 0) {
-      console.log('[TTS Stream] isFinal received but no audio chunks - triggering onEnd');
-      setTimeout(() => {
-        if (this.onEnd) {
-          this.disconnect();
-          this.onEnd();
-        }
-      }, 500);
     }
   }
   
@@ -423,20 +411,10 @@ class StreamingTTSHelper {
     this.isActive = false;
     
     console.log('[Streaming TTS] Session finished, waiting for audio to complete');
-    
-    // FIX v1.2: Fallback timeout - if onEnd doesn't fire in 30s, force it
-    this.fallbackTimeout = setTimeout(() => {
-      console.log('[Streaming TTS] Fallback timeout - forcing onEnd');
-      if (this.endCallback) {
-        this.ttsStream.disconnect();
-        this.endCallback();
-      }
-    }, 30000);
   }
   
   // Cancel streaming
   cancel() {
-    if (this.fallbackTimeout) clearTimeout(this.fallbackTimeout);
     this.ttsStream.stop();
     this.isActive = false;
     this.buffer = '';
@@ -452,7 +430,6 @@ class StreamingTTSHelper {
     this.endCallback = callback;
     this.ttsStream.onEnd = () => {
       console.log('[Streaming TTS] *** onEnd callback fired ***');
-      if (this.fallbackTimeout) clearTimeout(this.fallbackTimeout);
       if (this.endCallback) {
         this.endCallback();
       }
