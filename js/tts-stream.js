@@ -3,7 +3,7 @@
 // ElevenLabs WebSocket Streaming
 // Real-time text-to-speech with minimal latency
 // v1.2: flash model, auto_mode, jitter buffer
-// v1.3: Fixed EOS - send empty string to trigger isFinal
+// v1.3: Fixed EOS + no onEnd on forced stop
 // ============================================
 
 class TTSStream {
@@ -331,13 +331,12 @@ class TTSStream {
     this.isFinalReceived = true; // Prevent onEnd from firing again
   }
   
-  // Full stop - disconnect and stop audio
+  // Full stop - disconnect and stop audio (forced by user)
   stop() {
     this.stopPlayback();
     this.disconnect();
-    if (this.onEnd) {
-      this.onEnd();
-    }
+    // Don't call onEnd - this is a forced stop, not natural completion
+    // The caller (stopTTS) handles state reset
   }
 }
 
