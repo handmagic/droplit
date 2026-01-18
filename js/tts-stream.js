@@ -547,6 +547,11 @@ class StreamingTTSHelper {
     console.log('[Streaming TTS] Session cancelled');
   }
   
+  // Alias for cancel - used by stopTTS()
+  stop() {
+    this.cancel();
+  }
+  
   // Set callbacks - these are stored and applied when start() is called
   onStart(callback) {
     this.startCallback = callback;
