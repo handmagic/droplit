@@ -277,6 +277,65 @@ function sendImageMessage() {
   sendAskAIMessage();
 }
 
+// Delete chat message by ID (v0.9.117)
+function deleteChatMessage(msgId) {
+  const msgEl = document.getElementById(msgId);
+  if (msgEl) {
+    msgEl.remove();
+    // Also remove from askAIMessages array
+    const idx = askAIMessages.findIndex(m => m.msgId === msgId);
+    if (idx !== -1) {
+      askAIMessages.splice(idx, 1);
+    }
+    toast('Message deleted', 'success');
+  }
+}
+
+// Create drop from image in chat (v0.9.117)
+function createDropFromImage(btn) {
+  const msgDiv = btn.closest('.ask-ai-message');
+  const img = msgDiv?.querySelector('.chat-message-image');
+  if (!img) {
+    toast('Image not found', 'error');
+    return;
+  }
+  
+  const imageUrl = img.src;
+  const text = msgDiv.querySelector('.ask-ai-bubble')?.textContent || 'Image';
+  
+  // Create drop with image
+  const now = new Date();
+  const newIdea = {
+    id: Date.now(),
+    text: text,
+    type: 'image',
+    image: imageUrl,
+    category: 'inbox',
+    date: now.toLocaleDateString('ru-RU'),
+    time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: now.toISOString(),
+    encrypted: window.DROPLIT_PRIVACY_ENABLED || false
+  };
+  
+  if (typeof ideas !== 'undefined') {
+    ideas.unshift(newIdea);
+    if (typeof save === 'function') save(newIdea);
+    if (typeof render === 'function') render();
+    if (typeof counts === 'function') counts();
+  }
+  
+  // Update button state
+  btn.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+    Saved
+  `;
+  btn.style.borderColor = '#10B981';
+  btn.style.color = '#10B981';
+  btn.onclick = null;
+  
+  toast('Saved to drops', 'success');
+}
+
 // Open "Killer Features" modal (placeholder)
 function openKillerFeatures() {
   toast('Killer Features: OCR, генерация...', 'info');
@@ -2655,8 +2714,10 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   // Check localStorage directly for reliability
   const autoDropEnabled = localStorage.getItem('droplit_autodrop') === 'true';
   
+  const msgId = 'msg-' + Date.now(); // Unique ID for message
   const msgDiv = document.createElement('div');
   msgDiv.className = `ask-ai-message ${isUser ? 'user' : 'ai'}`;
+  msgDiv.id = msgId;
   
   // Determine button state based on AutoDrop
   const createDropBtn = autoDropEnabled 
@@ -2669,8 +2730,23 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
         Create Drop
       </button>`;
   
-  // Image preview HTML (v0.9.117)
-  const imageHtml = imageUrl ? `<img class="chat-message-image" src="${imageUrl}" alt="Attached image">` : '';
+  // Image HTML with action buttons (v0.9.117)
+  let imageHtml = '';
+  if (imageUrl) {
+    imageHtml = `
+      <img class="chat-message-image" src="${imageUrl}" alt="Attached image">
+      <div class="ask-ai-actions" style="margin-bottom: 8px;">
+        <button class="ask-ai-action-btn" style="border-color: #EF4444; color: #EF4444;" onclick="deleteChatMessage('${msgId}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          Delete
+        </button>
+        <button class="ask-ai-action-btn" onclick="createDropFromImage(this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Save Drop
+        </button>
+      </div>
+    `;
+  }
   
   if (isUser) {
     msgDiv.innerHTML = `
@@ -2715,7 +2791,7 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   messagesDiv.appendChild(msgDiv);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
   
-  askAIMessages.push({ text, isUser, time, hasImage: !!imageUrl });
+  askAIMessages.push({ text, isUser, time, hasImage: !!imageUrl, msgId });
   
   // AutoDrop: automatically save message as drop
   if (autoDropEnabled) {
