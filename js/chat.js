@@ -301,13 +301,13 @@ function createDropFromImage(btn) {
   }
   
   const imageUrl = img.src;
-  const text = msgDiv.querySelector('.ask-ai-bubble')?.textContent || 'Image';
   
-  // Create drop with image
+  // Create image drop (like photo capture creates)
   const now = new Date();
   const newIdea = {
     id: Date.now(),
-    text: text,
+    text: 'Image from chat',
+    content: 'Image from chat',
     type: 'image',
     image: imageUrl,
     category: 'inbox',
@@ -316,6 +316,8 @@ function createDropFromImage(btn) {
     timestamp: now.toISOString(),
     encrypted: window.DROPLIT_PRIVACY_ENABLED || false
   };
+  
+  console.log('[Image Drop] Creating with image length:', imageUrl.length);
   
   if (typeof ideas !== 'undefined') {
     ideas.unshift(newIdea);
@@ -333,7 +335,7 @@ function createDropFromImage(btn) {
   btn.style.color = '#10B981';
   btn.onclick = null;
   
-  toast('Saved to drops', 'success');
+  toast('Image saved to drops', 'success');
 }
 
 // Open "Killer Features" modal (placeholder)
@@ -2742,19 +2744,24 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
         </button>
         <button class="ask-ai-action-btn" onclick="createDropFromImage(this)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          Save Drop
+          Create Drop
         </button>
       </div>
     `;
   }
   
   if (isUser) {
+    // If image present, don't show Create Drop in text actions (already under image)
+    const textActions = imageUrl 
+      ? `<button class="ask-ai-action-btn" onclick="copyAIResponse(this)">Copy</button>`
+      : `${createDropBtn}
+         <button class="ask-ai-action-btn" onclick="copyAIResponse(this)">Copy</button>`;
+    
     msgDiv.innerHTML = `
       ${imageHtml}
       <div class="ask-ai-bubble">${escapeHtml(text)}</div>
       <div class="ask-ai-actions">
-        ${createDropBtn}
-        <button class="ask-ai-action-btn" onclick="copyAIResponse(this)">Copy</button>
+        ${textActions}
       </div>
       <div class="ask-ai-time">${time}</div>
     `;
