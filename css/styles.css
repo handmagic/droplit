@@ -421,17 +421,17 @@ body.font-large .card-header-content { height: 52px; }
 .empty-text { font-size: 0.85rem; color: var(--color-text-muted); }
 
 /* FAB - Record button */
-  .fab-record { width: 56px; height: 56px; border: none; background: #06B6D4; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(6,182,212,0.4); transition: all 0.2s; }
+  .fab-record { width: 48px; height: 48px; border: none; background: #06B6D4; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(6,182,212,0.4); transition: all 0.2s; }
 .fab-record:active { transform: scale(0.95); }
 .fab-record.recording { background: var(--color-recording); animation: pulse 1.5s ease infinite; box-shadow: 0 4px 14px rgba(239,68,68,0.4); }
-.fab-record svg { width: 24px; height: 24px; color: white; }
+.fab-record svg { width: 22px; height: 22px; color: white; }
 .select-mode .fab-record, .editing-mode .fab-record { display: none; }
 @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.4)} 50%{box-shadow:0 0 0 12px rgba(239,68,68,0)} }
 
 /* FAB - Camera button */
-.fab-camera { width: 56px; height: 56px; border: none; background: #FF6B4A; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(255,107,74,0.4); transition: all 0.2s; flex-shrink: 0; }
+.fab-camera { width: 48px; height: 48px; border: none; background: #FF6B4A; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(255,107,74,0.4); transition: all 0.2s; flex-shrink: 0; }
 .fab-camera:active { transform: scale(0.95); }
-.fab-camera svg { width: 24px; height: 24px; color: white; }
+.fab-camera svg { width: 22px; height: 22px; color: white; }
 .select-mode .fab-camera, .editing-mode .fab-camera { display: none !important; }
 .camera-input { display: none; }
 
@@ -451,7 +451,7 @@ body.font-large .card-header-content { height: 52px; }
 @keyframes sparkle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.15); } }
 .select-mode .fab-askai, .editing-mode .fab-askai { display: none !important; }
 	/* FAB Container - bottom bar */
-.fab-container { position: fixed; bottom: 16px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 50; pointer-events: none; padding-bottom: env(safe-area-inset-bottom); }
+.fab-container { position: fixed; bottom: 10px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 50; pointer-events: none; padding-bottom: env(safe-area-inset-bottom); }
 .fab-container > * { pointer-events: auto; }
 .fab-pill { height: 48px; min-width: 110px; padding: 0 16px; border: none; background: #FF6B4A; border-radius: var(--radius-full); cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: var(--font-main); font-size: 0.8rem; font-weight: 700; color: white; letter-spacing: 0.5px; text-transform: uppercase; box-shadow: 0 4px 16px rgba(0,0,0,0.15); transition: all 0.2s; }
 .fab-pill:active { transform: scale(0.95); }
@@ -543,7 +543,7 @@ body.font-large .card-header-content { height: 52px; }
 .ask-ai-prompts { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; justify-content: center; }
 .ask-ai-prompt { padding: 10px 16px; background: var(--color-bg-card); border: 2px solid var(--color-border); border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; color: var(--color-text-soft); cursor: pointer; transition: all 0.15s; }
 .ask-ai-prompt:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.ask-ai-input-area { padding: 12px 16px; padding-bottom: calc(70px + env(safe-area-inset-bottom)); background: var(--color-bg-card); border-top: 1px solid var(--color-border); flex-shrink: 0; }
+.ask-ai-input-area { padding: 12px 16px; padding-bottom: calc(68px + env(safe-area-inset-bottom)); background: var(--color-bg-card); border-top: 1px solid var(--color-border); flex-shrink: 0; }
 .ask-ai-input-row { display: flex; align-items: flex-end; gap: 10px; }
 .ask-ai-input { flex: 1; padding: 12px 16px; border: 2px solid var(--color-border); border-radius: 16px; font-family: var(--font-main); font-size: 1rem; background: var(--color-bg); color: var(--color-text); outline: none; transition: border-color 0.15s; resize: none; min-height: 44px; max-height: 120px; line-height: 1.4; user-select: text; -webkit-user-select: text; -webkit-touch-callout: default; }
 .ask-ai-input:focus { border-color: var(--color-primary); }
@@ -572,9 +572,9 @@ body.font-large .card-header-content { height: 52px; }
 .ask-ai-voice-large svg { flex-shrink: 0; }
 	
 	/* Chat Control Buttons - bottom panel */
-.ask-ai-controls-bottom { display: none; position: fixed; bottom: 16px; left: 16px; right: 16px; gap: 12px; padding-bottom: env(safe-area-inset-bottom); z-index: 1001; }
+.ask-ai-controls-bottom { display: none; position: fixed; bottom: 10px; left: 16px; right: 16px; gap: 12px; padding-bottom: env(safe-area-inset-bottom); z-index: 1001; }
 .ask-ai-panel.show .ask-ai-controls-bottom { display: flex; }
-.ask-ai-control-left, .ask-ai-control-right { flex: 1; height: 52px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+.ask-ai-control-left, .ask-ai-control-right { flex: 1; height: 48px; border: none; border-radius: var(--radius-full); font-family: var(--font-main); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
 .ask-ai-control-left { background: #FF6B4A; color: white; box-shadow: 0 4px 20px rgba(255,107,74,0.4); }
 .ask-ai-control-left:active { opacity: 0.7; transform: scale(0.97); }
 .ask-ai-control-left.stop { background: #EF4444; box-shadow: 0 4px 20px rgba(239,68,68,0.4); }
