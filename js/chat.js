@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT CHAT v1.5 - ElevenLabs voices update + visibility handlers
+// DROPLIT CHAT v1.6 - Lazy streaming TTS init (fixes tools blocking)
 // ASKI Chat, Voice Mode, Streaming
 // ============================================
 
@@ -2047,21 +2047,25 @@ async function handleStreamingResponse(response) {
   let buffer = '';
   let createDropData = null;
   
-  // Start WebSocket streaming TTS if enabled
-  // FIX v4.19: Enable streaming TTS for ElevenLabs
+  // FIX v1.5: Delayed streaming TTS init - start ONLY when first text arrives
+  // This prevents blocking when tools (send_email, create_drop) are processing
   const useStreamingTTS = isAutoSpeakEnabled() && 
                           localStorage.getItem('tts_provider') === 'elevenlabs' &&
                           localStorage.getItem('elevenlabs_tts_key') &&
                           window.StreamingTTS;
   let streamingTTSActive = false;
+  let streamingTTSInitialized = false;
   
-  if (useStreamingTTS) {
+  // Function to lazily initialize streaming TTS on first text
+  async function initStreamingTTSIfNeeded() {
+    if (!useStreamingTTS || streamingTTSInitialized) return;
+    streamingTTSInitialized = true;
+    
     try {
-      console.log('[Chat] Starting Streaming TTS for ElevenLabs...');
+      console.log('[Chat] Starting Streaming TTS for ElevenLabs (lazy init)...');
       streamingTTSActive = await window.StreamingTTS.start();
       console.log('[Chat] Streaming TTS started:', streamingTTSActive);
       if (streamingTTSActive) {
-        // Set global flag so STOP button works
         streamingTTSIsActive = true;
         updateChatControlLeft('stop');
       }
@@ -2092,6 +2096,11 @@ async function handleStreamingResponse(response) {
               fullText += parsed.content;
               textSpan.textContent = fullText;
               messagesDiv.scrollTop = messagesDiv.scrollHeight;
+              
+              // FIX v1.5: Initialize streaming TTS on first text (lazy init)
+              if (useStreamingTTS && !streamingTTSInitialized) {
+                await initStreamingTTSIfNeeded();
+              }
               
               // Feed to streaming TTS
               if (streamingTTSActive) {
@@ -2396,6 +2405,11 @@ async function handleStreamingResponse(response) {
               fullText += parsed.delta.text;
               textSpan.textContent = fullText;
               messagesDiv.scrollTop = messagesDiv.scrollHeight;
+              
+              // FIX v1.5: Initialize streaming TTS on first text (lazy init)
+              if (useStreamingTTS && !streamingTTSInitialized) {
+                await initStreamingTTSIfNeeded();
+              }
               
               // Feed to streaming TTS
               if (streamingTTSActive) {
