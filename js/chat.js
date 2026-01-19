@@ -135,6 +135,28 @@ function closeAskAI() {
   releaseWakeLock();
 }
 
+// ============================================
+// STOP ALL AUDIO ON PAGE HIDE / SCREEN LOCK
+// ============================================
+
+// Handle visibility change - stop TTS when screen locked or app minimized
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    console.log('[Chat] Page hidden - stopping all audio');
+    askiStopSpeaking();
+    stopTTS();
+    streamingTTSIsActive = false;
+  }
+});
+
+// Also handle pagehide for iOS Safari
+window.addEventListener('pagehide', function() {
+  console.log('[Chat] Page hide - stopping all audio');
+  askiStopSpeaking();
+  stopTTS();
+  streamingTTSIsActive = false;
+});
+
 // Update UI based on Voice Mode setting
 function updateVoiceModeUI() {
   const panel = document.getElementById('askAIPanel');
