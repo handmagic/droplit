@@ -372,6 +372,38 @@ function closeChatImageViewer() {
   }
 }
 
+// AutoDrop: auto-save image as photo drop (v0.9.117)
+function autoSaveImageAsDrop(imageUrl) {
+  if (!imageUrl) return null;
+  
+  const now = new Date();
+  const newIdea = {
+    id: Date.now(),
+    text: '',
+    notes: '',
+    image: imageUrl,
+    category: 'photo',
+    isMedia: true,
+    timestamp: now.toISOString(),
+    date: now.toLocaleDateString('ru-RU'),
+    time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+    source: 'autodrop',
+    sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null,
+    encrypted: window.DROPLIT_PRIVACY_ENABLED || false
+  };
+  
+  console.log('[AutoDrop] Saving image as photo drop');
+  
+  if (typeof ideas !== 'undefined') {
+    ideas.push(newIdea);
+    if (typeof save === 'function') save();
+    if (typeof counts === 'function') counts();
+    if (typeof playDropSound === 'function') playDropSound();
+  }
+  
+  return newIdea;
+}
+
 // Open "Killer Features" modal (placeholder)
 function openKillerFeatures() {
   toast('Killer Features: OCR, генерация...', 'info');
@@ -2769,6 +2801,17 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   // Image HTML with action buttons (v0.9.117)
   let imageHtml = '';
   if (imageUrl) {
+    // Check if autodrop should auto-save image
+    const imageCreateDropBtn = autoDropEnabled
+      ? `<button class="ask-ai-action-btn created autodrop-saved">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Saved
+        </button>`
+      : `<button class="ask-ai-action-btn" onclick="createDropFromImage(this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Create Drop
+        </button>`;
+    
     imageHtml = `
       <img class="chat-message-image" src="${imageUrl}" alt="Attached image" onclick="openChatImageViewer(this.src)">
       <div class="ask-ai-actions" style="margin-bottom: 8px;">
@@ -2776,12 +2819,14 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
           Delete
         </button>
-        <button class="ask-ai-action-btn" onclick="createDropFromImage(this)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          Create Drop
-        </button>
+        ${imageCreateDropBtn}
       </div>
     `;
+    
+    // AutoDrop: auto-save image as photo drop
+    if (autoDropEnabled && isUser) {
+      autoSaveImageAsDrop(imageUrl);
+    }
   }
   
   if (isUser) {
