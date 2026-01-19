@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT CHAT v1.8 - Unified controls (4 buttons)
+// DROPLIT CHAT v1.9 - Unified controls + Image attachment
 // ASKI Chat, Voice Mode, Streaming
 // ============================================
 
@@ -158,12 +158,105 @@ function clearAskAIInput() {
 }
 
 // Open "Add to Chat" modal (placeholder)
+// ============================================
+// CHAT IMAGE ATTACHMENT (v0.9.117)
+// ============================================
+
+// Store attached image data
+let chatAttachedImage = null;
+
+// Open camera/gallery to add image
 function openAddToChat() {
-  toast('Add to chat: фото, файлы...', 'info');
-  // TODO: Implement modal with options:
-  // - Take photo
-  // - From gallery
-  // - File
+  const input = document.getElementById('chatImageInput');
+  if (input) {
+    input.click();
+  }
+}
+
+// Handle image selection
+function handleChatImageSelect(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  
+  // Check file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    toast('Image too large. Max 5MB', 'error');
+    return;
+  }
+  
+  // Check file type
+  if (!file.type.startsWith('image/')) {
+    toast('Please select an image', 'error');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result;
+    chatAttachedImage = {
+      data: base64,
+      type: file.type,
+      name: file.name
+    };
+    
+    // Show preview
+    const preview = document.getElementById('chatImagePreview');
+    const img = document.getElementById('chatImagePreviewImg');
+    if (preview && img) {
+      img.src = base64;
+      preview.style.display = 'flex';
+    }
+    
+    // Update (+) button to show attachment indicator
+    const addBtn = document.getElementById('askAIControlAdd');
+    if (addBtn) {
+      addBtn.classList.add('has-attachment');
+    }
+    
+    toast('Image attached', 'success');
+  };
+  
+  reader.onerror = () => {
+    toast('Failed to read image', 'error');
+  };
+  
+  reader.readAsDataURL(file);
+  
+  // Reset input for same file selection
+  event.target.value = '';
+}
+
+// Remove attached image
+function removeChatImage() {
+  chatAttachedImage = null;
+  
+  const preview = document.getElementById('chatImagePreview');
+  if (preview) {
+    preview.style.display = 'none';
+  }
+  
+  const addBtn = document.getElementById('askAIControlAdd');
+  if (addBtn) {
+    addBtn.classList.remove('has-attachment');
+  }
+}
+
+// Get attached image for sending (and clear it)
+function getAndClearChatImage() {
+  const image = chatAttachedImage;
+  chatAttachedImage = null;
+  
+  const preview = document.getElementById('chatImagePreview');
+  if (preview) {
+    preview.style.display = 'none';
+  }
+  
+  const addBtn = document.getElementById('askAIControlAdd');
+  if (addBtn) {
+    addBtn.classList.remove('has-attachment');
+  }
+  
+  return image;
 }
 
 // Open "Killer Features" modal (placeholder)
@@ -2534,7 +2627,7 @@ function toolStatusText(toolName) {
   return names[toolName] || 'Processing...';
 }
 
-function addAskAIMessage(text, isUser = true) {
+function addAskAIMessage(text, isUser = true, imageUrl = null) {
   const messagesDiv = document.getElementById('askAIMessages');
   const emptyState = document.getElementById('askAIEmpty');
   
@@ -2558,8 +2651,12 @@ function addAskAIMessage(text, isUser = true) {
         Create Drop
       </button>`;
   
+  // Image preview HTML (v0.9.117)
+  const imageHtml = imageUrl ? `<img class="chat-message-image" src="${imageUrl}" alt="Attached image">` : '';
+  
   if (isUser) {
     msgDiv.innerHTML = `
+      ${imageHtml}
       <div class="ask-ai-bubble">${escapeHtml(text)}</div>
       <div class="ask-ai-actions">
         ${createDropBtn}
@@ -2569,6 +2666,7 @@ function addAskAIMessage(text, isUser = true) {
     `;
   } else {
     msgDiv.innerHTML = `
+      ${imageHtml}
       <div class="ask-ai-bubble">${renderChatMarkdown(text)}</div>
       <div class="ask-ai-actions">
         <button class="ask-ai-action-btn speak-btn" onclick="toggleAskiSpeak(this)" title="Speak">
@@ -2599,7 +2697,7 @@ function addAskAIMessage(text, isUser = true) {
   messagesDiv.appendChild(msgDiv);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
   
-  askAIMessages.push({ text, isUser, time });
+  askAIMessages.push({ text, isUser, time, hasImage: !!imageUrl });
   
   // AutoDrop: automatically save message as drop
   if (autoDropEnabled) {
@@ -2633,8 +2731,13 @@ async function sendAskAIMessage() {
   const input = document.getElementById('askAIInput');
   const text = input.value.trim();
   console.log('Text:', text);
-  if (!text) {
-    console.log('No text, returning');
+  
+  // Get attached image (v0.9.117)
+  const attachedImage = getAndClearChatImage();
+  
+  // Need either text or image
+  if (!text && !attachedImage) {
+    console.log('No text and no image, returning');
     return;
   }
   
@@ -2647,7 +2750,9 @@ async function sendAskAIMessage() {
   // Save for retry
   lastUserMessage = text;
   
-  addAskAIMessage(text, true);
+  // Add user message with image preview if attached (v0.9.117)
+  const messageText = text || 'Что на этом изображении?';
+  addAskAIMessage(messageText, true, attachedImage?.data);
   input.value = '';
   input.style.height = 'auto'; // Reset textarea height
   updateAskAICharCount();
@@ -2748,7 +2853,8 @@ async function sendAskAIMessage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'chat',
-        text: textForAI,  // Masked text for AI (v0.9.103)
+        text: textForAI || 'Что на этом изображении?',  // Default question for image-only (v0.9.117)
+        image: attachedImage?.data || null, // v0.9.117: Attached image base64
         history: askAIMessages.slice(-10),
         syntriseContext: syntriseContext, // Legacy
         dropContext: contextObject, // v2: Structured context for server
