@@ -1,7 +1,8 @@
 // ============================================
-// DROPLIT TTS v1.1
+// DROPLIT TTS v1.2
 // Text-to-Speech and Sound functions
 // v1.1: Added StreamingTTS stop support
+// v1.2: Speak button states (Speak/Wait/Stop)
 // ============================================
 
 // ============================================
@@ -53,11 +54,32 @@ let isTTSPlaying = false;
 let currentTTSAudio = null;
 let activeSpeakBtn = null;
 
+// Update speak button state
+function updateSpeakButton(btn, state) {
+  if (!btn) return;
+  
+  btn.classList.remove('waiting', 'speaking');
+  
+  switch(state) {
+    case 'wait':
+      btn.textContent = 'Wait';
+      btn.classList.add('waiting');
+      break;
+    case 'stop':
+      btn.textContent = 'Stop';
+      btn.classList.add('speaking');
+      break;
+    default: // 'speak'
+      btn.textContent = 'Speak';
+      break;
+  }
+}
+
 function speakAskAIMessage(btn) {
-  // If this button is already playing - stop it
+  // If this button is already playing or waiting - stop it
   if (btn === activeSpeakBtn) {
     stopTTS();
-    btn.classList.remove('speaking');
+    updateSpeakButton(btn, 'speak');
     activeSpeakBtn = null;
     return;
   }
@@ -65,7 +87,7 @@ function speakAskAIMessage(btn) {
   // Stop any other playback
   stopTTS();
   if (activeSpeakBtn) {
-    activeSpeakBtn.classList.remove('speaking');
+    updateSpeakButton(activeSpeakBtn, 'speak');
   }
   
   const msgDiv = btn.closest('.ask-ai-message');
@@ -75,17 +97,24 @@ function speakAskAIMessage(btn) {
   const text = bubble.textContent || bubble.innerText;
   if (!text) return;
   
-  // Mark button as active
-  btn.classList.add('speaking');
+  // Set to Wait state
+  updateSpeakButton(btn, 'wait');
   activeSpeakBtn = btn;
   
-  speakTextWithCallback(text, function() {
-    btn.classList.remove('speaking');
-    activeSpeakBtn = null;
-  });
+  speakTextWithCallback(text, 
+    // onEnd
+    function() {
+      updateSpeakButton(btn, 'speak');
+      activeSpeakBtn = null;
+    },
+    // onStart
+    function() {
+      updateSpeakButton(btn, 'stop');
+    }
+  );
 }
 
-function speakTextWithCallback(text, onEnd) {
+function speakTextWithCallback(text, onEnd, onStart) {
   if (!text) return;
   
   stopTTS();
@@ -93,14 +122,22 @@ function speakTextWithCallback(text, onEnd) {
   const provider = localStorage.getItem('tts_provider') || 'browser';
   const apiKey = localStorage.getItem('openai_tts_key');
   const voice = localStorage.getItem('aski_voice') || 'nova';
+  const elevenlabsKey = localStorage.getItem('elevenlabs_tts_key');
+  const elevenlabsVoice = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
   
   if (provider === 'openai' && apiKey && apiKey.startsWith('sk-')) {
-    speakWithOpenAICallback(text, apiKey, voice, onEnd);
+    speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart);
+  } else if (provider === 'elevenlabs' && elevenlabsKey) {
+    speakWithElevenLabsCallback(text, elevenlabsKey, elevenlabsVoice, onEnd, onStart);
   } else {
+    // Browser TTS - starts immediately, no loading delay
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ru-RU';
+      utterance.onstart = function() {
+        if (onStart) onStart();
+      };
       utterance.onend = function() {
         if (onEnd) onEnd();
         if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
@@ -110,7 +147,7 @@ function speakTextWithCallback(text, onEnd) {
   }
 }
 
-async function speakWithOpenAICallback(text, apiKey, voice, onEnd) {
+async function speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart) {
   try {
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
@@ -138,9 +175,65 @@ async function speakWithOpenAICallback(text, apiKey, voice, onEnd) {
       if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
     };
     
+    // Notify that audio is about to start
+    if (onStart) onStart();
     currentTTSAudio.play();
   } catch (e) {
     console.error('OpenAI TTS error:', e);
+    if (onEnd) onEnd();
+    if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+  }
+}
+
+async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart) {
+  try {
+    console.log('[ElevenLabs Callback] Starting TTS...');
+    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
+      },
+      body: JSON.stringify({
+        text: text,
+        model_id: 'eleven_flash_v2_5',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75
+        }
+      })
+    });
+    
+    if (!response.ok) throw new Error('ElevenLabs TTS error: ' + response.status);
+    
+    const blob = await response.blob();
+    console.log('[ElevenLabs Callback] Audio blob received:', blob.size, 'bytes');
+    const url = URL.createObjectURL(blob);
+    currentTTSAudio = new Audio(url);
+    
+    currentTTSAudio.onended = function() {
+      console.log('[ElevenLabs Callback] Audio ended');
+      URL.revokeObjectURL(url);
+      currentTTSAudio = null;
+      if (onEnd) onEnd();
+      if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+    };
+    
+    currentTTSAudio.onerror = function(e) {
+      console.error('[ElevenLabs Callback] Audio error:', e);
+      URL.revokeObjectURL(url);
+      currentTTSAudio = null;
+      if (onEnd) onEnd();
+    };
+    
+    // Notify that audio is about to start
+    if (onStart) onStart();
+    await currentTTSAudio.play();
+    console.log('[ElevenLabs Callback] Audio playing');
+    
+  } catch (e) {
+    console.error('ElevenLabs TTS error:', e);
     if (onEnd) onEnd();
     if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
   }
@@ -386,5 +479,7 @@ window.DropLitTTS = {
   stopTTS,
   stopAllTTS,
   speakWithOpenAI,
-  speakWithElevenLabs
+  speakWithElevenLabs,
+  speakWithElevenLabsCallback,
+  updateSpeakButton
 };
