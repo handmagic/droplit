@@ -580,6 +580,15 @@ body.font-large .card-header-content { height: 52px; }
 .chat-message-image:active { opacity: 0.9; }
 .ask-ai-message.user .chat-message-image { margin-left: auto; display: block; }
 
+/* Chat Image Viewer Modal (v0.9.117) */
+.chat-image-viewer-modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; }
+.chat-image-viewer-modal.show { display: flex; }
+.chat-image-viewer-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); }
+.chat-image-viewer-content { position: relative; max-width: 90%; max-height: 75vh; z-index: 1; }
+.chat-image-viewer-content img { max-width: 100%; max-height: 75vh; border-radius: 12px; object-fit: contain; }
+.chat-image-viewer-close { position: absolute; top: -44px; right: 0; width: 40px; height: 40px; border: none; background: rgba(255,255,255,0.2); color: white; border-radius: 50%; font-size: 1.6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.chat-image-viewer-close:active { background: rgba(255,255,255,0.3); }
+
 /* Voice Mode: Large mic button */
 .ask-ai-voice-large { display: none; width: 100%; padding: 18px 24px; border: 2px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg); color: var(--color-text); font-family: var(--font-main); font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s; align-items: center; justify-content: center; gap: 12px; }
 .ask-ai-voice-large:hover { border-color: #10B981; background: rgba(16, 185, 129, 0.05); }
