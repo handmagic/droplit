@@ -999,8 +999,11 @@
       <input type="file" id="chatImageInput" accept="image/*" capture="environment" style="display:none" onchange="handleChatImageSelect(event)">
       <!-- Image preview container -->
       <div class="chat-image-preview" id="chatImagePreview" style="display:none">
-        <img id="chatImagePreviewImg" src="" alt="Preview">
         <button class="chat-image-remove" onclick="removeChatImage()">×</button>
+        <img id="chatImagePreviewImg" src="" alt="Preview">
+        <button class="chat-image-send" onclick="sendImageMessage()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9 22 2Z"/></svg>
+        </button>
       </div>
     </div>
   </div>
