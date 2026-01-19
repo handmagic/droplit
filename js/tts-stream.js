@@ -1,9 +1,10 @@
 // ============================================
-// DROPLIT TTS STREAM v1.3
+// DROPLIT TTS STREAM v1.4
 // ElevenLabs WebSocket Streaming
 // Real-time text-to-speech with minimal latency
 // v1.2: flash model, auto_mode, jitter buffer
 // v1.3: Fixed EOS + no onEnd on forced stop
+// v1.4: Connection timeout (5s) to prevent blocking
 // ============================================
 
 class TTSStream {
@@ -69,6 +70,16 @@ class TTSStream {
     }
     
     return new Promise((resolve, reject) => {
+      // Timeout for connection (5 seconds)
+      const connectionTimeout = setTimeout(() => {
+        console.error('[TTS Stream] Connection timeout');
+        if (this.ws) {
+          this.ws.close();
+        }
+        this.isConnected = false;
+        reject(new Error('Connection timeout'));
+      }, 5000);
+      
       // FIX v1.2: Use flash model for lowest latency + auto_mode
       const wsUrl = `wss://api.elevenlabs.io/v1/text-to-speech/${this.voiceId}/stream-input?model_id=eleven_flash_v2_5&auto_mode=true`;
       
@@ -77,6 +88,7 @@ class TTSStream {
       this.ws = new WebSocket(wsUrl);
       
       this.ws.onopen = () => {
+        clearTimeout(connectionTimeout);
         console.log('[TTS Stream] WebSocket connected');
         
         // Send BOS (Beginning of Stream) message with settings
@@ -137,6 +149,7 @@ class TTSStream {
       };
       
       this.ws.onerror = (error) => {
+        clearTimeout(connectionTimeout);
         console.error('[TTS Stream] WebSocket error:', error);
         this.isConnected = false;
         if (this.onError) this.onError(error);
@@ -462,4 +475,4 @@ const streamingTTS = new StreamingTTSHelper();
 window.StreamingTTS = streamingTTS;
 window.TTSStream = TTSStream;
 
-console.log('[TTS Stream] Module v1.3 loaded - fixed EOS for isFinal');
+console.log('[TTS Stream] Module v1.4 loaded - connection timeout added');
