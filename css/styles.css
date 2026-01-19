@@ -575,7 +575,10 @@ body.font-large .card-header-content { height: 52px; }
 .chat-image-send:active { transform: scale(0.95); background: #059669; }
 
 /* Chat message image (v0.9.117) */
-.chat-message-image { max-width: 100%; max-height: 200px; border-radius: 12px; margin-bottom: 8px; object-fit: contain; }
+/* Chat message image (v0.9.117) - updated styling */
+.chat-message-image { max-width: 85%; max-height: 300px; border-radius: 16px; margin-bottom: 8px; object-fit: contain; cursor: pointer; border: 2px solid var(--color-border); }
+.chat-message-image:active { opacity: 0.9; }
+.ask-ai-message.user .chat-message-image { margin-left: auto; display: block; }
 
 /* Voice Mode: Large mic button */
 .ask-ai-voice-large { display: none; width: 100%; padding: 18px 24px; border: 2px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg); color: var(--color-text); font-family: var(--font-main); font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s; align-items: center; justify-content: center; gap: 12px; }
