@@ -35,7 +35,7 @@ class TTSStream {
   // Initialize with API key and voice
   init(apiKey, voiceId) {
     this.apiKey = apiKey;
-    this.voiceId = voiceId || 'gedzfqL7OGdPbwm0ynTP'; // Default: Nadia
+    this.voiceId = voiceId || 'EXAVITQu4vr4xnSDxMaL'; // Default: Bella
     
     // Create AudioContext
     if (!this.audioContext) {
@@ -360,7 +360,7 @@ class StreamingTTSHelper {
   // Start streaming session
   async start() {
     const apiKey = localStorage.getItem('elevenlabs_tts_key');
-    const voiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
+    const voiceId = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
     
     if (!apiKey) {
       console.error('[Streaming TTS] No API key');
