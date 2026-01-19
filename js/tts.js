@@ -62,7 +62,7 @@ function updateSpeakButton(btn, state) {
   
   switch(state) {
     case 'wait':
-      btn.textContent = 'Wait';
+      btn.textContent = 'Waiting...';
       btn.classList.add('waiting');
       break;
     case 'stop':
