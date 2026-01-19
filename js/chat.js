@@ -302,28 +302,29 @@ function createDropFromImage(btn) {
   
   const imageUrl = img.src;
   
-  // Create image drop (like photo capture creates)
+  // Create image drop (same structure as savePhoto in index.html)
   const now = new Date();
   const newIdea = {
     id: Date.now(),
-    text: 'Image from chat',
-    content: 'Image from chat',
-    type: 'image',
+    text: '',
+    notes: '',
     image: imageUrl,
-    category: 'inbox',
+    category: 'photo',
+    isMedia: true,
+    timestamp: now.toISOString(),
     date: now.toLocaleDateString('ru-RU'),
     time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-    timestamp: now.toISOString(),
     encrypted: window.DROPLIT_PRIVACY_ENABLED || false
   };
   
-  console.log('[Image Drop] Creating with image length:', imageUrl.length);
+  console.log('[Image Drop] Creating photo drop, image length:', imageUrl.length);
   
   if (typeof ideas !== 'undefined') {
-    ideas.unshift(newIdea);
-    if (typeof save === 'function') save(newIdea);
+    ideas.push(newIdea);
+    if (typeof save === 'function') save();
     if (typeof render === 'function') render();
     if (typeof counts === 'function') counts();
+    if (typeof playDropSound === 'function') playDropSound();
   }
   
   // Update button state
@@ -335,7 +336,7 @@ function createDropFromImage(btn) {
   btn.style.color = '#10B981';
   btn.onclick = null;
   
-  toast('Image saved to drops', 'success');
+  toast('Photo saved!', 'success');
 }
 
 // Open "Killer Features" modal (placeholder)
