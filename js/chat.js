@@ -277,6 +277,96 @@ function sendImageMessage() {
   sendAskAIMessage();
 }
 
+// Delete chat message by ID
+function deleteChatMessage(msgId) {
+  const msgEl = document.getElementById(msgId);
+  if (msgEl) {
+    msgEl.remove();
+    // Also remove from askAIMessages array
+    const idx = askAIMessages.findIndex(m => m.msgId === msgId);
+    if (idx !== -1) {
+      askAIMessages.splice(idx, 1);
+    }
+    toast('Message deleted', 'success');
+  }
+}
+
+// Open image viewer modal
+function openImageViewer(src) {
+  // Create modal if not exists
+  let modal = document.getElementById('chatImageViewerModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'chatImageViewerModal';
+    modal.className = 'chat-image-viewer-modal';
+    modal.innerHTML = `
+      <div class="chat-image-viewer-backdrop" onclick="closeImageViewer()"></div>
+      <div class="chat-image-viewer-content">
+        <img id="chatImageViewerImg" src="" alt="Image">
+        <button class="chat-image-viewer-close" onclick="closeImageViewer()">×</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  
+  // Set image and show
+  document.getElementById('chatImageViewerImg').src = src;
+  modal.classList.add('show');
+}
+
+// Close image viewer modal
+function closeImageViewer() {
+  const modal = document.getElementById('chatImageViewerModal');
+  if (modal) {
+    modal.classList.remove('show');
+  }
+}
+
+// Create drop from image in chat
+function createDropFromImage(btn, imageUrlPrefix) {
+  // Find the full image URL from the message
+  const msgDiv = btn.closest('.ask-ai-message');
+  const img = msgDiv?.querySelector('.chat-message-image');
+  if (!img) {
+    toast('Image not found', 'error');
+    return;
+  }
+  
+  const imageUrl = img.src;
+  const text = msgDiv.querySelector('.ask-ai-bubble')?.textContent || 'Image';
+  
+  // Create drop with image
+  const now = new Date();
+  const newIdea = {
+    id: Date.now(),
+    text: text,
+    type: 'image',
+    image: imageUrl,
+    category: 'inbox',
+    date: now.toLocaleDateString('ru-RU'),
+    time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: now.toISOString(),
+    encrypted: window.DROPLIT_PRIVACY_ENABLED || false
+  };
+  
+  if (typeof ideas !== 'undefined') {
+    ideas.unshift(newIdea);
+    if (typeof save === 'function') save(newIdea);
+    if (typeof render === 'function') render();
+    if (typeof counts === 'function') counts();
+  }
+  
+  // Update button state
+  btn.innerHTML = `
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+    Saved
+  `;
+  btn.classList.add('created');
+  btn.onclick = null;
+  
+  toast('Saved to drops', 'success');
+}
+
 // Open "Killer Features" modal (placeholder)
 function openKillerFeatures() {
   toast('Killer Features: OCR, генерация...', 'info');
@@ -2652,11 +2742,13 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   if (emptyState) emptyState.style.display = 'none';
   
   const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const msgId = 'msg-' + Date.now(); // Unique ID for message
   // Check localStorage directly for reliability
   const autoDropEnabled = localStorage.getItem('droplit_autodrop') === 'true';
   
   const msgDiv = document.createElement('div');
   msgDiv.className = `ask-ai-message ${isUser ? 'user' : 'ai'}`;
+  msgDiv.id = msgId;
   
   // Determine button state based on AutoDrop
   const createDropBtn = autoDropEnabled 
@@ -2669,8 +2761,26 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
         Create Drop
       </button>`;
   
-  // Image preview HTML (v0.9.117)
-  const imageHtml = imageUrl ? `<img class="chat-message-image" src="${imageUrl}" alt="Attached image">` : '';
+  // Image HTML with onclick and action buttons (v0.9.117)
+  let imageHtml = '';
+  if (imageUrl) {
+    const imageActionsHtml = `
+      <div class="chat-image-actions">
+        <button class="chat-image-action-btn delete" onclick="deleteChatMessage('${msgId}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          Delete
+        </button>
+        <button class="chat-image-action-btn" onclick="createDropFromImage(this, '${imageUrl.substring(0, 50)}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Save Drop
+        </button>
+      </div>
+    `;
+    imageHtml = `
+      <img class="chat-message-image" src="${imageUrl}" alt="Attached image" onclick="openImageViewer(this.src)">
+      ${imageActionsHtml}
+    `;
+  }
   
   if (isUser) {
     msgDiv.innerHTML = `
@@ -2715,7 +2825,8 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   messagesDiv.appendChild(msgDiv);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
   
-  askAIMessages.push({ text, isUser, time, hasImage: !!imageUrl });
+  // Store image URL in message for later use
+  askAIMessages.push({ text, isUser, time, hasImage: !!imageUrl, imageUrl: imageUrl || null, msgId });
   
   // AutoDrop: automatically save message as drop
   if (autoDropEnabled) {
