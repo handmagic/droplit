@@ -604,8 +604,8 @@ function initVoiceSettings() {
   
   // ElevenLabs настройки
   elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
-  elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Nadia';
-  elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
+  elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Bella';
+  elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
   
   // === UI: TTS PROVIDER SELECTOR ===
   // Сначала убираем active со всех кнопок
