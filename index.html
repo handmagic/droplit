@@ -995,6 +995,13 @@
         <span id="voiceLargeText">Tap to talk</span>
       </button>
       <div class="ask-ai-char-count" id="askAICharCount">0 / 2000</div>
+      <!-- Hidden input for photo/file selection -->
+      <input type="file" id="chatImageInput" accept="image/*" capture="environment" style="display:none" onchange="handleChatImageSelect(event)">
+      <!-- Image preview container -->
+      <div class="chat-image-preview" id="chatImagePreview" style="display:none">
+        <img id="chatImagePreviewImg" src="" alt="Preview">
+        <button class="chat-image-remove" onclick="removeChatImage()">×</button>
+      </div>
     </div>
   </div>
 
