@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT CHAT v1.6 - Lazy streaming TTS init (fixes tools blocking)
+// DROPLIT CHAT v1.7 - Disable streaming TTS when tools detected
 // ASKI Chat, Voice Mode, Streaming
 // ============================================
 
@@ -2055,6 +2055,7 @@ async function handleStreamingResponse(response) {
                           window.StreamingTTS;
   let streamingTTSActive = false;
   let streamingTTSInitialized = false;
+  let useStreamingTTSForThisResponse = useStreamingTTS; // Can be disabled if tools detected
   
   // Function to lazily initialize streaming TTS on first text
   async function initStreamingTTSIfNeeded() {
@@ -2098,7 +2099,7 @@ async function handleStreamingResponse(response) {
               messagesDiv.scrollTop = messagesDiv.scrollHeight;
               
               // FIX v1.5: Initialize streaming TTS on first text (lazy init)
-              if (useStreamingTTS && !streamingTTSInitialized) {
+              if (useStreamingTTSForThisResponse && !streamingTTSInitialized) {
                 await initStreamingTTSIfNeeded();
               }
               
@@ -2114,6 +2115,18 @@ async function handleStreamingResponse(response) {
                 indicator.textContent = toolStatusText(parsed.tool);
                 indicator.classList.add('tool-active');
               }
+              
+              // FIX v1.6: Disable streaming TTS when tools are used
+              // Tools can take long time, causing TTS WebSocket timeout
+              if (streamingTTSActive) {
+                console.log('[Chat] Tool detected, cancelling streaming TTS');
+                window.StreamingTTS.cancel();
+                streamingTTSActive = false;
+                streamingTTSIsActive = false;
+              }
+              // Prevent future streaming TTS init
+              streamingTTSInitialized = true;
+              useStreamingTTSForThisResponse = false;
             }
             
             // Tool completed
@@ -2407,7 +2420,7 @@ async function handleStreamingResponse(response) {
               messagesDiv.scrollTop = messagesDiv.scrollHeight;
               
               // FIX v1.5: Initialize streaming TTS on first text (lazy init)
-              if (useStreamingTTS && !streamingTTSInitialized) {
+              if (useStreamingTTSForThisResponse && !streamingTTSInitialized) {
                 await initStreamingTTSIfNeeded();
               }
               
