@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT CHAT v1.7 - Disable streaming TTS when tools detected
+// DROPLIT CHAT v1.8 - Unified controls (4 buttons)
 // ASKI Chat, Voice Mode, Streaming
 // ============================================
 
@@ -59,15 +59,19 @@ function openAskAI() {
   // Update AutoDrop indicator
   updateAutoDropIndicator();
   
-  // Show/hide bottom controls based on mode
+  // Show bottom controls in BOTH modes (v1.8 unified controls)
   const controlsBottom = document.getElementById('askAIControlsBottom');
   const voiceLarge = document.getElementById('askAIVoiceLarge');
+  const controlRightText = document.getElementById('askAIControlRightText');
+  
+  // Always show bottom controls
+  if (controlsBottom) controlsBottom.style.display = 'flex';
+  if (voiceLarge) voiceLarge.style.display = 'none';
   
   if (isVoiceModeEnabled()) {
-    // Voice mode - show new bottom controls
+    // Voice mode
 	panel.classList.add('voice-mode');
-    if (controlsBottom) controlsBottom.style.display = 'flex';
-    if (voiceLarge) voiceLarge.style.display = 'none';
+    if (controlRightText) controlRightText.textContent = 'TAP TO TALK';
     
     voiceModeLocked = false;
     voiceModeSleeping = true;
@@ -75,10 +79,10 @@ function openAskAI() {
     updateVoiceModeIndicator('sleeping');
     updateChatControlLeft('hide');
   } else {
-    // Text mode - hide voice controls
-    if (controlsBottom) controlsBottom.style.display = 'none';
-    if (voiceLarge) voiceLarge.style.display = 'none';
+    // Text mode - show WRITE button
 	panel.classList.remove('voice-mode');
+    if (controlRightText) controlRightText.textContent = 'WRITE';
+    updateChatControlLeft('hide');
   }
 }
 
@@ -138,6 +142,40 @@ function closeAskAI() {
 // ============================================
 // STOP ALL AUDIO ON PAGE HIDE / SCREEN LOCK
 // ============================================
+
+// ============================================
+// TEXT MODE CONTROLS (v0.9.116)
+// ============================================
+
+// Clear input field
+function clearAskAIInput() {
+  const input = document.getElementById('askAIInput');
+  if (input) {
+    input.value = '';
+    input.style.height = 'auto';
+    updateAskAICharCount();
+  }
+}
+
+// Open "Add to Chat" modal (placeholder)
+function openAddToChat() {
+  toast('Add to chat: фото, файлы...', 'info');
+  // TODO: Implement modal with options:
+  // - Take photo
+  // - From gallery
+  // - File
+}
+
+// Open "Killer Features" modal (placeholder)
+function openKillerFeatures() {
+  toast('Killer Features: OCR, генерация...', 'info');
+  // TODO: Implement modal with options:
+  // - OCR / Recognize document
+  // - Create image
+  // - Create chart
+  // - Create document
+  // - Switch Voice/Text mode
+}
 
 // Handle visibility change - stop TTS when screen locked or app minimized
 document.addEventListener('visibilitychange', function() {
@@ -2974,12 +3012,17 @@ function toggleAskAIVoice() {
     return;
   }
   
-  // === VOICE MODE DISABLED (manual mode) ===
-  if (btn.classList.contains('recording')) {
+  // === VOICE MODE DISABLED (text mode with WRITE button) ===
+  const controlRight = document.getElementById('askAIControlRight');
+  const controlRightText = document.getElementById('askAIControlRightText');
+  
+  if (btn && btn.classList.contains('recording')) {
     if (askAIVoiceRecognition) {
       askAIVoiceRecognition.stop();
     }
     btn.classList.remove('recording');
+    if (controlRight) controlRight.classList.remove('listening');
+    if (controlRightText) controlRightText.textContent = 'WRITE';
   } else {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       toast('Voice not supported in this browser');
@@ -2993,21 +3036,38 @@ function toggleAskAIVoice() {
     askAIVoiceRecognition.lang = navigator.language || 'en-US';
     
     askAIVoiceRecognition.onstart = () => {
-      btn.classList.add('recording');
+      if (btn) btn.classList.add('recording');
+      if (controlRight) controlRight.classList.add('listening');
+      if (controlRightText) controlRightText.textContent = 'LISTENING...';
     };
     
     askAIVoiceRecognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
-      document.getElementById('askAIInput').value = transcript;
+      const input = document.getElementById('askAIInput');
+      // Append at cursor position for multi-dictation support
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      const currentText = input.value;
+      const before = currentText.substring(0, start);
+      const after = currentText.substring(end);
+      const separator = before && !before.endsWith(' ') ? ' ' : '';
+      input.value = before + separator + transcript + after;
+      // Move cursor to end of inserted text
+      const newPos = start + separator.length + transcript.length;
+      input.setSelectionRange(newPos, newPos);
       updateAskAICharCount();
     };
     
     askAIVoiceRecognition.onend = () => {
-      btn.classList.remove('recording');
+      if (btn) btn.classList.remove('recording');
+      if (controlRight) controlRight.classList.remove('listening');
+      if (controlRightText) controlRightText.textContent = 'WRITE';
     };
     
     askAIVoiceRecognition.onerror = () => {
-      btn.classList.remove('recording');
+      if (btn) btn.classList.remove('recording');
+      if (controlRight) controlRight.classList.remove('listening');
+      if (controlRightText) controlRightText.textContent = 'WRITE';
       toast('Voice recognition error');
     };
     
