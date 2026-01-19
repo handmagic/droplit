@@ -965,8 +965,8 @@
     </div>
     <div class="ask-ai-input-area">
       <div class="ask-ai-input-row">
-        <button class="ask-ai-btn ask-ai-btn-voice" id="askAIVoiceBtn" onclick="toggleAskAIVoice()">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        <button class="ask-ai-btn ask-ai-btn-clear" id="askAIClearBtn" onclick="clearAskAIInput()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
         <textarea class="ask-ai-input" id="askAIInput" placeholder="Ask anything..." maxlength="2000" rows="2" oninput="updateAskAICharCount(); autoResizeTextarea(this);" onkeypress="if(event.key==='Enter' && !event.shiftKey && this.value.trim()) { event.preventDefault(); sendAskAIMessage(); }"></textarea>
         <button class="ask-ai-btn ask-ai-btn-send" id="askAISendBtn" onclick="console.log('Send clicked'); sendAskAIMessage()">
@@ -974,10 +974,20 @@
         </button>
       </div>
 	  <div class="ask-ai-controls-bottom" id="askAIControlsBottom">
+        <!-- Left circle: Add to chat -->
+        <button class="ask-ai-control-circle" id="askAIControlAdd" onclick="openAddToChat()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <!-- Left big: Hide/Stop -->
         <button class="ask-ai-control-left" id="askAIControlLeft" onclick="handleChatControlLeft()">HIDE</button>
+        <!-- Right big: Talk/Write -->
         <button class="ask-ai-control-right" id="askAIControlRight" onclick="toggleAskAIVoice()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
           <span id="askAIControlRightText">TAP TO TALK</span>
+        </button>
+        <!-- Right circle: Killer Features -->
+        <button class="ask-ai-control-circle features" id="askAIControlFeatures" onclick="openKillerFeatures()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
         </button>
       </div>
       <button class="ask-ai-voice-large" id="askAIVoiceLarge" onclick="toggleAskAIVoice()">
@@ -1392,7 +1402,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.116 • Syntrise Inc. © 2026</div>
+          <div class="menu-about-ver">v0.9.117 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1406,7 +1416,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.116 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.117 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -2052,7 +2062,7 @@ function cardTouchStart(id,e){
   touchStartX=touch.clientX;
   touchStartY=touch.clientY;
   
-  // Swipe init (v0.9.116)
+  // Swipe init (v0.9.117)
   // Block swipe: when archived shown, OR card is active (action buttons visible)
   const card = e.target.closest('.card');
   const isActive = card && card.classList.contains('active');
@@ -2094,7 +2104,7 @@ function cardTouchEnd(){
   clearTimeout(longPressTimer);
   longPressTimer=null;
   
-  // Swipe end (v0.9.116)
+  // Swipe end (v0.9.117)
   if(swipeCardEl){
     const transform = swipeCardEl.style.transform;
     const match = transform.match(/translateX\((-?[\d.]+)px\)/);
@@ -2116,7 +2126,7 @@ function cardTouchEnd(){
 }
 
 // ============================================
-// FAST ARCHIVE ANIMATION (v0.9.116)
+// FAST ARCHIVE ANIMATION (v0.9.117)
 // Gmail-style: slide out, collapse, done
 // ============================================
 
@@ -7171,7 +7181,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     btn.classList.toggle('active', btn.dataset.voice === savedVoice);
   });
   
-  // FIX v0.9.116: Initialize TTS Provider selector
+  // FIX v0.9.117: Initialize TTS Provider selector
   const savedProvider = localStorage.getItem('tts_provider') || 'openai';
   document.querySelectorAll('#ttsProviderSelector .pill-m').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.provider === savedProvider);
