@@ -575,26 +575,7 @@ body.font-large .card-header-content { height: 52px; }
 .chat-image-send:active { transform: scale(0.95); background: #059669; }
 
 /* Chat message image (v0.9.117) */
-.chat-message-image { max-width: 85%; max-height: 300px; border-radius: 16px; margin-bottom: 8px; object-fit: contain; cursor: pointer; border: 2px solid var(--color-border); transition: transform 0.2s; }
-.chat-message-image:active { transform: scale(0.98); }
-.ask-ai-message.user .chat-message-image { margin-left: auto; display: block; }
-/* Image actions in chat */
-.chat-image-actions { display: flex; gap: 8px; margin-bottom: 8px; }
-.ask-ai-message.user .chat-image-actions { justify-content: flex-end; }
-.chat-image-action-btn { padding: 4px 10px; border: 1px solid var(--color-border); background: var(--color-bg); border-radius: 12px; font-size: 0.7rem; color: var(--color-text-soft); cursor: pointer; display: flex; align-items: center; gap: 4px; }
-.chat-image-action-btn:active { background: var(--color-bg-soft); }
-.chat-image-action-btn.delete { border-color: #EF4444; color: #EF4444; }
-.chat-image-action-btn.delete:active { background: rgba(239, 68, 68, 0.1); }
-.chat-image-action-btn.created { border-color: #10B981; color: #10B981; pointer-events: none; }
-
-/* Image Viewer Modal */
-.chat-image-viewer-modal { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; }
-.chat-image-viewer-modal.show { display: flex; }
-.chat-image-viewer-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.85); }
-.chat-image-viewer-content { position: relative; max-width: 90%; max-height: 75vh; z-index: 1; }
-.chat-image-viewer-content img { max-width: 100%; max-height: 75vh; border-radius: 12px; object-fit: contain; }
-.chat-image-viewer-close { position: absolute; top: -40px; right: 0; width: 36px; height: 36px; border: none; background: rgba(255,255,255,0.2); color: white; border-radius: 50%; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.chat-image-viewer-close:active { background: rgba(255,255,255,0.3); }
+.chat-message-image { max-width: 100%; max-height: 200px; border-radius: 12px; margin-bottom: 8px; object-fit: contain; }
 
 /* Voice Mode: Large mic button */
 .ask-ai-voice-large { display: none; width: 100%; padding: 18px 24px; border: 2px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg); color: var(--color-text); font-family: var(--font-main); font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s; align-items: center; justify-content: center; gap: 12px; }
