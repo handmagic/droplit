@@ -339,6 +339,39 @@ function createDropFromImage(btn) {
   toast('Photo saved!', 'success');
 }
 
+// Open chat image viewer modal (v0.9.117)
+function openChatImageViewer(src) {
+  let modal = document.getElementById('chatImageViewerModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'chatImageViewerModal';
+    modal.className = 'chat-image-viewer-modal';
+    modal.innerHTML = `
+      <div class="chat-image-viewer-backdrop"></div>
+      <div class="chat-image-viewer-content">
+        <img id="chatImageViewerImg" src="" alt="Image">
+        <button class="chat-image-viewer-close">×</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Event listeners
+    modal.querySelector('.chat-image-viewer-backdrop').addEventListener('click', closeChatImageViewer);
+    modal.querySelector('.chat-image-viewer-close').addEventListener('click', closeChatImageViewer);
+  }
+  
+  document.getElementById('chatImageViewerImg').src = src;
+  modal.classList.add('show');
+}
+
+// Close chat image viewer modal
+function closeChatImageViewer() {
+  const modal = document.getElementById('chatImageViewerModal');
+  if (modal) {
+    modal.classList.remove('show');
+  }
+}
+
 // Open "Killer Features" modal (placeholder)
 function openKillerFeatures() {
   toast('Killer Features: OCR, генерация...', 'info');
@@ -2737,7 +2770,7 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   let imageHtml = '';
   if (imageUrl) {
     imageHtml = `
-      <img class="chat-message-image" src="${imageUrl}" alt="Attached image">
+      <img class="chat-message-image" src="${imageUrl}" alt="Attached image" onclick="openChatImageViewer(this.src)">
       <div class="ask-ai-actions" style="margin-bottom: 8px;">
         <button class="ask-ai-action-btn" style="border-color: #EF4444; color: #EF4444;" onclick="deleteChatMessage('${msgId}')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
