@@ -583,7 +583,7 @@ body.font-large .card-header-content { height: 52px; }
 /* Chat Image Viewer Modal (v0.9.117) */
 .chat-image-viewer-modal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease; }
 .chat-image-viewer-modal.show { opacity: 1; visibility: visible; }
-.chat-image-viewer-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
+.chat-image-viewer-backdrop { position: absolute; inset: 0; background: transparent; }
 .chat-image-viewer-content { position: relative; max-width: 90%; max-height: 75vh; z-index: 1; transform: scale(0.9); transition: transform 0.25s ease; }
 .chat-image-viewer-modal.show .chat-image-viewer-content { transform: scale(1); }
 .chat-image-viewer-content img { max-width: 100%; max-height: 75vh; border-radius: 16px; object-fit: contain; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
