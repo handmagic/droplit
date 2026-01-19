@@ -162,8 +162,8 @@ function clearAskAIInput() {
 // CHAT IMAGE ATTACHMENT (v0.9.117)
 // ============================================
 
-// Store attached image data
-let chatAttachedImage = null;
+// Store attached image data (global for access across modules)
+window.chatAttachedImage = null;
 
 // Open camera/gallery to add image
 function openAddToChat() {
@@ -193,11 +193,13 @@ function handleChatImageSelect(event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const base64 = e.target.result;
-    chatAttachedImage = {
+    window.chatAttachedImage = {
       data: base64,
       type: file.type,
       name: file.name
     };
+    
+    console.log('[Image] Attached:', file.name, 'size:', Math.round(base64.length / 1024), 'KB');
     
     // Show preview
     const preview = document.getElementById('chatImagePreview');
@@ -228,7 +230,7 @@ function handleChatImageSelect(event) {
 
 // Remove attached image
 function removeChatImage() {
-  chatAttachedImage = null;
+  window.chatAttachedImage = null;
   
   const preview = document.getElementById('chatImagePreview');
   if (preview) {
@@ -243,8 +245,10 @@ function removeChatImage() {
 
 // Get attached image for sending (and clear it)
 function getAndClearChatImage() {
-  const image = chatAttachedImage;
-  chatAttachedImage = null;
+  const image = window.chatAttachedImage;
+  window.chatAttachedImage = null;
+  
+  console.log('[Image] getAndClearChatImage:', image ? 'found' : 'null');
   
   const preview = document.getElementById('chatImagePreview');
   if (preview) {
@@ -257,6 +261,20 @@ function getAndClearChatImage() {
   }
   
   return image;
+}
+
+// Send image message (from preview send button)
+function sendImageMessage() {
+  const input = document.getElementById('askAIInput');
+  const text = input?.value?.trim() || '';
+  
+  // If no text, use default question
+  if (!text) {
+    input.value = 'Что на этом изображении?';
+  }
+  
+  console.log('[Image] Sending image message with text:', input.value);
+  sendAskAIMessage();
 }
 
 // Open "Killer Features" modal (placeholder)
@@ -2734,6 +2752,7 @@ async function sendAskAIMessage() {
   
   // Get attached image (v0.9.117)
   const attachedImage = getAndClearChatImage();
+  console.log('[Image] Attached image:', attachedImage ? 'YES (' + attachedImage.name + ')' : 'NO');
   
   // Need either text or image
   if (!text && !attachedImage) {
@@ -2847,6 +2866,8 @@ async function sendAskAIMessage() {
     } catch (e) {
       console.warn('Could not get currentFeed:', e);
     }
+    
+    console.log('[ASKI] Sending request with image:', attachedImage ? 'YES' : 'NO');
     
     const response = await fetch(AI_API_URL, {
       method: 'POST',
