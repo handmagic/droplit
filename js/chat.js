@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT CHAT v1.4 - Sensitive Data Protection
+// DROPLIT CHAT v1.5 - ElevenLabs voices update + visibility handlers
 // ASKI Chat, Voice Mode, Streaming
 // ============================================
 
@@ -228,21 +228,20 @@ let askiApiKey = localStorage.getItem('openai_tts_key') || '';
 // TTS Provider settings
 let ttsProvider = localStorage.getItem('tts_provider') || 'openai'; // openai, elevenlabs, browser
 let elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
-let elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Nadia';
-let elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
+let elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Bella';
+let elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
 
 // Streaming TTS state (for STOP button)
 let streamingTTSIsActive = false;
 
-// ElevenLabs voices - Russian native speakers
+// ElevenLabs voices
 const ELEVENLABS_VOICES = {
-  // Russian voices (tested & working)
-  'Nadia': 'gedzfqL7OGdPbwm0ynTP',      // Russian female - RECOMMENDED
-  'Larisa': 'AB9XsbSA4eLG12t2myjN',     // Russian female
-  'Dmitry': 'kwajW3Xh5svCeKU5ky2S',     // Russian male
-  // Multilingual voices (English + Russian)
-  'Bella': 'EXAVITQu4vr4xnSDxMaL',      // English/Russian female
-  'Rachel': '21m00Tcm4TlvDq8ikWAM'      // English/Russian female
+  'Bella': 'EXAVITQu4vr4xnSDxMaL',      // Multilingual female
+  'Jeff': 'gs0tAILXbY5DNrJrsM6F',        // Male
+  'Archer': 'L0Dsvb3SLTyegXwtm47J',      // Male
+  'Paul': 'WLKp2jV6nrS8aMkPPDRO',        // Male
+  'Ariana': 'xyu8HSCv1JYrhLx4m8UG',      // Female
+  'Polina': 'wUndevsXFk0ArF7vJ61U'       // Female
 };
 
 // Loaded voices from API (will be populated dynamically)
@@ -476,7 +475,7 @@ async function askiSpeak(text, lang = null, onEnd = null) {
   // ВАЖНО: Перечитываем настройки из localStorage перед каждым вызовом
   ttsProvider = localStorage.getItem('tts_provider') || 'openai';
   elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
-  elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
+  elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
   askiApiKey = localStorage.getItem('openai_tts_key') || '';
   
   // Route to appropriate TTS provider
@@ -568,7 +567,7 @@ async function askiSpeakElevenLabs(text, onEnd = null) {
     updateVoiceModeIndicator('speaking');
     
     // Use stored voice ID
-    const voiceId = elevenlabsVoiceId || 'gedzfqL7OGdPbwm0ynTP';
+    const voiceId = elevenlabsVoiceId || 'EXAVITQu4vr4xnSDxMaL';
     
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -1739,7 +1738,7 @@ function setTTSProvider(provider) {
     // Load ElevenLabs key into input when switching to ElevenLabs
     if (provider === 'elevenlabs') {
       elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
-      elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'gedzfqL7OGdPbwm0ynTP';
+      elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
       
       const input = document.getElementById('elevenlabsApiKeyInput');
       if (input) {
