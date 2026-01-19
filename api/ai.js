@@ -1,4 +1,4 @@
-// DropLit AI API v4.18 - Vercel Edge Function
+// DropLit AI API v4.19 - Vercel Edge Function
 // + CONFLICT RESOLUTION PROTOCOL for contradictory facts
 // + Transparent handling of uncertainty
 // + Explicit "CHECK MEMORY FIRST" instruction
@@ -7,8 +7,9 @@
 // + MODEL SELECTION: Choose between Sonnet (ASKI) and Opus (Deep)
 // + API COST TRACKING v1.0
 // + TOKEN DEDUCTION v1.0
-// + VOICE AUTO-MODEL v1.0 ← NEW: Haiku for simple, Opus for deep
-// Version: 4.18.0
+// + VOICE AUTO-MODEL v1.0
+// + IMAGE IN CHAT v1.0 ← NEW: Multimodal messages with images
+// Version: 4.19.0
 
 export const config = {
   runtime: 'edge',
@@ -2487,7 +2488,27 @@ export default async function handler(req) {
           content: m.text
         }));
       }
-      messages.push({ role: 'user', content: text });
+      
+      // v4.19: Support image in chat (multimodal)
+      if (image) {
+        let imageData = image;
+        let mediaType = 'image/jpeg';
+        if (image.startsWith('data:')) {
+          const matches = image.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) { mediaType = matches[1]; imageData = matches[2]; }
+        }
+        
+        messages.push({
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageData } },
+            { type: 'text', text: text || 'Что на этом изображении?' }
+          ]
+        });
+        console.log('[Chat] Multimodal message with image');
+      } else {
+        messages.push({ role: 'user', content: text });
+      }
 
       // STREAMING MODE WITH TOOLS
       if (stream) {
