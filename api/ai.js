@@ -626,6 +626,34 @@ const TOOLS = [
       },
       required: ["title", "chart_type"]
     }
+  },
+  {
+    name: "create_diagram",
+    description: "Create diagrams and schemas: flowcharts, sequences, architecture, mindmaps, ER, gantt, state machines. Uses Mermaid.js (renders in browser - fully private, no external servers). Trigger phrases: 'нарисуй схему...', 'покажи архитектуру...', 'диаграмма процесса...', 'flowchart...', 'sequence diagram...', 'mind map...'",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: {
+          type: "string",
+          description: "Diagram title in user's language"
+        },
+        diagram_type: {
+          type: "string",
+          enum: ["flowchart", "sequence", "class", "state", "er", "gantt", "mindmap", "pie", "block", "timeline", "quadrant", "git"],
+          description: "Diagram type: flowchart (processes), sequence (interactions), class (OOP), state (state machine), er (database), gantt (timeline), mindmap (ideas), pie (proportions), block (architecture), timeline (chronology), quadrant (priorities), git (branches)"
+        },
+        code: {
+          type: "string",
+          description: "Mermaid code. Start with diagram type keyword (flowchart, sequenceDiagram, classDiagram, etc). Use proper Mermaid syntax."
+        },
+        theme: {
+          type: "string",
+          enum: ["default", "dark", "forest", "neutral"],
+          description: "Color theme. Default: clean look"
+        }
+      },
+      required: ["title", "diagram_type", "code"]
+    }
   }
 ];
 
@@ -1149,6 +1177,81 @@ When user asks to see, list, or show reminders:
 - Заголовок (title) на языке пользователя
 - График появится интерактивным в чате
 
+## 📐 DIAGRAMS & SCHEMAS (Mermaid.js):
+
+Используй create_diagram для схем и диаграмм. Рендерится в браузере — полная конфиденциальность!
+
+**Триггеры:**
+- "Нарисуй схему...", "Покажи архитектуру..."
+- "Flowchart для...", "Sequence diagram..."
+- "Mind map про...", "ER диаграмма..."
+
+**Типы (diagram_type):**
+- flowchart — процессы, алгоритмы, блок-схемы
+- sequence — взаимодействие компонентов
+- class — UML классы
+- state — машины состояний
+- er — база данных (Entity Relationship)
+- gantt — временные графики, roadmap
+- mindmap — mind maps
+- pie — круговые диаграммы
+- block — архитектурные схемы
+- timeline — хронология
+- quadrant — матрица приоритетов
+- git — ветки и коммиты
+
+**Mermaid синтаксис (примеры):**
+
+Flowchart:
+\`\`\`
+flowchart TD
+    A[Начало] --> B{Условие?}
+    B -->|Да| C[Действие 1]
+    B -->|Нет| D[Действие 2]
+    C --> E[Конец]
+    D --> E
+\`\`\`
+
+Sequence:
+\`\`\`
+sequenceDiagram
+    participant U as User
+    participant A as ASKI
+    participant C as Claude
+    U->>A: Запрос
+    A->>C: API call
+    C-->>A: Ответ
+    A-->>U: Результат
+\`\`\`
+
+Mindmap:
+\`\`\`
+mindmap
+  root((Проект))
+    Фронтенд
+      React
+      CSS
+    Бэкенд
+      API
+      База данных
+\`\`\`
+
+ER (база данных):
+\`\`\`
+erDiagram
+    USER ||--o{ DROP : creates
+    DROP {
+        int id
+        string content
+        string category
+    }
+\`\`\`
+
+**ВАЖНО:**
+- Кириллица полностью поддерживается
+- ВСЕГДА говори вступление ПЕРЕД create_diagram
+- Пример: "Вот схема архитектуры ASKI." + create_diagram(...)
+
 ## LANGUAGE:
 - Always respond in same language as user
 - Support Russian and English seamlessly`;
@@ -1430,6 +1533,10 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
     
     case 'create_chart': {
       return await executeCreateChart(input, userId, currentFeed);
+    }
+    
+    case 'create_diagram': {
+      return await executeCreateDiagram(input, userId);
     }
     
     default:
@@ -2475,6 +2582,56 @@ function parseRuDate(dateStr) {
 }
 
 // ============================================
+// CREATE DIAGRAM → Mermaid.js Visualization (v4.24)
+// ============================================
+async function executeCreateDiagram(input, userId) {
+  console.log('[create_diagram] Input:', JSON.stringify(input).slice(0, 500));
+  
+  const title = input.title || 'Diagram';
+  const diagramType = input.diagram_type || 'flowchart';
+  const code = input.code || '';
+  const theme = input.theme || 'default';
+  
+  // Validate Mermaid code - should start with diagram type keyword
+  const validStarts = ['flowchart', 'graph', 'sequenceDiagram', 'classDiagram', 'stateDiagram', 
+                       'erDiagram', 'gantt', 'mindmap', 'pie', 'block', 'timeline', 
+                       'quadrantChart', 'gitGraph', 'journey', 'C4Context'];
+  
+  const codeStart = code.trim().split(/[\s\n]/)[0].toLowerCase();
+  const isValid = validStarts.some(s => codeStart.startsWith(s.toLowerCase()));
+  
+  if (!code || !isValid) {
+    console.log('[create_diagram] Invalid code - does not start with diagram type');
+    return {
+      success: false,
+      action: 'create_diagram',
+      error: 'Invalid Mermaid code: must start with diagram type (flowchart, sequenceDiagram, etc)'
+    };
+  }
+  
+  // Add theme config if not default
+  let finalCode = code.trim();
+  if (theme !== 'default') {
+    // Prepend theme directive
+    finalCode = `%%{init: {'theme': '${theme}'}}%%\n${finalCode}`;
+  }
+  
+  console.log('[create_diagram] Final code length:', finalCode.length);
+  console.log('[create_diagram] Type:', diagramType, 'Theme:', theme);
+  
+  // Return diagram data for client-side rendering
+  // Client will render using Mermaid.js in browser (fully private!)
+  return {
+    success: true,
+    action: 'create_diagram',
+    title: title,
+    diagramType: diagramType,
+    code: finalCode,
+    theme: theme
+  };
+}
+
+// ============================================
 // PARSE SSE STREAM FROM CLAUDE
 // ============================================
 async function* parseSSEStream(response) {
@@ -2522,6 +2679,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   let sendEmailAction = null;
   let generateImageAction = null;
   let createChartActions = [];  // v4.22: массив для множественных графиков
+  let createDiagramActions = [];  // v4.24: массив для диаграмм PlantUML
   
   // Use provided model or default to Sonnet
   const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
@@ -2761,6 +2919,20 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
           }
         }
         
+        // Track create_diagram action (v4.24 - PlantUML диаграммы)
+        if (toolBlock.name === 'create_diagram') {
+          createDiagramActions.push(toolResult);
+          console.log('[create_diagram] Tracked #' + createDiagramActions.length + ', type:', toolResult?.diagramType, 'code length:', toolResult?.code?.length || 0);
+          
+          // СРАЗУ отправляем диаграмму клиенту
+          if (toolResult?.success && toolResult?.code) {
+            sendEvent({
+              type: 'diagram_ready',
+              diagram: toolResult
+            });
+          }
+        }
+        
         // Notify client about tool result
         sendEvent({ 
           type: 'tool_result', 
@@ -2816,6 +2988,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   
   // Log createChart state before sending done (v4.22 - массив)
   console.log('[Streaming] createChartActions before done:', createChartActions.length, 'charts');
+  console.log('[Streaming] createDiagramActions before done:', createDiagramActions.length, 'diagrams');
   
   // Send final event with metadata AND debug info
   sendEvent({ 
@@ -2830,6 +3003,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     sendEmail: sendEmailAction,
     generateImage: generateImageAction,
     createCharts: createChartActions,  // v4.22: массив графиков
+    createDiagrams: createDiagramActions,  // v4.24: массив диаграмм
     usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens },
     _debug: debugInfo
   });
