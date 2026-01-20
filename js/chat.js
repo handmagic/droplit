@@ -372,6 +372,55 @@ function closeChatImageViewer() {
   }
 }
 
+// Add generated image to chat (v0.9.118)
+function addGeneratedImageToChat(imageBase64, revisedPrompt) {
+  const messagesDiv = document.getElementById('askAIMessages');
+  if (!messagesDiv) return;
+  
+  const msgId = 'gen-img-' + Date.now();
+  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const autoDropEnabled = localStorage.getItem('droplit_autodrop') === 'true';
+  
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'ask-ai-message ai';
+  msgDiv.id = msgId;
+  
+  // Build Create Drop button based on autodrop
+  const createDropBtn = autoDropEnabled
+    ? `<button class="ask-ai-action-btn created autodrop-saved">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        Saved
+      </button>`
+    : `<button class="ask-ai-action-btn" onclick="createDropFromImage(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Create Drop
+      </button>`;
+  
+  msgDiv.innerHTML = `
+    <img class="chat-message-image" src="${imageBase64}" alt="Generated image" onclick="openChatImageViewer(this.src)">
+    <div class="ask-ai-actions" style="margin-bottom: 8px;">
+      <button class="ask-ai-action-btn" style="border-color: #EF4444; color: #EF4444;" onclick="deleteChatMessage('${msgId}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        Delete
+      </button>
+      ${createDropBtn}
+    </div>
+    <div class="ask-ai-time">${time}</div>
+  `;
+  
+  messagesDiv.appendChild(msgDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  
+  // AutoDrop: auto-save generated image
+  if (autoDropEnabled) {
+    autoSaveImageAsDrop(imageBase64);
+  }
+  
+  // Log
+  console.log('[Image Gen] Added to chat, revised prompt:', revisedPrompt?.substring(0, 50));
+  toast('🎨 Изображение создано!', 'success');
+}
+
 // AutoDrop: auto-save image as photo drop (v0.9.117)
 function autoSaveImageAsDrop(imageUrl) {
   if (!imageUrl) return null;
@@ -2686,6 +2735,15 @@ async function handleStreamingResponse(response) {
               // Debug: log if sendEmail exists but action is unexpected
               if (parsed.sendEmail && !['send_email', 'send_email_with_docx'].includes(parsed.sendEmail.action)) {
                 console.warn('[Email] Unexpected sendEmail action:', parsed.sendEmail);
+              }
+              
+              // Handle generate_image (v0.9.118)
+              if (parsed.generateImage?.action === 'generate_image' && parsed.generateImage?.image) {
+                console.log('[Image Gen] Received generated image');
+                // Add generated image to chat as AI message
+                setTimeout(() => {
+                  addGeneratedImageToChat(parsed.generateImage.image, parsed.generateImage.revised_prompt);
+                }, 100);
               }
             }
             
