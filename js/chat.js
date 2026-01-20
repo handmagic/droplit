@@ -793,289 +793,81 @@ function autoSaveImageAsDrop(imageUrl) {
 }
 
 // ============================================
-// STRUCTURED RESPONSE RENDERING (v4.23)
+// SPLIT LONG TEXT INTO BUBBLES (v4.24)
 // ============================================
-function renderStructuredResponse(docData) {
-  try {
-    console.log('[Structured] renderStructuredResponse called with:', docData?.title);
-    console.log('[Structured] Full docData:', JSON.stringify(docData, null, 2).slice(0, 500));
-    
-    const messagesDiv = document.getElementById('askAIMessages');
-    if (!messagesDiv) {
-      console.error('[Structured] askAIMessages not found!');
-      return;
+function splitTextIntoBubbles(fullText, maxChars = 1000) {
+  if (!fullText || fullText.length <= maxChars) {
+    return [fullText];
+  }
+  
+  const bubbles = [];
+  const paragraphs = fullText.split(/\n\n+/);
+  let currentBubble = '';
+  
+  for (const para of paragraphs) {
+    // If adding this paragraph exceeds limit
+    if (currentBubble.length + para.length + 2 > maxChars) {
+      // If current bubble has content, save it
+      if (currentBubble.trim()) {
+        bubbles.push(currentBubble.trim());
+        currentBubble = '';
+      }
+      
+      // If single paragraph is too long, split by sentences
+      if (para.length > maxChars) {
+        const sentences = para.split(/(?<=[.!?])\s+/);
+        for (const sentence of sentences) {
+          if (currentBubble.length + sentence.length + 1 > maxChars) {
+            if (currentBubble.trim()) {
+              bubbles.push(currentBubble.trim());
+              currentBubble = '';
+            }
+          }
+          currentBubble += (currentBubble ? ' ' : '') + sentence;
+        }
+      } else {
+        currentBubble = para;
+      }
+    } else {
+      currentBubble += (currentBubble ? '\n\n' : '') + para;
     }
-    
-    if (!docData || !docData.sections || !docData.sections.length) {
-      console.error('[Structured] Invalid docData:', docData);
-      return;
-    }
-    
-    const msgId = 'structured-' + Date.now();
-    const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    
+  }
+  
+  // Don't forget last bubble
+  if (currentBubble.trim()) {
+    bubbles.push(currentBubble.trim());
+  }
+  
+  return bubbles;
+}
+
+// Render additional bubbles for long response
+function renderAdditionalBubbles(bubbles, startIndex = 1) {
+  const messagesDiv = document.getElementById('askAIMessages');
+  if (!messagesDiv) return;
+  
+  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  
+  for (let i = startIndex; i < bubbles.length; i++) {
     const msgDiv = document.createElement('div');
-    msgDiv.className = 'ask-ai-message ai structured-message';
-    msgDiv.id = msgId;
-    msgDiv.dataset.docData = JSON.stringify(docData);
+    msgDiv.className = 'ask-ai-message ai continuation-bubble';
+    msgDiv.dataset.bubbleIndex = i + 1;
+    msgDiv.dataset.totalBubbles = bubbles.length;
     
-    // Check if renderMarkdown is available
-    const hasRenderMarkdown = typeof renderMarkdown === 'function' || typeof window.renderMarkdown === 'function';
-    const mdRenderer = hasRenderMarkdown ? (window.renderMarkdown || renderMarkdown) : null;
-    console.log('[Structured] hasRenderMarkdown:', hasRenderMarkdown);
+    const bubbleContent = typeof window.renderMarkdown === 'function' 
+      ? window.renderMarkdown(bubbles[i])
+      : bubbles[i].replace(/\n/g, '<br>');
     
-    // Build sections HTML
-    let sectionsHtml = '';
-    docData.sections.forEach((section, idx) => {
-      const isCollapsed = section.collapsed !== false && idx > 0;
-      const contentHtml = mdRenderer ? mdRenderer(section.content) : escapeHtml(section.content).replace(/\n/g, '<br>');
-      sectionsHtml += `
-        <div class="structured-section ${isCollapsed ? 'collapsed' : 'expanded'}" data-section-id="${section.id}">
-          <div class="structured-section-header" onclick="toggleStructuredSection('${section.id}')">
-            <span class="structured-section-arrow">${isCollapsed ? '▶' : '▼'}</span>
-            <span class="structured-section-title">${escapeHtml(section.title)}</span>
-            <span class="structured-section-words">${section.wordCount} слов</span>
-          </div>
-          <div class="structured-section-content" style="${isCollapsed ? 'display: none;' : ''}">
-            ${contentHtml}
-          </div>
-        </div>
-      `;
-    });
+    msgDiv.innerHTML = `
+      <div class="ask-ai-bubble">${bubbleContent}</div>
+      <div class="ask-ai-time">${time} • ${i + 1}/${bubbles.length}</div>
+    `;
+    
+    messagesDiv.appendChild(msgDiv);
+  }
   
-  // Build actions HTML
-  let actionsHtml = '';
-  const actionButtons = {
-    copy: { icon: '📋', label: 'Copy', onclick: `copyStructuredContent('${msgId}')` },
-    save_drop: { icon: '💧', label: 'Save Drop', onclick: `saveStructuredAsDrop('${msgId}')` },
-    download_txt: { icon: '📥', label: 'TXT', onclick: `downloadStructuredAsTxt('${msgId}')` },
-    email: { icon: '📧', label: 'Email', onclick: `emailStructured('${msgId}')` }
-  };
-  
-  (docData.actions || ['copy', 'save_drop']).forEach(action => {
-    const btn = actionButtons[action];
-    if (btn) {
-      actionsHtml += `<button class="ask-ai-action-btn" onclick="${btn.onclick}">${btn.icon} ${btn.label}</button>`;
-    }
-  });
-  
-  // Add expand/collapse all button
-  actionsHtml += `<button class="ask-ai-action-btn" onclick="toggleAllSections('${msgId}')">📂 Expand All</button>`;
-  
-  msgDiv.innerHTML = `
-    <div class="structured-container">
-      <div class="structured-header">
-        <span class="structured-icon">${docData.icon || '📄'}</span>
-        <span class="structured-title">${escapeHtml(docData.title)}</span>
-      </div>
-      ${docData.summary ? `<div class="structured-summary">${escapeHtml(docData.summary)}</div>` : ''}
-      <div class="structured-stats">
-        ${docData.stats.sectionCount} секций • ${docData.stats.totalWords} слов
-      </div>
-      <div class="structured-sections">
-        ${sectionsHtml}
-      </div>
-    </div>
-    <div class="ask-ai-actions" style="margin-top: 12px; flex-wrap: wrap; gap: 4px;">
-      ${actionsHtml}
-    </div>
-    <div class="ask-ai-time">${time}</div>
-  `;
-  
-  messagesDiv.appendChild(msgDiv);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  
-  console.log('[Structured] ✅ Rendered:', docData.title, docData.stats.sectionCount, 'sections');
-  toast(`${docData.icon || '📄'} ${docData.title}`, 'success');
-  
-  } catch (error) {
-    console.error('[Structured] ❌ RENDER ERROR:', error);
-    console.error('[Structured] Stack:', error.stack);
-    toast('Ошибка рендеринга документа', 'error');
-  }
-}
-
-// Toggle section expand/collapse
-function toggleStructuredSection(sectionId) {
-  const section = document.querySelector(`[data-section-id="${sectionId}"]`);
-  if (!section) return;
-  
-  const content = section.querySelector('.structured-section-content');
-  const arrow = section.querySelector('.structured-section-arrow');
-  const isCollapsed = section.classList.contains('collapsed');
-  
-  if (isCollapsed) {
-    section.classList.remove('collapsed');
-    section.classList.add('expanded');
-    content.style.display = '';
-    arrow.textContent = '▼';
-  } else {
-    section.classList.remove('expanded');
-    section.classList.add('collapsed');
-    content.style.display = 'none';
-    arrow.textContent = '▶';
-  }
-}
-
-// Toggle all sections
-function toggleAllSections(msgId) {
-  const msgDiv = document.getElementById(msgId);
-  if (!msgDiv) return;
-  
-  const sections = msgDiv.querySelectorAll('.structured-section');
-  const allExpanded = [...sections].every(s => s.classList.contains('expanded'));
-  
-  sections.forEach(section => {
-    const content = section.querySelector('.structured-section-content');
-    const arrow = section.querySelector('.structured-section-arrow');
-    
-    if (allExpanded) {
-      section.classList.remove('expanded');
-      section.classList.add('collapsed');
-      content.style.display = 'none';
-      arrow.textContent = '▶';
-    } else {
-      section.classList.remove('collapsed');
-      section.classList.add('expanded');
-      content.style.display = '';
-      arrow.textContent = '▼';
-    }
-  });
-  
-  // Update button text
-  const btn = msgDiv.querySelector('.ask-ai-actions button:last-of-type');
-  if (btn) {
-    btn.innerHTML = allExpanded ? '📂 Expand All' : '📁 Collapse All';
-  }
-}
-
-// Copy structured content as text
-function copyStructuredContent(msgId) {
-  const msgDiv = document.getElementById(msgId);
-  if (!msgDiv) return;
-  
-  try {
-    const docData = JSON.parse(msgDiv.dataset.docData);
-    let text = docData.title + '\n\n';
-    if (docData.summary) text += docData.summary + '\n\n';
-    
-    docData.sections.forEach(section => {
-      text += '## ' + section.title + '\n\n';
-      text += section.content + '\n\n';
-    });
-    
-    navigator.clipboard.writeText(text.trim());
-    toast('📋 Скопировано!', 'success');
-  } catch (e) {
-    console.error('[Structured] Copy error:', e);
-    toast('Ошибка копирования', 'error');
-  }
-}
-
-// Save structured response as drop
-function saveStructuredAsDrop(msgId) {
-  const msgDiv = document.getElementById(msgId);
-  if (!msgDiv) return;
-  
-  try {
-    const docData = JSON.parse(msgDiv.dataset.docData);
-    
-    // Combine all content
-    let fullText = docData.title + '\n\n';
-    if (docData.summary) fullText += docData.summary + '\n\n';
-    docData.sections.forEach(section => {
-      fullText += '## ' + section.title + '\n\n' + section.content + '\n\n';
-    });
-    
-    const now = new Date();
-    const drop = {
-      id: Date.now(),
-      text: fullText.trim(),
-      category: 'ideas', // or determine from docData.type
-      timestamp: now.toISOString(),
-      date: now.toLocaleDateString('ru-RU'),
-      time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-      creator: 'aski',
-      source: 'structured_response',
-      structuredType: docData.type,
-      sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null
-    };
-    
-    if (typeof ideas !== 'undefined') {
-      ideas.unshift(drop);
-    }
-    if (typeof save === 'function') save(drop);
-    if (typeof counts === 'function') counts();
-    if (typeof playDropSound === 'function') playDropSound();
-    
-    // Update button
-    const btn = msgDiv.querySelector('[onclick*="saveStructuredAsDrop"]');
-    if (btn) {
-      btn.innerHTML = '✅ Saved';
-      btn.disabled = true;
-    }
-    
-    toast('💧 Сохранено как drop!', 'success');
-    
-    // Sync if available
-    if (typeof syncDropToSyntrise === 'function') {
-      syncDropToSyntrise(drop);
-    }
-  } catch (e) {
-    console.error('[Structured] Save error:', e);
-    toast('Ошибка сохранения', 'error');
-  }
-}
-
-// Download as TXT
-function downloadStructuredAsTxt(msgId) {
-  const msgDiv = document.getElementById(msgId);
-  if (!msgDiv) return;
-  
-  try {
-    const docData = JSON.parse(msgDiv.dataset.docData);
-    let text = docData.title + '\n\n';
-    if (docData.summary) text += docData.summary + '\n\n';
-    
-    docData.sections.forEach(section => {
-      text += '## ' + section.title + '\n\n';
-      text += section.content + '\n\n';
-    });
-    
-    const blob = new Blob([text.trim()], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = (docData.title.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_') || 'document') + '.txt';
-    link.click();
-    URL.revokeObjectURL(url);
-    
-    toast('📥 TXT скачан', 'success');
-  } catch (e) {
-    console.error('[Structured] Download error:', e);
-    toast('Ошибка скачивания', 'error');
-  }
-}
-
-// Email structured content (reuses sendEmailFromChat)
-function emailStructured(msgId) {
-  const msgDiv = document.getElementById(msgId);
-  if (!msgDiv) return;
-  
-  try {
-    const docData = JSON.parse(msgDiv.dataset.docData);
-    
-    // Open send modal with prefilled content
-    if (typeof openSendModalWithContent === 'function') {
-      let content = docData.sections.map(s => '## ' + s.title + '\n\n' + s.content).join('\n\n');
-      openSendModalWithContent(docData.title, content);
-    } else {
-      toast('Email недоступен', 'error');
-    }
-  } catch (e) {
-    console.error('[Structured] Email error:', e);
-    toast('Ошибка', 'error');
-  }
+  console.log('[Bubbles] Rendered', bubbles.length, 'bubbles');
 }
 
 // Helper: escape HTML
@@ -3044,29 +2836,21 @@ async function handleStreamingResponse(response) {
         if (line.startsWith('data: ')) {
           const data = line.slice(6);
           if (data === '[DONE]') break;
+          
+          // DEBUG: Log raw data for large events (v4.23)
+          if (data.length > 1000) {
+            console.log('[SSE Raw] Large event:', data.length, 'bytes, starts with:', data.slice(0, 100));
+          }
+          
           try {
             const parsed = JSON.parse(data);
             
-            // DEBUG: Log event types (v4.22)
+            // DEBUG: Log event types (v4.24)
             try {
               if (parsed.type && parsed.type !== 'text') {
                 console.log('[SSE Event]', parsed.type, 
                   parsed.type === 'chart_ready' ? parsed.chart?.title : 
-                  parsed.type === 'structured_ready' ? ('DOC: ' + parsed.document?.title + ' sections:' + parsed.document?.sections?.length) : 
                   parsed.type === 'tool_result' ? parsed.tool : '');
-                
-                // Extra debug for structured_ready
-                if (parsed.type === 'structured_ready') {
-                  console.log('[Structured DEBUG] Event received, document keys:', Object.keys(parsed.document || {}));
-                }
-                
-                // Debug event from server (v4.23)
-                if (parsed.type === 'debug') {
-                  console.log('[SERVER DEBUG] stopReason:', parsed.stopReason);
-                  console.log('[SERVER DEBUG] contentBlocks:', parsed.contentBlocksCount);
-                  console.log('[SERVER DEBUG] toolBlocks:', parsed.toolBlocksCount);
-                  console.log('[SERVER DEBUG] blockTypes:', parsed.blockTypes);
-                }
               }
             } catch (logErr) {
               console.error('[SSE] Error in event logging:', logErr);
@@ -3131,41 +2915,6 @@ async function handleStreamingResponse(response) {
               }
             }
             
-            // Structured response event (v4.23 - collapsible documents)
-            if (parsed.type === 'structured_ready') {
-              try {
-                console.log('[Structured] ✅ Event received! Document:', JSON.stringify({
-                  title: parsed.document?.title,
-                  type: parsed.document?.type,
-                  sectionsCount: parsed.document?.sections?.length,
-                  success: parsed.document?.success
-                }));
-                
-                if (parsed.document?.sections?.length > 0) {
-                  // Track rendered documents to avoid duplicates
-                  if (!window._renderedDocIds) window._renderedDocIds = new Set();
-                  const docId = parsed.document.type + '_' + (parsed.document.title || Date.now());
-                  console.log('[Structured] DocId:', docId, 'Already rendered?', window._renderedDocIds.has(docId));
-                  
-                  if (!window._renderedDocIds.has(docId)) {
-                    window._renderedDocIds.add(docId);
-                    console.log('[Structured] Calling renderStructuredResponse...');
-                    setTimeout(() => {
-                      try {
-                        renderStructuredResponse(parsed.document);
-                      } catch (renderErr) {
-                        console.error('[Structured] Render error:', renderErr);
-                      }
-                    }, 100);
-                  }
-                } else {
-                  console.log('[Structured] ❌ No sections in document!');
-                }
-              } catch (structErr) {
-                console.error('[Structured] Error processing event:', structErr);
-              }
-            }
-            
             // Stream done
             if (parsed.type === 'done') {
               // DEBUG: Log what we received
@@ -3183,7 +2932,6 @@ async function handleStreamingResponse(response) {
                   imageLength: parsed.generateImage.image?.length || 0
                 } : null,
                 createCharts: parsed.createCharts ? parsed.createCharts.length + ' charts' : null,
-                structuredResponses: parsed.structuredResponses ? parsed.structuredResponses.length + ' docs' : null,
                 toolsUsed: parsed.toolsUsed
               }));
               
@@ -3494,6 +3242,34 @@ async function handleStreamingResponse(response) {
                 setTimeout(() => {
                   window._renderedChartIds = new Set();
                 }, 2000);
+              }
+              
+              // Split long text into multiple bubbles (v4.24)
+              if (fullText && fullText.length > 1000) {
+                const bubbles = splitTextIntoBubbles(fullText, 1000);
+                if (bubbles.length > 1) {
+                  console.log('[Bubbles] Long response detected:', fullText.length, 'chars →', bubbles.length, 'bubbles');
+                  
+                  // Update first bubble with first part only
+                  const bubble = msgDiv.querySelector('.ask-ai-bubble');
+                  if (bubble) {
+                    const firstBubbleContent = typeof window.renderMarkdown === 'function'
+                      ? window.renderMarkdown(bubbles[0])
+                      : bubbles[0].replace(/\n/g, '<br>');
+                    bubble.innerHTML = firstBubbleContent;
+                    
+                    // Add indicator
+                    const timeDiv = msgDiv.querySelector('.ask-ai-time');
+                    if (timeDiv) {
+                      timeDiv.textContent += ' • 1/' + bubbles.length;
+                    }
+                  }
+                  
+                  // Render additional bubbles
+                  setTimeout(() => {
+                    renderAdditionalBubbles(bubbles, 1);
+                  }, 100);
+                }
               }
             }
             
