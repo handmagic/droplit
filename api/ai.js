@@ -1308,6 +1308,9 @@ User has asked to expand on a previous topic. Give a more detailed response cove
 // TOOL EXECUTION
 // ============================================
 async function executeTool(toolName, input, dropContext, userId = null, currentFeed = [], userEmail = null, askiKnowledge = '', userTimezone = 'UTC') {
+  console.log('[executeTool] Called with toolName:', toolName);
+  console.log('[executeTool] Input keys:', Object.keys(input || {}));
+  
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
   
   switch (toolName) {
@@ -1526,7 +1529,21 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
     }
     
     case 'send_structured_response': {
-      return await executeStructuredResponse(input, userId);
+      console.log('[executeTool] Entering send_structured_response case!');
+      console.log('[executeTool] Input:', JSON.stringify(input, null, 2).slice(0, 500));
+      try {
+        const result = await executeStructuredResponse(input, userId);
+        console.log('[executeTool] executeStructuredResponse returned:', JSON.stringify({
+          success: result?.success,
+          sectionsCount: result?.sections?.length,
+          error: result?.error
+        }));
+        return result;
+      } catch (err) {
+        console.error('[executeTool] ERROR in executeStructuredResponse:', err.message);
+        console.error('[executeTool] Stack:', err.stack);
+        return { success: false, error: err.message, action: 'send_structured_response' };
+      }
     }
     
     default:
@@ -2575,24 +2592,31 @@ function parseRuDate(dateStr) {
 // SEND STRUCTURED RESPONSE (v4.23)
 // ============================================
 async function executeStructuredResponse(input, userId) {
-  console.log('[structured_response] Creating structured document');
-  console.log('[structured_response] Input:', JSON.stringify(input, null, 2));
+  console.log('[structured_response] ========== START ==========');
+  console.log('[structured_response] Input type:', typeof input);
+  console.log('[structured_response] Input keys:', Object.keys(input || {}));
+  console.log('[structured_response] Sections type:', typeof input?.sections, 'isArray:', Array.isArray(input?.sections));
+  console.log('[structured_response] Sections length:', input?.sections?.length);
   
-  const type = input.type || 'document';
-  const title = input.title || 'Document';
-  const summary = input.summary || '';
-  const sections = input.sections || [];
-  const actions = input.actions || ['copy', 'save_drop'];
-  const language = input.language || 'auto';
-  
-  // Validate sections
-  if (!sections.length) {
-    return {
-      success: false,
-      action: 'send_structured_response',
-      error: 'No sections provided'
-    };
-  }
+  try {
+    const type = input.type || 'document';
+    const title = input.title || 'Document';
+    const summary = input.summary || '';
+    const sections = input.sections || [];
+    const actions = input.actions || ['copy', 'save_drop'];
+    const language = input.language || 'auto';
+    
+    console.log('[structured_response] Parsed - type:', type, 'title:', title, 'sections:', sections.length);
+    
+    // Validate sections
+    if (!sections.length) {
+      console.log('[structured_response] ❌ No sections!');
+      return {
+        success: false,
+        action: 'send_structured_response',
+        error: 'No sections provided'
+      };
+    }
   
   // Process sections: set collapsed state
   const processedSections = sections.map((section, index) => ({
@@ -2619,22 +2643,35 @@ async function executeStructuredResponse(input, userId) {
   
   console.log('[structured_response] Processed', processedSections.length, 'sections,', totalWords, 'words');
   
-  return {
-    success: true,
-    action: 'send_structured_response',
-    type: type,
-    icon: typeIcons[type] || '📄',
-    title: title,
-    summary: summary,
-    sections: processedSections,
-    actions: actions,
-    language: language,
-    stats: {
-      sectionCount: processedSections.length,
-      totalWords: totalWords,
-      totalChars: totalChars
-    }
-  };
+    const result = {
+      success: true,
+      action: 'send_structured_response',
+      type: type,
+      icon: typeIcons[type] || '📄',
+      title: title,
+      summary: summary,
+      sections: processedSections,
+      actions: actions,
+      language: language,
+      stats: {
+        sectionCount: processedSections.length,
+        totalWords: totalWords,
+        totalChars: totalChars
+      }
+    };
+    
+    console.log('[structured_response] ✅ Returning result with', result.sections.length, 'sections');
+    console.log('[structured_response] ========== END ==========');
+    return result;
+    
+  } catch (error) {
+    console.error('[structured_response] ❌ ERROR:', error.message);
+    return {
+      success: false,
+      action: 'send_structured_response',
+      error: error.message
+    };
+  }
 }
 
 // ============================================
@@ -2822,11 +2859,19 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
       for (const toolBlock of toolBlocks) {
         let toolResult;
         try {
-          console.log('[Tool] Executing:', toolBlock.name, JSON.stringify(toolBlock.input));
+          console.log('[Tool] Executing:', toolBlock.name);
+          console.log('[Tool] Input:', JSON.stringify(toolBlock.input).slice(0, 500));
           toolResult = await executeTool(toolBlock.name, toolBlock.input, dropContext, userId, currentFeed, userEmail, askiKnowledge);
-          console.log('[Tool] Result:', toolBlock.name, JSON.stringify(toolResult));
+          console.log('[Tool] Result for', toolBlock.name, ':', JSON.stringify({
+            success: toolResult?.success,
+            action: toolResult?.action,
+            error: toolResult?.error,
+            hasSections: !!toolResult?.sections,
+            sectionsLength: toolResult?.sections?.length
+          }));
         } catch (toolError) {
-          console.error('[Tool] Error executing', toolBlock.name, ':', toolError.message);
+          console.error('[Tool] EXCEPTION executing', toolBlock.name, ':', toolError.message);
+          console.error('[Tool] Stack:', toolError.stack);
           toolResult = { success: false, error: toolError.message, action: toolBlock.name };
         }
         
@@ -2895,17 +2940,34 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
           }
         }
         
+        // DEBUG: Log tool name check
+        console.log('[Tool tracking] Checking tool:', toolBlock.name, '=== send_structured_response?', toolBlock.name === 'send_structured_response');
+        
         // Track send_structured_response action (v4.23)
         if (toolBlock.name === 'send_structured_response') {
+          console.log('[structured_response] MATCHED! Adding to structuredResponseActions');
           structuredResponseActions.push(toolResult);
-          console.log('[structured_response] Tracked #' + structuredResponseActions.length + ', sections:', toolResult?.sections?.length || 0);
+          console.log('[structured_response] Tool executed! Result:', JSON.stringify({
+            success: toolResult?.success,
+            action: toolResult?.action,
+            title: toolResult?.title,
+            sectionsCount: toolResult?.sections?.length || 0,
+            hasStats: !!toolResult?.stats,
+            error: toolResult?.error
+          }));
           
           // СРАЗУ отправляем structured response клиенту
           if (toolResult?.success && toolResult?.sections?.length > 0) {
-            sendEvent({
+            console.log('[structured_response] ✅ Sending structured_ready SSE event now!');
+            const eventData = {
               type: 'structured_ready',
               document: toolResult
-            });
+            };
+            console.log('[structured_response] Event data size:', JSON.stringify(eventData).length, 'bytes');
+            sendEvent(eventData);
+            console.log('[structured_response] ✅ Event sent!');
+          } else {
+            console.log('[structured_response] ❌ NOT sending event - success:', toolResult?.success, 'sections:', toolResult?.sections?.length, 'error:', toolResult?.error);
           }
         }
         
