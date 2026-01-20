@@ -565,7 +565,7 @@ const TOOLS = [
         size: {
           type: "string",
           enum: ["square", "vertical", "horizontal"],
-          description: "Image orientation: square (1024x1024), vertical (1024x1792 - BEST for phone, DEFAULT), horizontal (1792x1024). Default: vertical"
+          description: "Image orientation: square (1024x1024), vertical (1024x1536 - BEST for phone, DEFAULT), horizontal (1536x1024). Default: vertical"
         },
         quality: {
           type: "string",
@@ -1915,7 +1915,7 @@ async function executeUpdateEvent(input, userId) {
 }
 
 // ============================================
-// GENERATE IMAGE → GPT Image (gpt-image-1)
+// GENERATE IMAGE → GPT Image (gpt-image-1) with DALL-E 3 fallback
 // ============================================
 async function executeGenerateImage(input, userId) {
   const OPENAI_KEY = process.env.OPENAI_API_KEY;
@@ -1929,94 +1929,156 @@ async function executeGenerateImage(input, userId) {
     return { success: false, error: 'Prompt is required', action: 'generate_image' };
   }
   
-  // Map size names to dimensions (vertical is default for phone)
-  const sizeMap = {
-    'square': '1024x1024',
-    'vertical': '1024x1792',
-    'horizontal': '1792x1024'
-  };
-  const size = sizeMap[input.size] || '1024x1792'; // Default: vertical for phone
+  // Try GPT Image first, fallback to DALL-E 3
+  const models = ['gpt-image-1', 'dall-e-3'];
   
-  // Map quality to API parameter
-  const qualityMap = {
-    'low': 'low',
-    'medium': 'medium', 
-    'high': 'high'
-  };
-  const quality = qualityMap[input.quality] || 'medium';
-  
-  console.log('[generate_image] GPT Image:', input.prompt.substring(0, 50), '| size:', size, '| quality:', quality);
-  
-  try {
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-image-1',
+  for (const model of models) {
+    console.log(`[generate_image] Trying model: ${model}`);
+    
+    // Size mapping differs by model
+    let size;
+    if (model === 'gpt-image-1') {
+      // GPT Image: 1024x1024, 1024x1536 (portrait), 1536x1024 (landscape)
+      const sizeMap = {
+        'square': '1024x1024',
+        'vertical': '1024x1536',
+        'horizontal': '1536x1024'
+      };
+      size = sizeMap[input.size] || '1024x1536';
+    } else {
+      // DALL-E 3: 1024x1024, 1024x1792 (portrait), 1792x1024 (landscape)
+      const sizeMap = {
+        'square': '1024x1024',
+        'vertical': '1024x1792',
+        'horizontal': '1792x1024'
+      };
+      size = sizeMap[input.size] || '1024x1792';
+    }
+    
+    const quality = input.quality || 'standard'; // DALL-E uses 'standard'/'hd'
+    
+    console.log('[generate_image] Prompt:', input.prompt.substring(0, 100));
+    console.log('[generate_image] Size:', size);
+    
+    try {
+      const requestBody = {
+        model: model,
         prompt: input.prompt,
         n: 1,
-        size: size,
-        quality: quality,
-        response_format: 'b64_json'
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('[generate_image] API error:', response.status, errorData);
-      return { 
-        success: false, 
-        error: errorData.error?.message || `API error: ${response.status}`,
-        action: 'generate_image' 
+        size: size
       };
-    }
-    
-    const data = await response.json();
-    
-    if (!data.data || !data.data[0]) {
-      return { success: false, error: 'No image in response', action: 'generate_image' };
-    }
-    
-    const imageBase64 = data.data[0].b64_json;
-    const revisedPrompt = data.data[0].revised_prompt;
-    
-    console.log('[generate_image] Success! Size:', size, 'Quality:', quality);
-    
-    // Log cost (GPT Image pricing by quality)
-    const costMap = { 'low': 0.02, 'medium': 0.07, 'high': 0.19 };
-    const cost = costMap[quality] || 0.07;
-    try {
-      if (userId) {
-        await logApiCost({
-          provider: 'openai',
-          model: 'gpt-image-1',
-          tokens_input: 0,
-          tokens_output: 0,
-          user_id: userId,
-          action: 'generate_image',
-          extra: { size, quality, cost_usd: cost }
-        });
+      
+      // DALL-E 3 needs response_format for base64
+      if (model === 'dall-e-3') {
+        requestBody.response_format = 'b64_json';
       }
-    } catch (costErr) {
-      console.error('[generate_image] Cost log error:', costErr.message);
+      
+      console.log('[generate_image] Request body:', JSON.stringify(requestBody));
+      
+      const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_KEY}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      console.log('[generate_image] Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[generate_image] ${model} API error:`, errorText);
+        
+        // If gpt-image-1 fails, try DALL-E 3
+        if (model === 'gpt-image-1') {
+          console.log('[generate_image] gpt-image-1 failed, trying dall-e-3...');
+          continue;
+        }
+        
+        // DALL-E 3 also failed
+        let errorMessage = `API error: ${response.status}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorMessage;
+        } catch (e) {}
+        
+        return { 
+          success: false, 
+          error: errorMessage,
+          action: 'generate_image' 
+        };
+      }
+      
+      const data = await response.json();
+      console.log('[generate_image] Response keys:', Object.keys(data));
+      
+      if (!data.data || !data.data[0]) {
+        console.error('[generate_image] No data in response');
+        if (model === 'gpt-image-1') continue;
+        return { success: false, error: 'No image data', action: 'generate_image' };
+      }
+      
+      let imageBase64 = data.data[0].b64_json;
+      const revisedPrompt = data.data[0].revised_prompt;
+      
+      // If no b64_json, try URL
+      if (!imageBase64 && data.data[0].url) {
+        console.log('[generate_image] Fetching from URL...');
+        try {
+          const imgResponse = await fetch(data.data[0].url);
+          const arrayBuffer = await imgResponse.arrayBuffer();
+          imageBase64 = Buffer.from(arrayBuffer).toString('base64');
+        } catch (fetchErr) {
+          console.error('[generate_image] URL fetch failed:', fetchErr);
+          if (model === 'gpt-image-1') continue;
+          return { success: false, error: 'Failed to fetch image', action: 'generate_image' };
+        }
+      }
+      
+      if (!imageBase64) {
+        console.error('[generate_image] No image data');
+        if (model === 'gpt-image-1') continue;
+        return { success: false, error: 'No image in response', action: 'generate_image' };
+      }
+      
+      console.log(`[generate_image] SUCCESS with ${model}! Image length:`, imageBase64.length);
+      
+      // Log cost
+      const cost = model === 'gpt-image-1' ? 0.07 : (size === '1024x1024' ? 0.04 : 0.08);
+      try {
+        if (userId) {
+          await logApiCost({
+            provider: 'openai',
+            model: model,
+            tokens_input: 0,
+            tokens_output: 0,
+            user_id: userId,
+            action: 'generate_image',
+            extra: { size, cost_usd: cost }
+          });
+        }
+      } catch (costErr) {
+        console.error('[generate_image] Cost log error:', costErr.message);
+      }
+      
+      return {
+        success: true,
+        action: 'generate_image',
+        image: `data:image/png;base64,${imageBase64}`,
+        revised_prompt: revisedPrompt,
+        size: size,
+        model: model
+      };
+      
+    } catch (error) {
+      console.error(`[generate_image] ${model} exception:`, error.message);
+      if (model === 'gpt-image-1') continue;
+      return { success: false, error: error.message, action: 'generate_image' };
     }
-    
-    return {
-      success: true,
-      action: 'generate_image',
-      image: `data:image/png;base64,${imageBase64}`,
-      revised_prompt: revisedPrompt,
-      size: size,
-      quality: quality
-    };
-    
-  } catch (error) {
-    console.error('[generate_image] Exception:', error);
-    return { success: false, error: error.message, action: 'generate_image' };
   }
+  
+  return { success: false, error: 'All image models failed', action: 'generate_image' };
 }
 
 // ============================================
@@ -2304,6 +2366,15 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   } catch (costErr) {
     console.error('[Cost Log] Failed in streaming:', costErr.message);
   }
+  
+  // Log generateImage state before sending done
+  console.log('[Streaming] generateImageAction before done:', generateImageAction ? {
+    success: generateImageAction.success,
+    action: generateImageAction.action,
+    error: generateImageAction.error,
+    hasImage: !!generateImageAction.image,
+    imageLength: generateImageAction.image?.length || 0
+  } : 'null');
   
   // Send final event with metadata AND debug info
   sendEvent({ 
