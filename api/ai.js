@@ -551,6 +551,30 @@ const TOOLS = [
       },
       required: []
     }
+  },
+  {
+    name: "generate_image",
+    description: "Generate an image using GPT Image (gpt-image-1). Use when user asks to create, generate, draw, make an image, picture, illustration, infographic, visual. Can use images from chat as reference. Trigger phrases: 'create image...', 'generate picture...', 'draw...', 'make illustration...', 'нарисуй...', 'создай картинку...', 'сгенерируй изображение...', 'сделай на основе этого фото...'",
+    input_schema: {
+      type: "object",
+      properties: {
+        prompt: {
+          type: "string",
+          description: "Detailed description of the image to generate. Be specific about style, colors, composition. In English for best results. If user uploaded an image, describe what to create based on it."
+        },
+        size: {
+          type: "string",
+          enum: ["square", "vertical", "horizontal"],
+          description: "Image orientation: square (1024x1024), vertical (1024x1792 - BEST for phone, DEFAULT), horizontal (1792x1024). Default: vertical"
+        },
+        quality: {
+          type: "string",
+          enum: ["low", "medium", "high"],
+          description: "Image quality: low (~$0.02), medium (~$0.07), high (~$0.19). Default: medium"
+        }
+      },
+      required: ["prompt"]
+    }
   }
 ];
 
@@ -1001,6 +1025,35 @@ When user asks to see, list, or show reminders:
 - "Пришли как документ" → send_email(to: "мне", as_word: true)  
 - "Отправь word файл" → send_email(to: "мне", as_word: true)
 
+## 🎨 IMAGE GENERATION (GPT Image):
+
+Используй generate_image когда пользователь просит создать, нарисовать, сгенерировать изображение.
+
+**КЛЮЧЕВОЕ — Референс из чата:**
+- Если пользователь ЗАГРУЗИЛ ФОТО в чат, ты его ВИДИШЬ!
+- Можешь использовать это фото как референс для генерации
+- Опиши что видишь на фото + что пользователь хочет изменить/создать
+
+**Примеры:**
+- "Нарисуй котика" → generate_image(prompt: "A cute fluffy cat...")
+- [фото человека] + "Сделай в стиле аниме" → generate_image(prompt: "Anime style portrait of a person with [describe features from photo]...")
+- "Создай инфографику про кофе" → generate_image(prompt: "Clean infographic about coffee brewing methods...")
+
+**Размеры (size):**
+- vertical (1024x1792) — DEFAULT, лучший для телефона
+- square (1024x1024) — для аватаров, иконок
+- horizontal (1792x1024) — для баннеров
+
+**Качество (quality):**
+- low (~$0.02) — черновики
+- medium (~$0.07) — DEFAULT, хороший баланс
+- high (~$0.19) — финальные версии
+
+**ВАЖНО:**
+- Prompt ВСЕГДА на английском — качество выше
+- Будь конкретным: стиль, цвета, композиция, освещение
+- После генерации изображение появится в чате
+
 ## LANGUAGE:
 - Always respond in same language as user
 - Support Russian and English seamlessly`;
@@ -1271,6 +1324,10 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
     
     case 'update_event': {
       return await executeUpdateEvent(input, userId);
+    }
+    
+    case 'generate_image': {
+      return await executeGenerateImage(input, userId);
     }
     
     default:
@@ -1858,6 +1915,111 @@ async function executeUpdateEvent(input, userId) {
 }
 
 // ============================================
+// GENERATE IMAGE → GPT Image (gpt-image-1)
+// ============================================
+async function executeGenerateImage(input, userId) {
+  const OPENAI_KEY = process.env.OPENAI_API_KEY;
+  
+  if (!OPENAI_KEY) {
+    console.error('[generate_image] No OpenAI API key');
+    return { success: false, error: 'Image generation not configured', action: 'generate_image' };
+  }
+  
+  if (!input.prompt) {
+    return { success: false, error: 'Prompt is required', action: 'generate_image' };
+  }
+  
+  // Map size names to dimensions (vertical is default for phone)
+  const sizeMap = {
+    'square': '1024x1024',
+    'vertical': '1024x1792',
+    'horizontal': '1792x1024'
+  };
+  const size = sizeMap[input.size] || '1024x1792'; // Default: vertical for phone
+  
+  // Map quality to API parameter
+  const qualityMap = {
+    'low': 'low',
+    'medium': 'medium', 
+    'high': 'high'
+  };
+  const quality = qualityMap[input.quality] || 'medium';
+  
+  console.log('[generate_image] GPT Image:', input.prompt.substring(0, 50), '| size:', size, '| quality:', quality);
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-image-1',
+        prompt: input.prompt,
+        n: 1,
+        size: size,
+        quality: quality,
+        response_format: 'b64_json'
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[generate_image] API error:', response.status, errorData);
+      return { 
+        success: false, 
+        error: errorData.error?.message || `API error: ${response.status}`,
+        action: 'generate_image' 
+      };
+    }
+    
+    const data = await response.json();
+    
+    if (!data.data || !data.data[0]) {
+      return { success: false, error: 'No image in response', action: 'generate_image' };
+    }
+    
+    const imageBase64 = data.data[0].b64_json;
+    const revisedPrompt = data.data[0].revised_prompt;
+    
+    console.log('[generate_image] Success! Size:', size, 'Quality:', quality);
+    
+    // Log cost (GPT Image pricing by quality)
+    const costMap = { 'low': 0.02, 'medium': 0.07, 'high': 0.19 };
+    const cost = costMap[quality] || 0.07;
+    try {
+      if (userId) {
+        await logApiCost({
+          provider: 'openai',
+          model: 'gpt-image-1',
+          tokens_input: 0,
+          tokens_output: 0,
+          user_id: userId,
+          action: 'generate_image',
+          extra: { size, quality, cost_usd: cost }
+        });
+      }
+    } catch (costErr) {
+      console.error('[generate_image] Cost log error:', costErr.message);
+    }
+    
+    return {
+      success: true,
+      action: 'generate_image',
+      image: `data:image/png;base64,${imageBase64}`,
+      revised_prompt: revisedPrompt,
+      size: size,
+      quality: quality
+    };
+    
+  } catch (error) {
+    console.error('[generate_image] Exception:', error);
+    return { success: false, error: error.message, action: 'generate_image' };
+  }
+}
+
+// ============================================
 // PARSE SSE STREAM FROM CLAUDE
 // ============================================
 async function* parseSSEStream(response) {
@@ -1903,6 +2065,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   let deleteDropAction = null;
   let updateDropAction = null;
   let sendEmailAction = null;
+  let generateImageAction = null;
   
   // Use provided model or default to Sonnet
   const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
@@ -2092,6 +2255,12 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
           console.log('[send_email] Tracked:', JSON.stringify(toolResult));
         }
         
+        // Track generate_image action (v4.20)
+        if (toolBlock.name === 'generate_image') {
+          generateImageAction = toolResult;
+          console.log('[generate_image] Tracked, image size:', toolResult?.image?.length || 0);
+        }
+        
         // Notify client about tool result
         sendEvent({ 
           type: 'tool_result', 
@@ -2147,6 +2316,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     deleteDrop: deleteDropAction,
     updateDrop: updateDropAction,
     sendEmail: sendEmailAction,
+    generateImage: generateImageAction,
     usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens },
     _debug: debugInfo
   });
