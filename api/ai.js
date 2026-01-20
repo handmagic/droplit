@@ -1137,10 +1137,23 @@ When user asks to see, list, or show reminders:
 - "per day" / "по дням" / "за неделю" → по дням
 - "by creator" / "кто создал" → user vs aski
 
+**МНОЖЕСТВЕННЫЕ ГРАФИКИ:**
+- Если пользователь просит несколько графиков — создавай ВСЕ СРАЗУ!
+- Вызывай create_chart несколько раз подряд в одном ответе
+- Пример: "покажи все типы диаграмм" → вызови create_chart 4-5 раз с разными chart_type
+- НЕ жди подтверждения между графиками
+
 **ВАЖНО:**
 - Заголовок (title) на языке пользователя
 - График появится интерактивным в чате
 - Пользователь сможет сохранить как Chart Drop
+
+## 📄 ДЛИННЫЕ ОТВЕТЫ:
+
+Когда нужно дать большой ответ (договор, инструкция, документ):
+- Используй markdown для структуры (заголовки, списки)
+- Для очень длинных текстов (>2000 символов) — предложи создать drop или документ
+- Можешь разбить на логические части с заголовками
 
 ## LANGUAGE:
 - Always respond in same language as user
@@ -2504,7 +2517,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   let updateDropAction = null;
   let sendEmailAction = null;
   let generateImageAction = null;
-  let createChartAction = null;
+  let createChartActions = [];  // v4.22: массив для множественных графиков
   
   // Use provided model or default to Sonnet
   const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
@@ -2700,10 +2713,18 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
           console.log('[generate_image] Tracked, image size:', toolResult?.image?.length || 0);
         }
         
-        // Track create_chart action (v4.21)
+        // Track create_chart action (v4.22 - множественные графики)
         if (toolBlock.name === 'create_chart') {
-          createChartAction = toolResult;
-          console.log('[create_chart] Tracked, chart type:', toolResult?.chartType, 'labels:', toolResult?.chartConfig?.data?.labels?.length || 0);
+          createChartActions.push(toolResult);
+          console.log('[create_chart] Tracked #' + createChartActions.length + ', chart type:', toolResult?.chartType, 'labels:', toolResult?.chartConfig?.data?.labels?.length || 0);
+          
+          // СРАЗУ отправляем график клиенту (не ждём done)
+          if (toolResult?.success && toolResult?.chartConfig) {
+            sendEvent({
+              type: 'chart_ready',
+              chart: toolResult
+            });
+          }
         }
         
         // Notify client about tool result
@@ -2759,13 +2780,8 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     imageLength: generateImageAction.image?.length || 0
   } : 'null');
   
-  // Log createChart state before sending done
-  console.log('[Streaming] createChartAction before done:', createChartAction ? {
-    success: createChartAction.success,
-    action: createChartAction.action,
-    chartType: createChartAction.chartType,
-    labels: createChartAction.chartConfig?.data?.labels?.length || 0
-  } : 'null');
+  // Log createChart state before sending done (v4.22 - массив)
+  console.log('[Streaming] createChartActions before done:', createChartActions.length, 'charts');
   
   // Send final event with metadata AND debug info
   sendEvent({ 
@@ -2779,7 +2795,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     updateDrop: updateDropAction,
     sendEmail: sendEmailAction,
     generateImage: generateImageAction,
-    createChart: createChartAction,
+    createCharts: createChartActions,  // v4.22: массив графиков
     usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens },
     _debug: debugInfo
   });
