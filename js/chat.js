@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT CHAT v1.9 - Unified controls + Image attachment
+// DROPLIT CHAT v4.25 - Draft Persistence
 // ASKI Chat, Voice Mode, Streaming
 // ============================================
 
@@ -38,6 +38,110 @@ function getCurrentPersonaName() {
 let askAIMessages = [];
 let lastUserMessage = ''; // For retry functionality
 let askAIVoiceRecognition = null;
+
+// ============================================
+// CHAT DRAFT PERSISTENCE (v4.25)
+// Saves draft text and attached images immediately
+// Survives app close, "close all apps", crash
+// ============================================
+
+const DRAFT_STORAGE_KEY = 'droplit_chat_draft';
+const DRAFT_IMAGE_KEY = 'droplit_chat_draft_image';
+let draftSaveTimeout = null;
+
+// Save draft with debounce (300ms)
+function saveChatDraft(text) {
+  clearTimeout(draftSaveTimeout);
+  draftSaveTimeout = setTimeout(() => {
+    if (text && text.trim()) {
+      localStorage.setItem(DRAFT_STORAGE_KEY, text);
+      console.log('[Draft] Saved:', text.slice(0, 50) + '...');
+    } else {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  }, 300);
+}
+
+// Save attached image immediately (no debounce - user action)
+function saveChatDraftImage(imageData) {
+  if (imageData && imageData.data) {
+    try {
+      // Store in localStorage (base64 can be large, but usually OK for single image)
+      localStorage.setItem(DRAFT_IMAGE_KEY, JSON.stringify({
+        data: imageData.data,
+        name: imageData.name || 'image.jpg',
+        type: imageData.type || 'image/jpeg'
+      }));
+      console.log('[Draft] Image saved:', imageData.name);
+    } catch (e) {
+      // If too large for localStorage, just skip
+      console.warn('[Draft] Image too large for localStorage:', e.message);
+    }
+  }
+}
+
+// Clear draft image
+function clearChatDraftImage() {
+  localStorage.removeItem(DRAFT_IMAGE_KEY);
+  console.log('[Draft] Image cleared');
+}
+
+// Clear all drafts (after sending)
+function clearChatDraft() {
+  clearTimeout(draftSaveTimeout);
+  localStorage.removeItem(DRAFT_STORAGE_KEY);
+  localStorage.removeItem(DRAFT_IMAGE_KEY);
+  console.log('[Draft] Cleared all');
+}
+
+// Restore draft on app start
+function restoreChatDraft() {
+  const input = document.getElementById('askAIInput');
+  if (!input) return;
+  
+  // Restore text
+  const savedText = localStorage.getItem(DRAFT_STORAGE_KEY);
+  if (savedText) {
+    input.value = savedText;
+    console.log('[Draft] Restored text:', savedText.slice(0, 50) + '...');
+    
+    // Update char count if function exists
+    if (typeof updateAskAICharCount === 'function') {
+      updateAskAICharCount();
+    }
+  }
+  
+  // Restore image
+  const savedImageJson = localStorage.getItem(DRAFT_IMAGE_KEY);
+  if (savedImageJson) {
+    try {
+      const savedImage = JSON.parse(savedImageJson);
+      if (savedImage && savedImage.data) {
+        // Restore to window.chatAttachedImage
+        window.chatAttachedImage = savedImage;
+        
+        // Show preview
+        const preview = document.getElementById('chatImagePreview');
+        const img = document.getElementById('chatImagePreviewImg');
+        if (preview && img) {
+          img.src = savedImage.data;
+          preview.style.display = 'flex';
+        }
+        
+        // Update add button style
+        const addBtn = document.getElementById('askAIControlAdd');
+        if (addBtn) {
+          addBtn.classList.add('has-attachment');
+        }
+        
+        console.log('[Draft] Restored image:', savedImage.name);
+      }
+    } catch (e) {
+      console.warn('[Draft] Failed to restore image:', e.message);
+      localStorage.removeItem(DRAFT_IMAGE_KEY);
+    }
+  }
+}
 
 function openAskAI() {
   const panel = document.getElementById('askAIPanel');
@@ -201,6 +305,9 @@ function handleChatImageSelect(event) {
     
     console.log('[Image] Attached:', file.name, 'size:', Math.round(base64.length / 1024), 'KB');
     
+    // Save to draft for persistence (v4.25)
+    saveChatDraftImage(window.chatAttachedImage);
+    
     // Show preview
     const preview = document.getElementById('chatImagePreview');
     const img = document.getElementById('chatImagePreviewImg');
@@ -231,6 +338,9 @@ function handleChatImageSelect(event) {
 // Remove attached image
 function removeChatImage() {
   window.chatAttachedImage = null;
+  
+  // Clear from draft too (v4.25)
+  clearChatDraftImage();
   
   const preview = document.getElementById('chatImagePreview');
   if (preview) {
@@ -3754,6 +3864,9 @@ async function sendAskAIMessage() {
     return;
   }
   
+  // Clear draft immediately after getting data (v4.25)
+  clearChatDraft();
+  
   // LOCK voice mode while processing
   voiceModeLocked = true;
   askiIsProcessing = true;
@@ -4204,11 +4317,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const askAIInput = document.getElementById('askAIInput');
   if (askAIInput) {
     askAIInput.addEventListener('input', updateAskAICharCount);
+    
+    // Save draft on every input (debounced)
+    askAIInput.addEventListener('input', () => {
+      saveChatDraft(askAIInput.value);
+    });
+    
     askAIInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter' && !document.getElementById('askAISendBtn').disabled) {
         sendAskAIMessage();
       }
     });
+    
+    // Restore draft on load
+    restoreChatDraft();
   }
   
   // Load API key
