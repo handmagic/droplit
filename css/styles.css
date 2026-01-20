@@ -3205,3 +3205,17 @@ body.font-large .pv-counter { height: 36px; padding: 0 16px; font-size: 0.9rem; 
   }
 }
 
+
+/* Frozen chart image (v4.22) */
+.chart-frozen-image {
+  max-height: 300px;
+  width: 100%;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.chart-frozen-image:active {
+  transform: scale(0.98);
+}
+
