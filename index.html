@@ -59,8 +59,18 @@
   <!-- Onboarding System -->
   <script src="js/onboarding.js"></script>
   
-  <!-- Chart.js for Data Visualization (v0.9.118) -->
+  <!-- Chart.js for Data Visualization (v0.9.119) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  
+  <!-- Mermaid.js for Diagrams & Schemas (v0.9.119) -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ 
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose'
+    });
+  </script>
 
   <!-- ============================================
        DROPLIT PRIVACY SYSTEM v1.0
@@ -1415,7 +1425,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.118 • Syntrise Inc. © 2026</div>
+          <div class="menu-about-ver">v0.9.119 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1429,7 +1439,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.118 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.119 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -4122,7 +4132,7 @@ function render(){
         if(i.audioFormat)h+='<div class="audio-format">'+i.audioFormat.toUpperCase()+'</div>';
         h+='</div>';
       } else if(i.isMedia&&i.image){
-        // Chart drops: show title above image (v0.9.118)
+        // Chart drops: show title above image (v0.9.119)
         if(i.category === 'chart' && i.text){
           h+='<div class="chart-title">📊 '+esc(i.text)+'</div>';
         }
