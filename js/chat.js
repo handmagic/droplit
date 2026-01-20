@@ -792,84 +792,6 @@ function autoSaveImageAsDrop(imageUrl) {
   return newIdea;
 }
 
-// ============================================
-// SPLIT LONG TEXT INTO BUBBLES (v4.24)
-// ============================================
-function splitTextIntoBubbles(fullText, maxChars = 1000) {
-  if (!fullText || fullText.length <= maxChars) {
-    return [fullText];
-  }
-  
-  const bubbles = [];
-  const paragraphs = fullText.split(/\n\n+/);
-  let currentBubble = '';
-  
-  for (const para of paragraphs) {
-    // If adding this paragraph exceeds limit
-    if (currentBubble.length + para.length + 2 > maxChars) {
-      // If current bubble has content, save it
-      if (currentBubble.trim()) {
-        bubbles.push(currentBubble.trim());
-        currentBubble = '';
-      }
-      
-      // If single paragraph is too long, split by sentences
-      if (para.length > maxChars) {
-        const sentences = para.split(/(?<=[.!?])\s+/);
-        for (const sentence of sentences) {
-          if (currentBubble.length + sentence.length + 1 > maxChars) {
-            if (currentBubble.trim()) {
-              bubbles.push(currentBubble.trim());
-              currentBubble = '';
-            }
-          }
-          currentBubble += (currentBubble ? ' ' : '') + sentence;
-        }
-      } else {
-        currentBubble = para;
-      }
-    } else {
-      currentBubble += (currentBubble ? '\n\n' : '') + para;
-    }
-  }
-  
-  // Don't forget last bubble
-  if (currentBubble.trim()) {
-    bubbles.push(currentBubble.trim());
-  }
-  
-  return bubbles;
-}
-
-// Render additional bubbles for long response
-function renderAdditionalBubbles(bubbles, startIndex = 1) {
-  const messagesDiv = document.getElementById('askAIMessages');
-  if (!messagesDiv) return;
-  
-  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  
-  for (let i = startIndex; i < bubbles.length; i++) {
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'ask-ai-message ai continuation-bubble';
-    msgDiv.dataset.bubbleIndex = i + 1;
-    msgDiv.dataset.totalBubbles = bubbles.length;
-    
-    const bubbleContent = typeof window.renderMarkdown === 'function' 
-      ? window.renderMarkdown(bubbles[i])
-      : bubbles[i].replace(/\n/g, '<br>');
-    
-    msgDiv.innerHTML = `
-      <div class="ask-ai-bubble">${bubbleContent}</div>
-      <div class="ask-ai-time">${time} • ${i + 1}/${bubbles.length}</div>
-    `;
-    
-    messagesDiv.appendChild(msgDiv);
-  }
-  
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  console.log('[Bubbles] Rendered', bubbles.length, 'bubbles');
-}
-
 // Helper: escape HTML
 function escapeHtml(text) {
   if (!text) return '';
@@ -3242,34 +3164,6 @@ async function handleStreamingResponse(response) {
                 setTimeout(() => {
                   window._renderedChartIds = new Set();
                 }, 2000);
-              }
-              
-              // Split long text into multiple bubbles (v4.24)
-              if (fullText && fullText.length > 1000) {
-                const bubbles = splitTextIntoBubbles(fullText, 1000);
-                if (bubbles.length > 1) {
-                  console.log('[Bubbles] Long response detected:', fullText.length, 'chars →', bubbles.length, 'bubbles');
-                  
-                  // Update first bubble with first part only
-                  const bubble = msgDiv.querySelector('.ask-ai-bubble');
-                  if (bubble) {
-                    const firstBubbleContent = typeof window.renderMarkdown === 'function'
-                      ? window.renderMarkdown(bubbles[0])
-                      : bubbles[0].replace(/\n/g, '<br>');
-                    bubble.innerHTML = firstBubbleContent;
-                    
-                    // Add indicator
-                    const timeDiv = msgDiv.querySelector('.ask-ai-time');
-                    if (timeDiv) {
-                      timeDiv.textContent += ' • 1/' + bubbles.length;
-                    }
-                  }
-                  
-                  // Render additional bubbles
-                  setTimeout(() => {
-                    renderAdditionalBubbles(bubbles, 1);
-                  }, 100);
-                }
               }
             }
             
