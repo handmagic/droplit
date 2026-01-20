@@ -3048,24 +3048,28 @@ async function handleStreamingResponse(response) {
             const parsed = JSON.parse(data);
             
             // DEBUG: Log event types (v4.22)
-            if (parsed.type && parsed.type !== 'text') {
-              console.log('[SSE Event]', parsed.type, 
-                parsed.type === 'chart_ready' ? parsed.chart?.title : 
-                parsed.type === 'structured_ready' ? ('DOC: ' + parsed.document?.title + ' sections:' + parsed.document?.sections?.length) : 
-                parsed.type === 'tool_result' ? parsed.tool : '');
-              
-              // Extra debug for structured_ready
-              if (parsed.type === 'structured_ready') {
-                console.log('[Structured DEBUG] Full event:', JSON.stringify(parsed, null, 2));
+            try {
+              if (parsed.type && parsed.type !== 'text') {
+                console.log('[SSE Event]', parsed.type, 
+                  parsed.type === 'chart_ready' ? parsed.chart?.title : 
+                  parsed.type === 'structured_ready' ? ('DOC: ' + parsed.document?.title + ' sections:' + parsed.document?.sections?.length) : 
+                  parsed.type === 'tool_result' ? parsed.tool : '');
+                
+                // Extra debug for structured_ready
+                if (parsed.type === 'structured_ready') {
+                  console.log('[Structured DEBUG] Event received, document keys:', Object.keys(parsed.document || {}));
+                }
+                
+                // Debug event from server (v4.23)
+                if (parsed.type === 'debug') {
+                  console.log('[SERVER DEBUG] stopReason:', parsed.stopReason);
+                  console.log('[SERVER DEBUG] contentBlocks:', parsed.contentBlocksCount);
+                  console.log('[SERVER DEBUG] toolBlocks:', parsed.toolBlocksCount);
+                  console.log('[SERVER DEBUG] blockTypes:', parsed.blockTypes);
+                }
               }
-              
-              // Debug event from server (v4.23)
-              if (parsed.type === 'debug') {
-                console.log('[SERVER DEBUG] stopReason:', parsed.stopReason);
-                console.log('[SERVER DEBUG] contentBlocks:', parsed.contentBlocksCount);
-                console.log('[SERVER DEBUG] toolBlocks:', parsed.toolBlocksCount);
-                console.log('[SERVER DEBUG] blockTypes:', parsed.blockTypes);
-              }
+            } catch (logErr) {
+              console.error('[SSE] Error in event logging:', logErr);
             }
             
             // New API v4.5 format
@@ -3129,28 +3133,36 @@ async function handleStreamingResponse(response) {
             
             // Structured response event (v4.23 - collapsible documents)
             if (parsed.type === 'structured_ready') {
-              console.log('[Structured] ✅ Event received! Document:', JSON.stringify({
-                title: parsed.document?.title,
-                type: parsed.document?.type,
-                sectionsCount: parsed.document?.sections?.length,
-                success: parsed.document?.success
-              }));
-              
-              if (parsed.document?.sections?.length > 0) {
-                // Track rendered documents to avoid duplicates
-                if (!window._renderedDocIds) window._renderedDocIds = new Set();
-                const docId = parsed.document.type + '_' + (parsed.document.title || Date.now());
-                console.log('[Structured] DocId:', docId, 'Already rendered?', window._renderedDocIds.has(docId));
+              try {
+                console.log('[Structured] ✅ Event received! Document:', JSON.stringify({
+                  title: parsed.document?.title,
+                  type: parsed.document?.type,
+                  sectionsCount: parsed.document?.sections?.length,
+                  success: parsed.document?.success
+                }));
                 
-                if (!window._renderedDocIds.has(docId)) {
-                  window._renderedDocIds.add(docId);
-                  console.log('[Structured] Calling renderStructuredResponse...');
-                  setTimeout(() => {
-                    renderStructuredResponse(parsed.document);
-                  }, 100);
+                if (parsed.document?.sections?.length > 0) {
+                  // Track rendered documents to avoid duplicates
+                  if (!window._renderedDocIds) window._renderedDocIds = new Set();
+                  const docId = parsed.document.type + '_' + (parsed.document.title || Date.now());
+                  console.log('[Structured] DocId:', docId, 'Already rendered?', window._renderedDocIds.has(docId));
+                  
+                  if (!window._renderedDocIds.has(docId)) {
+                    window._renderedDocIds.add(docId);
+                    console.log('[Structured] Calling renderStructuredResponse...');
+                    setTimeout(() => {
+                      try {
+                        renderStructuredResponse(parsed.document);
+                      } catch (renderErr) {
+                        console.error('[Structured] Render error:', renderErr);
+                      }
+                    }, 100);
+                  }
+                } else {
+                  console.log('[Structured] ❌ No sections in document!');
                 }
-              } else {
-                console.log('[Structured] ❌ No sections in document!');
+              } catch (structErr) {
+                console.error('[Structured] Error processing event:', structErr);
               }
             }
             
@@ -3508,6 +3520,9 @@ async function handleStreamingResponse(response) {
     }
   } catch (e) {
     console.error('Streaming error:', e);
+    console.error('Streaming error stack:', e.stack);
+    console.error('Streaming error name:', e.name);
+    console.error('Streaming error message:', e.message);
   }
   
   if (indicator) indicator.remove();
@@ -3860,6 +3875,8 @@ async function sendAskAIMessage() {
 	await handleStreamingResponse(response);
 	} catch (e) {
 	console.error('Streaming error:', e);
+	console.error('Streaming error stack:', e.stack);
+	console.error('Streaming error message:', e.message);
 	}
 	return;
 	}
