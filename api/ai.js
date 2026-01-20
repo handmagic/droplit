@@ -575,6 +575,57 @@ const TOOLS = [
       },
       required: ["prompt"]
     }
+  },
+  {
+    name: "create_chart",
+    description: "Create a data visualization chart from user's drops or provided data. Use when user asks for statistics, analytics, graphs, charts, visualizations of their data. Trigger phrases: 'покажи статистику...', 'построй график...', 'сколько у меня...', 'визуализируй...', 'диаграмма...', 'show stats...', 'chart of...', 'visualize...'",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: {
+          type: "string",
+          description: "Chart title in user's language"
+        },
+        chart_type: {
+          type: "string",
+          enum: ["bar", "line", "pie", "doughnut", "polarArea", "radar"],
+          description: "Chart type: bar (comparison), line (trends over time), pie/doughnut (proportions), polarArea (categories), radar (multiple metrics)"
+        },
+        data_source: {
+          type: "string",
+          enum: ["drops", "manual"],
+          description: "Data source: 'drops' to analyze user's drops, 'manual' for provided data"
+        },
+        query: {
+          type: "string",
+          description: "What to analyze. Examples: 'tasks by category', 'drops per day this week', 'ideas vs bugs ratio'"
+        },
+        filters: {
+          type: "object",
+          description: "Filters for drops query",
+          properties: {
+            categories: { type: "array", items: { type: "string" }, description: "Filter by categories: tasks, ideas, bugs, etc." },
+            period: { type: "string", enum: ["today", "week", "month", "all"], description: "Time period" },
+            creator: { type: "string", enum: ["user", "aski", "all"], description: "Who created" }
+          }
+        },
+        manual_data: {
+          type: "object",
+          description: "Manual data if data_source is 'manual'",
+          properties: {
+            labels: { type: "array", items: { type: "string" }, description: "X-axis labels" },
+            values: { type: "array", items: { type: "number" }, description: "Data values" },
+            dataset_label: { type: "string", description: "Dataset label for legend" }
+          }
+        },
+        colors: {
+          type: "string",
+          enum: ["default", "warm", "cool", "monochrome", "rainbow"],
+          description: "Color scheme. Default: auto-selected based on chart type"
+        }
+      },
+      required: ["title", "chart_type"]
+    }
   }
 ];
 
@@ -1054,6 +1105,43 @@ When user asks to see, list, or show reminders:
 - Будь конкретным: стиль, цвета, композиция, освещение
 - После генерации изображение появится в чате
 
+## 📊 DATA VISUALIZATION (Chart.js):
+
+Используй create_chart когда пользователь просит статистику, график, диаграмму, визуализацию своих данных.
+
+**Триггеры:**
+- "Покажи статистику дропов"
+- "Сколько у меня задач?"
+- "График активности за неделю"
+- "Распределение по категориям"
+- "Визуализируй мои данные"
+
+**Типы графиков (chart_type):**
+- bar — сравнение категорий (DEFAULT)
+- line — тренды во времени
+- pie / doughnut — пропорции
+- polarArea — радиальное сравнение
+- radar — множественные метрики
+
+**Источники данных (data_source):**
+- drops — анализ дропов пользователя (DEFAULT)
+- manual — данные из разговора
+
+**Фильтры (filters):**
+- categories: ['tasks', 'ideas', 'bugs'] — по категориям
+- period: 'today' | 'week' | 'month' | 'all' — за период
+- creator: 'user' | 'aski' | 'all' — кто создал
+
+**Примеры запросов (query):**
+- "by category" / "по категориям" → группировка по category
+- "per day" / "по дням" / "за неделю" → по дням
+- "by creator" / "кто создал" → user vs aski
+
+**ВАЖНО:**
+- Заголовок (title) на языке пользователя
+- График появится интерактивным в чате
+- Пользователь сможет сохранить как Chart Drop
+
 ## LANGUAGE:
 - Always respond in same language as user
 - Support Russian and English seamlessly`;
@@ -1328,6 +1416,10 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
     
     case 'generate_image': {
       return await executeGenerateImage(input, userId);
+    }
+    
+    case 'create_chart': {
+      return await executeCreateChart(input, userId, currentFeed);
     }
     
     default:
@@ -2082,6 +2174,290 @@ async function executeGenerateImage(input, userId) {
 }
 
 // ============================================
+// CREATE CHART → Chart.js Visualization
+// ============================================
+async function executeCreateChart(input, userId, currentFeed = []) {
+  console.log('[create_chart] Starting chart creation');
+  console.log('[create_chart] Input:', JSON.stringify(input, null, 2));
+  
+  const title = input.title || 'Chart';
+  const chartType = input.chart_type || 'bar';
+  const dataSource = input.data_source || 'drops';
+  const query = input.query || '';
+  const filters = input.filters || {};
+  const manualData = input.manual_data || null;
+  const colorScheme = input.colors || 'default';
+  
+  let labels = [];
+  let values = [];
+  let datasetLabel = title;
+  
+  // ═══════════════════════════════════════
+  // ANALYZE DROPS IF data_source = 'drops'
+  // ═══════════════════════════════════════
+  if (dataSource === 'drops' && currentFeed.length > 0) {
+    console.log('[create_chart] Analyzing', currentFeed.length, 'drops');
+    
+    // Apply filters
+    let filteredDrops = [...currentFeed];
+    
+    // Filter by categories
+    if (filters.categories && filters.categories.length > 0) {
+      filteredDrops = filteredDrops.filter(d => filters.categories.includes(d.category));
+    }
+    
+    // Filter by period
+    if (filters.period) {
+      const now = new Date();
+      let cutoff;
+      switch (filters.period) {
+        case 'today':
+          cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          cutoff = new Date(now - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          cutoff = new Date(now - 30 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          cutoff = null;
+      }
+      if (cutoff) {
+        filteredDrops = filteredDrops.filter(d => {
+          const dropDate = d.timestamp ? new Date(d.timestamp) : parseRuDate(d.date);
+          return dropDate >= cutoff;
+        });
+      }
+    }
+    
+    // Filter by creator
+    if (filters.creator && filters.creator !== 'all') {
+      filteredDrops = filteredDrops.filter(d => d.creator === filters.creator);
+    }
+    
+    console.log('[create_chart] After filters:', filteredDrops.length, 'drops');
+    
+    // Determine analysis type based on query
+    const queryLower = (query || '').toLowerCase();
+    
+    if (queryLower.includes('by category') || queryLower.includes('по категори') || queryLower.includes('распределение')) {
+      // Group by category
+      const categoryCount = {};
+      filteredDrops.forEach(d => {
+        const cat = d.category || 'inbox';
+        categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+      });
+      labels = Object.keys(categoryCount);
+      values = Object.values(categoryCount);
+      datasetLabel = 'Drops by category';
+      
+    } else if (queryLower.includes('per day') || queryLower.includes('by day') || queryLower.includes('по дням') || queryLower.includes('за неделю')) {
+      // Group by day (last 7 days)
+      const dayCount = {};
+      const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      
+      // Initialize last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const key = date.toLocaleDateString('ru-RU');
+        dayCount[key] = 0;
+      }
+      
+      filteredDrops.forEach(d => {
+        const key = d.date;
+        if (dayCount.hasOwnProperty(key)) {
+          dayCount[key]++;
+        }
+      });
+      
+      labels = Object.keys(dayCount);
+      values = Object.values(dayCount);
+      datasetLabel = 'Drops per day';
+      
+    } else if (queryLower.includes('creator') || queryLower.includes('автор') || queryLower.includes('кто создал')) {
+      // Group by creator
+      const creatorCount = { user: 0, aski: 0 };
+      filteredDrops.forEach(d => {
+        const creator = d.creator || 'user';
+        creatorCount[creator] = (creatorCount[creator] || 0) + 1;
+      });
+      labels = Object.keys(creatorCount);
+      values = Object.values(creatorCount);
+      datasetLabel = 'By creator';
+      
+    } else {
+      // Default: count by category
+      const categoryCount = {};
+      filteredDrops.forEach(d => {
+        const cat = d.category || 'inbox';
+        categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+      });
+      labels = Object.keys(categoryCount);
+      values = Object.values(categoryCount);
+      datasetLabel = 'Drops';
+    }
+    
+  } else if (dataSource === 'manual' && manualData) {
+    // Use manually provided data
+    labels = manualData.labels || [];
+    values = manualData.values || [];
+    datasetLabel = manualData.dataset_label || title;
+  }
+  
+  // Fallback if no data
+  if (labels.length === 0) {
+    console.log('[create_chart] No data found, using sample');
+    labels = ['No data'];
+    values = [0];
+  }
+  
+  console.log('[create_chart] Labels:', labels);
+  console.log('[create_chart] Values:', values);
+  
+  // ═══════════════════════════════════════
+  // COLOR SCHEMES
+  // ═══════════════════════════════════════
+  const colorSchemes = {
+    default: [
+      'rgba(99, 102, 241, 0.8)',   // Indigo
+      'rgba(236, 72, 153, 0.8)',   // Pink
+      'rgba(34, 197, 94, 0.8)',    // Green
+      'rgba(249, 115, 22, 0.8)',   // Orange
+      'rgba(14, 165, 233, 0.8)',   // Sky
+      'rgba(168, 85, 247, 0.8)',   // Purple
+      'rgba(234, 179, 8, 0.8)',    // Yellow
+      'rgba(239, 68, 68, 0.8)'     // Red
+    ],
+    warm: [
+      'rgba(239, 68, 68, 0.8)',
+      'rgba(249, 115, 22, 0.8)',
+      'rgba(234, 179, 8, 0.8)',
+      'rgba(236, 72, 153, 0.8)',
+      'rgba(251, 146, 60, 0.8)',
+      'rgba(248, 113, 113, 0.8)'
+    ],
+    cool: [
+      'rgba(14, 165, 233, 0.8)',
+      'rgba(99, 102, 241, 0.8)',
+      'rgba(168, 85, 247, 0.8)',
+      'rgba(6, 182, 212, 0.8)',
+      'rgba(34, 197, 94, 0.8)',
+      'rgba(45, 212, 191, 0.8)'
+    ],
+    monochrome: [
+      'rgba(99, 102, 241, 1.0)',
+      'rgba(99, 102, 241, 0.8)',
+      'rgba(99, 102, 241, 0.6)',
+      'rgba(99, 102, 241, 0.4)',
+      'rgba(99, 102, 241, 0.3)',
+      'rgba(99, 102, 241, 0.2)'
+    ],
+    rainbow: [
+      'rgba(239, 68, 68, 0.8)',
+      'rgba(249, 115, 22, 0.8)',
+      'rgba(234, 179, 8, 0.8)',
+      'rgba(34, 197, 94, 0.8)',
+      'rgba(14, 165, 233, 0.8)',
+      'rgba(99, 102, 241, 0.8)',
+      'rgba(168, 85, 247, 0.8)',
+      'rgba(236, 72, 153, 0.8)'
+    ]
+  };
+  
+  const colors = colorSchemes[colorScheme] || colorSchemes.default;
+  const backgroundColors = values.map((_, i) => colors[i % colors.length]);
+  const borderColors = backgroundColors.map(c => c.replace('0.8', '1'));
+  
+  // ═══════════════════════════════════════
+  // BUILD CHART.JS CONFIG
+  // ═══════════════════════════════════════
+  const chartConfig = {
+    type: chartType,
+    data: {
+      labels: labels,
+      datasets: [{
+        label: datasetLabel,
+        data: values,
+        backgroundColor: backgroundColors,
+        borderColor: borderColors,
+        borderWidth: chartType === 'line' ? 2 : 1,
+        tension: chartType === 'line' ? 0.3 : 0,
+        fill: chartType === 'line' ? false : true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        title: {
+          display: true,
+          text: title,
+          font: { size: 16, weight: 'bold' },
+          color: '#1f2937'
+        },
+        legend: {
+          display: ['pie', 'doughnut', 'polarArea'].includes(chartType),
+          position: 'bottom',
+          labels: { 
+            font: { size: 12 },
+            padding: 15,
+            usePointStyle: true
+          }
+        }
+      },
+      scales: ['pie', 'doughnut', 'polarArea', 'radar'].includes(chartType) ? {} : {
+        y: {
+          beginAtZero: true,
+          ticks: { 
+            font: { size: 11 },
+            color: '#6b7280'
+          },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        x: {
+          ticks: { 
+            font: { size: 11 },
+            color: '#6b7280'
+          },
+          grid: { display: false }
+        }
+      }
+    }
+  };
+  
+  console.log('[create_chart] Chart config ready');
+  
+  // ═══════════════════════════════════════
+  // RETURN CONFIG (frontend will render)
+  // ═══════════════════════════════════════
+  return {
+    success: true,
+    action: 'create_chart',
+    chartConfig: chartConfig,
+    chartDataSource: {
+      type: dataSource,
+      query: query,
+      filters: filters,
+      dropCount: dataSource === 'drops' ? currentFeed.length : 0,
+      resultCount: labels.length
+    },
+    title: title,
+    chartType: chartType
+  };
+}
+
+// Helper: parse Russian date format
+function parseRuDate(dateStr) {
+  if (!dateStr) return new Date(0);
+  const parts = dateStr.split('.');
+  if (parts.length !== 3) return new Date(0);
+  const [d, m, y] = parts.map(Number);
+  return new Date(y, m - 1, d);
+}
+
+// ============================================
 // PARSE SSE STREAM FROM CLAUDE
 // ============================================
 async function* parseSSEStream(response) {
@@ -2128,6 +2504,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   let updateDropAction = null;
   let sendEmailAction = null;
   let generateImageAction = null;
+  let createChartAction = null;
   
   // Use provided model or default to Sonnet
   const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
@@ -2323,6 +2700,12 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
           console.log('[generate_image] Tracked, image size:', toolResult?.image?.length || 0);
         }
         
+        // Track create_chart action (v4.21)
+        if (toolBlock.name === 'create_chart') {
+          createChartAction = toolResult;
+          console.log('[create_chart] Tracked, chart type:', toolResult?.chartType, 'labels:', toolResult?.chartConfig?.data?.labels?.length || 0);
+        }
+        
         // Notify client about tool result
         sendEvent({ 
           type: 'tool_result', 
@@ -2376,6 +2759,14 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     imageLength: generateImageAction.image?.length || 0
   } : 'null');
   
+  // Log createChart state before sending done
+  console.log('[Streaming] createChartAction before done:', createChartAction ? {
+    success: createChartAction.success,
+    action: createChartAction.action,
+    chartType: createChartAction.chartType,
+    labels: createChartAction.chartConfig?.data?.labels?.length || 0
+  } : 'null');
+  
   // Send final event with metadata AND debug info
   sendEvent({ 
     type: 'done',
@@ -2388,6 +2779,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     updateDrop: updateDropAction,
     sendEmail: sendEmailAction,
     generateImage: generateImageAction,
+    createChart: createChartAction,
     usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens },
     _debug: debugInfo
   });
