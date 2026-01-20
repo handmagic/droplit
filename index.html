@@ -68,7 +68,33 @@
     mermaid.initialize({ 
       startOnLoad: false,
       theme: 'default',
-      securityLevel: 'loose'
+      securityLevel: 'loose',
+      flowchart: {
+        useMaxWidth: false,
+        htmlLabels: true,
+        curve: 'basis'
+      },
+      sequence: {
+        useMaxWidth: false,
+        diagramMarginX: 20,
+        diagramMarginY: 20,
+        actorMargin: 80,
+        width: 180,
+        height: 60
+      },
+      mindmap: {
+        useMaxWidth: false
+      },
+      er: {
+        useMaxWidth: false,
+        minEntityWidth: 120,
+        minEntityHeight: 60
+      },
+      gantt: {
+        useMaxWidth: false,
+        barHeight: 30,
+        fontSize: 14
+      }
     });
   </script>
 
@@ -4132,11 +4158,14 @@ function render(){
         if(i.audioFormat)h+='<div class="audio-format">'+i.audioFormat.toUpperCase()+'</div>';
         h+='</div>';
       } else if(i.isMedia&&i.image){
-        // Chart drops: show title above image (v0.9.119)
+        // Chart/Diagram drops: show title above image (v0.9.119)
         if(i.category === 'chart' && i.text){
           h+='<div class="chart-title">📊 '+esc(i.text)+'</div>';
         }
-        h+='<img class="card-image'+(i.category==='chart'?' chart-preview':'')+'" src="'+i.image+'" alt="'+(i.category==='chart'?'Chart':'Photo')+'" loading="lazy">';
+        if(i.category === 'diagram' && i.text){
+          h+='<div class="chart-title">📐 '+esc(i.text)+'</div>';
+        }
+        h+='<img class="card-image'+((i.category==='chart'||i.category==='diagram')?' chart-preview':'')+'" src="'+i.image+'" alt="'+(i.category==='chart'?'Chart':i.category==='diagram'?'Diagram':'Photo')+'" loading="lazy">';
         // Show date/geo and notes under image
         h+='<div class="card-media-meta">';
         h+='<span>'+i.date+' '+i.time+'</span>';
