@@ -792,6 +792,279 @@ function autoSaveImageAsDrop(imageUrl) {
   return newIdea;
 }
 
+// ============================================
+// STRUCTURED RESPONSE RENDERING (v4.23)
+// ============================================
+function renderStructuredResponse(docData) {
+  const messagesDiv = document.getElementById('askAIMessages');
+  if (!messagesDiv) return;
+  
+  const msgId = 'structured-' + Date.now();
+  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'ask-ai-message ai structured-message';
+  msgDiv.id = msgId;
+  msgDiv.dataset.docData = JSON.stringify(docData);
+  
+  // Build sections HTML
+  let sectionsHtml = '';
+  docData.sections.forEach((section, idx) => {
+    const isCollapsed = section.collapsed !== false && idx > 0;
+    sectionsHtml += `
+      <div class="structured-section ${isCollapsed ? 'collapsed' : 'expanded'}" data-section-id="${section.id}">
+        <div class="structured-section-header" onclick="toggleStructuredSection('${section.id}')">
+          <span class="structured-section-arrow">${isCollapsed ? '▶' : '▼'}</span>
+          <span class="structured-section-title">${escapeHtml(section.title)}</span>
+          <span class="structured-section-words">${section.wordCount} слов</span>
+        </div>
+        <div class="structured-section-content" style="${isCollapsed ? 'display: none;' : ''}">
+          ${renderMarkdown ? renderMarkdown(section.content) : escapeHtml(section.content)}
+        </div>
+      </div>
+    `;
+  });
+  
+  // Build actions HTML
+  let actionsHtml = '';
+  const actionButtons = {
+    copy: { icon: '📋', label: 'Copy', onclick: `copyStructuredContent('${msgId}')` },
+    save_drop: { icon: '💧', label: 'Save Drop', onclick: `saveStructuredAsDrop('${msgId}')` },
+    download_txt: { icon: '📥', label: 'TXT', onclick: `downloadStructuredAsTxt('${msgId}')` },
+    email: { icon: '📧', label: 'Email', onclick: `emailStructured('${msgId}')` }
+  };
+  
+  (docData.actions || ['copy', 'save_drop']).forEach(action => {
+    const btn = actionButtons[action];
+    if (btn) {
+      actionsHtml += `<button class="ask-ai-action-btn" onclick="${btn.onclick}">${btn.icon} ${btn.label}</button>`;
+    }
+  });
+  
+  // Add expand/collapse all button
+  actionsHtml += `<button class="ask-ai-action-btn" onclick="toggleAllSections('${msgId}')">📂 Expand All</button>`;
+  
+  msgDiv.innerHTML = `
+    <div class="structured-container">
+      <div class="structured-header">
+        <span class="structured-icon">${docData.icon || '📄'}</span>
+        <span class="structured-title">${escapeHtml(docData.title)}</span>
+      </div>
+      ${docData.summary ? `<div class="structured-summary">${escapeHtml(docData.summary)}</div>` : ''}
+      <div class="structured-stats">
+        ${docData.stats.sectionCount} секций • ${docData.stats.totalWords} слов
+      </div>
+      <div class="structured-sections">
+        ${sectionsHtml}
+      </div>
+    </div>
+    <div class="ask-ai-actions" style="margin-top: 12px; flex-wrap: wrap; gap: 4px;">
+      ${actionsHtml}
+    </div>
+    <div class="ask-ai-time">${time}</div>
+  `;
+  
+  messagesDiv.appendChild(msgDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  
+  console.log('[Structured] Rendered:', docData.title, docData.stats.sectionCount, 'sections');
+  toast(`${docData.icon || '📄'} ${docData.title}`, 'success');
+}
+
+// Toggle section expand/collapse
+function toggleStructuredSection(sectionId) {
+  const section = document.querySelector(`[data-section-id="${sectionId}"]`);
+  if (!section) return;
+  
+  const content = section.querySelector('.structured-section-content');
+  const arrow = section.querySelector('.structured-section-arrow');
+  const isCollapsed = section.classList.contains('collapsed');
+  
+  if (isCollapsed) {
+    section.classList.remove('collapsed');
+    section.classList.add('expanded');
+    content.style.display = '';
+    arrow.textContent = '▼';
+  } else {
+    section.classList.remove('expanded');
+    section.classList.add('collapsed');
+    content.style.display = 'none';
+    arrow.textContent = '▶';
+  }
+}
+
+// Toggle all sections
+function toggleAllSections(msgId) {
+  const msgDiv = document.getElementById(msgId);
+  if (!msgDiv) return;
+  
+  const sections = msgDiv.querySelectorAll('.structured-section');
+  const allExpanded = [...sections].every(s => s.classList.contains('expanded'));
+  
+  sections.forEach(section => {
+    const content = section.querySelector('.structured-section-content');
+    const arrow = section.querySelector('.structured-section-arrow');
+    
+    if (allExpanded) {
+      section.classList.remove('expanded');
+      section.classList.add('collapsed');
+      content.style.display = 'none';
+      arrow.textContent = '▶';
+    } else {
+      section.classList.remove('collapsed');
+      section.classList.add('expanded');
+      content.style.display = '';
+      arrow.textContent = '▼';
+    }
+  });
+  
+  // Update button text
+  const btn = msgDiv.querySelector('.ask-ai-actions button:last-of-type');
+  if (btn) {
+    btn.innerHTML = allExpanded ? '📂 Expand All' : '📁 Collapse All';
+  }
+}
+
+// Copy structured content as text
+function copyStructuredContent(msgId) {
+  const msgDiv = document.getElementById(msgId);
+  if (!msgDiv) return;
+  
+  try {
+    const docData = JSON.parse(msgDiv.dataset.docData);
+    let text = docData.title + '\n\n';
+    if (docData.summary) text += docData.summary + '\n\n';
+    
+    docData.sections.forEach(section => {
+      text += '## ' + section.title + '\n\n';
+      text += section.content + '\n\n';
+    });
+    
+    navigator.clipboard.writeText(text.trim());
+    toast('📋 Скопировано!', 'success');
+  } catch (e) {
+    console.error('[Structured] Copy error:', e);
+    toast('Ошибка копирования', 'error');
+  }
+}
+
+// Save structured response as drop
+function saveStructuredAsDrop(msgId) {
+  const msgDiv = document.getElementById(msgId);
+  if (!msgDiv) return;
+  
+  try {
+    const docData = JSON.parse(msgDiv.dataset.docData);
+    
+    // Combine all content
+    let fullText = docData.title + '\n\n';
+    if (docData.summary) fullText += docData.summary + '\n\n';
+    docData.sections.forEach(section => {
+      fullText += '## ' + section.title + '\n\n' + section.content + '\n\n';
+    });
+    
+    const now = new Date();
+    const drop = {
+      id: Date.now(),
+      text: fullText.trim(),
+      category: 'ideas', // or determine from docData.type
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('ru-RU'),
+      time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      creator: 'aski',
+      source: 'structured_response',
+      structuredType: docData.type,
+      sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null
+    };
+    
+    if (typeof ideas !== 'undefined') {
+      ideas.unshift(drop);
+    }
+    if (typeof save === 'function') save(drop);
+    if (typeof counts === 'function') counts();
+    if (typeof playDropSound === 'function') playDropSound();
+    
+    // Update button
+    const btn = msgDiv.querySelector('[onclick*="saveStructuredAsDrop"]');
+    if (btn) {
+      btn.innerHTML = '✅ Saved';
+      btn.disabled = true;
+    }
+    
+    toast('💧 Сохранено как drop!', 'success');
+    
+    // Sync if available
+    if (typeof syncDropToSyntrise === 'function') {
+      syncDropToSyntrise(drop);
+    }
+  } catch (e) {
+    console.error('[Structured] Save error:', e);
+    toast('Ошибка сохранения', 'error');
+  }
+}
+
+// Download as TXT
+function downloadStructuredAsTxt(msgId) {
+  const msgDiv = document.getElementById(msgId);
+  if (!msgDiv) return;
+  
+  try {
+    const docData = JSON.parse(msgDiv.dataset.docData);
+    let text = docData.title + '\n\n';
+    if (docData.summary) text += docData.summary + '\n\n';
+    
+    docData.sections.forEach(section => {
+      text += '## ' + section.title + '\n\n';
+      text += section.content + '\n\n';
+    });
+    
+    const blob = new Blob([text.trim()], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = (docData.title.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_') || 'document') + '.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    toast('📥 TXT скачан', 'success');
+  } catch (e) {
+    console.error('[Structured] Download error:', e);
+    toast('Ошибка скачивания', 'error');
+  }
+}
+
+// Email structured content (reuses sendEmailFromChat)
+function emailStructured(msgId) {
+  const msgDiv = document.getElementById(msgId);
+  if (!msgDiv) return;
+  
+  try {
+    const docData = JSON.parse(msgDiv.dataset.docData);
+    
+    // Open send modal with prefilled content
+    if (typeof openSendModalWithContent === 'function') {
+      let content = docData.sections.map(s => '## ' + s.title + '\n\n' + s.content).join('\n\n');
+      openSendModalWithContent(docData.title, content);
+    } else {
+      toast('Email недоступен', 'error');
+    }
+  } catch (e) {
+    console.error('[Structured] Email error:', e);
+    toast('Ошибка', 'error');
+  }
+}
+
+// Helper: escape HTML
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Open "Killer Features" modal (placeholder)
 function openKillerFeatures() {
   toast('Killer Features: OCR, генерация...', 'info');
@@ -2758,7 +3031,9 @@ async function handleStreamingResponse(response) {
             
             // DEBUG: Log event types (v4.22)
             if (parsed.type && parsed.type !== 'text') {
-              console.log('[SSE Event]', parsed.type, parsed.type === 'chart_ready' ? parsed.chart?.title : '');
+              console.log('[SSE Event]', parsed.type, 
+                parsed.type === 'chart_ready' ? parsed.chart?.title : 
+                parsed.type === 'structured_ready' ? parsed.document?.title : '');
             }
             
             // New API v4.5 format
@@ -2820,6 +3095,20 @@ async function handleStreamingResponse(response) {
               }
             }
             
+            // Structured response event (v4.23 - collapsible documents)
+            if (parsed.type === 'structured_ready' && parsed.document?.sections?.length > 0) {
+              console.log('[Structured] ✅ Document received:', parsed.document.title);
+              // Track rendered documents to avoid duplicates
+              if (!window._renderedDocIds) window._renderedDocIds = new Set();
+              const docId = parsed.document.type + '_' + (parsed.document.title || Date.now());
+              if (!window._renderedDocIds.has(docId)) {
+                window._renderedDocIds.add(docId);
+                setTimeout(() => {
+                  renderStructuredResponse(parsed.document);
+                }, 100);
+              }
+            }
+            
             // Stream done
             if (parsed.type === 'done') {
               // DEBUG: Log what we received
@@ -2837,6 +3126,7 @@ async function handleStreamingResponse(response) {
                   imageLength: parsed.generateImage.image?.length || 0
                 } : null,
                 createCharts: parsed.createCharts ? parsed.createCharts.length + ' charts' : null,
+                structuredResponses: parsed.structuredResponses ? parsed.structuredResponses.length + ' docs' : null,
                 toolsUsed: parsed.toolsUsed
               }));
               
