@@ -796,49 +796,52 @@ function autoSaveImageAsDrop(imageUrl) {
 // STRUCTURED RESPONSE RENDERING (v4.23)
 // ============================================
 function renderStructuredResponse(docData) {
-  console.log('[Structured] renderStructuredResponse called with:', docData?.title);
-  
-  const messagesDiv = document.getElementById('askAIMessages');
-  if (!messagesDiv) {
-    console.error('[Structured] askAIMessages not found!');
-    return;
-  }
-  
-  if (!docData || !docData.sections || !docData.sections.length) {
-    console.error('[Structured] Invalid docData:', docData);
-    return;
-  }
-  
-  const msgId = 'structured-' + Date.now();
-  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  
-  const msgDiv = document.createElement('div');
-  msgDiv.className = 'ask-ai-message ai structured-message';
-  msgDiv.id = msgId;
-  msgDiv.dataset.docData = JSON.stringify(docData);
-  
-  // Check if renderMarkdown is available
-  const hasRenderMarkdown = typeof renderMarkdown === 'function' || typeof window.renderMarkdown === 'function';
-  const mdRenderer = hasRenderMarkdown ? (window.renderMarkdown || renderMarkdown) : null;
-  
-  // Build sections HTML
-  let sectionsHtml = '';
-  docData.sections.forEach((section, idx) => {
-    const isCollapsed = section.collapsed !== false && idx > 0;
-    const contentHtml = mdRenderer ? mdRenderer(section.content) : escapeHtml(section.content).replace(/\n/g, '<br>');
-    sectionsHtml += `
-      <div class="structured-section ${isCollapsed ? 'collapsed' : 'expanded'}" data-section-id="${section.id}">
-        <div class="structured-section-header" onclick="toggleStructuredSection('${section.id}')">
-          <span class="structured-section-arrow">${isCollapsed ? '▶' : '▼'}</span>
-          <span class="structured-section-title">${escapeHtml(section.title)}</span>
-          <span class="structured-section-words">${section.wordCount} слов</span>
+  try {
+    console.log('[Structured] renderStructuredResponse called with:', docData?.title);
+    console.log('[Structured] Full docData:', JSON.stringify(docData, null, 2).slice(0, 500));
+    
+    const messagesDiv = document.getElementById('askAIMessages');
+    if (!messagesDiv) {
+      console.error('[Structured] askAIMessages not found!');
+      return;
+    }
+    
+    if (!docData || !docData.sections || !docData.sections.length) {
+      console.error('[Structured] Invalid docData:', docData);
+      return;
+    }
+    
+    const msgId = 'structured-' + Date.now();
+    const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'ask-ai-message ai structured-message';
+    msgDiv.id = msgId;
+    msgDiv.dataset.docData = JSON.stringify(docData);
+    
+    // Check if renderMarkdown is available
+    const hasRenderMarkdown = typeof renderMarkdown === 'function' || typeof window.renderMarkdown === 'function';
+    const mdRenderer = hasRenderMarkdown ? (window.renderMarkdown || renderMarkdown) : null;
+    console.log('[Structured] hasRenderMarkdown:', hasRenderMarkdown);
+    
+    // Build sections HTML
+    let sectionsHtml = '';
+    docData.sections.forEach((section, idx) => {
+      const isCollapsed = section.collapsed !== false && idx > 0;
+      const contentHtml = mdRenderer ? mdRenderer(section.content) : escapeHtml(section.content).replace(/\n/g, '<br>');
+      sectionsHtml += `
+        <div class="structured-section ${isCollapsed ? 'collapsed' : 'expanded'}" data-section-id="${section.id}">
+          <div class="structured-section-header" onclick="toggleStructuredSection('${section.id}')">
+            <span class="structured-section-arrow">${isCollapsed ? '▶' : '▼'}</span>
+            <span class="structured-section-title">${escapeHtml(section.title)}</span>
+            <span class="structured-section-words">${section.wordCount} слов</span>
+          </div>
+          <div class="structured-section-content" style="${isCollapsed ? 'display: none;' : ''}">
+            ${contentHtml}
+          </div>
         </div>
-        <div class="structured-section-content" style="${isCollapsed ? 'display: none;' : ''}">
-          ${contentHtml}
-        </div>
-      </div>
-    `;
-  });
+      `;
+    });
   
   // Build actions HTML
   let actionsHtml = '';
@@ -882,8 +885,14 @@ function renderStructuredResponse(docData) {
   messagesDiv.appendChild(msgDiv);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
   
-  console.log('[Structured] Rendered:', docData.title, docData.stats.sectionCount, 'sections');
+  console.log('[Structured] ✅ Rendered:', docData.title, docData.stats.sectionCount, 'sections');
   toast(`${docData.icon || '📄'} ${docData.title}`, 'success');
+  
+  } catch (error) {
+    console.error('[Structured] ❌ RENDER ERROR:', error);
+    console.error('[Structured] Stack:', error.stack);
+    toast('Ошибка рендеринга документа', 'error');
+  }
 }
 
 // Toggle section expand/collapse
@@ -3042,7 +3051,13 @@ async function handleStreamingResponse(response) {
             if (parsed.type && parsed.type !== 'text') {
               console.log('[SSE Event]', parsed.type, 
                 parsed.type === 'chart_ready' ? parsed.chart?.title : 
-                parsed.type === 'structured_ready' ? parsed.document?.title : '');
+                parsed.type === 'structured_ready' ? ('DOC: ' + parsed.document?.title + ' sections:' + parsed.document?.sections?.length) : 
+                parsed.type === 'tool_result' ? parsed.tool : '');
+              
+              // Extra debug for structured_ready
+              if (parsed.type === 'structured_ready') {
+                console.log('[Structured DEBUG] Full event:', JSON.stringify(parsed, null, 2));
+              }
             }
             
             // New API v4.5 format
@@ -3105,16 +3120,29 @@ async function handleStreamingResponse(response) {
             }
             
             // Structured response event (v4.23 - collapsible documents)
-            if (parsed.type === 'structured_ready' && parsed.document?.sections?.length > 0) {
-              console.log('[Structured] ✅ Document received:', parsed.document.title);
-              // Track rendered documents to avoid duplicates
-              if (!window._renderedDocIds) window._renderedDocIds = new Set();
-              const docId = parsed.document.type + '_' + (parsed.document.title || Date.now());
-              if (!window._renderedDocIds.has(docId)) {
-                window._renderedDocIds.add(docId);
-                setTimeout(() => {
-                  renderStructuredResponse(parsed.document);
-                }, 100);
+            if (parsed.type === 'structured_ready') {
+              console.log('[Structured] ✅ Event received! Document:', JSON.stringify({
+                title: parsed.document?.title,
+                type: parsed.document?.type,
+                sectionsCount: parsed.document?.sections?.length,
+                success: parsed.document?.success
+              }));
+              
+              if (parsed.document?.sections?.length > 0) {
+                // Track rendered documents to avoid duplicates
+                if (!window._renderedDocIds) window._renderedDocIds = new Set();
+                const docId = parsed.document.type + '_' + (parsed.document.title || Date.now());
+                console.log('[Structured] DocId:', docId, 'Already rendered?', window._renderedDocIds.has(docId));
+                
+                if (!window._renderedDocIds.has(docId)) {
+                  window._renderedDocIds.add(docId);
+                  console.log('[Structured] Calling renderStructuredResponse...');
+                  setTimeout(() => {
+                    renderStructuredResponse(parsed.document);
+                  }, 100);
+                }
+              } else {
+                console.log('[Structured] ❌ No sections in document!');
               }
             }
             
