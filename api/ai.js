@@ -626,55 +626,6 @@ const TOOLS = [
       },
       required: ["title", "chart_type"]
     }
-  },
-  {
-    name: "send_structured_response",
-    description: "Send a structured document with collapsible sections. USE THIS for: contracts, agreements, tutorials, long explanations, analysis reports, multi-page documents, detailed instructions. NEVER send long text directly - always use this tool for content >300 words or with multiple logical sections.",
-    input_schema: {
-      type: "object",
-      properties: {
-        type: {
-          type: "string",
-          enum: ["document", "tutorial", "analysis", "report", "contract", "guide"],
-          description: "Content type: document (general), tutorial (how-to), analysis (data review), report (findings), contract (legal), guide (instructions)"
-        },
-        title: {
-          type: "string",
-          description: "Main document title"
-        },
-        summary: {
-          type: "string",
-          description: "Brief summary in 1-2 sentences. User sees this first."
-        },
-        sections: {
-          type: "array",
-          description: "Document sections (2-10 recommended). Each section can be collapsed/expanded by user.",
-          items: {
-            type: "object",
-            properties: {
-              title: { type: "string", description: "Section heading" },
-              content: { type: "string", description: "Section content (markdown supported)" },
-              collapsed: { type: "boolean", description: "Start collapsed? Default: true for sections after first" }
-            },
-            required: ["title", "content"]
-          }
-        },
-        actions: {
-          type: "array",
-          items: {
-            type: "string",
-            enum: ["copy", "save_drop", "download_txt", "email"]
-          },
-          description: "Available actions for user. Default: ['copy', 'save_drop']"
-        },
-        language: {
-          type: "string",
-          enum: ["ru", "en", "auto"],
-          description: "Document language. Auto-detect from user's message if not specified."
-        }
-      },
-      required: ["type", "title", "sections"]
-    }
   }
 ];
 
@@ -1198,53 +1149,6 @@ When user asks to see, list, or show reminders:
 - Заголовок (title) на языке пользователя
 - График появится интерактивным в чате
 
-## 📄 STRUCTURED RESPONSES (send_structured_response):
-
-**ОБЯЗАТЕЛЬНО используй send_structured_response для:**
-- Договоров, контрактов, соглашений → type: "contract"
-- Инструкций, туториалов → type: "tutorial"  
-- Анализов, обзоров → type: "analysis"
-- Отчётов → type: "report"
-- Руководств, гайдов → type: "guide"
-- Любого текста >300 слов или с 3+ логическими секциями
-
-**Триггеры:**
-- "напиши договор...", "составь контракт..."
-- "подробно объясни...", "расскажи подробно..."
-- "напиши инструкцию...", "как сделать..."
-- "проанализируй...", "сделай обзор..."
-
-**Формат sections:**
-- 2-10 секций оптимально
-- Первая секция развёрнута, остальные свёрнуты
-- Каждая секция = логическая часть документа
-
-**Пример:**
-\`\`\`
-send_structured_response({
-  type: "contract",
-  title: "Договор NDA",
-  summary: "Стандартное соглашение о неразглашении между сторонами.",
-  sections: [
-    { title: "1. Предмет договора", content: "..." },
-    { title: "2. Обязательства сторон", content: "...", collapsed: true },
-    { title: "3. Ответственность", content: "...", collapsed: true }
-  ],
-  actions: ["copy", "save_drop", "email"]
-})
-\`\`\`
-
-**КРИТИЧЕСКИ ВАЖНО ДЛЯ TTS:**
-- ВСЕГДА отправляй краткое текстовое вступление (1-2 предложения) ПЕРЕД вызовом send_structured_response
-- Пример: "Вот договор NDA с тремя основными разделами." + send_structured_response(...)
-- Это вступление будет озвучено голосом!
-- БЕЗ вступления пользователь услышит тишину
-
-**НИКОГДА НЕ:**
-- Вызывай send_structured_response без текстового вступления
-- Отправляй длинный текст (>300 слов) простым сообщением
-- Забывай summary — пользователь видит его первым
-
 ## LANGUAGE:
 - Always respond in same language as user
 - Support Russian and English seamlessly`;
@@ -1526,24 +1430,6 @@ async function executeTool(toolName, input, dropContext, userId = null, currentF
     
     case 'create_chart': {
       return await executeCreateChart(input, userId, currentFeed);
-    }
-    
-    case 'send_structured_response': {
-      console.log('[executeTool] Entering send_structured_response case!');
-      console.log('[executeTool] Input:', JSON.stringify(input, null, 2).slice(0, 500));
-      try {
-        const result = await executeStructuredResponse(input, userId);
-        console.log('[executeTool] executeStructuredResponse returned:', JSON.stringify({
-          success: result?.success,
-          sectionsCount: result?.sections?.length,
-          error: result?.error
-        }));
-        return result;
-      } catch (err) {
-        console.error('[executeTool] ERROR in executeStructuredResponse:', err.message);
-        console.error('[executeTool] Stack:', err.stack);
-        return { success: false, error: err.message, action: 'send_structured_response' };
-      }
     }
     
     default:
@@ -2589,92 +2475,6 @@ function parseRuDate(dateStr) {
 }
 
 // ============================================
-// SEND STRUCTURED RESPONSE (v4.23)
-// ============================================
-async function executeStructuredResponse(input, userId) {
-  console.log('[structured_response] ========== START ==========');
-  console.log('[structured_response] Input type:', typeof input);
-  console.log('[structured_response] Input keys:', Object.keys(input || {}));
-  console.log('[structured_response] Sections type:', typeof input?.sections, 'isArray:', Array.isArray(input?.sections));
-  console.log('[structured_response] Sections length:', input?.sections?.length);
-  
-  try {
-    const type = input.type || 'document';
-    const title = input.title || 'Document';
-    const summary = input.summary || '';
-    const sections = input.sections || [];
-    const actions = input.actions || ['copy', 'save_drop'];
-    const language = input.language || 'auto';
-    
-    console.log('[structured_response] Parsed - type:', type, 'title:', title, 'sections:', sections.length);
-    
-    // Validate sections
-    if (!sections.length) {
-      console.log('[structured_response] ❌ No sections!');
-      return {
-        success: false,
-        action: 'send_structured_response',
-        error: 'No sections provided'
-      };
-    }
-  
-  // Process sections: set collapsed state
-  const processedSections = sections.map((section, index) => ({
-    id: `section-${Date.now()}-${index}`,
-    title: section.title || `Section ${index + 1}`,
-    content: section.content || '',
-    collapsed: section.collapsed !== undefined ? section.collapsed : (index > 0), // First section expanded
-    wordCount: (section.content || '').split(/\s+/).filter(w => w).length
-  }));
-  
-  // Calculate totals
-  const totalWords = processedSections.reduce((sum, s) => sum + s.wordCount, 0);
-  const totalChars = processedSections.reduce((sum, s) => sum + s.content.length, 0);
-  
-  // Type icons
-  const typeIcons = {
-    document: '📄',
-    tutorial: '📚',
-    analysis: '📊',
-    report: '📋',
-    contract: '📝',
-    guide: '🗺️'
-  };
-  
-  console.log('[structured_response] Processed', processedSections.length, 'sections,', totalWords, 'words');
-  
-    const result = {
-      success: true,
-      action: 'send_structured_response',
-      type: type,
-      icon: typeIcons[type] || '📄',
-      title: title,
-      summary: summary,
-      sections: processedSections,
-      actions: actions,
-      language: language,
-      stats: {
-        sectionCount: processedSections.length,
-        totalWords: totalWords,
-        totalChars: totalChars
-      }
-    };
-    
-    console.log('[structured_response] ✅ Returning result with', result.sections.length, 'sections');
-    console.log('[structured_response] ========== END ==========');
-    return result;
-    
-  } catch (error) {
-    console.error('[structured_response] ❌ ERROR:', error.message);
-    return {
-      success: false,
-      action: 'send_structured_response',
-      error: error.message
-    };
-  }
-}
-
-// ============================================
 // PARSE SSE STREAM FROM CLAUDE
 // ============================================
 async function* parseSSEStream(response) {
@@ -2722,7 +2522,6 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   let sendEmailAction = null;
   let generateImageAction = null;
   let createChartActions = [];  // v4.22: массив для множественных графиков
-  let structuredResponseActions = [];  // v4.23: массив для structured responses
   
   // Use provided model or default to Sonnet
   const modelId = modelConfig?.id || AI_MODELS[DEFAULT_MODEL].id;
@@ -2962,37 +2761,6 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
           }
         }
         
-        // DEBUG: Log tool name check
-        console.log('[Tool tracking] Checking tool:', toolBlock.name, '=== send_structured_response?', toolBlock.name === 'send_structured_response');
-        
-        // Track send_structured_response action (v4.23)
-        if (toolBlock.name === 'send_structured_response') {
-          console.log('[structured_response] MATCHED! Adding to structuredResponseActions');
-          structuredResponseActions.push(toolResult);
-          console.log('[structured_response] Tool executed! Result:', JSON.stringify({
-            success: toolResult?.success,
-            action: toolResult?.action,
-            title: toolResult?.title,
-            sectionsCount: toolResult?.sections?.length || 0,
-            hasStats: !!toolResult?.stats,
-            error: toolResult?.error
-          }));
-          
-          // СРАЗУ отправляем structured response клиенту
-          if (toolResult?.success && toolResult?.sections?.length > 0) {
-            console.log('[structured_response] ✅ Sending structured_ready SSE event now!');
-            const eventData = {
-              type: 'structured_ready',
-              document: toolResult
-            };
-            console.log('[structured_response] Event data size:', JSON.stringify(eventData).length, 'bytes');
-            sendEvent(eventData);
-            console.log('[structured_response] ✅ Event sent!');
-          } else {
-            console.log('[structured_response] ❌ NOT sending event - success:', toolResult?.success, 'sections:', toolResult?.sections?.length, 'error:', toolResult?.error);
-          }
-        }
-        
         // Notify client about tool result
         sendEvent({ 
           type: 'tool_result', 
@@ -3048,7 +2816,6 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
   
   // Log createChart state before sending done (v4.22 - массив)
   console.log('[Streaming] createChartActions before done:', createChartActions.length, 'charts');
-  console.log('[Streaming] structuredResponseActions before done:', structuredResponseActions.length, 'documents');
   
   // Send final event with metadata AND debug info
   sendEvent({ 
@@ -3063,7 +2830,6 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     sendEmail: sendEmailAction,
     generateImage: generateImageAction,
     createCharts: createChartActions,  // v4.22: массив графиков
-    structuredResponses: structuredResponseActions,  // v4.23: structured documents
     usage: { input_tokens: totalInputTokens, output_tokens: totalOutputTokens },
     _debug: debugInfo
   });
