@@ -796,8 +796,18 @@ function autoSaveImageAsDrop(imageUrl) {
 // STRUCTURED RESPONSE RENDERING (v4.23)
 // ============================================
 function renderStructuredResponse(docData) {
+  console.log('[Structured] renderStructuredResponse called with:', docData?.title);
+  
   const messagesDiv = document.getElementById('askAIMessages');
-  if (!messagesDiv) return;
+  if (!messagesDiv) {
+    console.error('[Structured] askAIMessages not found!');
+    return;
+  }
+  
+  if (!docData || !docData.sections || !docData.sections.length) {
+    console.error('[Structured] Invalid docData:', docData);
+    return;
+  }
   
   const msgId = 'structured-' + Date.now();
   const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
@@ -807,10 +817,15 @@ function renderStructuredResponse(docData) {
   msgDiv.id = msgId;
   msgDiv.dataset.docData = JSON.stringify(docData);
   
+  // Check if renderMarkdown is available
+  const hasRenderMarkdown = typeof renderMarkdown === 'function' || typeof window.renderMarkdown === 'function';
+  const mdRenderer = hasRenderMarkdown ? (window.renderMarkdown || renderMarkdown) : null;
+  
   // Build sections HTML
   let sectionsHtml = '';
   docData.sections.forEach((section, idx) => {
     const isCollapsed = section.collapsed !== false && idx > 0;
+    const contentHtml = mdRenderer ? mdRenderer(section.content) : escapeHtml(section.content).replace(/\n/g, '<br>');
     sectionsHtml += `
       <div class="structured-section ${isCollapsed ? 'collapsed' : 'expanded'}" data-section-id="${section.id}">
         <div class="structured-section-header" onclick="toggleStructuredSection('${section.id}')">
@@ -819,7 +834,7 @@ function renderStructuredResponse(docData) {
           <span class="structured-section-words">${section.wordCount} слов</span>
         </div>
         <div class="structured-section-content" style="${isCollapsed ? 'display: none;' : ''}">
-          ${renderMarkdown ? renderMarkdown(section.content) : escapeHtml(section.content)}
+          ${contentHtml}
         </div>
       </div>
     `;
@@ -2956,12 +2971,6 @@ function setListenCycles(seconds) {
 if ('speechSynthesis' in window) {
   speechSynthesis.getVoices();
   speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
 }
 
 // Streaming response handler v2 - supports tools
