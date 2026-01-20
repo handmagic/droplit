@@ -2192,6 +2192,10 @@ async function executeGenerateImage(input, userId) {
 async function executeCreateChart(input, userId, currentFeed = []) {
   console.log('[create_chart] Starting chart creation');
   console.log('[create_chart] Input:', JSON.stringify(input, null, 2));
+  console.log('[create_chart] Feed length:', currentFeed.length);
+  if (currentFeed.length > 0) {
+    console.log('[create_chart] Sample drop:', JSON.stringify(currentFeed[0], null, 2));
+  }
   
   const title = input.title || 'Chart';
   const chartType = input.chart_type || 'bar';
@@ -2219,7 +2223,7 @@ async function executeCreateChart(input, userId, currentFeed = []) {
       filteredDrops = filteredDrops.filter(d => filters.categories.includes(d.category));
     }
     
-    // Filter by period
+    // Filter by period - use created_at (v4.22 fix)
     if (filters.period) {
       const now = new Date();
       let cutoff;
@@ -2238,7 +2242,8 @@ async function executeCreateChart(input, userId, currentFeed = []) {
       }
       if (cutoff) {
         filteredDrops = filteredDrops.filter(d => {
-          const dropDate = d.timestamp ? new Date(d.timestamp) : parseRuDate(d.date);
+          // v4.22: Use created_at which is what frontend sends
+          const dropDate = new Date(d.created_at || d.timestamp || 0);
           return dropDate >= cutoff;
         });
       }
@@ -2279,7 +2284,9 @@ async function executeCreateChart(input, userId, currentFeed = []) {
       }
       
       filteredDrops.forEach(d => {
-        const key = d.date;
+        // v4.22: Extract date from created_at
+        const dropDate = new Date(d.created_at || d.timestamp || 0);
+        const key = dropDate.toLocaleDateString('ru-RU');
         if (dayCount.hasOwnProperty(key)) {
           dayCount[key]++;
         }
