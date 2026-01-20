@@ -13,6 +13,7 @@ const CATS = {
   bugs: { name: 'BUGS', single: 'BUG', kw: ['bug', 'bugs', 'fix', 'баг', 'баги', 'ошибка', 'ошибки', 'исправить'], isMedia: false },
   questions: { name: 'QUESTIONS', single: 'QUESTION', kw: ['question', 'questions', 'вопрос', 'вопросы', 'спросить', 'claude', 'клод'], isMedia: false },
   link: { name: 'LINKS', single: 'LINK', kw: ['link', 'url', 'http', 'https', 'www', 'ссылка'], isMedia: false },
+  chart: { name: 'CHARTS', single: 'CHART', kw: ['chart', 'graph', 'график', 'диаграмма', 'визуализация'], isMedia: true, isChart: true },
   sketch: { name: 'SKETCHES', single: 'SKETCH', kw: [], isMedia: true },
   scan: { name: 'SCANS', single: 'SCAN', kw: [], isMedia: true },
   photo: { name: 'PHOTOS', single: 'PHOTO', kw: [], isMedia: true },
@@ -20,7 +21,7 @@ const CATS = {
   inbox: { name: 'INBOX', single: 'INBOX', kw: [], isMedia: false }
 };
 
-const MEDIA_CATS = ['photo', 'sketch', 'scan', 'audio'];
+const MEDIA_CATS = ['photo', 'sketch', 'scan', 'audio', 'chart'];
 
 // Markers system
 const MARKERS = {
