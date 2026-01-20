@@ -2919,17 +2919,20 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
           }
         }
         
-        // Track create_diagram action (v4.24 - PlantUML диаграммы)
+        // Track create_diagram action (v4.24 - Mermaid диаграммы)
         if (toolBlock.name === 'create_diagram') {
           createDiagramActions.push(toolResult);
           console.log('[create_diagram] Tracked #' + createDiagramActions.length + ', type:', toolResult?.diagramType, 'code length:', toolResult?.code?.length || 0);
           
           // СРАЗУ отправляем диаграмму клиенту
           if (toolResult?.success && toolResult?.code) {
+            console.log('[create_diagram] Sending diagram_ready event, code length:', toolResult.code.length);
             sendEvent({
               type: 'diagram_ready',
               diagram: toolResult
             });
+          } else {
+            console.log('[create_diagram] NOT sending diagram_ready - success:', toolResult?.success, 'hasCode:', !!toolResult?.code);
           }
         }
         
