@@ -2814,14 +2814,18 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
       
       // Content block stop
       if (event.type === 'content_block_stop') {
+        console.log('[Streaming] content_block_stop - currentTextContent:', currentTextContent?.length || 0, 'currentToolUse:', currentToolUse?.name || 'null');
         if (currentTextContent) {
           contentBlocks.push({ type: 'text', text: currentTextContent });
+          console.log('[Streaming] Added text block, total blocks:', contentBlocks.length);
         }
         if (currentToolUse) {
           // Parse accumulated JSON input
           try {
             currentToolUse.input = JSON.parse(toolUseInputBuffer || '{}');
+            console.log('[Streaming] Parsed tool input for', currentToolUse.name, '- keys:', Object.keys(currentToolUse.input));
           } catch (e) {
+            console.error('[Streaming] Failed to parse tool input:', e.message);
             currentToolUse.input = {};
           }
           contentBlocks.push({
@@ -2830,6 +2834,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
             name: currentToolUse.name,
             input: currentToolUse.input
           });
+          console.log('[Streaming] Added tool_use block:', currentToolUse.name, 'total blocks:', contentBlocks.length);
           currentToolUse = null;
           toolUseInputBuffer = '';
         }
@@ -2838,6 +2843,7 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
       // Message delta (contains stop_reason and output tokens) (UPDATED)
       if (event.type === 'message_delta') {
         stopReason = event.delta?.stop_reason;
+        console.log('[Streaming] message_delta received! stop_reason:', stopReason);
         if (event.usage?.output_tokens) {
           totalOutputTokens += event.usage.output_tokens;
         }
@@ -2845,10 +2851,26 @@ async function handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxT
     }
     
     // Check if we need to execute tools
+    console.log('[Streaming] stopReason:', stopReason, 'contentBlocks:', contentBlocks.length);
+    console.log('[Streaming] contentBlocks types:', contentBlocks.map(b => b.type + ':' + (b.name || 'text')).join(', '));
+    
+    // DEBUG: Send debug info to client
+    sendEvent({ 
+      type: 'debug', 
+      stopReason: stopReason,
+      contentBlocksCount: contentBlocks.length,
+      toolBlocksCount: contentBlocks.filter(b => b.type === 'tool_use').length,
+      blockTypes: contentBlocks.map(b => b.type + ':' + (b.name || 'text'))
+    });
+    
     if (stopReason === 'tool_use') {
       const toolBlocks = contentBlocks.filter(b => b.type === 'tool_use');
+      console.log('[Streaming] Found', toolBlocks.length, 'tool_use blocks');
       
-      if (toolBlocks.length === 0) break;
+      if (toolBlocks.length === 0) {
+        console.log('[Streaming] No tool blocks found, breaking');
+        break;
+      }
       
       // Add assistant message with all content blocks
       messages.push({ role: 'assistant', content: contentBlocks });
