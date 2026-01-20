@@ -3389,7 +3389,7 @@ export default async function handler(req) {
       const lastAssistant = recentHistory.filter(m => !m.isUser).slice(-1)[0];
       const isExpansion = lastAssistant?.text?.includes('?') && isShortAffirmative(text);
       
-      const maxTokens = isExpansion ? 2500 : 1000;
+      const maxTokens = isExpansion ? 4096 : 4096;  // v4.23: increased for structured responses
       const systemPrompt = buildSystemPrompt(formattedContext, userProfile, coreContext, isExpansion, userTimezone, currentFeed, askiKnowledge);
       
       // Add system prompt debug info (AFTER systemPrompt is built)
