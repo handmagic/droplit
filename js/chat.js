@@ -421,6 +421,241 @@ function addGeneratedImageToChat(imageBase64, revisedPrompt) {
   toast('🎨 Изображение создано!', 'success');
 }
 
+// ============================================
+// CHART RENDERING IN CHAT (v4.21)
+// ============================================
+let currentChartInstance = null;
+let currentChartData = null;
+
+function renderChartInChat(chartData) {
+  const messagesDiv = document.getElementById('askAIMessages');
+  if (!messagesDiv) return;
+  
+  // Check if Chart.js is loaded
+  if (typeof Chart === 'undefined') {
+    console.error('[Chart] Chart.js not loaded!');
+    toast('Chart.js не загружен', 'error');
+    return;
+  }
+  
+  const msgId = 'chart-' + Date.now();
+  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const autoDropEnabled = localStorage.getItem('droplit_autodrop') === 'true';
+  const canvasId = 'chartCanvas-' + Date.now();
+  
+  // Store chart data for later use
+  currentChartData = chartData;
+  
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'ask-ai-message ai';
+  msgDiv.id = msgId;
+  
+  // Build Save as Drop button
+  const saveDropBtn = autoDropEnabled
+    ? `<button class="ask-ai-action-btn created autodrop-saved" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        Saved
+      </button>`
+    : `<button class="ask-ai-action-btn" onclick="saveChartAsDrop('${canvasId}', this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Save Drop
+      </button>`;
+  
+  msgDiv.innerHTML = `
+    <div class="chart-container" style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 8px; max-width: 100%; position: relative;">
+      <canvas id="${canvasId}" style="max-height: 300px; width: 100%;"></canvas>
+    </div>
+    <div class="ask-ai-actions" style="margin-bottom: 8px; flex-wrap: wrap; gap: 4px;">
+      <button class="ask-ai-action-btn" onclick="downloadChartAsPNG('${canvasId}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        PNG
+      </button>
+      <button class="ask-ai-action-btn" onclick="openChartFullscreen('${canvasId}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+        Fullscreen
+      </button>
+      ${saveDropBtn}
+      <button class="ask-ai-action-btn" style="border-color: #EF4444; color: #EF4444;" onclick="deleteChatMessage('${msgId}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        Delete
+      </button>
+    </div>
+    <div class="ask-ai-time">${time} • ${chartData.chartDataSource?.resultCount || 0} data points</div>
+  `;
+  
+  messagesDiv.appendChild(msgDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  
+  // Render chart after DOM is ready
+  setTimeout(() => {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+      console.error('[Chart] Canvas not found:', canvasId);
+      return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Destroy previous chart if exists
+    if (currentChartInstance) {
+      currentChartInstance.destroy();
+    }
+    
+    try {
+      currentChartInstance = new Chart(ctx, chartData.chartConfig);
+      console.log('[Chart] Rendered successfully:', chartData.title);
+      
+      // Store reference on canvas element
+      canvas.chartInstance = currentChartInstance;
+      canvas.chartData = chartData;
+      
+      // AutoDrop: auto-save chart
+      if (autoDropEnabled) {
+        setTimeout(() => {
+          autoSaveChartAsDrop(canvasId);
+        }, 500);
+      }
+      
+    } catch (e) {
+      console.error('[Chart] Render error:', e);
+      toast('Ошибка рендеринга графика', 'error');
+    }
+  }, 100);
+  
+  toast('📊 График создан!', 'success');
+}
+
+// Download chart as PNG
+function downloadChartAsPNG(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  
+  const link = document.createElement('a');
+  link.download = `chart-${Date.now()}.png`;
+  link.href = canvas.toDataURL('image/png', 1.0);
+  link.click();
+  
+  toast('📥 PNG скачан', 'success');
+}
+
+// Open chart in fullscreen modal
+function openChartFullscreen(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !canvas.chartData) return;
+  
+  // Use existing image viewer modal with chart
+  const pngData = canvas.toDataURL('image/png', 1.0);
+  openChatImageViewer(pngData);
+}
+
+// Save chart as Chart Drop
+function saveChartAsDrop(canvasId, btn) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !canvas.chartData) {
+    toast('Данные графика не найдены', 'error');
+    return;
+  }
+  
+  // Get PNG from canvas
+  const pngData = canvas.toDataURL('image/png', 1.0);
+  const chartData = canvas.chartData;
+  
+  const now = new Date();
+  const drop = {
+    id: Date.now(),
+    text: chartData.title || 'Chart',
+    category: 'chart',
+    isMedia: true,
+    image: pngData,
+    chartConfig: chartData.chartConfig,
+    chartDataSource: chartData.chartDataSource,
+    timestamp: now.toISOString(),
+    date: now.toLocaleDateString('ru-RU'),
+    time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+    creator: 'aski',
+    source: 'aski_tool',
+    sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null
+  };
+  
+  // Save to ideas array and localStorage
+  if (typeof ideas !== 'undefined') {
+    ideas.unshift(drop);
+  }
+  if (typeof save === 'function') {
+    save(drop);
+  }
+  if (typeof counts === 'function') {
+    counts();
+  }
+  
+  // Update button state
+  if (btn) {
+    btn.classList.add('created');
+    btn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      Saved
+    `;
+    btn.disabled = true;
+  }
+  
+  // Play drop sound
+  if (typeof playDropSound === 'function') {
+    playDropSound();
+  }
+  
+  console.log('[Chart] Saved as drop:', drop.id);
+  toast('📊 Chart Drop сохранён!', 'success');
+  
+  // Sync if available
+  if (typeof syncDropToSyntrise === 'function') {
+    syncDropToSyntrise(drop);
+  }
+  
+  return drop;
+}
+
+// Auto-save chart as drop (for autodrop feature)
+function autoSaveChartAsDrop(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !canvas.chartData) return null;
+  
+  const pngData = canvas.toDataURL('image/png', 1.0);
+  const chartData = canvas.chartData;
+  
+  const now = new Date();
+  const drop = {
+    id: Date.now(),
+    text: chartData.title || 'Chart',
+    category: 'chart',
+    isMedia: true,
+    image: pngData,
+    chartConfig: chartData.chartConfig,
+    chartDataSource: chartData.chartDataSource,
+    timestamp: now.toISOString(),
+    date: now.toLocaleDateString('ru-RU'),
+    time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+    creator: 'aski',
+    source: 'autodrop',
+    sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null
+  };
+  
+  if (typeof ideas !== 'undefined') {
+    ideas.unshift(drop);
+  }
+  if (typeof save === 'function') {
+    save(drop);
+  }
+  if (typeof counts === 'function') {
+    counts();
+  }
+  if (typeof playDropSound === 'function') {
+    playDropSound();
+  }
+  
+  console.log('[Chart AutoDrop] Saved:', drop.id);
+  return drop;
+}
+
 // AutoDrop: auto-save image as photo drop (v0.9.117)
 function autoSaveImageAsDrop(imageUrl) {
   if (!imageUrl) return null;
@@ -2478,6 +2713,13 @@ async function handleStreamingResponse(response) {
                   hasImage: !!parsed.generateImage.image,
                   imageLength: parsed.generateImage.image?.length || 0
                 } : null,
+                createChart: parsed.createChart ? {
+                  action: parsed.createChart.action,
+                  success: parsed.createChart.success,
+                  chartType: parsed.createChart.chartType,
+                  title: parsed.createChart.title,
+                  hasConfig: !!parsed.createChart.chartConfig
+                } : null,
                 toolsUsed: parsed.toolsUsed
               }));
               
@@ -2763,6 +3005,17 @@ async function handleStreamingResponse(response) {
                 console.error('[Image Gen] ❌ Tool called but no image returned!', parsed.generateImage);
                 toast('Ошибка генерации: ' + (parsed.generateImage.error || 'нет изображения'), 'error');
               }
+              
+              // Handle create_chart (v4.21)
+              if (parsed.createChart?.action === 'create_chart' && parsed.createChart?.chartConfig) {
+                console.log('[Chart] ✅ Rendering chart in chat!');
+                setTimeout(() => {
+                  renderChartInChat(parsed.createChart);
+                }, 100);
+              } else if (parsed.createChart?.action === 'create_chart' && !parsed.createChart?.chartConfig) {
+                console.error('[Chart] ❌ Tool called but no config!', parsed.createChart);
+                toast('Ошибка создания графика', 'error');
+              }
             }
             
             // Legacy format (v4.4 and earlier)
@@ -2798,6 +3051,9 @@ async function handleStreamingResponse(response) {
   if (typeof window.renderMarkdown === 'function') {
     bubble.innerHTML = window.renderMarkdown(fullText);
   }
+  
+  // Store original markdown for Create Drop button
+  bubble.dataset.originalText = fullText;
   
   const actionsDiv = document.createElement('div');
   actionsDiv.className = 'ask-ai-actions';
@@ -2914,7 +3170,7 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
     
     msgDiv.innerHTML = `
       ${imageHtml}
-      <div class="ask-ai-bubble">${escapeHtml(text)}</div>
+      <div class="ask-ai-bubble" data-original-text="${escapeHtml(text)}">${escapeHtml(text)}</div>
       <div class="ask-ai-actions">
         ${textActions}
       </div>
@@ -2923,7 +3179,7 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   } else {
     msgDiv.innerHTML = `
       ${imageHtml}
-      <div class="ask-ai-bubble">${renderChatMarkdown(text)}</div>
+      <div class="ask-ai-bubble" data-original-text="${escapeHtml(text)}">${renderChatMarkdown(text)}</div>
       <div class="ask-ai-actions">
         <button class="ask-ai-action-btn speak-btn" onclick="toggleAskiSpeak(this)" title="Speak">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
@@ -3294,10 +3550,11 @@ function createDropFromAI(btn) {
     return;
   }
   
-  const text = bubble.textContent;
+  // Use original markdown if available, fallback to textContent
+  const text = bubble.dataset.originalText || bubble.textContent;
   const isUserMessage = msgDiv.classList.contains('user');
   
-  console.log('[createDropFromAI] Creating drop:', text.substring(0, 50) + '...');
+  console.log('[createDropFromAI] Creating drop with markdown:', text.substring(0, 50) + '...');
   
   const now = new Date();
   const drop = {
