@@ -3124,3 +3124,84 @@ body.font-large .pv-counter { height: 36px; padding: 0 16px; font-size: 0.9rem; 
     .header-lock svg {
       color: #10B981;
     }
+
+/* ============================================
+   CHART.JS INTEGRATION STYLES (v0.9.118)
+   ============================================ */
+
+/* Chart container in chat */
+.chart-container {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+  max-width: 100%;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chart-container canvas {
+  max-height: 300px;
+  width: 100% !important;
+}
+
+/* Dark mode support for charts */
+@media (prefers-color-scheme: dark) {
+  .chart-container {
+    background: #1f2937;
+  }
+}
+
+/* Manual dark mode class */
+.dark-mode .chart-container {
+  background: #1f2937;
+}
+
+/* Chart preview in feed card */
+.chart-preview {
+  width: 100%;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.chart-preview:active {
+  transform: scale(0.98);
+}
+
+/* Chart category badge color */
+.card-cat.chart {
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366F1;
+}
+
+/* Chart drop card styling */
+.card[data-category="chart"] .card-content {
+  padding: 8px;
+}
+
+.card[data-category="chart"] .card-text {
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+
+/* Chart title in feed card */
+.chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.dark-mode .chart-title {
+  color: #E5E7EB;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chart-title {
+    color: #E5E7EB;
+  }
+}
+
