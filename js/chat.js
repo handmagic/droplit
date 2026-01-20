@@ -2471,6 +2471,13 @@ async function handleStreamingResponse(response) {
                 cancelEvent: parsed.cancelEvent,
                 deleteDrop: parsed.deleteDrop,
                 updateDrop: parsed.updateDrop,
+                generateImage: parsed.generateImage ? { 
+                  action: parsed.generateImage.action, 
+                  success: parsed.generateImage.success,
+                  error: parsed.generateImage.error,
+                  hasImage: !!parsed.generateImage.image,
+                  imageLength: parsed.generateImage.image?.length || 0
+                } : null,
                 toolsUsed: parsed.toolsUsed
               }));
               
@@ -2738,12 +2745,23 @@ async function handleStreamingResponse(response) {
               }
               
               // Handle generate_image (v0.9.118)
+              console.log('[Image Gen] Checking parsed.generateImage:', parsed.generateImage ? 'exists' : 'undefined');
+              if (parsed.generateImage) {
+                console.log('[Image Gen] Action:', parsed.generateImage.action);
+                console.log('[Image Gen] Has image:', !!parsed.generateImage.image);
+                console.log('[Image Gen] Image length:', parsed.generateImage.image?.length || 0);
+                console.log('[Image Gen] Success:', parsed.generateImage.success);
+                console.log('[Image Gen] Error:', parsed.generateImage.error || 'none');
+              }
+              
               if (parsed.generateImage?.action === 'generate_image' && parsed.generateImage?.image) {
-                console.log('[Image Gen] Received generated image');
-                // Add generated image to chat as AI message
+                console.log('[Image Gen] ✅ Adding generated image to chat!');
                 setTimeout(() => {
                   addGeneratedImageToChat(parsed.generateImage.image, parsed.generateImage.revised_prompt);
                 }, 100);
+              } else if (parsed.generateImage?.action === 'generate_image' && !parsed.generateImage?.image) {
+                console.error('[Image Gen] ❌ Tool called but no image returned!', parsed.generateImage);
+                toast('Ошибка генерации: ' + (parsed.generateImage.error || 'нет изображения'), 'error');
               }
             }
             
