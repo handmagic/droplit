@@ -811,51 +811,40 @@ async function renderDiagramInChat(diagramData) {
   const msgId = 'diagram-' + Date.now();
   const mermaidId = 'mermaid-' + Date.now();
   const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const autoDropEnabled = localStorage.getItem('droplit_autodrop') === 'true';
   
   console.log('[Diagram] Rendering:', diagramData.title);
-  console.log('[Diagram] Code:', diagramData.code.slice(0, 100));
   
   const msgDiv = document.createElement('div');
   msgDiv.className = 'ask-ai-message ai';
   msgDiv.id = msgId;
   msgDiv.dataset.diagramData = JSON.stringify(diagramData);
   
-  // Type icons
-  const typeIcons = {
-    flowchart: '📋',
-    sequence: '🔄',
-    class: '🏛️',
-    state: '🔘',
-    er: '🗄️',
-    gantt: '📅',
-    mindmap: '🧠',
-    pie: '🥧',
-    block: '🧩',
-    timeline: '📆',
-    quadrant: '📊',
-    git: '🔀'
-  };
-  
-  const icon = typeIcons[diagramData.diagramType] || '📐';
-  
-  msgDiv.innerHTML = `
-    <div class="diagram-container" style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 8px; overflow-x: auto;">
-      <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937;">${icon} ${escapeHtml(diagramData.title)}</div>
-      <div id="${mermaidId}" class="mermaid-diagram" style="display: flex; justify-content: center;"></div>
-    </div>
-    <div class="ask-ai-actions" style="margin-bottom: 8px; flex-wrap: wrap; gap: 4px;">
-      <button class="ask-ai-action-btn" onclick="downloadDiagramSVG('${msgId}')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-        SVG
-      </button>
-      <button class="ask-ai-action-btn" onclick="copyDiagramCode('${msgId}')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        Code
-      </button>
-      <button class="ask-ai-action-btn" onclick="saveDiagramAsDrop('${msgId}')">
+  // Build Save as Drop button (same style as charts)
+  const saveDropBtn = autoDropEnabled
+    ? `<button class="ask-ai-action-btn created autodrop-saved" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        Saved
+      </button>`
+    : `<button class="ask-ai-action-btn diagram-save-btn" data-msgid="${msgId}" onclick="saveDiagramAsDrop('${msgId}', this)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         Save Drop
+      </button>`;
+  
+  msgDiv.innerHTML = `
+    <div class="diagram-container" id="container-${mermaidId}" style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 8px; max-width: 100%; position: relative;">
+      <div id="${mermaidId}" class="mermaid-diagram" style="display: flex; justify-content: center; min-height: 100px;"></div>
+    </div>
+    <div class="ask-ai-actions" style="margin-bottom: 8px; flex-wrap: wrap; gap: 4px;">
+      <button class="ask-ai-action-btn" onclick="downloadDiagramAsPNG('${msgId}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        PNG
       </button>
+      <button class="ask-ai-action-btn" onclick="openDiagramFullscreen('${msgId}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+        Fullscreen
+      </button>
+      ${saveDropBtn}
       <button class="ask-ai-action-btn" style="border-color: #EF4444; color: #EF4444;" onclick="deleteChatMessage('${msgId}')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
         Delete
@@ -877,29 +866,40 @@ async function renderDiagramInChat(diagramData) {
       const { svg } = await mermaid.render('mermaid-svg-' + Date.now(), diagramData.code);
       container.innerHTML = svg;
       
-      // Store SVG for download
-      container.dataset.svg = svg;
-      
-      // Make SVG clickable for fullscreen
+      // Adjust SVG size for better visibility
       const svgEl = container.querySelector('svg');
       if (svgEl) {
+        // Remove max-width constraint, set minimum size
+        svgEl.style.minWidth = '300px';
+        svgEl.style.maxWidth = '100%';
+        svgEl.style.height = 'auto';
         svgEl.style.cursor = 'pointer';
         svgEl.onclick = () => openDiagramFullscreen(msgId);
       }
       
+      // Store SVG for later use (download, save)
+      container.dataset.svg = svg;
+      container.dataset.title = diagramData.title;
+      
       console.log('[Diagram] ✅ Rendered:', diagramData.title);
+      
+      // Auto-save if autodrop enabled
+      if (autoDropEnabled) {
+        setTimeout(() => autoSaveDiagramAsDrop(msgId), 500);
+      }
+      
     } catch (e) {
       console.error('[Diagram] Render error:', e);
       document.getElementById(mermaidId).innerHTML = `
         <div style="color: #EF4444; padding: 16px; text-align: center;">
-          ❌ Ошибка рендеринга диаграммы<br>
+          Ошибка рендеринга<br>
           <small style="color: #666;">${escapeHtml(e.message)}</small>
         </div>
       `;
     }
   }, 100);
   
-  toast(`${icon} Диаграмма создана!`, 'success');
+  toast('Диаграмма создана', 'success');
 }
 
 // Open diagram fullscreen
@@ -917,8 +917,8 @@ function openDiagramFullscreen(msgId) {
   openChatImageViewer(url);
 }
 
-// Download diagram as SVG
-function downloadDiagramSVG(msgId) {
+// Download diagram as PNG
+async function downloadDiagramAsPNG(msgId) {
   const msgDiv = document.getElementById(msgId);
   if (!msgDiv) return;
   
@@ -927,83 +927,174 @@ function downloadDiagramSVG(msgId) {
     const container = msgDiv.querySelector('.mermaid-diagram');
     
     if (!container || !container.dataset.svg) {
-      toast('SVG не готов', 'error');
+      toast('Диаграмма не готова', 'error');
       return;
     }
     
-    const blob = new Blob([container.dataset.svg], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = (diagramData.title.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_') || 'diagram') + '.svg';
-    link.click();
-    URL.revokeObjectURL(url);
+    // Convert SVG to PNG using canvas
+    const pngData = await svgToPng(container.dataset.svg);
     
-    toast('📥 SVG скачан', 'success');
+    const link = document.createElement('a');
+    link.href = pngData;
+    link.download = (diagramData.title.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_') || 'diagram') + '.png';
+    link.click();
+    
+    toast('PNG скачан', 'success');
   } catch (e) {
     console.error('[Diagram] Download error:', e);
     toast('Ошибка скачивания', 'error');
   }
 }
 
-// Copy Mermaid code to clipboard
-function copyDiagramCode(msgId) {
-  const msgDiv = document.getElementById(msgId);
-  if (!msgDiv) return;
-  
-  try {
-    const diagramData = JSON.parse(msgDiv.dataset.diagramData);
-    navigator.clipboard.writeText(diagramData.code);
-    toast('📋 Код скопирован!', 'success');
-  } catch (e) {
-    console.error('[Diagram] Copy error:', e);
-    toast('Ошибка копирования', 'error');
-  }
+// Convert SVG string to PNG data URL
+function svgToPng(svgString) {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    // Create blob URL from SVG
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    
+    img.onload = () => {
+      // Set canvas size with scale factor for better quality
+      const scale = 2;
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      
+      // White background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw image scaled
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0);
+      
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load SVG'));
+    };
+    
+    img.src = url;
+  });
 }
 
-// Save diagram as drop
-function saveDiagramAsDrop(msgId) {
+// Save diagram as drop (with PNG image, not code)
+async function saveDiagramAsDrop(msgId, btn) {
   const msgDiv = document.getElementById(msgId);
   if (!msgDiv) return;
   
   try {
     const diagramData = JSON.parse(msgDiv.dataset.diagramData);
+    const container = msgDiv.querySelector('.mermaid-diagram');
+    
+    if (!container || !container.dataset.svg) {
+      toast('Диаграмма не готова', 'error');
+      return;
+    }
+    
+    // Convert to PNG
+    const pngData = await svgToPng(container.dataset.svg);
     
     const now = new Date();
     const drop = {
       id: Date.now(),
-      text: `📐 ${diagramData.title}\n\nТип: ${diagramData.diagramType}\n\nMermaid код:\n\`\`\`mermaid\n${diagramData.code}\n\`\`\``,
-      category: 'ideas',
+      text: diagramData.title || 'Diagram',
+      category: 'diagram',
+      isMedia: true,
+      image: pngData,
+      diagramType: diagramData.diagramType,
       timestamp: now.toISOString(),
       date: now.toLocaleDateString('ru-RU'),
       time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
       creator: 'aski',
-      source: 'diagram',
-      diagramType: diagramData.diagramType
+      source: 'aski_tool',
+      sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null
     };
     
+    // Save to ideas array and localStorage
     if (typeof ideas !== 'undefined') {
       ideas.unshift(drop);
     }
-    if (typeof save === 'function') save(drop);
-    if (typeof counts === 'function') counts();
-    if (typeof playDropSound === 'function') playDropSound();
+    if (typeof save === 'function') {
+      save(drop);
+    }
+    if (typeof counts === 'function') {
+      counts();
+    }
     
-    // Update button
-    const btn = msgDiv.querySelector('[onclick*="saveDiagramAsDrop"]');
+    // Update button state
     if (btn) {
-      btn.innerHTML = '✅ Saved';
+      btn.classList.add('created');
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        Saved
+      `;
       btn.disabled = true;
     }
     
-    toast('💧 Диаграмма сохранена!', 'success');
+    // Play drop sound
+    if (typeof playDropSound === 'function') {
+      playDropSound();
+    }
     
+    console.log('[Diagram] Saved as drop:', drop.id);
+    toast('Diagram Drop сохранён', 'success');
+    
+    // Sync if available
     if (typeof syncDropToSyntrise === 'function') {
       syncDropToSyntrise(drop);
     }
+    
+    return drop;
   } catch (e) {
     console.error('[Diagram] Save error:', e);
     toast('Ошибка сохранения', 'error');
+  }
+}
+
+// Auto-save diagram as drop (for autodrop feature)
+async function autoSaveDiagramAsDrop(msgId) {
+  const msgDiv = document.getElementById(msgId);
+  if (!msgDiv) return;
+  
+  const container = msgDiv.querySelector('.mermaid-diagram');
+  if (!container || !container.dataset.svg) return;
+  
+  try {
+    const diagramData = JSON.parse(msgDiv.dataset.diagramData);
+    const pngData = await svgToPng(container.dataset.svg);
+    
+    const now = new Date();
+    const drop = {
+      id: Date.now(),
+      text: diagramData.title || 'Diagram',
+      category: 'diagram',
+      isMedia: true,
+      image: pngData,
+      diagramType: diagramData.diagramType,
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('ru-RU'),
+      time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      creator: 'aski',
+      source: 'aski_tool',
+      sessionId: typeof currentChatSessionId !== 'undefined' ? currentChatSessionId : null
+    };
+    
+    if (typeof ideas !== 'undefined') ideas.unshift(drop);
+    if (typeof save === 'function') save(drop);
+    if (typeof counts === 'function') counts();
+    if (typeof playDropSound === 'function') playDropSound();
+    if (typeof syncDropToSyntrise === 'function') syncDropToSyntrise(drop);
+    
+    console.log('[Diagram] Auto-saved as drop:', drop.id);
+  } catch (e) {
+    console.error('[Diagram] Auto-save error:', e);
   }
 }
 
