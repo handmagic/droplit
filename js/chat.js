@@ -2756,6 +2756,11 @@ async function handleStreamingResponse(response) {
           try {
             const parsed = JSON.parse(data);
             
+            // DEBUG: Log event types (v4.22)
+            if (parsed.type && parsed.type !== 'text') {
+              console.log('[SSE Event]', parsed.type, parsed.type === 'chart_ready' ? parsed.chart?.title : '');
+            }
+            
             // New API v4.5 format
             if (parsed.type === 'text' && parsed.content) {
               fullText += parsed.content;
@@ -2798,6 +2803,20 @@ async function handleStreamingResponse(response) {
               if (indicator) {
                 indicator.classList.remove('tool-active');
                 indicator.textContent = '';
+              }
+            }
+            
+            // Chart ready event (v4.22 - real-time chart rendering)
+            if (parsed.type === 'chart_ready' && parsed.chart?.chartConfig) {
+              console.log('[Chart] ✅ Real-time chart received:', parsed.chart.title);
+              // Track rendered charts to avoid duplicates
+              if (!window._renderedChartIds) window._renderedChartIds = new Set();
+              const chartId = parsed.chart.chartType + '_' + (parsed.chart.title || Date.now());
+              if (!window._renderedChartIds.has(chartId)) {
+                window._renderedChartIds.add(chartId);
+                setTimeout(() => {
+                  renderChartInChat(parsed.chart);
+                }, 100);
               }
             }
             
@@ -3104,26 +3123,30 @@ async function handleStreamingResponse(response) {
                 toast('Ошибка генерации: ' + (parsed.generateImage.error || 'нет изображения'), 'error');
               }
               
-              // Handle chart_ready event (v4.22 - real-time chart rendering)
-              if (parsed.type === 'chart_ready' && parsed.chart?.chartConfig) {
-                console.log('[Chart] ✅ Real-time chart received:', parsed.chart.title);
-                setTimeout(() => {
-                  renderChartInChat(parsed.chart);
-                }, 100);
-              }
-              
-              // Handle create_charts array in done event (v4.22)
+              // Handle create_charts array in done event (v4.22 - fallback if chart_ready didn't work)
               if (parsed.createCharts && Array.isArray(parsed.createCharts) && parsed.createCharts.length > 0) {
-                console.log('[Chart] ✅ Processing', parsed.createCharts.length, 'charts from done event');
-                // Charts already rendered via chart_ready, this is just for backup
-              }
-              
-              // Legacy: Handle single createChart (backward compatibility)
-              if (parsed.createChart?.action === 'create_chart' && parsed.createChart?.chartConfig) {
-                console.log('[Chart] ✅ Legacy single chart');
+                console.log('[Chart] Done event has', parsed.createCharts.length, 'charts');
+                if (!window._renderedChartIds) window._renderedChartIds = new Set();
+                
+                parsed.createCharts.forEach((chart, idx) => {
+                  if (chart?.chartConfig) {
+                    const chartId = chart.chartType + '_' + (chart.title || Date.now());
+                    if (!window._renderedChartIds.has(chartId)) {
+                      window._renderedChartIds.add(chartId);
+                      console.log('[Chart] Rendering from done (fallback):', chart.title);
+                      setTimeout(() => {
+                        renderChartInChat(chart);
+                      }, idx * 200);
+                    } else {
+                      console.log('[Chart] Already rendered via chart_ready:', chart.title);
+                    }
+                  }
+                });
+                
+                // Clear tracking for next request
                 setTimeout(() => {
-                  renderChartInChat(parsed.createChart);
-                }, 100);
+                  window._renderedChartIds = new Set();
+                }, 2000);
               }
             }
             
