@@ -3058,6 +3058,14 @@ async function handleStreamingResponse(response) {
               if (parsed.type === 'structured_ready') {
                 console.log('[Structured DEBUG] Full event:', JSON.stringify(parsed, null, 2));
               }
+              
+              // Debug event from server (v4.23)
+              if (parsed.type === 'debug') {
+                console.log('[SERVER DEBUG] stopReason:', parsed.stopReason);
+                console.log('[SERVER DEBUG] contentBlocks:', parsed.contentBlocksCount);
+                console.log('[SERVER DEBUG] toolBlocks:', parsed.toolBlocksCount);
+                console.log('[SERVER DEBUG] blockTypes:', parsed.blockTypes);
+              }
             }
             
             // New API v4.5 format
