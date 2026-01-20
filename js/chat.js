@@ -1,6 +1,7 @@
 // ============================================
-// DROPLIT CHAT v4.25 - Draft Persistence
+// DROPLIT CHAT v4.25 - Persistent History
 // ASKI Chat, Voice Mode, Streaming
+// Messenger-style infinite chat history
 // ============================================
 
 // ============================================
@@ -140,6 +141,306 @@ function restoreChatDraft() {
       console.warn('[Draft] Failed to restore image:', e.message);
       localStorage.removeItem(DRAFT_IMAGE_KEY);
     }
+  }
+}
+
+// ============================================
+// PERSISTENT CHAT HISTORY (v4.25)
+// Messenger-style infinite chat history
+// ============================================
+
+const CHAT_HISTORY_KEY = 'droplit_chat_history';
+const CHAT_PAGE_SIZE = 50; // Messages per page
+const CHAT_MAX_MESSAGES = 2000; // Max stored messages
+const CHAT_THUMBNAIL_SIZE = 200; // Max thumbnail dimension
+const CHAT_MEDIA_TTL_DAYS = 14; // Days to keep thumbnails
+
+let chatHistoryLoaded = false;
+let chatHistoryPage = 0;
+let chatHistoryTotal = 0;
+let isLoadingHistory = false;
+
+// Compact message structure for storage
+function createStorableMessage(role, text, imageData = null, extras = {}) {
+  const msg = {
+    id: Date.now() + Math.random().toString(36).substr(2, 5),
+    role: role, // 'user' | 'assistant'
+    text: text || '',
+    ts: new Date().toISOString(),
+    ...extras
+  };
+  
+  // Add thumbnail for images (not full base64)
+  if (imageData) {
+    msg.thumb = imageData; // Already should be thumbnail
+    msg.hasImage = true;
+  }
+  
+  return msg;
+}
+
+// Generate thumbnail from full image
+function generateThumbnail(base64Data, maxSize = CHAT_THUMBNAIL_SIZE) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+      
+      // Scale down if needed
+      if (width > maxSize || height > maxSize) {
+        if (width > height) {
+          height = Math.round(height * maxSize / width);
+          width = maxSize;
+        } else {
+          width = Math.round(width * maxSize / height);
+          height = maxSize;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // JPEG with 70% quality for small size
+      resolve(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.onerror = () => resolve(null);
+    img.src = base64Data;
+  });
+}
+
+// Save message to history
+async function saveToChatHistory(role, text, imageData = null, extras = {}) {
+  try {
+    // Load existing history
+    let history = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+    
+    // Generate thumbnail if image provided
+    let thumbnail = null;
+    if (imageData) {
+      thumbnail = await generateThumbnail(imageData);
+    }
+    
+    // Create storable message
+    const msg = createStorableMessage(role, text, thumbnail, extras);
+    
+    // Add to history
+    history.push(msg);
+    
+    // Trim to max messages
+    if (history.length > CHAT_MAX_MESSAGES) {
+      history = history.slice(-CHAT_MAX_MESSAGES);
+    }
+    
+    // Cleanup old media (keep text, remove thumbnails)
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - CHAT_MEDIA_TTL_DAYS);
+    history = history.map(m => {
+      if (m.thumb && new Date(m.ts) < cutoffDate) {
+        return { ...m, thumb: null, thumbExpired: true };
+      }
+      return m;
+    });
+    
+    // Save
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+    chatHistoryTotal = history.length;
+    
+    console.log('[ChatHistory] Saved message, total:', history.length);
+    return msg;
+  } catch (e) {
+    console.error('[ChatHistory] Save error:', e);
+    return null;
+  }
+}
+
+// Load chat history with pagination
+function loadChatHistory(page = 0, append = false) {
+  if (isLoadingHistory) return;
+  isLoadingHistory = true;
+  
+  try {
+    const history = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+    chatHistoryTotal = history.length;
+    
+    if (history.length === 0) {
+      isLoadingHistory = false;
+      chatHistoryLoaded = true;
+      return;
+    }
+    
+    // Calculate slice
+    const start = Math.max(0, history.length - ((page + 1) * CHAT_PAGE_SIZE));
+    const end = history.length - (page * CHAT_PAGE_SIZE);
+    const messages = history.slice(start, end);
+    
+    console.log('[ChatHistory] Loading page', page, 'messages:', start, '-', end, 'of', history.length);
+    
+    // Render messages
+    const messagesDiv = document.getElementById('askAIMessages');
+    if (!messagesDiv) {
+      isLoadingHistory = false;
+      return;
+    }
+    
+    // If appending (loading older), save scroll position
+    const scrollHeightBefore = messagesDiv.scrollHeight;
+    
+    // Create fragment for batch insert
+    const fragment = document.createDocumentFragment();
+    
+    messages.forEach(msg => {
+      const msgDiv = renderHistoryMessage(msg);
+      if (msgDiv) {
+        if (append) {
+          fragment.appendChild(msgDiv);
+        } else {
+          fragment.appendChild(msgDiv);
+        }
+      }
+    });
+    
+    if (append) {
+      // Prepend older messages
+      messagesDiv.insertBefore(fragment, messagesDiv.firstChild);
+      // Maintain scroll position
+      messagesDiv.scrollTop = messagesDiv.scrollHeight - scrollHeightBefore;
+    } else {
+      // Initial load - append and scroll to bottom
+      messagesDiv.appendChild(fragment);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    // Add "Load more" button if more history exists
+    if (start > 0 && !document.getElementById('loadMoreHistory')) {
+      addLoadMoreButton(messagesDiv, page + 1);
+    }
+    
+    chatHistoryPage = page;
+    chatHistoryLoaded = true;
+    
+    // Also populate askAIMessages array for context
+    if (!append) {
+      askAIMessages = messages.map(m => ({
+        role: m.role,
+        content: m.text
+      }));
+    }
+    
+  } catch (e) {
+    console.error('[ChatHistory] Load error:', e);
+  }
+  
+  isLoadingHistory = false;
+}
+
+// Render a single history message
+function renderHistoryMessage(msg) {
+  const isUser = msg.role === 'user';
+  const time = new Date(msg.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const date = new Date(msg.ts).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `ask-ai-message ${isUser ? 'user' : 'ai'} history-message`;
+  msgDiv.dataset.msgId = msg.id;
+  msgDiv.dataset.timestamp = msg.ts;
+  
+  let content = '';
+  
+  // Image thumbnail
+  if (msg.thumb) {
+    content += `<img src="${msg.thumb}" class="chat-history-thumb" onclick="openChatImageViewer(this.src)" alt="Image">`;
+  } else if (msg.hasImage && msg.thumbExpired) {
+    content += `<div class="chat-history-thumb-expired">🖼️ Image expired</div>`;
+  }
+  
+  // Text content
+  if (msg.text) {
+    const rendered = isUser ? escapeHtml(msg.text) : renderChatMarkdown(msg.text);
+    content += `<div class="ask-ai-text">${rendered}</div>`;
+  }
+  
+  // Chart/Diagram indicator
+  if (msg.chartId) {
+    content += `<div class="chat-history-media-ref">📊 Chart saved to feed</div>`;
+  }
+  if (msg.diagramId) {
+    content += `<div class="chat-history-media-ref">📐 Diagram saved to feed</div>`;
+  }
+  
+  msgDiv.innerHTML = `
+    ${content}
+    <div class="ask-ai-time">${date}, ${time}</div>
+  `;
+  
+  return msgDiv;
+}
+
+// Add "Load more" button
+function addLoadMoreButton(container, nextPage) {
+  const existing = document.getElementById('loadMoreHistory');
+  if (existing) existing.remove();
+  
+  const btn = document.createElement('div');
+  btn.id = 'loadMoreHistory';
+  btn.className = 'chat-load-more';
+  btn.innerHTML = `
+    <button onclick="loadMoreChatHistory(${nextPage})">
+      ↑ Load earlier messages
+    </button>
+  `;
+  container.insertBefore(btn, container.firstChild);
+}
+
+// Load more history (called from button)
+function loadMoreChatHistory(page) {
+  const btn = document.getElementById('loadMoreHistory');
+  if (btn) btn.remove();
+  
+  loadChatHistory(page, true);
+}
+
+// Clear chat history
+function clearChatHistory() {
+  if (!confirm('Clear all chat history? This cannot be undone.')) return;
+  
+  localStorage.removeItem(CHAT_HISTORY_KEY);
+  askAIMessages = [];
+  chatHistoryTotal = 0;
+  chatHistoryPage = 0;
+  
+  const messagesDiv = document.getElementById('askAIMessages');
+  if (messagesDiv) {
+    messagesDiv.innerHTML = '';
+  }
+  
+  // Update stats in settings (v0.9.120)
+  if (typeof updateChatHistoryStats === 'function') {
+    updateChatHistoryStats();
+  }
+  
+  console.log('[ChatHistory] Cleared');
+  toast('Chat history cleared', 'success');
+}
+
+// Get chat history stats
+function getChatHistoryStats() {
+  try {
+    const history = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+    const sizeBytes = new Blob([JSON.stringify(history)]).size;
+    const oldestMsg = history[0];
+    const newestMsg = history[history.length - 1];
+    
+    return {
+      count: history.length,
+      sizeKB: Math.round(sizeBytes / 1024),
+      oldest: oldestMsg ? new Date(oldestMsg.ts).toLocaleDateString() : null,
+      newest: newestMsg ? new Date(newestMsg.ts).toLocaleDateString() : null
+    };
+  } catch (e) {
+    return { count: 0, sizeKB: 0, oldest: null, newest: null };
   }
 }
 
@@ -3679,6 +3980,9 @@ async function handleStreamingResponse(response) {
   
   askAIMessages.push({ text: fullText, isUser: false });
   
+  // Save AI response to persistent history (v4.25)
+  saveToChatHistory('assistant', fullText);
+  
   // createDrop is now handled in streaming 'done' event (v4.18)
   // Old code removed to prevent duplicate drops
   
@@ -3820,6 +4124,9 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
   
   askAIMessages.push({ text, isUser, time, hasImage: !!imageUrl, msgId });
+  
+  // Save to persistent history (v4.25)
+  saveToChatHistory(isUser ? 'user' : 'assistant', text, imageUrl);
   
   // AutoDrop: automatically save message as drop
   if (autoDropEnabled) {
@@ -4332,6 +4639,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Restore draft on load
     restoreChatDraft();
   }
+  
+  // Load persistent chat history (v4.25)
+  loadChatHistory(0, false);
   
   // Load API key
   // (API key is stored on server, not needed here)
