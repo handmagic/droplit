@@ -2817,13 +2817,7 @@ async function handleStreamingResponse(response) {
                   hasImage: !!parsed.generateImage.image,
                   imageLength: parsed.generateImage.image?.length || 0
                 } : null,
-                createChart: parsed.createChart ? {
-                  action: parsed.createChart.action,
-                  success: parsed.createChart.success,
-                  chartType: parsed.createChart.chartType,
-                  title: parsed.createChart.title,
-                  hasConfig: !!parsed.createChart.chartConfig
-                } : null,
+                createCharts: parsed.createCharts ? parsed.createCharts.length + ' charts' : null,
                 toolsUsed: parsed.toolsUsed
               }));
               
@@ -3110,15 +3104,26 @@ async function handleStreamingResponse(response) {
                 toast('Ошибка генерации: ' + (parsed.generateImage.error || 'нет изображения'), 'error');
               }
               
-              // Handle create_chart (v4.21)
+              // Handle chart_ready event (v4.22 - real-time chart rendering)
+              if (parsed.type === 'chart_ready' && parsed.chart?.chartConfig) {
+                console.log('[Chart] ✅ Real-time chart received:', parsed.chart.title);
+                setTimeout(() => {
+                  renderChartInChat(parsed.chart);
+                }, 100);
+              }
+              
+              // Handle create_charts array in done event (v4.22)
+              if (parsed.createCharts && Array.isArray(parsed.createCharts) && parsed.createCharts.length > 0) {
+                console.log('[Chart] ✅ Processing', parsed.createCharts.length, 'charts from done event');
+                // Charts already rendered via chart_ready, this is just for backup
+              }
+              
+              // Legacy: Handle single createChart (backward compatibility)
               if (parsed.createChart?.action === 'create_chart' && parsed.createChart?.chartConfig) {
-                console.log('[Chart] ✅ Rendering chart in chat!');
+                console.log('[Chart] ✅ Legacy single chart');
                 setTimeout(() => {
                   renderChartInChat(parsed.createChart);
                 }, 100);
-              } else if (parsed.createChart?.action === 'create_chart' && !parsed.createChart?.chartConfig) {
-                console.error('[Chart] ❌ Tool called but no config!', parsed.createChart);
-                toast('Ошибка создания графика', 'error');
               }
             }
             
