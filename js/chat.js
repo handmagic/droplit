@@ -422,10 +422,8 @@ function addGeneratedImageToChat(imageBase64, revisedPrompt) {
 }
 
 // ============================================
-// CHART RENDERING IN CHAT (v4.21)
+// CHART RENDERING IN CHAT (v4.22 - multi-chart fix)
 // ============================================
-let currentChartInstance = null;
-let currentChartData = null;
 
 function renderChartInChat(chartData) {
   const messagesDiv = document.getElementById('askAIMessages');
@@ -443,12 +441,10 @@ function renderChartInChat(chartData) {
   const autoDropEnabled = localStorage.getItem('droplit_autodrop') === 'true';
   const canvasId = 'chartCanvas-' + Date.now();
   
-  // Store chart data for later use
-  currentChartData = chartData;
-  
   const msgDiv = document.createElement('div');
   msgDiv.className = 'ask-ai-message ai';
   msgDiv.id = msgId;
+  msgDiv.dataset.chartData = JSON.stringify(chartData); // Store for later use
   
   // Build Save as Drop button
   const saveDropBtn = autoDropEnabled
@@ -456,13 +452,13 @@ function renderChartInChat(chartData) {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
         Saved
       </button>`
-    : `<button class="ask-ai-action-btn" onclick="saveChartAsDrop('${canvasId}', this)">
+    : `<button class="ask-ai-action-btn chart-save-btn" data-canvas="${canvasId}" onclick="saveChartAsDrop('${canvasId}', this)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         Save Drop
       </button>`;
   
   msgDiv.innerHTML = `
-    <div class="chart-container" style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 8px; max-width: 100%; position: relative;">
+    <div class="chart-container" id="container-${canvasId}" style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 8px; max-width: 100%; position: relative;">
       <canvas id="${canvasId}" style="max-height: 300px; width: 100%;"></canvas>
     </div>
     <div class="ask-ai-actions" style="margin-bottom: 8px; flex-wrap: wrap; gap: 4px;">
@@ -496,25 +492,20 @@ function renderChartInChat(chartData) {
     
     const ctx = canvas.getContext('2d');
     
-    // Destroy previous chart if exists
-    if (currentChartInstance) {
-      currentChartInstance.destroy();
-    }
-    
     try {
-      currentChartInstance = new Chart(ctx, chartData.chartConfig);
+      // Create new chart instance (NO global tracking - each chart is independent)
+      const chartInstance = new Chart(ctx, chartData.chartConfig);
       console.log('[Chart] Rendered successfully:', chartData.title);
       
       // Store reference on canvas element
-      canvas.chartInstance = currentChartInstance;
+      canvas.chartInstance = chartInstance;
       canvas.chartData = chartData;
       
-      // AutoDrop: auto-save chart
-      if (autoDropEnabled) {
-        setTimeout(() => {
-          autoSaveChartAsDrop(canvasId);
-        }, 500);
-      }
+      // FREEZE: After animation completes, convert to static PNG (v4.22)
+      // This allows multiple charts to coexist
+      setTimeout(() => {
+        freezeChartToPNG(canvasId, autoDropEnabled);
+      }, 800); // Wait for Chart.js animation to complete
       
     } catch (e) {
       console.error('[Chart] Render error:', e);
@@ -525,40 +516,140 @@ function renderChartInChat(chartData) {
   toast('📊 График создан!', 'success');
 }
 
-// Download chart as PNG
-function downloadChartAsPNG(canvasId) {
+// Convert live Chart.js canvas to static PNG image (v4.22)
+function freezeChartToPNG(canvasId, autoSave = false) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   
+  const container = document.getElementById('container-' + canvasId);
+  if (!container) return;
+  
+  // Get PNG with white background
+  const pngData = getChartPNGWithBackground(canvas);
+  
+  // Store data before destroying
+  const chartData = canvas.chartData;
+  
+  // Destroy Chart.js instance to free memory
+  if (canvas.chartInstance) {
+    canvas.chartInstance.destroy();
+    canvas.chartInstance = null;
+  }
+  
+  // Replace canvas with static image
+  const img = document.createElement('img');
+  img.src = pngData;
+  img.className = 'chart-frozen-image';
+  img.style.cssText = 'max-height: 300px; width: 100%; border-radius: 8px; cursor: pointer;';
+  img.dataset.canvasId = canvasId;
+  img.dataset.chartData = JSON.stringify(chartData);
+  img.onclick = () => openChatImageViewer(pngData);
+  
+  // Store PNG on image for later use
+  img.pngData = pngData;
+  img.chartData = chartData;
+  
+  container.innerHTML = '';
+  container.appendChild(img);
+  
+  console.log('[Chart] Frozen to PNG:', canvasId);
+  
+  // AutoDrop: auto-save chart
+  if (autoSave) {
+    autoSaveChartAsDrop(canvasId);
+  }
+}
+
+// Create PNG with white background (v4.22)
+function getChartPNGWithBackground(canvas, bgColor = '#ffffff') {
+  // Create temporary canvas with white background
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = canvas.width;
+  tempCanvas.height = canvas.height;
+  const tempCtx = tempCanvas.getContext('2d');
+  
+  // Fill white background
+  tempCtx.fillStyle = bgColor;
+  tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+  
+  // Draw chart on top
+  tempCtx.drawImage(canvas, 0, 0);
+  
+  return tempCanvas.toDataURL('image/png', 1.0);
+}
+
+// Download chart as PNG (v4.22 - supports frozen images)
+function downloadChartAsPNG(canvasId) {
+  const container = document.getElementById('container-' + canvasId);
+  if (!container) return;
+  
+  // Check if it's a frozen image or live canvas
+  const frozenImg = container.querySelector('.chart-frozen-image');
+  const canvas = document.getElementById(canvasId);
+  
+  let pngData;
+  if (frozenImg && frozenImg.pngData) {
+    pngData = frozenImg.pngData;
+  } else if (canvas) {
+    pngData = getChartPNGWithBackground(canvas);
+  } else {
+    toast('График не найден', 'error');
+    return;
+  }
+  
   const link = document.createElement('a');
   link.download = `chart-${Date.now()}.png`;
-  link.href = canvas.toDataURL('image/png', 1.0);
+  link.href = pngData;
   link.click();
   
   toast('📥 PNG скачан', 'success');
 }
 
-// Open chart in fullscreen modal
+// Open chart in fullscreen modal (v4.22 - supports frozen images)
 function openChartFullscreen(canvasId) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas || !canvas.chartData) return;
+  const container = document.getElementById('container-' + canvasId);
+  if (!container) return;
   
-  // Use existing image viewer modal with chart
-  const pngData = canvas.toDataURL('image/png', 1.0);
+  // Check if it's a frozen image or live canvas
+  const frozenImg = container.querySelector('.chart-frozen-image');
+  const canvas = document.getElementById(canvasId);
+  
+  let pngData;
+  if (frozenImg && frozenImg.pngData) {
+    pngData = frozenImg.pngData;
+  } else if (canvas) {
+    pngData = getChartPNGWithBackground(canvas);
+  } else {
+    toast('График не найден', 'error');
+    return;
+  }
+  
   openChatImageViewer(pngData);
 }
 
-// Save chart as Chart Drop
+// Save chart as Chart Drop (v4.22 - supports frozen images)
 function saveChartAsDrop(canvasId, btn) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas || !canvas.chartData) {
+  const container = document.getElementById('container-' + canvasId);
+  if (!container) {
     toast('Данные графика не найдены', 'error');
     return;
   }
   
-  // Get PNG from canvas
-  const pngData = canvas.toDataURL('image/png', 1.0);
-  const chartData = canvas.chartData;
+  // Check if it's a frozen image or live canvas
+  const frozenImg = container.querySelector('.chart-frozen-image');
+  const canvas = document.getElementById(canvasId);
+  
+  let pngData, chartData;
+  if (frozenImg) {
+    pngData = frozenImg.pngData || frozenImg.src;
+    chartData = frozenImg.chartData || JSON.parse(frozenImg.dataset.chartData || '{}');
+  } else if (canvas) {
+    pngData = getChartPNGWithBackground(canvas);
+    chartData = canvas.chartData;
+  } else {
+    toast('График не найден', 'error');
+    return;
+  }
   
   const now = new Date();
   const drop = {
@@ -614,13 +705,26 @@ function saveChartAsDrop(canvasId, btn) {
   return drop;
 }
 
-// Auto-save chart as drop (for autodrop feature)
+// Auto-save chart as drop (for autodrop feature) - v4.22
 function autoSaveChartAsDrop(canvasId) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas || !canvas.chartData) return null;
+  const container = document.getElementById('container-' + canvasId);
+  if (!container) return null;
   
-  const pngData = canvas.toDataURL('image/png', 1.0);
-  const chartData = canvas.chartData;
+  // Check if it's a frozen image or live canvas
+  const frozenImg = container.querySelector('.chart-frozen-image');
+  const canvas = document.getElementById(canvasId);
+  
+  let pngData, chartData;
+  if (frozenImg) {
+    pngData = frozenImg.pngData || frozenImg.src;
+    chartData = frozenImg.chartData || JSON.parse(frozenImg.dataset.chartData || '{}');
+  } else if (canvas && canvas.chartData) {
+    pngData = getChartPNGWithBackground(canvas);
+    chartData = canvas.chartData;
+  } else {
+    console.log('[Chart AutoDrop] No chart data found');
+    return null;
+  }
   
   const now = new Date();
   const drop = {
