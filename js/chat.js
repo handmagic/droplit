@@ -792,6 +792,221 @@ function autoSaveImageAsDrop(imageUrl) {
   return newIdea;
 }
 
+// ============================================
+// DIAGRAM RENDERING IN CHAT (v4.24 - Mermaid.js)
+// ============================================
+
+// Render Mermaid diagram in chat (fully private - renders in browser!)
+async function renderDiagramInChat(diagramData) {
+  const messagesDiv = document.getElementById('askAIMessages');
+  if (!messagesDiv) return;
+  
+  // Check if Mermaid is loaded
+  if (typeof mermaid === 'undefined') {
+    console.error('[Diagram] Mermaid.js not loaded!');
+    toast('Mermaid.js не загружен', 'error');
+    return;
+  }
+  
+  const msgId = 'diagram-' + Date.now();
+  const mermaidId = 'mermaid-' + Date.now();
+  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  
+  console.log('[Diagram] Rendering:', diagramData.title);
+  console.log('[Diagram] Code:', diagramData.code.slice(0, 100));
+  
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'ask-ai-message ai';
+  msgDiv.id = msgId;
+  msgDiv.dataset.diagramData = JSON.stringify(diagramData);
+  
+  // Type icons
+  const typeIcons = {
+    flowchart: '📋',
+    sequence: '🔄',
+    class: '🏛️',
+    state: '🔘',
+    er: '🗄️',
+    gantt: '📅',
+    mindmap: '🧠',
+    pie: '🥧',
+    block: '🧩',
+    timeline: '📆',
+    quadrant: '📊',
+    git: '🔀'
+  };
+  
+  const icon = typeIcons[diagramData.diagramType] || '📐';
+  
+  msgDiv.innerHTML = `
+    <div class="diagram-container" style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 8px; overflow-x: auto;">
+      <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937;">${icon} ${escapeHtml(diagramData.title)}</div>
+      <div id="${mermaidId}" class="mermaid-diagram" style="display: flex; justify-content: center;"></div>
+    </div>
+    <div class="ask-ai-actions" style="margin-bottom: 8px; flex-wrap: wrap; gap: 4px;">
+      <button class="ask-ai-action-btn" onclick="downloadDiagramSVG('${msgId}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        SVG
+      </button>
+      <button class="ask-ai-action-btn" onclick="copyDiagramCode('${msgId}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Code
+      </button>
+      <button class="ask-ai-action-btn" onclick="saveDiagramAsDrop('${msgId}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Save Drop
+      </button>
+      <button class="ask-ai-action-btn" style="border-color: #EF4444; color: #EF4444;" onclick="deleteChatMessage('${msgId}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        Delete
+      </button>
+    </div>
+    <div class="ask-ai-time">${time} • ${diagramData.diagramType}</div>
+  `;
+  
+  messagesDiv.appendChild(msgDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  
+  // Render Mermaid diagram
+  setTimeout(async () => {
+    try {
+      const container = document.getElementById(mermaidId);
+      if (!container) return;
+      
+      // Use mermaid.render() to generate SVG
+      const { svg } = await mermaid.render('mermaid-svg-' + Date.now(), diagramData.code);
+      container.innerHTML = svg;
+      
+      // Store SVG for download
+      container.dataset.svg = svg;
+      
+      // Make SVG clickable for fullscreen
+      const svgEl = container.querySelector('svg');
+      if (svgEl) {
+        svgEl.style.cursor = 'pointer';
+        svgEl.onclick = () => openDiagramFullscreen(msgId);
+      }
+      
+      console.log('[Diagram] ✅ Rendered:', diagramData.title);
+    } catch (e) {
+      console.error('[Diagram] Render error:', e);
+      document.getElementById(mermaidId).innerHTML = `
+        <div style="color: #EF4444; padding: 16px; text-align: center;">
+          ❌ Ошибка рендеринга диаграммы<br>
+          <small style="color: #666;">${escapeHtml(e.message)}</small>
+        </div>
+      `;
+    }
+  }, 100);
+  
+  toast(`${icon} Диаграмма создана!`, 'success');
+}
+
+// Open diagram fullscreen
+function openDiagramFullscreen(msgId) {
+  const msgDiv = document.getElementById(msgId);
+  if (!msgDiv) return;
+  
+  const container = msgDiv.querySelector('.mermaid-diagram');
+  if (!container || !container.dataset.svg) return;
+  
+  // Create data URL from SVG
+  const svgBlob = new Blob([container.dataset.svg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(svgBlob);
+  
+  openChatImageViewer(url);
+}
+
+// Download diagram as SVG
+function downloadDiagramSVG(msgId) {
+  const msgDiv = document.getElementById(msgId);
+  if (!msgDiv) return;
+  
+  try {
+    const diagramData = JSON.parse(msgDiv.dataset.diagramData);
+    const container = msgDiv.querySelector('.mermaid-diagram');
+    
+    if (!container || !container.dataset.svg) {
+      toast('SVG не готов', 'error');
+      return;
+    }
+    
+    const blob = new Blob([container.dataset.svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = (diagramData.title.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_') || 'diagram') + '.svg';
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    toast('📥 SVG скачан', 'success');
+  } catch (e) {
+    console.error('[Diagram] Download error:', e);
+    toast('Ошибка скачивания', 'error');
+  }
+}
+
+// Copy Mermaid code to clipboard
+function copyDiagramCode(msgId) {
+  const msgDiv = document.getElementById(msgId);
+  if (!msgDiv) return;
+  
+  try {
+    const diagramData = JSON.parse(msgDiv.dataset.diagramData);
+    navigator.clipboard.writeText(diagramData.code);
+    toast('📋 Код скопирован!', 'success');
+  } catch (e) {
+    console.error('[Diagram] Copy error:', e);
+    toast('Ошибка копирования', 'error');
+  }
+}
+
+// Save diagram as drop
+function saveDiagramAsDrop(msgId) {
+  const msgDiv = document.getElementById(msgId);
+  if (!msgDiv) return;
+  
+  try {
+    const diagramData = JSON.parse(msgDiv.dataset.diagramData);
+    
+    const now = new Date();
+    const drop = {
+      id: Date.now(),
+      text: `📐 ${diagramData.title}\n\nТип: ${diagramData.diagramType}\n\nMermaid код:\n\`\`\`mermaid\n${diagramData.code}\n\`\`\``,
+      category: 'ideas',
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('ru-RU'),
+      time: now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      creator: 'aski',
+      source: 'diagram',
+      diagramType: diagramData.diagramType
+    };
+    
+    if (typeof ideas !== 'undefined') {
+      ideas.unshift(drop);
+    }
+    if (typeof save === 'function') save(drop);
+    if (typeof counts === 'function') counts();
+    if (typeof playDropSound === 'function') playDropSound();
+    
+    // Update button
+    const btn = msgDiv.querySelector('[onclick*="saveDiagramAsDrop"]');
+    if (btn) {
+      btn.innerHTML = '✅ Saved';
+      btn.disabled = true;
+    }
+    
+    toast('💧 Диаграмма сохранена!', 'success');
+    
+    if (typeof syncDropToSyntrise === 'function') {
+      syncDropToSyntrise(drop);
+    }
+  } catch (e) {
+    console.error('[Diagram] Save error:', e);
+    toast('Ошибка сохранения', 'error');
+  }
+}
+
 // Helper: escape HTML
 function escapeHtml(text) {
   if (!text) return '';
@@ -2772,6 +2987,7 @@ async function handleStreamingResponse(response) {
               if (parsed.type && parsed.type !== 'text') {
                 console.log('[SSE Event]', parsed.type, 
                   parsed.type === 'chart_ready' ? parsed.chart?.title : 
+                  parsed.type === 'diagram_ready' ? parsed.diagram?.title :
                   parsed.type === 'tool_result' ? parsed.tool : '');
               }
             } catch (logErr) {
@@ -2837,6 +3053,20 @@ async function handleStreamingResponse(response) {
               }
             }
             
+            // Diagram ready event (v4.24 - PlantUML diagrams)
+            if (parsed.type === 'diagram_ready' && parsed.diagram?.code) {
+              console.log('[Diagram] ✅ Real-time diagram received:', parsed.diagram.title);
+              // Track rendered diagrams to avoid duplicates
+              if (!window._renderedDiagramIds) window._renderedDiagramIds = new Set();
+              const diagramId = parsed.diagram.diagramType + '_' + (parsed.diagram.title || Date.now());
+              if (!window._renderedDiagramIds.has(diagramId)) {
+                window._renderedDiagramIds.add(diagramId);
+                setTimeout(() => {
+                  renderDiagramInChat(parsed.diagram);
+                }, 100);
+              }
+            }
+            
             // Stream done
             if (parsed.type === 'done') {
               // DEBUG: Log what we received
@@ -2854,6 +3084,7 @@ async function handleStreamingResponse(response) {
                   imageLength: parsed.generateImage.image?.length || 0
                 } : null,
                 createCharts: parsed.createCharts ? parsed.createCharts.length + ' charts' : null,
+                createDiagrams: parsed.createDiagrams ? parsed.createDiagrams.length + ' diagrams' : null,
                 toolsUsed: parsed.toolsUsed
               }));
               
@@ -3163,6 +3394,32 @@ async function handleStreamingResponse(response) {
                 // Clear tracking for next request
                 setTimeout(() => {
                   window._renderedChartIds = new Set();
+                }, 2000);
+              }
+              
+              // Handle create_diagrams array in done event (v4.24 - fallback)
+              if (parsed.createDiagrams && Array.isArray(parsed.createDiagrams) && parsed.createDiagrams.length > 0) {
+                console.log('[Diagram] Done event has', parsed.createDiagrams.length, 'diagrams');
+                if (!window._renderedDiagramIds) window._renderedDiagramIds = new Set();
+                
+                parsed.createDiagrams.forEach((diagram, idx) => {
+                  if (diagram?.code) {
+                    const diagramId = diagram.diagramType + '_' + (diagram.title || Date.now());
+                    if (!window._renderedDiagramIds.has(diagramId)) {
+                      window._renderedDiagramIds.add(diagramId);
+                      console.log('[Diagram] Rendering from done (fallback):', diagram.title);
+                      setTimeout(() => {
+                        renderDiagramInChat(diagram);
+                      }, idx * 200);
+                    } else {
+                      console.log('[Diagram] Already rendered via diagram_ready:', diagram.title);
+                    }
+                  }
+                });
+                
+                // Clear tracking for next request
+                setTimeout(() => {
+                  window._renderedDiagramIds = new Set();
                 }, 2000);
               }
             }
