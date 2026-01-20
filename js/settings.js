@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT SETTINGS v1.1
+// DROPLIT SETTINGS v1.2 - Chat History Management
 // Main Menu, Settings, Export/Import, Undo
 // ============================================
 
@@ -56,6 +56,8 @@ function openMainMenu() {
   initFontSize();
   // Initialize voice/TTS settings UI with saved values
   initVoiceSettings();
+  // Initialize chat history settings (v0.9.120)
+  initChatHistorySettings();
   // Sync AutoDrop indicator
   if (typeof updateAutoDropIndicator === 'function') {
     updateAutoDropIndicator();
@@ -804,8 +806,97 @@ function clearAllData() {
 // Initialize undo UI on page load
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => updateUndoList(), 100);
+  // Initialize chat history settings
+  setTimeout(() => initChatHistorySettings(), 200);
 });
 
+// ============================================
+// CHAT HISTORY MANAGEMENT (v0.9.120)
+// ============================================
+
+const CHAT_AUTO_DELETE_KEY = 'droplit_chat_autodelete';
+const CHAT_LAST_CLEANUP_KEY = 'droplit_chat_last_cleanup';
+
+// Initialize chat history settings UI
+function initChatHistorySettings() {
+  // Load saved auto-delete setting
+  const autoDelete = localStorage.getItem(CHAT_AUTO_DELETE_KEY) || 'never';
+  const select = document.getElementById('chatAutoDeleteSelect');
+  if (select) {
+    select.value = autoDelete;
+  }
+  
+  // Update stats
+  updateChatHistoryStats();
+  
+  // Apply auto-delete on load
+  applyChatAutoDelete();
+}
+
+// Set auto-delete preference
+function setChatAutoDelete(value) {
+  localStorage.setItem(CHAT_AUTO_DELETE_KEY, value);
+  console.log('[ChatHistory] Auto-delete set to:', value);
+  
+  // Apply immediately
+  applyChatAutoDelete();
+  
+  toast(value === 'never' 
+    ? 'Chat history will be kept forever' 
+    : `Messages older than ${value} days will be auto-deleted`, 
+    'success'
+  );
+}
+
+// Apply auto-delete based on setting
+function applyChatAutoDelete() {
+  const setting = localStorage.getItem(CHAT_AUTO_DELETE_KEY) || 'never';
+  if (setting === 'never') return;
+  
+  const days = parseInt(setting);
+  if (isNaN(days) || days <= 0) return;
+  
+  try {
+    const history = JSON.parse(localStorage.getItem('droplit_chat_history') || '[]');
+    if (history.length === 0) return;
+    
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    const originalCount = history.length;
+    const filtered = history.filter(msg => {
+      const msgDate = new Date(msg.ts);
+      return msgDate >= cutoffDate;
+    });
+    
+    const deletedCount = originalCount - filtered.length;
+    
+    if (deletedCount > 0) {
+      localStorage.setItem('droplit_chat_history', JSON.stringify(filtered));
+      console.log('[ChatHistory] Auto-deleted', deletedCount, 'old messages');
+      
+      // Update stats
+      updateChatHistoryStats();
+    }
+  } catch (e) {
+    console.error('[ChatHistory] Auto-delete error:', e);
+  }
+}
+
+// Update chat history stats display
+function updateChatHistoryStats() {
+  try {
+    const history = JSON.parse(localStorage.getItem('droplit_chat_history') || '[]');
+    const countEl = document.getElementById('chatHistoryCount');
+    if (countEl) {
+      const sizeBytes = new Blob([JSON.stringify(history)]).size;
+      const sizeKB = Math.round(sizeBytes / 1024);
+      countEl.textContent = `${history.length} (${sizeKB} KB)`;
+    }
+  } catch (e) {
+    console.error('[ChatHistory] Stats error:', e);
+  }
+}
 
 // ============================================
 // EXPORTS
@@ -825,5 +916,8 @@ window.DropLitSettings = {
   clearAllData,
   showDebugInfo,
   addToUndo,
-  undoAction
+  undoAction,
+  setChatAutoDelete,
+  initChatHistorySettings,
+  updateChatHistoryStats
 };
