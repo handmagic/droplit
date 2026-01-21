@@ -1414,11 +1414,11 @@
           }
         });
 
-        // Get user details
-        const { data: profiles } = await query('user_preferences?select=user_id,email');
+        // Get user details from user_limits
+        const { data: limits } = await query('user_limits?select=user_id,tier');
         const profileMap = {};
-        if (profiles) {
-          profiles.forEach(p => profileMap[p.user_id] = p);
+        if (limits && Array.isArray(limits)) {
+          limits.forEach(p => profileMap[p.user_id] = p);
         }
 
         // Sort by activity
@@ -1432,9 +1432,9 @@
         // Render cards
         const html = sortedUsers.map(user => {
           const profile = profileMap[user.id] || {};
-          const email = profile.email || user.id.slice(0, 8) + '...';
-          const name = email.split('@')[0];
-          const initial = name[0].toUpperCase();
+          const tier = profile.tier || 'beta';
+          const shortId = user.id.slice(0, 8);
+          const initial = shortId[0].toUpperCase();
           
           // Status based on last activity
           const lastActivity = new Date(user.lastActivity);
@@ -1460,8 +1460,8 @@
                 <span class="tester-status ${statusClass}">${status}</span>
               </div>
               <div class="tester-info">
-                <h4>${name}</h4>
-                <div class="tester-email">${email}</div>
+                <h4>${shortId}...</h4>
+                <div class="tester-email">${tier}</div>
               </div>
               <div class="tester-stats">
                 <div class="tester-stat">
