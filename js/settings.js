@@ -1,6 +1,7 @@
 // ============================================
-// DROPLIT SETTINGS v1.2 - Chat History Management
+// DROPLIT SETTINGS v1.3 - Smart AutoDrop
 // Main Menu, Settings, Export/Import, Undo
+// Chat History Management
 // ============================================
 
 function addCatPrompt(){document.getElementById('addCatModal').classList.add('show');}
@@ -493,6 +494,125 @@ function toggleAutoDrop() {
   const toggle = document.getElementById('autoDropToggle');
   const isEnabled = toggle.classList.toggle('active');
   setAutoDrop(isEnabled);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SMART AUTODROP (v1.2)
+// Filters out noise, keeps only valuable content for feed
+// ═══════════════════════════════════════════════════════════════
+
+function shouldAutoSaveToDrop(text, role = 'assistant') {
+  if (!text) return false;
+  
+  const trimmed = text.trim();
+  const len = trimmed.length;
+  
+  // ─────────────────────────────────────────────────────────────
+  // 1. LENGTH FILTERS
+  // ─────────────────────────────────────────────────────────────
+  
+  // Too short — likely noise
+  if (len < 30) {
+    console.log('[SmartAutoDrop] Skip: too short (<30 chars)');
+    return false;
+  }
+  
+  // User messages: save if substantial (>50 chars)
+  if (role === 'user') {
+    return len > 50;
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // 2. CHITCHAT / NOISE PATTERNS (skip these)
+  // ─────────────────────────────────────────────────────────────
+  
+  const noisePatterns = [
+    // Single word answers
+    /^(да|нет|ок|окей|понял|спасибо|пожалуйста|хорошо|отлично|ага|угу|конечно)\.?$/i,
+    // Greetings
+    /^(привет|пока|здравствуй|добрый день|добрый вечер|доброе утро)\.?$/i,
+    // Short questions without substance
+    /^(что\?|как\?|зачем\?|почему\?|когда\?|где\?)$/i,
+    // Confirmation phrases
+    /^(да,? (конечно|хорошо|понял)|нет,? (спасибо|не надо))\.?$/i,
+    // Generic filler
+    /^(ничего|не знаю|может быть|наверное|возможно)\.?$/i,
+  ];
+  
+  const lowerText = trimmed.toLowerCase();
+  
+  for (const pattern of noisePatterns) {
+    if (pattern.test(lowerText)) {
+      console.log('[SmartAutoDrop] Skip: matches noise pattern');
+      return false;
+    }
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // 3. SERVICE MESSAGES (skip these)
+  // ─────────────────────────────────────────────────────────────
+  
+  const servicePatterns = [
+    'connection error',
+    'please check your internet',
+    'could not process',
+    'sorry, i could not',
+    'no internet',
+    'failed to',
+    'ошибка',
+    'не удалось',
+    'попробуй ещё раз',
+    'попробуй снова',
+    'эта функция недоступна'
+  ];
+  
+  for (const pattern of servicePatterns) {
+    if (lowerText.includes(pattern)) {
+      console.log('[SmartAutoDrop] Skip: service/error message');
+      return false;
+    }
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // 4. VALUABLE CONTENT PATTERNS (always save these)
+  // ─────────────────────────────────────────────────────────────
+  
+  // Lists/instructions
+  if (/\d+\.\s|•\s|-\s\w/.test(trimmed)) {
+    console.log('[SmartAutoDrop] Save: contains list/steps');
+    return true;
+  }
+  
+  // Code blocks
+  if (/```/.test(trimmed)) {
+    console.log('[SmartAutoDrop] Save: contains code');
+    return true;
+  }
+  
+  // Long substantial response
+  if (len > 200) {
+    console.log('[SmartAutoDrop] Save: substantial response (>200 chars)');
+    return true;
+  }
+  
+  // ─────────────────────────────────────────────────────────────
+  // 5. MEDIUM LENGTH — check for substance
+  // ─────────────────────────────────────────────────────────────
+  
+  // Contains facts (numbers, dates, names)
+  if (/\d{4}|\d+\s*(руб|долл|\$|€|%|км|кг|г|мл|л)/i.test(trimmed)) {
+    console.log('[SmartAutoDrop] Save: contains data/facts');
+    return true;
+  }
+  
+  // Default: save if over 100 chars
+  if (len > 100) {
+    console.log('[SmartAutoDrop] Save: medium length (>100 chars)');
+    return true;
+  }
+  
+  console.log('[SmartAutoDrop] Skip: no valuable patterns detected');
+  return false;
 }
 
 // Auto-save message as drop (for AutoDrop mode)
