@@ -1176,8 +1176,8 @@
     // Initialize Supabase client
     console.log('Initializing Supabase...');
     console.log('window.supabase:', typeof window.supabase);
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log('Supabase client created:', supabase ? 'OK' : 'FAILED');
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('Supabase client created:', supabaseClient ? 'OK' : 'FAILED');
     
     let currentUser = null;
     let userTier = null;
@@ -1189,7 +1189,7 @@
       const start = Date.now();
       try {
         // Get current session token
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         const token = session?.access_token || SUPABASE_KEY;
         
         const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -1914,7 +1914,7 @@
       errorEl.style.display = 'none';
       
       try {
-        const { error } = await supabase.auth.signInWithOtp({
+        const { error } = await supabaseClient.auth.signInWithOtp({
           email,
           options: {
             emailRedirectTo: window.location.href.split('?')[0]
@@ -1945,7 +1945,7 @@
       errorEl.style.display = 'none';
       
       try {
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: window.location.href.split('?')[0] // Return to CORTEX after auth
@@ -1995,7 +1995,7 @@
       
       try {
         console.log('Calling supabase.auth.signInWithPassword...');
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
           email,
           password
         });
@@ -2006,7 +2006,7 @@
         
         // Check if user is owner
         console.log('Checking owner status for:', data.user.id);
-        const { data: limits } = await supabase
+        const { data: limits } = await supabaseClient
           .from('user_limits')
           .select('tier')
           .eq('user_id', data.user.id)
@@ -2015,7 +2015,7 @@
         console.log('User limits:', limits);
         
         if (!limits || limits.tier !== 'owner') {
-          await supabase.auth.signOut();
+          await supabaseClient.auth.signOut();
           throw new Error('Access denied. Only owner accounts can access CORTEX.');
         }
         
@@ -2034,7 +2034,7 @@
     }
     
     async function handleLogout() {
-      await supabase.auth.signOut();
+      await supabaseClient.auth.signOut();
       currentUser = null;
       userTier = null;
       document.getElementById('loginScreen').style.display = 'flex';
@@ -2065,13 +2065,13 @@
       console.log('supabase object:', typeof supabase, supabase ? 'exists' : 'undefined');
       
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         console.log('Session:', session);
         
         if (session?.user) {
           console.log('User found:', session.user.id);
           // Verify owner status
-          const { data: limits } = await supabase
+          const { data: limits } = await supabaseClient
             .from('user_limits')
             .select('tier')
             .eq('user_id', session.user.id)
