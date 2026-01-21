@@ -1,5 +1,5 @@
 // ============================================
-// DROPLIT CHAT v4.25 - Persistent History
+// DROPLIT CHAT v4.26 - Bubble fix + History context
 // ASKI Chat, Voice Mode, Streaming
 // Messenger-style infinite chat history
 // ============================================
@@ -321,12 +321,20 @@ function loadChatHistory(page = 0, append = false) {
     chatHistoryPage = page;
     chatHistoryLoaded = true;
     
-    // Also populate askAIMessages array for context
+    // Also populate askAIMessages array for context (v4.26 fix format)
+    // Server expects { text, isUser } format
     if (!append) {
       askAIMessages = messages.map(m => ({
-        role: m.role,
-        content: m.text
+        text: m.text,
+        isUser: m.role === 'user'
       }));
+    } else {
+      // Prepend older messages when loading more
+      const olderMessages = messages.map(m => ({
+        text: m.text,
+        isUser: m.role === 'user'
+      }));
+      askAIMessages = [...olderMessages, ...askAIMessages];
     }
     
   } catch (e) {
@@ -356,10 +364,10 @@ function renderHistoryMessage(msg) {
     content += `<div class="chat-history-thumb-expired">🖼️ Image expired</div>`;
   }
   
-  // Text content
+  // Text content in bubble (v4.26 fix)
   if (msg.text) {
     const rendered = isUser ? escapeHtml(msg.text) : renderChatMarkdown(msg.text);
-    content += `<div class="ask-ai-text">${rendered}</div>`;
+    content += `<div class="ask-ai-bubble" data-original-text="${escapeHtml(msg.text)}">${rendered}</div>`;
   }
   
   // Chart/Diagram indicator
@@ -4290,7 +4298,7 @@ async function sendAskAIMessage() {
         action: 'chat',
         text: textForAI || 'Что на этом изображении?',  // Default question for image-only (v0.9.117)
         image: attachedImage?.data || null, // v0.9.117: Attached image base64
-        history: askAIMessages.slice(-10),
+        history: askAIMessages.slice(-20), // v4.26: More context from chat history
         syntriseContext: syntriseContext, // Legacy
         dropContext: contextObject, // v2: Structured context for server
         currentFeed: currentFeed, // v4.17: Actual drops from user's feed
