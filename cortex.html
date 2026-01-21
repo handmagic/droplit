@@ -877,7 +877,23 @@
       </button>
       
       <div class="divider">
-        <span>or</span>
+        <span>or magic link</span>
+      </div>
+      
+      <!-- Magic Link Form -->
+      <form class="login-form" onsubmit="handleMagicLink(event)" id="magicLinkForm">
+        <input type="email" id="magicEmail" placeholder="Email for magic link" required autocomplete="email">
+        <button type="submit" id="magicBtn" style="background: linear-gradient(135deg, #8B5CF6, #6366F1);">📧 Send Magic Link</button>
+      </form>
+      
+      <div id="magicLinkSent" style="display:none; text-align:center; padding:20px; background:#052e16; border:1px solid #22c55e; border-radius:8px; margin-top:12px;">
+        <div style="font-size:24px; margin-bottom:8px;">✉️</div>
+        <div style="color:#4ade80; font-weight:500;">Magic link sent!</div>
+        <div style="color:#666; font-size:12px; margin-top:4px;">Check your email and click the link</div>
+      </div>
+      
+      <div class="divider">
+        <span>or password</span>
       </div>
       
       <!-- Email/Password Form -->
@@ -1158,7 +1174,10 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE';
     
     // Initialize Supabase client
+    console.log('Initializing Supabase...');
+    console.log('window.supabase:', typeof window.supabase);
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('Supabase client created:', supabase ? 'OK' : 'FAILED');
     
     let currentUser = null;
     let userTier = null;
@@ -1212,12 +1231,12 @@
 
       // Supabase
       updateHealthStatus('supabase', 'checking');
-      const supabase = await query('drops?select=id&limit=1');
-      if (!supabase.error && supabase.data) {
-        updateHealthStatus('supabase', 'ok', supabase.latency);
+      const supabaseCheck = await query('drops?select=id&limit=1');
+      if (!supabaseCheck.error && supabaseCheck.data) {
+        updateHealthStatus('supabase', 'ok', supabaseCheck.latency);
         results.healthy++;
       } else {
-        updateHealthStatus('supabase', 'error', supabase.latency);
+        updateHealthStatus('supabase', 'error', supabaseCheck.latency);
       }
 
       // Worker
@@ -1883,6 +1902,40 @@
     }
 
     // ===== AUTH FUNCTIONS =====
+    async function handleMagicLink(event) {
+      event.preventDefault();
+      
+      const email = document.getElementById('magicEmail').value;
+      const btn = document.getElementById('magicBtn');
+      const errorEl = document.getElementById('loginError');
+      
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      errorEl.style.display = 'none';
+      
+      try {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: window.location.href.split('?')[0]
+          }
+        });
+        
+        if (error) throw error;
+        
+        // Show success message
+        document.getElementById('magicLinkForm').style.display = 'none';
+        document.getElementById('magicLinkSent').style.display = 'block';
+        
+      } catch (error) {
+        console.error('Magic link error:', error);
+        errorEl.textContent = error.message || 'Failed to send magic link';
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '📧 Send Magic Link';
+      }
+    }
+    
     async function handleGoogleLogin() {
       const btn = document.getElementById('googleBtn');
       const errorEl = document.getElementById('loginError');
@@ -1921,30 +1974,45 @@
     
     async function handleLogin(event) {
       event.preventDefault();
+      console.log('handleLogin called');
       
       const email = document.getElementById('loginEmail').value;
       const password = document.getElementById('loginPassword').value;
       const btn = document.getElementById('loginBtn');
       const errorEl = document.getElementById('loginError');
       
+      console.log('Email:', email, 'Password length:', password?.length);
+      
+      if (!email || !password) {
+        errorEl.textContent = 'Please enter email and password';
+        errorEl.style.display = 'block';
+        return;
+      }
+      
       btn.disabled = true;
       btn.textContent = 'Signing in...';
       errorEl.style.display = 'none';
       
       try {
+        console.log('Calling supabase.auth.signInWithPassword...');
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password
         });
         
+        console.log('Auth result:', { data, error });
+        
         if (error) throw error;
         
         // Check if user is owner
+        console.log('Checking owner status for:', data.user.id);
         const { data: limits } = await supabase
           .from('user_limits')
           .select('tier')
           .eq('user_id', data.user.id)
           .single();
+        
+        console.log('User limits:', limits);
         
         if (!limits || limits.tier !== 'owner') {
           await supabase.auth.signOut();
@@ -1961,7 +2029,7 @@
         errorEl.textContent = error.message || 'Login failed';
         errorEl.style.display = 'block';
         btn.disabled = false;
-        btn.textContent = 'Sign In';
+        btn.textContent = 'Sign In with Email';
       }
     }
     
@@ -1993,26 +2061,39 @@
     
     // ===== CHECK EXISTING SESSION =====
     async function checkAuth() {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('checkAuth called');
+      console.log('supabase object:', typeof supabase, supabase ? 'exists' : 'undefined');
       
-      if (session?.user) {
-        // Verify owner status
-        const { data: limits } = await supabase
-          .from('user_limits')
-          .select('tier')
-          .eq('user_id', session.user.id)
-          .single();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Session:', session);
         
-        if (limits?.tier === 'owner') {
-          currentUser = session.user;
-          userTier = limits.tier;
-          showApp();
-          return;
+        if (session?.user) {
+          console.log('User found:', session.user.id);
+          // Verify owner status
+          const { data: limits } = await supabase
+            .from('user_limits')
+            .select('tier')
+            .eq('user_id', session.user.id)
+            .single();
+          
+          console.log('User limits:', limits);
+          
+          if (limits?.tier === 'owner') {
+            currentUser = session.user;
+            userTier = limits.tier;
+            showApp();
+            return;
+          }
         }
+        
+        // Show login screen
+        console.log('Showing login screen');
+        document.getElementById('loginScreen').style.display = 'flex';
+      } catch (err) {
+        console.error('checkAuth error:', err);
+        document.getElementById('loginScreen').style.display = 'flex';
       }
-      
-      // Show login screen
-      document.getElementById('loginScreen').style.display = 'flex';
     }
     
     // ===== INIT =====
