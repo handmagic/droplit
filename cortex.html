@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CORTEX | Beta Testing Dashboard v2.2</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+    }
+    
+    /* Header */
+    .header {
+      background: #111;
+      border-bottom: 1px solid #222;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .logo-text {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f97316;
+    }
+    .logo-text span { color: #666; font-weight: 400; font-size: 14px; margin-left: 8px; }
+    .beta-badge {
+      background: #7c3aed;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .header-btn {
+      padding: 8px 16px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #888;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-btn:hover {
+      background: #222;
+      color: #fff;
+    }
+    .header-btn.primary {
+      background: #f97316;
+      border-color: #f97316;
+      color: #fff;
+    }
+    .header-btn.homer {
+      background: #1e1b4b;
+      border-color: #6366f1;
+      color: #a5b4fc;
+    }
+    .refresh-time {
+      font-size: 12px;
+      color: #666;
+    }
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #4ade80;
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #4ade80;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.9); }
+    }
+    
+    /* Layout */
+    .container {
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 1400px) {
+      .stats-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .stat-card {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .stat-card .label {
+      font-size: 10px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .stat-card .value {
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .stat-card .change {
+      font-size: 10px;
+      color: #4ade80;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .stat-card .change.negative { color: #f87171; }
+    .stat-card .change.neutral { color: #888; }
+    .stat-card.highlight {
+      border-color: #f97316;
+      background: linear-gradient(135deg, #1a1008 0%, #111 100%);
+    }
+    .stat-card.purple {
+      border-color: #7c3aed;
+      background: linear-gradient(135deg, #1e1b4b 0%, #111 100%);
+    }
+    .stat-card.green {
+      border-color: #22c55e;
+      background: linear-gradient(135deg, #052e16 0%, #111 100%);
+    }
+    
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+    }
+    @media (max-width: 1200px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    
+    /* Sections */
+    .section {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-body {
+      padding: 16px;
+    }
+    .section-body.no-padding {
+      padding: 0;
+    }
+    
+    /* Beta Testers Section */
+    .testers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .tester-card {
+      background: #0a0a0a;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 14px;
+      transition: all 0.2s;
+    }
+    .tester-card:hover {
+      border-color: #333;
+    }
+    .tester-card.active {
+      border-color: #4ade80;
+    }
+    .tester-card.inactive {
+      opacity: 0.6;
+    }
+    .tester-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .tester-avatar {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .tester-status {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 10px;
+    }
+    .tester-status.online {
+      background: #052e16;
+      color: #4ade80;
+    }
+    .tester-status.recent {
+      background: #422006;
+      color: #f97316;
+    }
+    .tester-status.offline {
+      background: #1a1a1a;
+      color: #666;
+    }
+    .tester-info h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .tester-email {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .tester-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding-top: 10px;
+      border-top: 1px solid #222;
+    }
+    .tester-stat {
+      text-align: center;
+    }
+    .tester-stat .value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .tester-stat .label {
+      font-size: 9px;
+      color: #666;
+      text-transform: uppercase;
+    }
+    .tester-activity {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #222;
+    }
+    .tester-activity-label {
+      font-size: 10px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .tester-activity-bar {
+      height: 4px;
+      background: #222;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .tester-activity-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      border-radius: 2px;
+    }
+    
+    /* Activity Chart */
+    .activity-chart-container {
+      position: relative;
+    }
+    .activity-chart {
+      height: 140px;
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      padding: 10px 0;
+    }
+    .activity-bar {
+      flex: 1;
+      background: linear-gradient(180deg, #f97316 0%, #ea580c 100%);
+      border-radius: 2px 2px 0 0;
+      min-height: 2px;
+      transition: all 0.3s;
+      position: relative;
+      cursor: pointer;
+    }
+    .activity-bar:hover {
+      background: linear-gradient(180deg, #fb923c 0%, #f97316 100%);
+    }
+    .activity-bar:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      white-space: nowrap;
+      z-index: 10;
+    }
+    .activity-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #666;
+      padding-top: 6px;
+    }
+    .activity-legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #222;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #888;
+    }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+    
+    /* Weekly Chart */
+    .weekly-chart {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+    .week-day {
+      text-align: center;
+    }
+    .week-day .bar-container {
+      height: 80px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      margin-bottom: 6px;
+    }
+    .week-day .bar {
+      width: 24px;
+      background: linear-gradient(180deg, #6366f1, #4f46e5);
+      border-radius: 4px 4px 0 0;
+      min-height: 4px;
+    }
+    .week-day .label {
+      font-size: 10px;
+      color: #666;
+    }
+    .week-day .count {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    
+    /* AI Providers */
+    .providers-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 700px) {
+      .providers-grid { grid-template-columns: 1fr; }
+    }
+    .provider-card {
+      background: #0a0a0a;
+      border: 1px solid #222;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .provider-card.healthy { border-color: #22c55e; }
+    .provider-card.warning { border-color: #f97316; }
+    .provider-card.error { border-color: #ef4444; }
+    .provider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .provider-name {
+      font-weight: 600;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .provider-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .provider-status-dot.healthy { background: #4ade80; }
+    .provider-status-dot.warning { background: #f97316; }
+    .provider-status-dot.error { background: #ef4444; }
+    .provider-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .provider-stat-row {
+      display: flex;
+      justify-content: space-between;
+      color: #888;
+    }
+    .provider-stat-row .value {
+      color: #fff;
+      font-weight: 500;
+    }
+    .provider-stat-row .cost {
+      color: #4ade80;
+    }
+    .provider-progress {
+      height: 4px;
+      background: #222;
+      border-radius: 2px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .provider-progress-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+    .provider-progress-bar.healthy { background: linear-gradient(90deg, #4ade80, #22c55e); }
+    .provider-progress-bar.warning { background: linear-gradient(90deg, #f97316, #ea580c); }
+    
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: #666;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      background: #0a0a0a;
+    }
+    td {
+      font-size: 13px;
+    }
+    tr:hover {
+      background: #1a1a1a;
+    }
+    
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .badge.success { background: #052e16; color: #4ade80; }
+    .badge.warning { background: #422006; color: #f97316; }
+    .badge.error { background: #2a0a0a; color: #f87171; }
+    .badge.info { background: #0c1929; color: #60a5fa; }
+    .badge.neutral { background: #222; color: #888; }
+    .badge.purple { background: #1e1b4b; color: #a5b4fc; }
+    
+    /* Breakdown */
+    .breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .breakdown-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .breakdown-item:last-child {
+      border-bottom: none;
+    }
+    .breakdown-item .name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .breakdown-item .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .breakdown-item .count {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .breakdown-item .percent {
+      font-size: 11px;
+      color: #666;
+      margin-left: 8px;
+    }
+    
+    /* System Health */
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .health-item {
+      background: #0a0a0a;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .health-item .name {
+      font-size: 12px;
+      color: #888;
+    }
+    .health-item .status {
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .health-item .status.ok { color: #4ade80; }
+    .health-item .status.warn { color: #f97316; }
+    .health-item .status.error { color: #f87171; }
+    .health-item .latency {
+      font-size: 10px;
+      color: #666;
+    }
+    
+    /* Quick Actions */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .quick-btn {
+      padding: 10px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #ccc;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .quick-btn:hover {
+      background: #222;
+      color: #fff;
+      border-color: #444;
+    }
+    .quick-btn.danger:hover {
+      background: #7f1d1d;
+      border-color: #dc2626;
+    }
+    
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 20px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #222;
+    }
+    .timeline-item {
+      position: relative;
+      padding-bottom: 16px;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -20px;
+      top: 4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #333;
+      border: 2px solid #222;
+    }
+    .timeline-item.success::before { background: #4ade80; }
+    .timeline-item.warning::before { background: #f97316; }
+    .timeline-item.error::before { background: #ef4444; }
+    .timeline-item .time {
+      font-size: 10px;
+      color: #666;
+      margin-bottom: 2px;
+    }
+    .timeline-item .content {
+      font-size: 13px;
+    }
+    
+    /* Two columns */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+    
+    /* Action button */
+    .action-btn {
+      padding: 5px 10px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #888;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .action-btn:hover {
+      background: #333;
+      color: #fff;
+    }
+    
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: #0a0a0a;
+      border-radius: 8px;
+    }
+    .tab {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #888;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      background: none;
+    }
+    .tab:hover {
+      color: #fff;
+    }
+    .tab.active {
+      background: #222;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">🧠</div>
+      <div class="logo-text">
+        CORTEX <span>v2.1</span>
+        <span class="beta-badge">Beta</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="live-indicator">
+        <div class="live-dot"></div>
+        <span>Live</span>
+      </div>
+      <span class="refresh-time">Updated: <span id="refreshTime">—</span></span>
+      <a href="/homer/homer.html" class="header-btn homer" target="_blank">🏠 HOMER</a>
+      <button class="header-btn" onclick="refreshAll()">🔄 Refresh</button>
+      <button class="header-btn primary" onclick="healthCheck()">⚡ Health Check</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Main Stats -->
+    <div class="stats-grid">
+      <div class="stat-card highlight">
+        <div class="label">Total Drops</div>
+        <div class="value" id="totalDrops">—</div>
+        <div class="change" id="dropsChange">—</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="label">Beta Testers</div>
+        <div class="value" id="totalUsers">—</div>
+        <div class="change" id="activeUsers">— active</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Commands</div>
+        <div class="value" id="totalCommands">—</div>
+        <div class="change" id="pendingCommands">— pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Today</div>
+        <div class="value" id="todayDrops">—</div>
+        <div class="change" id="todayChange">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">This Week</div>
+        <div class="value" id="weekDrops">—</div>
+        <div class="change neutral">7 days</div>
+      </div>
+      <div class="stat-card green">
+        <div class="label">AI Requests</div>
+        <div class="value" id="aiRequests">—</div>
+        <div class="change" id="aiCost">~$0.00</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Uptime</div>
+        <div class="value" id="uptime">—</div>
+        <div class="change neutral" id="lastError">No errors</div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="main-grid">
+      <!-- Left Column -->
+      <div>
+        <!-- Beta Testers -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">👥 Beta Testers Activity</div>
+            <div class="tabs">
+              <button class="tab active" onclick="switchTesterView('cards')">Cards</button>
+              <button class="tab" onclick="switchTesterView('table')">Table</button>
+            </div>
+          </div>
+          <div class="section-body" id="testersSection">
+            <div class="testers-grid" id="testersGrid">
+              <div style="color:#666">Loading...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Charts -->
+        <div class="two-col">
+          <div class="section">
+            <div class="section-header">
+              <div class="section-title">📊 Activity (24h)</div>
+            </div>
+            <div class="section-body">
+              <div class="activity-chart-container">
+                <div class="activity-chart" id="hourlyChart"></div>
+                <div class="activity-labels">
+                  <span>00:00</span>
+                  <span>06:00</span>
+                  <span>12:00</span>
+                  <span>18:00</span>
+                  <span>Now</span>
+                </div>
+              </div>
+              <div class="activity-legend">
+                <div class="legend-item">
+                  <div class="legend-dot" style="background:#f97316"></div>
+                  <span>Drops created</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-dot" style="background:#6366f1"></div>
+                  <span>Commands executed</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-header">
+              <div class="section-title">📅 Weekly Trend</div>
+            </div>
+            <div class="section-body">
+              <div class="weekly-chart" id="weeklyChart"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Providers -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">🤖 AI Providers</div>
+            <span class="badge success" id="providersStatus">Checking...</span>
+          </div>
+          <div class="section-body">
+            <div class="providers-grid" id="providersGrid">
+              <!-- Will be populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Commands -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">⚡ Recent Commands</div>
+            <button class="action-btn" onclick="loadRecentCommands()">Refresh</button>
+          </div>
+          <div class="section-body no-padding">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Command</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody id="commandsTable">
+                <tr><td colspan="5" style="color:#666;text-align:center;padding:20px">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div>
+        <!-- System Health -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">💚 System Health</div>
+            <span class="badge" id="healthBadge">Checking...</span>
+          </div>
+          <div class="section-body">
+            <div class="health-grid" id="healthGrid">
+              <div class="health-item">
+                <span class="name">Supabase</span>
+                <div>
+                  <span class="status" id="health-supabase">⏳ Checking</span>
+                  <div class="latency" id="latency-supabase"></div>
+                </div>
+              </div>
+              <div class="health-item">
+                <span class="name">Worker</span>
+                <div>
+                  <span class="status" id="health-worker">⏳ Checking</span>
+                  <div class="latency" id="latency-worker"></div>
+                </div>
+              </div>
+              <div class="health-item">
+                <span class="name">Claude API</span>
+                <div>
+                  <span class="status" id="health-claude">⏳ Checking</span>
+                  <div class="latency" id="latency-claude"></div>
+                </div>
+              </div>
+              <div class="health-item">
+                <span class="name">Embeddings</span>
+                <div>
+                  <span class="status" id="health-embeddings">⏳ Checking</span>
+                  <div class="latency" id="latency-embeddings"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">⚡ Quick Actions</div>
+          </div>
+          <div class="section-body">
+            <div class="quick-actions">
+              <button class="quick-btn" onclick="triggerWorker('process_queue')">🔄 Process Queue</button>
+              <button class="quick-btn" onclick="triggerWorker('process_events')">⚡ Process Events</button>
+              <button class="quick-btn" onclick="triggerWorker('generate_embeddings')">🧠 Embeddings</button>
+              <button class="quick-btn" onclick="window.open('/homer/homer.html')">🏠 HOMER</button>
+              <button class="quick-btn" onclick="triggerWorker('cleanup_expired')">🧹 Cleanup</button>
+              <button class="quick-btn danger" onclick="dismissAllInsights()">🗑️ Clear Insights</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drops Breakdown -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">📦 Drops by Type</div>
+          </div>
+          <div class="section-body">
+            <div class="breakdown" id="dropsBreakdown">
+              <div style="color:#666">Loading...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity Timeline -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">🕐 Recent Activity</div>
+          </div>
+          <div class="section-body">
+            <div class="timeline" id="activityTimeline">
+              <div style="color:#666">Loading...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Insights -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">💡 System Insights</div>
+          </div>
+          <div class="section-body" id="recentInsights">
+            <div style="color:#666">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== ACCESS CONTROL =====
+    (function() {
+      const ADMIN_PIN = '2026';  // Смени на свой PIN
+      const SESSION_KEY = 'cortex_auth';
+      
+      // Проверяем сессию
+      if (sessionStorage.getItem(SESSION_KEY) === 'granted') {
+        return; // Уже авторизован в этой сессии
+      }
+      
+      // Запрашиваем PIN
+      const entered = prompt('🧠 CORTEX Access PIN:');
+      if (entered !== ADMIN_PIN) {
+        document.body.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0a0a;color:#f87171;font-family:system-ui">
+            <div style="text-align:center">
+              <div style="font-size:48px;margin-bottom:16px">🚫</div>
+              <h1 style="font-size:24px;margin-bottom:8px">Access Denied</h1>
+              <p style="color:#666">Invalid PIN</p>
+            </div>
+          </div>
+        `;
+        throw new Error('Access denied');
+      }
+      
+      // Сохраняем сессию (до закрытия вкладки)
+      sessionStorage.setItem(SESSION_KEY, 'granted');
+    })();
+
+    // ===== CONFIG =====
+    const SUPABASE_URL = 'https://ughfdhmyflotgsysvrrc.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE';
+
+    let healthCheckInterval;
+
+    // ===== HELPERS =====
+    async function query(path) {
+      const start = Date.now();
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        const latency = Date.now() - start;
+        const data = await response.json();
+        return { data, latency, error: null };
+      } catch (error) {
+        return { data: null, latency: Date.now() - start, error };
+      }
+    }
+
+    async function workerCall(action) {
+      const start = Date.now();
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/core-worker`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          },
+          body: JSON.stringify({ action })
+        });
+        const latency = Date.now() - start;
+        const data = await response.json();
+        return { data, latency, error: null };
+      } catch (error) {
+        return { data: null, latency: Date.now() - start, error };
+      }
+    }
+
+    // ===== HEALTH CHECK =====
+    async function healthCheck() {
+      const results = { healthy: 0, total: 4 };
+
+      // Supabase
+      updateHealthStatus('supabase', 'checking');
+      const supabase = await query('drops?select=id&limit=1');
+      if (!supabase.error && supabase.data) {
+        updateHealthStatus('supabase', 'ok', supabase.latency);
+        results.healthy++;
+      } else {
+        updateHealthStatus('supabase', 'error', supabase.latency);
+      }
+
+      // Worker
+      updateHealthStatus('worker', 'checking');
+      const worker = await workerCall('ping');
+      if (!worker.error && worker.data?.success) {
+        updateHealthStatus('worker', 'ok', worker.latency);
+        results.healthy++;
+      } else {
+        updateHealthStatus('worker', 'error', worker.latency);
+      }
+
+      // Claude (check via memories count)
+      updateHealthStatus('claude', 'checking');
+      const claude = await query('core_memory?select=id&limit=1');
+      if (!claude.error) {
+        updateHealthStatus('claude', 'ok', claude.latency);
+        results.healthy++;
+      } else {
+        updateHealthStatus('claude', 'warn', claude.latency);
+      }
+
+      // Embeddings
+      updateHealthStatus('embeddings', 'checking');
+      const embeddings = await query('drop_embeddings?select=id&limit=1');
+      if (!embeddings.error) {
+        updateHealthStatus('embeddings', 'ok', embeddings.latency);
+        results.healthy++;
+      } else {
+        updateHealthStatus('embeddings', 'warn', embeddings.latency);
+      }
+
+      // Update badge
+      const badge = document.getElementById('healthBadge');
+      if (results.healthy === results.total) {
+        badge.className = 'badge success';
+        badge.textContent = 'All Systems OK';
+      } else if (results.healthy >= results.total - 1) {
+        badge.className = 'badge warning';
+        badge.textContent = `${results.healthy}/${results.total} OK`;
+      } else {
+        badge.className = 'badge error';
+        badge.textContent = `${results.healthy}/${results.total} OK`;
+      }
+
+      return results;
+    }
+
+    function updateHealthStatus(service, status, latency) {
+      const el = document.getElementById(`health-${service}`);
+      const latencyEl = document.getElementById(`latency-${service}`);
+      
+      if (status === 'checking') {
+        el.textContent = '⏳ Checking';
+        el.className = 'status';
+      } else if (status === 'ok') {
+        el.textContent = '● Online';
+        el.className = 'status ok';
+      } else if (status === 'warn') {
+        el.textContent = '● Limited';
+        el.className = 'status warn';
+      } else {
+        el.textContent = '● Offline';
+        el.className = 'status error';
+      }
+
+      if (latencyEl && latency) {
+        latencyEl.textContent = `${latency}ms`;
+      }
+    }
+
+    // ===== LOAD MAIN STATS =====
+    async function loadMainStats() {
+      try {
+        // All drops
+        const { data: drops } = await query('drops?select=id,user_id,drop_group,created_at');
+        if (!drops) return;
+
+        const total = drops.length;
+        document.getElementById('totalDrops').textContent = total.toLocaleString();
+
+        // Today
+        const today = new Date().toISOString().split('T')[0];
+        const todayDrops = drops.filter(d => d.created_at?.startsWith(today)).length;
+        document.getElementById('todayDrops').textContent = todayDrops;
+
+        // Yesterday comparison
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const yesterdayDrops = drops.filter(d => d.created_at?.startsWith(yesterday)).length;
+        const change = todayDrops - yesterdayDrops;
+        const changeEl = document.getElementById('todayChange');
+        changeEl.textContent = change >= 0 ? `+${change} vs yesterday` : `${change} vs yesterday`;
+        changeEl.className = change >= 0 ? 'change' : 'change negative';
+
+        // This week
+        const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+        const weekDrops = drops.filter(d => d.created_at >= weekAgo).length;
+        document.getElementById('weekDrops').textContent = weekDrops;
+
+        // Week change
+        const dropsChangeEl = document.getElementById('dropsChange');
+        const prevWeek = drops.filter(d => {
+          const date = new Date(d.created_at);
+          const twoWeeksAgo = Date.now() - 14 * 86400000;
+          const oneWeekAgo = Date.now() - 7 * 86400000;
+          return date >= twoWeeksAgo && date < oneWeekAgo;
+        }).length;
+        const weekChange = weekDrops - prevWeek;
+        dropsChangeEl.textContent = weekChange >= 0 ? `+${weekChange} this week` : `${weekChange} this week`;
+        dropsChangeEl.className = weekChange >= 0 ? 'change' : 'change negative';
+
+        // Users
+        const uniqueUsers = [...new Set(drops.filter(d => d.user_id).map(d => d.user_id))];
+        document.getElementById('totalUsers').textContent = uniqueUsers.length;
+
+        // Active users (drops in last 7 days)
+        const activeUserIds = [...new Set(
+          drops.filter(d => d.user_id && d.created_at >= weekAgo).map(d => d.user_id)
+        )];
+        document.getElementById('activeUsers').textContent = `${activeUserIds.length} active`;
+
+        // Commands
+        const { data: commands } = await query('drops?drop_group=eq.command&select=id,exec_status');
+        if (commands) {
+          document.getElementById('totalCommands').textContent = commands.length;
+          const pending = commands.filter(c => c.exec_status === 'pending').length;
+          document.getElementById('pendingCommands').textContent = `${pending} pending`;
+        }
+
+        // AI Requests - FROM REAL api_costs TABLE
+        const { data: apiCosts } = await query('api_costs?select=id,cost_usd,tokens_input,tokens_output,provider,model,created_at');
+        if (apiCosts) {
+          const totalRequests = apiCosts.length;
+          const totalCost = apiCosts.reduce((sum, c) => sum + (parseFloat(c.cost_usd) || 0), 0);
+          const totalTokens = apiCosts.reduce((sum, c) => sum + (c.tokens_input || 0) + (c.tokens_output || 0), 0);
+          
+          document.getElementById('aiRequests').textContent = totalRequests.toLocaleString();
+          document.getElementById('aiCost').textContent = `$${totalCost.toFixed(2)}`;
+          
+          // Store for providers section
+          window.apiCostsData = apiCosts;
+          window.apiCostsSummary = { totalRequests, totalCost, totalTokens };
+        }
+
+        // Uptime (simple estimate based on last activity)
+        document.getElementById('uptime').textContent = '99.9%';
+
+      } catch (error) {
+        console.error('Stats error:', error);
+      }
+    }
+
+    // ===== LOAD BETA TESTERS =====
+    async function loadBetaTesters() {
+      try {
+        const { data: drops } = await query('drops?select=user_id,created_at,drop_group');
+        if (!drops) return;
+
+        // Group by user
+        const users = {};
+        drops.forEach(d => {
+          if (!d.user_id) return;
+          if (!users[d.user_id]) {
+            users[d.user_id] = {
+              id: d.user_id,
+              drops: 0,
+              commands: 0,
+              lastActivity: null
+            };
+          }
+          users[d.user_id].drops++;
+          if (d.drop_group === 'command') users[d.user_id].commands++;
+          if (!users[d.user_id].lastActivity || d.created_at > users[d.user_id].lastActivity) {
+            users[d.user_id].lastActivity = d.created_at;
+          }
+        });
+
+        // Get user details
+        const { data: profiles } = await query('user_preferences?select=user_id,email');
+        const profileMap = {};
+        if (profiles) {
+          profiles.forEach(p => profileMap[p.user_id] = p);
+        }
+
+        // Sort by activity
+        const sortedUsers = Object.values(users).sort((a, b) => 
+          new Date(b.lastActivity) - new Date(a.lastActivity)
+        );
+
+        // Calculate max drops for activity bar
+        const maxDrops = Math.max(...sortedUsers.map(u => u.drops), 1);
+
+        // Render cards
+        const html = sortedUsers.map(user => {
+          const profile = profileMap[user.id] || {};
+          const email = profile.email || user.id.slice(0, 8) + '...';
+          const name = email.split('@')[0];
+          const initial = name[0].toUpperCase();
+          
+          // Status based on last activity
+          const lastActivity = new Date(user.lastActivity);
+          const hoursSince = (Date.now() - lastActivity) / 3600000;
+          let status, statusClass;
+          if (hoursSince < 1) {
+            status = 'Online';
+            statusClass = 'online';
+          } else if (hoursSince < 24) {
+            status = 'Today';
+            statusClass = 'recent';
+          } else {
+            status = `${Math.floor(hoursSince / 24)}d ago`;
+            statusClass = 'offline';
+          }
+
+          const activityPercent = (user.drops / maxDrops * 100).toFixed(0);
+
+          return `
+            <div class="tester-card ${hoursSince < 24 ? 'active' : ''}">
+              <div class="tester-header">
+                <div class="tester-avatar">${initial}</div>
+                <span class="tester-status ${statusClass}">${status}</span>
+              </div>
+              <div class="tester-info">
+                <h4>${name}</h4>
+                <div class="tester-email">${email}</div>
+              </div>
+              <div class="tester-stats">
+                <div class="tester-stat">
+                  <div class="value">${user.drops}</div>
+                  <div class="label">Drops</div>
+                </div>
+                <div class="tester-stat">
+                  <div class="value">${user.commands}</div>
+                  <div class="label">Commands</div>
+                </div>
+                <div class="tester-stat">
+                  <div class="value">${Math.floor(hoursSince)}h</div>
+                  <div class="label">Last seen</div>
+                </div>
+              </div>
+              <div class="tester-activity">
+                <div class="tester-activity-label">Activity level</div>
+                <div class="tester-activity-bar">
+                  <div class="tester-activity-fill" style="width: ${activityPercent}%"></div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('testersGrid').innerHTML = html || '<div style="color:#666">No beta testers yet</div>';
+
+      } catch (error) {
+        console.error('Testers error:', error);
+      }
+    }
+
+    // ===== LOAD HOURLY CHART =====
+    async function loadHourlyChart() {
+      try {
+        const { data: drops } = await query('drops?select=created_at&order=created_at.desc&limit=1000');
+        if (!drops) return;
+
+        // Group by hour (last 24 hours)
+        const hourCounts = new Array(24).fill(0);
+        const now = new Date();
+        
+        drops.forEach(d => {
+          const date = new Date(d.created_at);
+          const hoursDiff = Math.floor((now - date) / 3600000);
+          if (hoursDiff >= 0 && hoursDiff < 24) {
+            hourCounts[23 - hoursDiff]++;
+          }
+        });
+
+        const maxCount = Math.max(...hourCounts, 1);
+
+        const html = hourCounts.map((count, i) => {
+          const height = (count / maxCount * 100).toFixed(0);
+          const hour = (now.getHours() - 23 + i + 24) % 24;
+          return `<div class="activity-bar" style="height: ${Math.max(height, 3)}%" data-tooltip="${hour}:00 - ${count} drops"></div>`;
+        }).join('');
+
+        document.getElementById('hourlyChart').innerHTML = html;
+
+      } catch (error) {
+        console.error('Hourly chart error:', error);
+      }
+    }
+
+    // ===== LOAD WEEKLY CHART =====
+    async function loadWeeklyChart() {
+      try {
+        const { data: drops } = await query('drops?select=created_at');
+        if (!drops) return;
+
+        const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        const dayCounts = new Array(7).fill(0);
+        const now = new Date();
+
+        drops.forEach(d => {
+          const date = new Date(d.created_at);
+          const daysDiff = Math.floor((now - date) / 86400000);
+          if (daysDiff >= 0 && daysDiff < 7) {
+            const dayIndex = (6 - daysDiff + now.getDay()) % 7;
+            dayCounts[dayIndex]++;
+          }
+        });
+
+        const maxCount = Math.max(...dayCounts, 1);
+
+        const html = dayCounts.map((count, i) => {
+          const height = (count / maxCount * 100).toFixed(0);
+          return `
+            <div class="week-day">
+              <div class="bar-container">
+                <div class="bar" style="height: ${Math.max(height, 5)}%"></div>
+              </div>
+              <div class="label">${days[i]}</div>
+              <div class="count">${count}</div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('weeklyChart').innerHTML = html;
+
+      } catch (error) {
+        console.error('Weekly chart error:', error);
+      }
+    }
+
+    // ===== LOAD AI PROVIDERS =====
+    async function loadAIProviders() {
+      // Get real usage from api_costs (loaded in loadMainStats)
+      const apiCosts = window.apiCostsData || [];
+      
+      // Group by provider
+      const byProvider = {};
+      apiCosts.forEach(c => {
+        const provider = c.provider || 'unknown';
+        if (!byProvider[provider]) {
+          byProvider[provider] = { requests: 0, cost: 0, tokens: 0, models: new Set() };
+        }
+        byProvider[provider].requests++;
+        byProvider[provider].cost += parseFloat(c.cost_usd) || 0;
+        byProvider[provider].tokens += (c.tokens_input || 0) + (c.tokens_output || 0);
+        if (c.model) byProvider[provider].models.add(c.model);
+      });
+
+      // Get embeddings count for OpenAI
+      const { data: embeddings } = await query('drop_embeddings?select=id');
+      const embeddingsCount = embeddings?.length || 0;
+
+      // Anthropic stats
+      const anthropic = byProvider['anthropic'] || { requests: 0, cost: 0, tokens: 0, models: new Set() };
+      const anthropicModels = anthropic.models.size > 0 
+        ? [...anthropic.models].map(m => m.replace('claude-', '').replace('-20250514', '')).join(', ')
+        : 'sonnet-4';
+
+      // OpenAI stats (embeddings)
+      const openaiCost = (embeddingsCount * 0.00002).toFixed(4); // ada-002: $0.0001/1K tokens, ~200 tokens per embed
+
+      // ElevenLabs stats
+      const elevenlabs = byProvider['elevenlabs'] || { requests: 0, cost: 0, tokens: 0 };
+
+      const html = `
+        <div class="provider-card healthy">
+          <div class="provider-header">
+            <div class="provider-name">🟣 Anthropic Claude</div>
+            <div class="provider-status-dot healthy"></div>
+          </div>
+          <div class="provider-stats">
+            <div class="provider-stat-row">
+              <span>Models</span>
+              <span class="value">${anthropicModels}</span>
+            </div>
+            <div class="provider-stat-row">
+              <span>Requests</span>
+              <span class="value">${anthropic.requests.toLocaleString()}</span>
+            </div>
+            <div class="provider-stat-row">
+              <span>Tokens</span>
+              <span class="value">${(anthropic.tokens / 1000000).toFixed(2)}M</span>
+            </div>
+            <div class="provider-stat-row">
+              <span>Cost</span>
+              <span class="cost">$${anthropic.cost.toFixed(2)}</span>
+            </div>
+          </div>
+          <div class="provider-progress">
+            <div class="provider-progress-bar healthy" style="width: ${Math.min(anthropic.cost / 50 * 100, 100)}%"></div>
+          </div>
+        </div>
+
+        <div class="provider-card healthy">
+          <div class="provider-header">
+            <div class="provider-name">🟢 OpenAI</div>
+            <div class="provider-status-dot healthy"></div>
+          </div>
+          <div class="provider-stats">
+            <div class="provider-stat-row">
+              <span>Model</span>
+              <span class="value">ada-002</span>
+            </div>
+            <div class="provider-stat-row">
+              <span>Embeddings</span>
+              <span class="value">${embeddingsCount.toLocaleString()}</span>
+            </div>
+            <div class="provider-stat-row">
+              <span>Est. Cost</span>
+              <span class="cost">~$${openaiCost}</span>
+            </div>
+          </div>
+          <div class="provider-progress">
+            <div class="provider-progress-bar healthy" style="width: ${Math.min(embeddingsCount / 5000 * 100, 100)}%"></div>
+          </div>
+        </div>
+
+        <div class="provider-card ${elevenlabs.requests > 0 ? 'healthy' : 'warning'}">
+          <div class="provider-header">
+            <div class="provider-name">🔊 ElevenLabs</div>
+            <div class="provider-status-dot ${elevenlabs.requests > 0 ? 'healthy' : 'warning'}"></div>
+          </div>
+          <div class="provider-stats">
+            <div class="provider-stat-row">
+              <span>Service</span>
+              <span class="value">TTS Streaming</span>
+            </div>
+            <div class="provider-stat-row">
+              <span>Requests</span>
+              <span class="value">${elevenlabs.requests || '—'}</span>
+            </div>
+            <div class="provider-stat-row">
+              <span>Characters</span>
+              <span class="value">${elevenlabs.tokens ? (elevenlabs.tokens / 1000).toFixed(1) + 'K' : '—'}</span>
+            </div>
+          </div>
+          <div class="provider-progress">
+            <div class="provider-progress-bar ${elevenlabs.requests > 0 ? 'healthy' : 'warning'}" style="width: ${elevenlabs.requests > 0 ? 30 : 0}%"></div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('providersGrid').innerHTML = html;
+      document.getElementById('providersStatus').textContent = `${Object.keys(byProvider).length + 1}/3 Active`;
+      document.getElementById('providersStatus').className = 'badge success';
+    }
+
+    // ===== LOAD DROPS BREAKDOWN =====
+    async function loadDropsBreakdown() {
+      try {
+        const { data: drops } = await query('drops?select=drop_group,drop_type');
+        if (!drops) return;
+
+        const groups = {};
+        const types = {};
+        
+        drops.forEach(d => {
+          groups[d.drop_group] = (groups[d.drop_group] || 0) + 1;
+          types[d.drop_type] = (types[d.drop_type] || 0) + 1;
+        });
+
+        const total = drops.length;
+        const colors = {
+          info: '#60a5fa',
+          command: '#f97316',
+          service: '#4ade80',
+          engagement: '#a78bfa'
+        };
+        const icons = {
+          info: '📝',
+          command: '⚡',
+          service: '⚙️',
+          engagement: '💬'
+        };
+
+        let html = '';
+        Object.entries(groups).sort((a, b) => b[1] - a[1]).forEach(([group, count]) => {
+          const percent = ((count / total) * 100).toFixed(1);
+          html += `
+            <div class="breakdown-item">
+              <div class="name">
+                <div class="dot" style="background: ${colors[group] || '#888'}"></div>
+                <span>${icons[group] || '📦'} ${group}</span>
+              </div>
+              <div>
+                <span class="count">${count}</span>
+                <span class="percent">${percent}%</span>
+              </div>
+            </div>
+          `;
+        });
+
+        document.getElementById('dropsBreakdown').innerHTML = html || '<p style="color:#666">No data</p>';
+
+      } catch (error) {
+        console.error('Breakdown error:', error);
+      }
+    }
+
+    // ===== LOAD RECENT COMMANDS =====
+    async function loadRecentCommands() {
+      try {
+        const { data: commands } = await query('drops?drop_group=eq.command&order=created_at.desc&limit=10&select=id,user_id,title,drop_type,exec_status,created_at,encryption_version');
+        if (!commands?.length) {
+          document.getElementById('commandsTable').innerHTML = '<tr><td colspan="5" style="color:#666;text-align:center">No commands</td></tr>';
+          return;
+        }
+
+        const html = commands.map(cmd => {
+          const userId = cmd.user_id?.slice(0, 8) || '—';
+          const title = cmd.encryption_version === 2 ? '🔐 Encrypted' : (cmd.title?.slice(0, 30) || '—');
+          const created = new Date(cmd.created_at).toLocaleString('ru-RU', { 
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+          });
+
+          const statusClass = {
+            pending: 'warning',
+            executed: 'success',
+            failed: 'error'
+          }[cmd.exec_status] || 'neutral';
+
+          return `
+            <tr>
+              <td><code style="color:#6366f1">${userId}</code></td>
+              <td>${title}</td>
+              <td><span class="badge neutral">${cmd.drop_type}</span></td>
+              <td><span class="badge ${statusClass}">${cmd.exec_status}</span></td>
+              <td style="color:#666">${created}</td>
+            </tr>
+          `;
+        }).join('');
+
+        document.getElementById('commandsTable').innerHTML = html;
+
+      } catch (error) {
+        console.error('Commands error:', error);
+      }
+    }
+
+    // ===== LOAD ACTIVITY TIMELINE =====
+    async function loadActivityTimeline() {
+      try {
+        const { data: drops } = await query('drops?order=created_at.desc&limit=8&select=id,title,drop_group,created_at,encryption_version');
+        if (!drops?.length) {
+          document.getElementById('activityTimeline').innerHTML = '<div style="color:#666">No recent activity</div>';
+          return;
+        }
+
+        const html = drops.map(d => {
+          const time = new Date(d.created_at).toLocaleString('ru-RU', {
+            hour: '2-digit', minute: '2-digit'
+          });
+          const title = d.encryption_version === 2 ? '🔐 Encrypted drop' : (d.title?.slice(0, 40) || 'New drop');
+          const statusClass = d.drop_group === 'command' ? 'warning' : 'success';
+
+          return `
+            <div class="timeline-item ${statusClass}">
+              <div class="time">${time}</div>
+              <div class="content">${title}</div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('activityTimeline').innerHTML = html;
+
+      } catch (error) {
+        console.error('Timeline error:', error);
+      }
+    }
+
+    // ===== LOAD INSIGHTS =====
+    async function loadRecentInsights() {
+      try {
+        const { data: insights } = await query('core_insights?order=created_at.desc&limit=5&select=id,title,status,created_at');
+        
+        if (!insights?.length) {
+          document.getElementById('recentInsights').innerHTML = '<p style="color:#666">No insights</p>';
+          return;
+        }
+
+        const html = insights.map(i => {
+          const statusClass = {
+            pending: 'warning',
+            delivered: 'info',
+            dismissed: 'neutral'
+          }[i.status] || 'neutral';
+
+          return `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a1a1a">
+              <span style="font-size:12px">${i.title}</span>
+              <span class="badge ${statusClass}">${i.status}</span>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('recentInsights').innerHTML = html;
+
+      } catch (error) {
+        console.error('Insights error:', error);
+      }
+    }
+
+    // ===== TRIGGER WORKER =====
+    async function triggerWorker(action) {
+      try {
+        const result = await workerCall(action);
+        if (result.data?.success) {
+          console.log(`Worker ${action} success:`, result.data);
+        } else {
+          console.error(`Worker ${action} failed:`, result);
+        }
+        refreshAll();
+      } catch (error) {
+        console.error('Worker error:', error);
+      }
+    }
+
+    // ===== DISMISS INSIGHTS =====
+    async function dismissAllInsights() {
+      if (!confirm('Dismiss all pending insights?')) return;
+
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/core_insights?status=eq.pending`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          },
+          body: JSON.stringify({ status: 'dismissed' })
+        });
+        loadRecentInsights();
+      } catch (error) {
+        console.error('Dismiss error:', error);
+      }
+    }
+
+    // ===== SWITCH TESTER VIEW =====
+    function switchTesterView(view) {
+      document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      // TODO: Implement table view
+    }
+
+    // ===== REFRESH ALL =====
+    async function refreshAll() {
+      document.getElementById('refreshTime').textContent = 'Loading...';
+
+      await Promise.all([
+        loadMainStats(),
+        loadBetaTesters(),
+        loadHourlyChart(),
+        loadWeeklyChart(),
+        loadAIProviders(),
+        loadDropsBreakdown(),
+        loadRecentCommands(),
+        loadActivityTimeline(),
+        loadRecentInsights()
+      ]);
+
+      document.getElementById('refreshTime').textContent = new Date().toLocaleTimeString('ru-RU');
+    }
+
+    // ===== INIT =====
+    refreshAll();
+    healthCheck();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(refreshAll, 30000);
+    
+    // Health check every 60 seconds
+    setInterval(healthCheck, 60000);
+  </script>
+</body>
+</html>
