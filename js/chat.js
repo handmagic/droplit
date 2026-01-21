@@ -1,7 +1,7 @@
 // ============================================
-// DROPLIT CHAT v4.26 - Bubble fix + History context
+// DROPLIT CHAT v4.27 - Auto Model Selection
 // ASKI Chat, Voice Mode, Streaming
-// Messenger-style infinite chat history
+// Haiku for simple, Sonnet for complex queries
 // ============================================
 
 // ============================================
@@ -34,6 +34,73 @@ function getCurrentPersonaName() {
   }
   const model = localStorage.getItem('aski_model') || 'sonnet';
   return model === 'opus' ? 'NOUS' : 'ASKI';
+}
+
+// ============================================
+// AUTO MODEL SELECTION BY COMPLEXITY (v4.27)
+// Haiku: simple queries, greetings, short questions
+// Sonnet: complex queries, analysis, creative tasks
+// ============================================
+
+const SIMPLE_QUERY_PATTERNS = [
+  // Приветствия и прощания
+  /^(привет|здравствуй|добр(ое|ый)|хай|хелло|как дела|что нового)/i,
+  /^(спасибо|пока|до свидания|хорошего дня|удачи)/i,
+  // Простые вопросы
+  /^(который час|какой сегодня день|какая погода)/i,
+  /^(сколько будет|посчитай)\s+\d/i,
+  // Быстрые факты
+  /^(что такое|кто такой|где находится|как называется)\s+\S+$/i,
+  /^(переведи|перевод)\s/i,
+  // Команды управления
+  /^(напомни|запиши|сохрани|создай напоминание|удали)/i,
+  /^(поставь таймер|разбуди|alarm)/i,
+  /^(покажи|найди|открой)\s+\S+$/i,
+  // Подтверждения
+  /^(да|нет|ок|окей|хорошо|понял|ага)/i,
+  // English equivalents
+  /^(hi|hello|hey|thanks|bye|good morning|good night)/i,
+  /^(what is|who is|where is)\s+\S+$/i,
+  /^(remind me|save|delete|show|find)/i,
+];
+
+function selectModelByComplexity(text) {
+  if (!text) return 'sonnet';
+  
+  const trimmed = text.trim().toLowerCase();
+  const wordCount = trimmed.split(/\s+/).length;
+  
+  // 1. Check simple patterns → Haiku
+  for (const pattern of SIMPLE_QUERY_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      console.log('[ModelSelect] Simple pattern → haiku');
+      return 'haiku';
+    }
+  }
+  
+  // 2. Very short queries (≤4 words) → Haiku
+  if (wordCount <= 4) {
+    console.log('[ModelSelect] Short query (≤4 words) → haiku');
+    return 'haiku';
+  }
+  
+  // 3. Medium queries (5-10 words) without complex markers → Haiku
+  const complexMarkers = [
+    'объясни', 'расскажи подробнее', 'проанализируй', 'сравни',
+    'почему', 'как работает', 'в чём разница', 'преимущества',
+    'explain', 'analyze', 'compare', 'why', 'how does', 'difference'
+  ];
+  
+  const hasComplexMarker = complexMarkers.some(m => trimmed.includes(m));
+  
+  if (wordCount <= 10 && !hasComplexMarker) {
+    console.log('[ModelSelect] Medium query, no complex markers → haiku');
+    return 'haiku';
+  }
+  
+  // 4. Long or complex queries → Sonnet
+  console.log('[ModelSelect] Complex query → sonnet');
+  return 'sonnet';
 }
 
 let askAIMessages = [];
@@ -3966,6 +4033,38 @@ async function handleStreamingResponse(response) {
   
   const bubble = msgDiv.querySelector('.ask-ai-bubble');
   
+  // ═══════════════════════════════════════════════════════════════
+  // CASCADE 1 VALIDATION (v4.26)
+  // ═══════════════════════════════════════════════════════════════
+  
+  let validatedText = fullText;
+  let wasBlocked = false;
+  
+  if (typeof window.AskiValidator !== 'undefined') {
+    const context = {
+      history: askAIMessages.slice(-10),
+      feed: [] // Will be populated by CASCADE 3
+    };
+    
+    const validation = window.AskiValidator.validateOutput(fullText, context);
+    
+    if (validation.blocked) {
+      console.warn('[Chat] Response blocked by CASCADE 1:', validation.reason);
+      validatedText = validation.sanitized;
+      wasBlocked = true;
+      
+      // Update bubble with safe response
+      bubble.querySelector('.streaming-text').textContent = validatedText;
+    } else if (validation.warnings.length > 0) {
+      console.log('[Chat] Validation warnings:', validation.warnings);
+    }
+    
+    console.log(`[Chat] Validation: ${validation.blocked ? 'BLOCKED' : 'PASSED'} (${validation.processingTime.toFixed(1)}ms)`);
+  }
+  
+  // Use validated text from here on
+  fullText = validatedText;
+  
   // Apply markdown rendering to final text
   if (typeof window.renderMarkdown === 'function') {
     bubble.innerHTML = window.renderMarkdown(fullText);
@@ -3994,7 +4093,14 @@ async function handleStreamingResponse(response) {
   // createDrop is now handled in streaming 'done' event (v4.18)
   // Old code removed to prevent duplicate drops
   
-  if (localStorage.getItem('droplit_autodrop') === 'true') autoSaveMessageAsDrop(fullText, false);
+  // Smart AutoDrop (v4.26) — don't save blocked responses or short chitchat
+  if (localStorage.getItem('droplit_autodrop') === 'true' && !wasBlocked) {
+    if (shouldAutoSaveToDrop(fullText)) {
+      autoSaveMessageAsDrop(fullText, false);
+    } else {
+      console.log('[Chat] Smart AutoDrop: skipping (too short or chitchat)');
+    }
+  }
   
   // Handle TTS
   if (streamingTTSActive) {
@@ -4247,7 +4353,26 @@ async function sendAskAIMessage() {
   
   try {
     // Get selected AI model from settings
-    const selectedModel = typeof getAIModel === 'function' ? getAIModel() : localStorage.getItem('aski_model') || 'sonnet';
+    let selectedModel = typeof getAIModel === 'function' ? getAIModel() : localStorage.getItem('aski_model') || 'sonnet';
+    
+    // ═══════════════════════════════════════════════════════════════
+    // AUTO MODEL SELECTION (v4.27)
+    // Simple queries → Haiku (fast, cheap)
+    // Complex queries → Sonnet (balanced)
+    // User chose Opus → respect choice
+    // ═══════════════════════════════════════════════════════════════
+    
+    const isVoice = isVoiceModeEnabled();
+    let autoSelectedModel = null;
+    
+    if (selectedModel !== 'opus') {
+      // Only auto-select if user hasn't chosen Opus (NOUS)
+      autoSelectedModel = selectModelByComplexity(text);
+      if (autoSelectedModel !== selectedModel) {
+        console.log(`[Model] Auto-selected: ${autoSelectedModel} (was: ${selectedModel})`);
+        selectedModel = autoSelectedModel;
+      }
+    }
     
     // Mask sensitive data before sending to AI (v0.9.103)
     let textForAI = text;
@@ -4306,6 +4431,8 @@ async function sendAskAIMessage() {
         enableTools: true, // v4.18: Enable Tool Calling for drop operations
         userId: currentUser?.id, // v3: For CORE Memory integration
         model: selectedModel, // v4.14: AI model selection (sonnet/opus/haiku)
+        voiceMode: isVoice, // v4.27: Voice mode flag for server-side model selection
+        autoModel: autoSelectedModel, // v4.27: Client-selected model based on complexity
         userEmail: getUserEmail(), // v4.19: User email for send_email tool
         askiKnowledge: getAskiKnowledge(), // v4.20: Personal knowledge base
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone // v4.21: Device timezone
