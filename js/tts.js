@@ -1,8 +1,9 @@
 // ============================================
-// DROPLIT TTS v1.2
+// DROPLIT TTS v1.3
 // Text-to-Speech and Sound functions
 // v1.1: Added StreamingTTS stop support
 // v1.2: Speak button states (Speak/Wait/Stop)
+// v1.3: ElevenLabs fallback to OpenAI, better logging
 // ============================================
 
 // ============================================
@@ -125,12 +126,19 @@ function speakTextWithCallback(text, onEnd, onStart) {
   const elevenlabsKey = localStorage.getItem('elevenlabs_tts_key');
   const elevenlabsVoice = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
   
-  if (provider === 'openai' && apiKey && apiKey.startsWith('sk-')) {
+  console.log('[TTS] Provider:', provider, '| OpenAI key:', apiKey ? 'yes' : 'no', '| ElevenLabs key:', elevenlabsKey ? 'yes' : 'no');
+  
+  // Try ElevenLabs first if selected, with fallback to OpenAI
+  if (provider === 'elevenlabs' && elevenlabsKey) {
+    speakWithElevenLabsCallback(text, elevenlabsKey, elevenlabsVoice, onEnd, onStart, apiKey, voice);
+  } else if (apiKey && apiKey.startsWith('sk-')) {
+    // Use OpenAI if available (regardless of provider setting)
     speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart);
-  } else if (provider === 'elevenlabs' && elevenlabsKey) {
-    speakWithElevenLabsCallback(text, elevenlabsKey, elevenlabsVoice, onEnd, onStart);
+  } else if (provider === 'openai' && apiKey && apiKey.startsWith('sk-')) {
+    speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart);
   } else {
     // Browser TTS - starts immediately, no loading delay
+    console.log('[TTS] Using browser speech synthesis');
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
@@ -185,7 +193,7 @@ async function speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart) {
   }
 }
 
-async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart) {
+async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart, fallbackOpenAIKey, fallbackVoice) {
   try {
     console.log('[ElevenLabs Callback] Starting TTS...');
     const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
@@ -205,7 +213,15 @@ async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart
       })
     });
     
-    if (!response.ok) throw new Error('ElevenLabs TTS error: ' + response.status);
+    if (!response.ok) {
+      console.warn('[ElevenLabs Callback] Error:', response.status, '- trying OpenAI fallback');
+      // Fallback to OpenAI if available
+      if (fallbackOpenAIKey && fallbackOpenAIKey.startsWith('sk-')) {
+        speakWithOpenAICallback(text, fallbackOpenAIKey, fallbackVoice || 'nova', onEnd, onStart);
+        return;
+      }
+      throw new Error('ElevenLabs TTS error: ' + response.status);
+    }
     
     const blob = await response.blob();
     console.log('[ElevenLabs Callback] Audio blob received:', blob.size, 'bytes');
@@ -234,6 +250,12 @@ async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart
     
   } catch (e) {
     console.error('ElevenLabs TTS error:', e);
+    // Fallback to OpenAI if available
+    if (fallbackOpenAIKey && fallbackOpenAIKey.startsWith('sk-')) {
+      console.log('[ElevenLabs Callback] Falling back to OpenAI TTS');
+      speakWithOpenAICallback(text, fallbackOpenAIKey, fallbackVoice || 'nova', onEnd, onStart);
+      return;
+    }
     if (onEnd) onEnd();
     if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
   }
@@ -251,11 +273,16 @@ function speakText(text) {
   const elevenlabsKey = localStorage.getItem('elevenlabs_tts_key');
   const elevenlabsVoice = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
   
-  if (provider === 'openai' && openaiKey && openaiKey.startsWith('sk-')) {
+  console.log('[speakText] Provider:', provider, '| OpenAI:', openaiKey ? 'yes' : 'no');
+  
+  // Try ElevenLabs first if selected, with fallback to OpenAI
+  if (provider === 'elevenlabs' && elevenlabsKey) {
+    speakWithElevenLabsFallback(text, elevenlabsKey, elevenlabsVoice, openaiKey, openaiVoice);
+  } else if (openaiKey && openaiKey.startsWith('sk-')) {
+    // Use OpenAI if available
     speakWithOpenAI(text, openaiKey, openaiVoice);
-  } else if (provider === 'elevenlabs' && elevenlabsKey) {
-    speakWithElevenLabs(text, elevenlabsKey, elevenlabsVoice);
   } else {
+    // Browser fallback
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
@@ -265,6 +292,71 @@ function speakText(text) {
       };
       window.speechSynthesis.speak(utterance);
     }
+  }
+}
+
+// ElevenLabs with OpenAI fallback
+async function speakWithElevenLabsFallback(text, apiKey, voiceId, fallbackKey, fallbackVoice) {
+  try {
+    console.log('[ElevenLabs] Starting TTS...');
+    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
+      },
+      body: JSON.stringify({
+        text: text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75
+        }
+      })
+    });
+    
+    if (!response.ok) {
+      console.warn('[ElevenLabs] Error:', response.status, '- trying OpenAI fallback');
+      if (fallbackKey && fallbackKey.startsWith('sk-')) {
+        speakWithOpenAI(text, fallbackKey, fallbackVoice || 'nova');
+        return;
+      }
+      throw new Error('ElevenLabs TTS error: ' + response.status);
+    }
+    
+    const blob = await response.blob();
+    console.log('[ElevenLabs] Audio blob received:', blob.size, 'bytes');
+    const url = URL.createObjectURL(blob);
+    currentTTSAudio = new Audio(url);
+    
+    const cleanup = function() {
+      console.log('[ElevenLabs] Audio cleanup');
+      URL.revokeObjectURL(url);
+      currentTTSAudio = null;
+      if (typeof unlockVoiceMode === 'function') {
+        unlockVoiceMode();
+      }
+    };
+    
+    currentTTSAudio.onended = cleanup;
+    currentTTSAudio.onerror = function(e) {
+      console.error('[ElevenLabs] Audio error:', e);
+      cleanup();
+    };
+    
+    await currentTTSAudio.play();
+    console.log('[ElevenLabs] Audio playing');
+    
+  } catch (e) {
+    console.error('ElevenLabs TTS error:', e);
+    // Fallback to OpenAI
+    if (fallbackKey && fallbackKey.startsWith('sk-')) {
+      console.log('[ElevenLabs] Falling back to OpenAI');
+      speakWithOpenAI(text, fallbackKey, fallbackVoice || 'nova');
+      return;
+    }
+    if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
   }
 }
 
@@ -401,9 +493,14 @@ function stopTTS() {
 function speakDrop(id, e) {
   if (e) e.stopPropagation();
   
+  console.log('[speakDrop] Called with id:', id);
+  
   // ideas is a global variable from main script
   const item = typeof ideas !== 'undefined' ? ideas.find(x => x.id === id) : null;
-  if (!item) return;
+  if (!item) {
+    console.warn('[speakDrop] Item not found for id:', id);
+    return;
+  }
   
   // Get text to speak
   let textToSpeak = '';
@@ -415,6 +512,8 @@ function speakDrop(id, e) {
     textToSpeak = item.notes;
   }
   
+  console.log('[speakDrop] Text length:', textToSpeak?.length || 0);
+  
   if (!textToSpeak) {
     if (typeof toast === 'function') toast('Nothing to read', 'warning');
     return;
@@ -422,6 +521,7 @@ function speakDrop(id, e) {
   
   // Stop if already playing
   if (isTTSPlaying || currentTTSAudio) {
+    console.log('[speakDrop] Stopping current playback');
     stopTTS();
     speechSynthesis.cancel();
     isTTSPlaying = false;
@@ -434,6 +534,7 @@ function speakDrop(id, e) {
   isTTSPlaying = true;
   updateTTSButton(id, true);
   
+  console.log('[speakDrop] Starting TTS...');
   speakTextWithCallback(textToSpeak, function() {
     isTTSPlaying = false;
     updateTTSButton(id, false);
@@ -480,6 +581,7 @@ window.DropLitTTS = {
   stopAllTTS,
   speakWithOpenAI,
   speakWithElevenLabs,
+  speakWithElevenLabsFallback,
   speakWithElevenLabsCallback,
   updateSpeakButton
 };
