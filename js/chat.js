@@ -411,7 +411,7 @@ function loadChatHistory(page = 0, append = false) {
   isLoadingHistory = false;
 }
 
-// Render a single history message
+// Render a single history message (v4.27 - with action buttons)
 function renderHistoryMessage(msg) {
   const isUser = msg.role === 'user';
   const time = new Date(msg.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
@@ -445,12 +445,68 @@ function renderHistoryMessage(msg) {
     content += `<div class="chat-history-media-ref">📐 Diagram saved to feed</div>`;
   }
   
+  // Build action buttons (v4.27)
+  let actionButtons = '';
+  
+  // Copy button (for all messages with text)
+  if (msg.text) {
+    actionButtons += `
+      <button class="ask-ai-action-btn" onclick="copyHistoryMessage(this)" title="Copy">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+        </svg>
+        Copy
+      </button>`;
+  }
+  
+  // Speak button (only for AI messages)
+  if (!isUser && msg.text) {
+    actionButtons += `
+      <button class="ask-ai-action-btn" onclick="speakHistoryMessage(this)" title="Speak">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </svg>
+        Speak
+      </button>`;
+  }
+  
+  // Delete button (for all messages)
+  actionButtons += `
+    <button class="ask-ai-action-btn" style="border-color: #EF4444; color: #EF4444;" onclick="deleteHistoryMessage('${msg.id}')" title="Delete">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+      </svg>
+      Del
+    </button>`;
+  
   msgDiv.innerHTML = `
     ${content}
+    <div class="ask-ai-actions">${actionButtons}</div>
     <div class="ask-ai-time">${date}, ${time}</div>
   `;
   
   return msgDiv;
+}
+
+// Copy history message text (v4.27)
+function copyHistoryMessage(btn) {
+  const bubble = btn.closest('.ask-ai-message')?.querySelector('.ask-ai-bubble');
+  const text = bubble?.dataset?.originalText || bubble?.textContent || '';
+  if (text) {
+    navigator.clipboard.writeText(text);
+    toast('Copied', 'success');
+  }
+}
+
+// Speak history message (v4.27)
+function speakHistoryMessage(btn) {
+  const bubble = btn.closest('.ask-ai-message')?.querySelector('.ask-ai-bubble');
+  const text = bubble?.dataset?.originalText || bubble?.textContent || '';
+  if (text && typeof speakText === 'function') {
+    speakText(text);
+  } else if (text && typeof askiSpeak === 'function') {
+    askiSpeak(text);
+  }
 }
 
 // Add "Load more" button
@@ -774,6 +830,31 @@ function deleteChatMessage(msgId) {
       askAIMessages.splice(idx, 1);
     }
     toast('Message deleted', 'success');
+  }
+}
+
+// Delete message from chat history (localStorage) - v4.27
+function deleteHistoryMessage(msgId) {
+  // Remove from DOM
+  const msgEl = document.querySelector(`[data-msg-id="${msgId}"]`);
+  if (msgEl) {
+    msgEl.remove();
+  }
+  
+  // Remove from localStorage
+  try {
+    let history = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+    const idx = history.findIndex(m => m.id === msgId);
+    if (idx !== -1) {
+      history.splice(idx, 1);
+      localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+      chatHistoryTotal = history.length;
+      console.log('[ChatHistory] Deleted message:', msgId);
+      toast('Message deleted', 'success');
+    }
+  } catch (e) {
+    console.error('[ChatHistory] Delete error:', e);
+    toast('Failed to delete', 'error');
   }
 }
 
