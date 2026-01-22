@@ -3170,6 +3170,21 @@ export default async function handler(req) {
       docxBase64
     } = await req.json();
 
+    // === DEBUG: Log incoming request for voice bug investigation ===
+    console.log('[AI-DEBUG-REQUEST]', JSON.stringify({
+      timestamp: new Date().toISOString(),
+      action,
+      voiceMode: !!voiceMode,
+      historyLength: history?.length || 0,
+      historyPreview: history?.slice(-2)?.map(m => ({
+        isUser: m.isUser,
+        textPreview: m.text?.substring(0, 50)
+      })) || [],
+      textPreview: text?.substring(0, 100),
+      hasDropContext: !!dropContext,
+      userId: userId || uid || 'none'
+    }));
+
     // Auto-select model for voice mode
     let selectedModel = model;
     
@@ -3369,6 +3384,20 @@ export default async function handler(req) {
       } else {
         messages.push({ role: 'user', content: text });
       }
+
+      // === DEBUG: Log messages before Claude call ===
+      console.log('[AI-DEBUG-MESSAGES]', JSON.stringify({
+        timestamp: new Date().toISOString(),
+        messageCount: messages.length,
+        messagesPreview: messages.map(m => ({
+          role: m.role,
+          contentPreview: typeof m.content === 'string' 
+            ? m.content.substring(0, 80) 
+            : '[multimodal]'
+        })),
+        systemPromptLength: systemPrompt?.length || 0,
+        hasHistory: messages.length > 1
+      }));
 
       // STREAMING MODE WITH TOOLS
       if (stream) {
