@@ -249,18 +249,17 @@ async function pullFromServer() {
   if (!currentUser) return;
   
   try {
-    const { data, error } = await supabaseClient
+    // Lightweight sync check — just count, don't pull full data
+    // Full merge will be implemented in TODO: proper conflict resolution
+    const { count, error } = await supabaseClient
       .from('drops')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .order('created_at', { ascending: false });
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', currentUser.id);
     
     if (error) throw error;
     
-    if (data && data.length > 0) {
-      console.log(`📥 Pulled ${data.length} drops from server`);
-      // Merge with local (server wins for now)
-      // TODO: proper conflict resolution
+    if (count > 0) {
+      console.log(`📥 Server has ${count} drops (sync check only)`);
     }
     
     lastSyncTime = new Date();
