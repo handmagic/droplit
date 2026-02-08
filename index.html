@@ -112,6 +112,12 @@
       return localStorage.getItem('droplit_autodrop') === 'true';
     }
   </script>
+  <!-- Infinite Memory — semantic search over chat history (v0.9.123) -->
+  <script src="js/memory/vector-store.js"></script>
+  <script src="js/memory/embedding-engine.js"></script>
+  <script src="js/memory/memory-context.js"></script>
+  <script src="js/memory/infinite-memory.js"></script>
+  
   <script src="js/chat.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/photo.js"></script>
@@ -1554,7 +1560,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.122 • Syntrise Inc. © 2026</div>
+          <div class="menu-about-ver">v0.9.123 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
