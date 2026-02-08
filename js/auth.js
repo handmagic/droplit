@@ -253,7 +253,6 @@ async function pullFromServer() {
       .from('drops')
       .select('*')
       .eq('user_id', currentUser.id)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
