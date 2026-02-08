@@ -111,20 +111,8 @@ class InfiniteMemory {
    * @returns {Promise<boolean>}
    */
   async indexMessage(text, role, sessionId = null) {
-    if (!this.config.enabled) return false;
+    if (!this.ready || !this.config.enabled) return false;
     if (!text || text.length < 5) return false;
-
-    // Mobile lazy mode: start init in background, don't block
-    if (!this.ready && this._lazyMobile) {
-      if (!this.initializing) {
-        console.log('[InfiniteMemory] Mobile: starting background init');
-        this.init().then(ok => {
-          if (ok) this.importFromChatHistory();
-        });
-      }
-      return false; // Skip this message, will catch next ones
-    }
-    if (!this.ready) return false;
 
     try {
       const startTime = performance.now();
@@ -168,20 +156,8 @@ class InfiniteMemory {
    * @returns {Promise<string>} - форматированный блок для system prompt
    */
   async getContextForPrompt(query, currentSessionId = null) {
-    if (!this.config.enabled) return '';
+    if (!this.ready || !this.config.enabled) return '';
     if (!query || query.length < 3) return '';
-
-    // Mobile lazy mode: if not ready, start init in background but don't block send
-    if (!this.ready && this._lazyMobile) {
-      if (!this.initializing) {
-        console.log('[InfiniteMemory] Mobile: starting background init (context skipped)');
-        this.init().then(ok => {
-          if (ok) this.importFromChatHistory();
-        });
-      }
-      return ''; // Don't block message sending
-    }
-    if (!this.ready) return '';
 
     try {
       const startTime = performance.now();
@@ -337,7 +313,7 @@ class InfiniteMemory {
    * Проверить включена ли память
    */
   isEnabled() {
-    return this.config.enabled && (this.ready || this._lazyMobile);
+    return this.config.enabled && this.ready;
   }
 
   /**
@@ -376,10 +352,10 @@ window.InfiniteMemory = new InfiniteMemory();
   const isMobile = ('ontouchstart' in window) && window.innerWidth < 768;
 
   if (isMobile) {
-    // Mobile: lazy init — модель грузится только при первом сообщении
-    // Это убирает ~50-100MB WASM из памяти при старте
-    console.log('[InfiniteMemory] Mobile detected — lazy mode (init on first message)');
-    window.InfiniteMemory._lazyMobile = true;
+    // Mobile: WASM model too heavy for main thread — causes UI lag
+    // TODO: move to Web Worker in Phase 2
+    console.log('[InfiniteMemory] Mobile detected — disabled (WASM too heavy for main thread)');
+    window.InfiniteMemory.config.enabled = false;
   } else {
     // Desktop: как раньше, автоматически через 3 секунды
     setTimeout(() => {
