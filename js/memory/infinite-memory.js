@@ -16,6 +16,7 @@ class InfiniteMemory {
     this.ready = false;
     this.initializing = false;
     this.initPromise = null;
+    this._lazyMobile = false; // Set by auto-init on mobile devices
     
     // Настройки
     this.config = {
@@ -110,8 +111,17 @@ class InfiniteMemory {
    * @returns {Promise<boolean>}
    */
   async indexMessage(text, role, sessionId = null) {
-    if (!this.ready || !this.config.enabled) return false;
-    if (!text || text.length < 5) return false; // Слишком короткие не индексируем
+    if (!this.config.enabled) return false;
+    if (!text || text.length < 5) return false;
+
+    // Lazy init for mobile — load model on first message
+    if (!this.ready && this._lazyMobile) {
+      console.log('[InfiniteMemory] Lazy init triggered by indexMessage');
+      const ok = await this.init();
+      if (ok) await this.importFromChatHistory();
+      if (!this.ready) return false;
+    }
+    if (!this.ready) return false;
 
     try {
       const startTime = performance.now();
@@ -155,8 +165,17 @@ class InfiniteMemory {
    * @returns {Promise<string>} - форматированный блок для system prompt
    */
   async getContextForPrompt(query, currentSessionId = null) {
-    if (!this.ready || !this.config.enabled) return '';
+    if (!this.config.enabled) return '';
     if (!query || query.length < 3) return '';
+
+    // Lazy init for mobile — load model on first query
+    if (!this.ready && this._lazyMobile) {
+      console.log('[InfiniteMemory] Lazy init triggered by getContextForPrompt');
+      const ok = await this.init();
+      if (ok) await this.importFromChatHistory();
+      if (!this.ready) return '';
+    }
+    if (!this.ready) return '';
 
     try {
       const startTime = performance.now();
@@ -312,7 +331,7 @@ class InfiniteMemory {
    * Проверить включена ли память
    */
   isEnabled() {
-    return this.config.enabled && this.ready;
+    return this.config.enabled && (this.ready || this._lazyMobile);
   }
 
   /**
@@ -340,20 +359,30 @@ class InfiniteMemory {
 // Единственный экземпляр для всего приложения
 window.InfiniteMemory = new InfiniteMemory();
 
-// Автоматическая инициализация если настройка включена
+// Автоматическая инициализация
 (function() {
   const enabled = localStorage.getItem('droplit_infinite_memory') !== 'false';
-  if (enabled) {
-    window.InfiniteMemory.config.enabled = true;
-    // Отложенная инициализация — не блокируем загрузку
+  if (!enabled) return;
+
+  window.InfiniteMemory.config.enabled = true;
+
+  // Detect mobile: touchscreen + small viewport
+  const isMobile = ('ontouchstart' in window) && window.innerWidth < 768;
+
+  if (isMobile) {
+    // Mobile: lazy init — модель грузится только при первом сообщении
+    // Это убирает ~50-100MB WASM из памяти при старте
+    console.log('[InfiniteMemory] Mobile detected — lazy mode (init on first message)');
+    window.InfiniteMemory._lazyMobile = true;
+  } else {
+    // Desktop: как раньше, автоматически через 3 секунды
     setTimeout(() => {
       window.InfiniteMemory.init().then(ok => {
         if (ok) {
           console.log('[InfiniteMemory] Auto-initialized');
-          // Импортируем историю если первый раз
           window.InfiniteMemory.importFromChatHistory();
         }
       });
-    }, 3000); // 3 секунды после загрузки — чтобы основной UI уже готов
+    }, 3000);
   }
 })();
