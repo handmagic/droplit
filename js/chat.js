@@ -1,7 +1,8 @@
 // ============================================
-// DROPLIT CHAT v4.27 - Auto Model Selection
+// DROPLIT CHAT v4.28 - Infinite Memory
 // ASKI Chat, Voice Mode, Streaming
 // Haiku for simple, Sonnet for complex queries
+// Infinite Memory: semantic search over chat history
 // ============================================
 
 // ============================================
@@ -4170,6 +4171,11 @@ async function handleStreamingResponse(response) {
   
   // Save AI response to persistent history (v4.25)
   saveToChatHistory('assistant', fullText);
+
+  // Infinite Memory: index AI response for semantic search (v4.28)
+  if (window.InfiniteMemory && window.InfiniteMemory.isEnabled() && fullText && fullText.length > 5) {
+    window.InfiniteMemory.indexMessage(fullText, 'assistant').catch(() => {});
+  }
   
   // createDrop is now handled in streaming 'done' event (v4.18)
   // Old code removed to prevent duplicate drops
@@ -4322,6 +4328,11 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   
   // Save to persistent history (v4.25)
   saveToChatHistory(isUser ? 'user' : 'assistant', text, imageUrl);
+
+  // Infinite Memory: index message for semantic search (v4.28)
+  if (window.InfiniteMemory && window.InfiniteMemory.isEnabled() && text && text.length > 5) {
+    window.InfiniteMemory.indexMessage(text, isUser ? 'user' : 'assistant').catch(() => {});
+  }
   
   // AutoDrop: automatically save message as drop
   if (autoDropEnabled) {
@@ -4497,6 +4508,28 @@ async function sendAskAIMessage() {
     
     console.log('[ASKI] Sending request with image:', attachedImage ? 'YES' : 'NO');
     
+    // ═══════════════════════════════════════════════════════════════
+    // INFINITE MEMORY — semantic search for relevant chat history
+    // Adds context from past conversations to improve ASKI responses
+    // ═══════════════════════════════════════════════════════════════
+    let memoryContext = '';
+    try {
+      if (window.InfiniteMemory && window.InfiniteMemory.isEnabled()) {
+        memoryContext = await window.InfiniteMemory.getContextForPrompt(textForAI || text);
+        if (memoryContext) {
+          console.log(`[InfiniteMemory] 🧠 Context found (${window.InfiniteMemory.status.lastSearchResults} fragments, ${window.InfiniteMemory.status.lastSearchTime}ms)`);
+        }
+      }
+    } catch (memErr) {
+      console.warn('[InfiniteMemory] Context fetch skipped:', memErr.message);
+    }
+    
+    // Combine askiKnowledge with memory context
+    let fullAskiKnowledge = getAskiKnowledge();
+    if (memoryContext) {
+      fullAskiKnowledge = (fullAskiKnowledge || '') + '\n' + memoryContext;
+    }
+    
     const response = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -4515,7 +4548,7 @@ async function sendAskAIMessage() {
         voiceMode: isVoice, // v4.27: Voice mode flag for server-side model selection
         autoModel: autoSelectedModel, // v4.27: Client-selected model based on complexity
         userEmail: getUserEmail(), // v4.19: User email for send_email tool
-        askiKnowledge: getAskiKnowledge(), // v4.20: Personal knowledge base
+        askiKnowledge: fullAskiKnowledge, // v4.28: Personal knowledge + Infinite Memory context
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone // v4.21: Device timezone
       })
     });
