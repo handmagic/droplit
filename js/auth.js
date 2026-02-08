@@ -46,7 +46,30 @@ async function initSupabase() {
     supabaseClient = window._supabaseClient;
     
     // Check for existing session
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    let { data: { session } } = await supabaseClient.auth.getSession();
+    
+    // v1.1: Auto-refresh expired/expiring JWT tokens
+    if (session) {
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = session.expires_at || 0;
+      if (expiresAt - now < 300) { // Less than 5 min or already expired
+        console.log('🔄 JWT expiring/expired, refreshing...');
+        try {
+          const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
+          if (refreshError) {
+            console.warn('⚠️ Token refresh failed:', refreshError.message);
+            // Clear stale session, will fall through to re-login
+            session = null;
+          } else if (refreshData?.session) {
+            session = refreshData.session;
+            console.log('✅ Token refreshed');
+          }
+        } catch (e) {
+          console.warn('⚠️ Token refresh error:', e.message);
+          session = null;
+        }
+      }
+    }
     
     // If session exists but NOT our test user - sign out first
     const TEST_USER_ID = '10531fa2-b07e-41db-bc41-f6bd955beb26';
