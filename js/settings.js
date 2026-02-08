@@ -1035,8 +1035,8 @@ window.DropLitSettings = {
   handleImportFile,
   clearAllData,
   showDebugInfo,
-  addToUndo,
-  undoAction,
+  addToUndo: saveUndo,
+  undoAction: undoLast,
   setChatAutoDelete,
   initChatHistorySettings,
   updateChatHistoryStats
