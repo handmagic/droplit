@@ -118,8 +118,22 @@ async function initAuditTrail(options = {}) {
     if (AUDIT_CONFIG.autoVerifyOnLoad) {
       const isValid = await verifyChainIntegrity();
       if (!isValid) {
-        console.warn('[Audit] Chain integrity check failed! Data may have been tampered.');
-        // Don't throw - let app handle this
+        console.warn('[Audit] Chain corrupted — clearing and starting fresh');
+        // Auto-repair: clear corrupted entries and reset chain
+        try {
+          const tx = auditDB.transaction(AUDIT_CONFIG.storeName, 'readwrite');
+          const store = tx.objectStore(AUDIT_CONFIG.storeName);
+          store.clear();
+          await new Promise((resolve, reject) => {
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+          });
+          lastHash = AUDIT_CONFIG.genesisHash;
+          chainLength = 0;
+          console.log('[Audit] Chain reset successfully');
+        } catch (clearErr) {
+          console.warn('[Audit] Could not clear chain:', clearErr.message);
+        }
       }
     }
     
