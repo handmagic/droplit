@@ -4363,6 +4363,14 @@ function hideAskAITyping() {
 
 async function sendAskAIMessage() {
   console.log('sendAskAIMessage called');
+  
+  // v4.28: Guard against double-send (mobile STT can fire multiple onresult)
+  if (askiIsProcessing) {
+    console.log('[ASKI] Already processing, skipping duplicate send');
+    return;
+  }
+  askiIsProcessing = true; // Lock immediately to prevent any race
+  
   const input = document.getElementById('askAIInput');
   const text = input.value.trim();
   console.log('Text:', text);
@@ -4374,6 +4382,7 @@ async function sendAskAIMessage() {
   // Need either text or image
   if (!text && !attachedImage) {
     console.log('No text and no image, returning');
+    askiIsProcessing = false; // v4.28: unlock on early return
     return;
   }
   
