@@ -48,26 +48,22 @@ async function initSupabase() {
     // Check for existing session
     let { data: { session } } = await supabaseClient.auth.getSession();
     
-    // v1.1: Auto-refresh expired/expiring JWT tokens
+    // v1.2: ALWAYS refresh token on init — cached expires_at can be stale
+    // refreshSession() is cheap and idempotent
     if (session) {
-      const now = Math.floor(Date.now() / 1000);
-      const expiresAt = session.expires_at || 0;
-      if (expiresAt - now < 300) { // Less than 5 min or already expired
-        console.log('🔄 JWT expiring/expired, refreshing...');
-        try {
-          const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
-          if (refreshError) {
-            console.warn('⚠️ Token refresh failed:', refreshError.message);
-            // Clear stale session, will fall through to re-login
-            session = null;
-          } else if (refreshData?.session) {
-            session = refreshData.session;
-            console.log('✅ Token refreshed');
-          }
-        } catch (e) {
-          console.warn('⚠️ Token refresh error:', e.message);
+      console.log('🔄 Refreshing JWT token...');
+      try {
+        const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
+        if (refreshError) {
+          console.warn('⚠️ Token refresh failed:', refreshError.message, '— will re-login');
           session = null;
+        } else if (refreshData?.session) {
+          session = refreshData.session;
+          console.log('✅ Token refreshed, expires:', new Date(session.expires_at * 1000).toLocaleTimeString());
         }
+      } catch (e) {
+        console.warn('⚠️ Token refresh error:', e.message);
+        session = null;
       }
     }
     
