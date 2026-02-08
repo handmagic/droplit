@@ -1,14 +1,10 @@
 // ============================================================
 // embedding-engine.js — Transformers.js для ASKI Infinite Memory
-// Version: 1.1 — Direct loading (no Web Worker)
+// Version: 1.2 — MiniLM model (23MB, fast load)
 //
-// Загружает модель multilingual-e5-small напрямую.
-// Web Worker убран — CSP блокирует importScripts в Workers.
-// Эмбеддинги генерируются async, не блокируют UI.
-//
-// Модель multilingual-e5-small требует префиксы:
-//   "query: " для поисковых запросов
-//   "passage: " для индексируемых текстов
+// Uses Xenova/all-MiniLM-L6-v2 — same model as local-embeddings.js
+// Small (23MB), 384 dimensions, good for EN+basic RU
+// Future: switch to multilingual-e5-small when preloading is ready
 //
 // Расположение: js/memory/embedding-engine.js
 // ============================================================
@@ -18,18 +14,13 @@ class EmbeddingEngine {
     this.pipeline = null;
     this.ready = false;
     this.loading = false;
-    this.modelId = 'Xenova/multilingual-e5-small';
+    this.modelId = 'Xenova/all-MiniLM-L6-v2'; // 23MB, same as local-embeddings.js
     this._initPromise = null;
   }
 
   // ─── ИНИЦИАЛИЗАЦИЯ ─────────────────────────────────────
 
-  /**
-   * Загрузить модель Transformers.js
-   * @param {number} timeout - таймаут загрузки в мс (default: 120s)
-   * @returns {Promise<void>}
-   */
-  async init(timeout = 120000) {
+  async init(timeout = 180000) {
     if (this.ready) return;
     if (this.loading) return this._initPromise;
 
@@ -51,12 +42,12 @@ class EmbeddingEngine {
     const startTime = Date.now();
 
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Model load timeout')), timeout);
+      setTimeout(() => reject(new Error('Model load timeout (' + (timeout/1000) + 's)')), timeout);
     });
 
     const loadPromise = (async () => {
       try {
-        // Dynamic import — same approach as local-embeddings.js (works with existing CSP)
+        // Dynamic import — same approach as local-embeddings.js
         const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
 
         env.allowLocalModels = false;
@@ -100,12 +91,11 @@ class EmbeddingEngine {
 
   /**
    * Эмбеддинг для passage (индексируемый текст)
-   * @param {string} text
-   * @returns {Promise<Array<number>>} - вектор [384]
+   * MiniLM не требует префиксов (в отличие от E5)
    */
   async embedPassage(text) {
     this._checkReady();
-    const output = await this.pipeline('passage: ' + text, {
+    const output = await this.pipeline(text, {
       pooling: 'mean',
       normalize: true
     });
@@ -114,12 +104,10 @@ class EmbeddingEngine {
 
   /**
    * Эмбеддинг для query (поисковый запрос)
-   * @param {string} text
-   * @returns {Promise<Array<number>>} - вектор [384]
    */
   async embedQuery(text) {
     this._checkReady();
-    const output = await this.pipeline('query: ' + text, {
+    const output = await this.pipeline(text, {
       pooling: 'mean',
       normalize: true
     });
@@ -128,17 +116,13 @@ class EmbeddingEngine {
 
   /**
    * Батч-эмбеддинг
-   * @param {Array<string>} texts
-   * @param {string} type - 'passage' или 'query'
-   * @returns {Promise<Array<Array<number>>>}
    */
   async embedBatch(texts, type = 'passage') {
     this._checkReady();
-    const prefix = type === 'query' ? 'query: ' : 'passage: ';
     const results = [];
 
     for (let i = 0; i < texts.length; i++) {
-      const output = await this.pipeline(prefix + texts[i], {
+      const output = await this.pipeline(texts[i], {
         pooling: 'mean',
         normalize: true
       });
