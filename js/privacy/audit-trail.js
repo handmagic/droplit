@@ -547,12 +547,15 @@ async function verifyChainIntegrity() {
           console.error(`[Audit] Chain verification FAILED: ${errors.length} errors`);
         }
         
-        // Log verification
-        logOperation(OPERATION_TYPES.SYSTEM_VERIFY, {
-          entriesChecked,
-          errorsFound: errors.length,
-          result: valid ? 'valid' : 'invalid'
-        });
+        // Log verification only when chain is valid
+        // (when invalid, initAuditTrail will clear DB — logging here causes race condition)
+        if (valid) {
+          logOperation(OPERATION_TYPES.SYSTEM_VERIFY, {
+            entriesChecked,
+            errorsFound: 0,
+            result: 'valid'
+          });
+        }
         
         resolve({ valid, errors, entriesChecked });
       }
