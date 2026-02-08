@@ -1,9 +1,9 @@
 // ============================================
-// DropLit Service Worker v2.0.0
+// DropLit Service Worker v2.0.1
 // Caching + Offline + Push + Command Executor
 // ============================================
 
-const CACHE_NAME = 'droplit-v2.0.0';
+const CACHE_NAME = 'droplit-v2.0.1';
 const EXECUTOR_ID = 'service_worker';
 const CHECK_INTERVAL = 15000; // 15 seconds
 const CLAIM_TIMEOUT = 60000; // 60 seconds
@@ -13,8 +13,8 @@ const ASSETS_TO_CACHE = [
   '/index.html',
   '/manifest.json',
   '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
+  '/icons/icon-512.png'
+  // Google Fonts loaded via <link> in HTML, not cacheable cross-origin in SW
 ];
 
 // Supabase config (injected from main app)
@@ -28,7 +28,7 @@ let commandCheckInterval = null;
 // INSTALL: Cache core assets
 // ============================================
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing v2.0.0...');
+  console.log('[SW] Installing v2.0.1...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -544,4 +544,4 @@ async function syncCommandsToSupabase() {
   console.log('[SW] Syncing commands to Supabase...');
 }
 
-console.log('[SW] DropLit Service Worker v2.0.0 loaded');
+console.log('[SW] DropLit Service Worker v2.0.1 loaded');
