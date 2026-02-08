@@ -1,10 +1,13 @@
 // ============================================================
-// embedding-engine.js — Обёртка Transformers.js для ASKI Infinite Memory
-// Version: 1.0
+// embedding-engine.js — Transformers.js для ASKI Infinite Memory
+// Version: 1.1 — Direct loading (no Web Worker)
 //
-// Управляет Web Worker, предоставляет async API для эмбеддингов.
+// Загружает модель multilingual-e5-small напрямую.
+// Web Worker убран — CSP блокирует importScripts в Workers.
+// Эмбеддинги генерируются async, не блокируют UI.
+//
 // Модель multilingual-e5-small требует префиксы:
-//   "query: " для запросов пользователя
+//   "query: " для поисковых запросов
 //   "passage: " для индексируемых текстов
 //
 // Расположение: js/memory/embedding-engine.js
@@ -12,118 +15,119 @@
 
 class EmbeddingEngine {
   constructor() {
-    this.worker = null;
+    this.pipeline = null;
     this.ready = false;
     this.loading = false;
     this.modelId = 'Xenova/multilingual-e5-small';
-    this.pendingCallbacks = new Map();
-    this.callbackId = 0;
+    this._initPromise = null;
   }
 
   // ─── ИНИЦИАЛИЗАЦИЯ ─────────────────────────────────────
 
   /**
-   * Загрузить модель через Web Worker
-   * @param {number} timeout - таймаут загрузки в мс (default: 60s)
+   * Загрузить модель Transformers.js
+   * @param {number} timeout - таймаут загрузки в мс (default: 120s)
    * @returns {Promise<void>}
    */
-  async init(timeout = 60000) {
+  async init(timeout = 120000) {
     if (this.ready) return;
-    if (this.loading) {
-      // Ждём завершения текущей загрузки
-      return this._waitForReady(timeout);
-    }
+    if (this.loading) return this._initPromise;
 
     this.loading = true;
+    console.log('[EmbeddingEngine] Loading model:', this.modelId);
 
-    return new Promise((resolve, reject) => {
-      // Определяем путь к worker
-      const workerPath = this._resolveWorkerPath();
-      
-      try {
-        this.worker = new Worker(workerPath);
-      } catch (e) {
-        this.loading = false;
-        reject(new Error('Worker creation failed: ' + e.message));
-        return;
-      }
+    this._initPromise = this._loadModel(timeout);
 
-      const timeoutId = setTimeout(() => {
-        this.loading = false;
-        reject(new Error('Model load timeout (' + (timeout/1000) + 's)'));
-      }, timeout);
+    try {
+      await this._initPromise;
+    } catch (e) {
+      this.loading = false;
+      this._initPromise = null;
+      throw e;
+    }
+  }
 
-      this.worker.onmessage = (e) => {
-        const { type, id, data, error } = e.data;
+  async _loadModel(timeout) {
+    const startTime = Date.now();
 
-        switch (type) {
-          case 'ready':
-            clearTimeout(timeoutId);
-            this.ready = true;
-            this.loading = false;
-            console.log('[EmbeddingEngine] Model ready');
-            resolve();
-            break;
-
-          case 'result':
-            this._resolveCallback(id, data);
-            break;
-
-          case 'error':
-            if (id === 'init') {
-              clearTimeout(timeoutId);
-              this.loading = false;
-              reject(new Error(error));
-            } else {
-              this._rejectCallback(id, new Error(error));
-            }
-            break;
-
-          case 'progress':
-            // Прокидываем прогресс в UI
-            this._emitProgress(data);
-            break;
-        }
-      };
-
-      this.worker.onerror = (e) => {
-        clearTimeout(timeoutId);
-        this.loading = false;
-        console.error('[EmbeddingEngine] Worker error:', e);
-        reject(new Error('Worker error: ' + (e.message || 'unknown')));
-      };
-
-      // Запускаем загрузку модели
-      this.worker.postMessage({ type: 'init', modelId: this.modelId });
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Model load timeout')), timeout);
     });
+
+    const loadPromise = (async () => {
+      try {
+        // Dynamic import — same approach as local-embeddings.js (works with existing CSP)
+        const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
+
+        this._emitProgress({ stage: 'downloading', percent: 0, message: 'Загрузка модели...' });
+
+        this.pipeline = await pipeline('feature-extraction', this.modelId, {
+          progress_callback: (progress) => {
+            if (progress.status === 'progress' && progress.total) {
+              const percent = Math.round((progress.loaded / progress.total) * 100);
+              this._emitProgress({
+                stage: 'downloading',
+                percent,
+                file: progress.file || '',
+                message: `Загрузка: ${percent}%`
+              });
+            }
+          }
+        });
+
+        this.ready = true;
+        this.loading = false;
+
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(`[EmbeddingEngine] Model ready (${elapsed}s)`);
+
+        this._emitProgress({ stage: 'ready', percent: 100, message: 'Модель готова' });
+
+      } catch (error) {
+        this.loading = false;
+        console.error('[EmbeddingEngine] Load failed:', error);
+        throw error;
+      }
+    })();
+
+    return Promise.race([loadPromise, timeoutPromise]);
   }
 
   // ─── ЭМБЕДДИНГИ ────────────────────────────────────────
 
   /**
-   * Получить эмбеддинг для passage (индексируемый текст)
-   * Добавляет префикс "passage: " для E5 модели
+   * Эмбеддинг для passage (индексируемый текст)
    * @param {string} text
    * @returns {Promise<Array<number>>} - вектор [384]
    */
   async embedPassage(text) {
     this._checkReady();
-    return this._callWorker('embed', { text: 'passage: ' + text });
+    const output = await this.pipeline('passage: ' + text, {
+      pooling: 'mean',
+      normalize: true
+    });
+    return Array.from(output.data);
   }
 
   /**
-   * Получить эмбеддинг для query (поисковый запрос)
-   * Добавляет префикс "query: " для E5 модели
+   * Эмбеддинг для query (поисковый запрос)
    * @param {string} text
    * @returns {Promise<Array<number>>} - вектор [384]
    */
   async embedQuery(text) {
     this._checkReady();
-    return this._callWorker('embed', { text: 'query: ' + text });
+    const output = await this.pipeline('query: ' + text, {
+      pooling: 'mean',
+      normalize: true
+    });
+    return Array.from(output.data);
   }
 
   /**
-   * Батч-эмбеддинг для множества текстов
+   * Батч-эмбеддинг
    * @param {Array<string>} texts
    * @param {string} type - 'passage' или 'query'
    * @returns {Promise<Array<Array<number>>>}
@@ -131,78 +135,51 @@ class EmbeddingEngine {
   async embedBatch(texts, type = 'passage') {
     this._checkReady();
     const prefix = type === 'query' ? 'query: ' : 'passage: ';
-    return this._callWorker('embedBatch', {
-      texts: texts.map(t => prefix + t)
-    });
+    const results = [];
+
+    for (let i = 0; i < texts.length; i++) {
+      const output = await this.pipeline(prefix + texts[i], {
+        pooling: 'mean',
+        normalize: true
+      });
+      results.push(Array.from(output.data));
+
+      // Прогресс каждые 5 элементов
+      if (i % 5 === 0 || i === texts.length - 1) {
+        this._emitProgress({
+          stage: 'indexing',
+          current: i + 1,
+          total: texts.length,
+          message: `Индексация: ${i + 1}/${texts.length}`
+        });
+      }
+
+      // Yield to UI thread каждые 3 элемента
+      if (i % 3 === 0) {
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+
+    return results;
   }
 
   // ─── УПРАВЛЕНИЕ ────────────────────────────────────────
 
-  /**
-   * Проверить готовность
-   */
-  isReady() {
-    return this.ready;
-  }
+  isReady() { return this.ready; }
+  isLoading() { return this.loading; }
 
-  /**
-   * Проверить идёт ли загрузка
-   */
-  isLoading() {
-    return this.loading;
-  }
-
-  /**
-   * Освободить ресурсы
-   */
   destroy() {
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
-    }
+    this.pipeline = null;
     this.ready = false;
     this.loading = false;
-    this.pendingCallbacks.clear();
     console.log('[EmbeddingEngine] Destroyed');
   }
 
   // ─── ПРИВАТНЫЕ МЕТОДЫ ──────────────────────────────────
 
   _checkReady() {
-    if (!this.ready || !this.worker) {
+    if (!this.ready || !this.pipeline) {
       throw new Error('EmbeddingEngine not initialized. Call init() first.');
-    }
-  }
-
-  _callWorker(method, params) {
-    return new Promise((resolve, reject) => {
-      const id = ++this.callbackId;
-      this.pendingCallbacks.set(id, { resolve, reject });
-      this.worker.postMessage({ type: method, id, ...params });
-
-      // Таймаут на каждый вызов (30 сек)
-      setTimeout(() => {
-        if (this.pendingCallbacks.has(id)) {
-          this.pendingCallbacks.delete(id);
-          reject(new Error('Worker call timeout'));
-        }
-      }, 30000);
-    });
-  }
-
-  _resolveCallback(id, data) {
-    const cb = this.pendingCallbacks.get(id);
-    if (cb) {
-      cb.resolve(data);
-      this.pendingCallbacks.delete(id);
-    }
-  }
-
-  _rejectCallback(id, error) {
-    const cb = this.pendingCallbacks.get(id);
-    if (cb) {
-      cb.reject(error);
-      this.pendingCallbacks.delete(id);
     }
   }
 
@@ -210,28 +187,6 @@ class EmbeddingEngine {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('memory-progress', { detail: data }));
     }
-  }
-
-  _waitForReady(timeout) {
-    return new Promise((resolve, reject) => {
-      const start = Date.now();
-      const check = () => {
-        if (this.ready) {
-          resolve();
-        } else if (Date.now() - start > timeout) {
-          reject(new Error('Wait for ready timeout'));
-        } else {
-          setTimeout(check, 200);
-        }
-      };
-      check();
-    });
-  }
-
-  _resolveWorkerPath() {
-    // Пытаемся определить корректный путь к worker
-    // Worker должен быть в js/memory/memory-worker.js
-    return '/js/memory/memory-worker.js';
   }
 }
 
