@@ -116,8 +116,8 @@ async function initAuditTrail(options = {}) {
     
     // Verify chain integrity if configured
     if (AUDIT_CONFIG.autoVerifyOnLoad) {
-      const isValid = await verifyChainIntegrity();
-      if (!isValid) {
+      const result = await verifyChainIntegrity();
+      if (result && !result.valid) {
         console.warn('[Audit] Chain corrupted — clearing and starting fresh');
         // Auto-repair: clear corrupted entries and reset chain
         try {
