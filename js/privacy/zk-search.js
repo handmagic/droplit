@@ -98,6 +98,9 @@ async function initZKSearch(masterKey) {
  * Derive search key from master key
  * Uses HKDF-like derivation
  * 
+ * v1.1: Handles non-extractable CryptoKeys by falling back to
+ *       a persistent random search key stored in localStorage
+ * 
  * @param {CryptoKey|Uint8Array} masterKey 
  * @returns {Promise<CryptoKey>}
  */
@@ -106,9 +109,15 @@ async function deriveSearchKey(masterKey) {
   let keyBytes;
   
   if (masterKey instanceof CryptoKey) {
-    keyBytes = await crypto.subtle.exportKey('raw', masterKey);
+    try {
+      keyBytes = await crypto.subtle.exportKey('raw', masterKey);
+    } catch (e) {
+      // Key is non-extractable — use persistent fallback
+      console.warn('[ZK-Search] Master key not extractable, using persistent search key');
+      keyBytes = await getOrCreatePersistentSearchSeed();
+    }
   } else if (masterKey instanceof Uint8Array) {
-    keyBytes = masterKey;
+    keyBytes = masterKey.buffer;
   } else {
     throw new Error('Invalid master key format');
   }
@@ -131,6 +140,34 @@ async function deriveSearchKey(masterKey) {
     false,
     ['sign']
   );
+}
+
+/**
+ * Get or create a persistent random seed for search key derivation.
+ * Used when the master CryptoKey is non-extractable.
+ * Stored in localStorage as hex string.
+ * 
+ * @returns {Promise<ArrayBuffer>} 32-byte seed
+ */
+async function getOrCreatePersistentSearchSeed() {
+  const STORAGE_KEY = 'droplit_zk_search_seed';
+  const stored = localStorage.getItem(STORAGE_KEY);
+  
+  if (stored) {
+    // Convert hex back to ArrayBuffer
+    const bytes = new Uint8Array(stored.match(/.{2}/g).map(b => parseInt(b, 16)));
+    return bytes.buffer;
+  }
+  
+  // Generate new random 32-byte seed
+  const seed = crypto.getRandomValues(new Uint8Array(32));
+  
+  // Store as hex
+  const hex = Array.from(seed).map(b => b.toString(16).padStart(2, '0')).join('');
+  localStorage.setItem(STORAGE_KEY, hex);
+  
+  console.log('[ZK-Search] Created persistent search seed');
+  return seed.buffer;
 }
 
 /**
