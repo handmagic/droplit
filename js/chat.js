@@ -4537,7 +4537,7 @@ async function sendAskAIMessage() {
         action: 'chat',
         text: textForAI || 'Что на этом изображении?',  // Default question for image-only (v0.9.117)
         image: attachedImage?.data || null, // v0.9.117: Attached image base64
-        history: askAIMessages.slice(-20), // v4.26: More context from chat history
+        history: askAIMessages.slice(-21, -1), // v4.28 fix: exclude current msg (server adds it via 'text' field)
         syntriseContext: syntriseContext, // Legacy
         dropContext: contextObject, // v2: Structured context for server
         currentFeed: currentFeed, // v4.17: Actual drops from user's feed
