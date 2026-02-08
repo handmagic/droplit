@@ -114,12 +114,15 @@ class InfiniteMemory {
     if (!this.config.enabled) return false;
     if (!text || text.length < 5) return false;
 
-    // Lazy init for mobile — load model on first message
+    // Mobile lazy mode: start init in background, don't block
     if (!this.ready && this._lazyMobile) {
-      console.log('[InfiniteMemory] Lazy init triggered by indexMessage');
-      const ok = await this.init();
-      if (ok) await this.importFromChatHistory();
-      if (!this.ready) return false;
+      if (!this.initializing) {
+        console.log('[InfiniteMemory] Mobile: starting background init');
+        this.init().then(ok => {
+          if (ok) this.importFromChatHistory();
+        });
+      }
+      return false; // Skip this message, will catch next ones
     }
     if (!this.ready) return false;
 
@@ -168,12 +171,15 @@ class InfiniteMemory {
     if (!this.config.enabled) return '';
     if (!query || query.length < 3) return '';
 
-    // Lazy init for mobile — load model on first query
+    // Mobile lazy mode: if not ready, start init in background but don't block send
     if (!this.ready && this._lazyMobile) {
-      console.log('[InfiniteMemory] Lazy init triggered by getContextForPrompt');
-      const ok = await this.init();
-      if (ok) await this.importFromChatHistory();
-      if (!this.ready) return '';
+      if (!this.initializing) {
+        console.log('[InfiniteMemory] Mobile: starting background init (context skipped)');
+        this.init().then(ok => {
+          if (ok) this.importFromChatHistory();
+        });
+      }
+      return ''; // Don't block message sending
     }
     if (!this.ready) return '';
 
