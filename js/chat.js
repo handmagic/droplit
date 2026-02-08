@@ -4400,8 +4400,9 @@ async function sendAskAIMessage() {
   
   // Get context from Supabase (v0.9.58 - Dynamic Context)
   let contextForAI = null;
+  let supabaseContext = null; // v4.28 fix: declare in outer scope
   try {
-    const supabaseContext = await getSupabaseContext(text, {
+    supabaseContext = await getSupabaseContext(text, {
       limit: 20,
       recentHours: 24,
       searchEnabled: true
