@@ -1,10 +1,57 @@
 // ============================================
-// DROPLIT TTS v1.3
+// DROPLIT TTS v1.4
 // Text-to-Speech and Sound functions
 // v1.1: Added StreamingTTS stop support
 // v1.2: Speak button states (Speak/Wait/Stop)
 // v1.3: ElevenLabs fallback to OpenAI, better logging
+// v1.4: Audio Session Manager — prevents ghost playback
 // ============================================
+
+// ============================================
+// AUDIO SESSION MANAGER (v1.4)
+// Prevents ghost playback from in-flight fetch
+// ============================================
+let audioSessionId = 0;       // Incremental counter — each new speak = new session
+let audioSuppressed = false;  // STOP pressed → block all playback until next message
+
+function newAudioSession() {
+  audioSessionId++;
+  audioSuppressed = false;
+  console.log('[AudioSession] New session:', audioSessionId);
+  return audioSessionId;
+}
+
+function suppressAudio() {
+  audioSessionId++;  // Invalidate all in-flight fetches
+  audioSuppressed = true;
+  console.log('[AudioSession] Suppressed. All playback blocked until next message.');
+  // Stop everything currently playing
+  stopTTS();
+  // Stop AudioContext playback (from chat.js)
+  if (typeof stopAudioPlayback === 'function') stopAudioPlayback();
+  // Stop browser speech
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+}
+
+function canPlayAudio(sessionId) {
+  if (audioSuppressed) {
+    console.log('[AudioSession] Playback blocked (suppressed)');
+    return false;
+  }
+  if (sessionId !== audioSessionId) {
+    console.log('[AudioSession] Playback blocked (session', sessionId, 'expired, current:', audioSessionId, ')');
+    return false;
+  }
+  return true;
+}
+
+// Export globally for chat.js and index.html
+window.newAudioSession = newAudioSession;
+window.suppressAudio = suppressAudio;
+window.canPlayAudio = canPlayAudio;
+// Expose for reading in other files
+window.getAudioSessionId = () => audioSessionId;
+window.setAudioSuppressed = (val) => { audioSuppressed = val; };
 
 // ============================================
 // DROP SOUND
@@ -119,6 +166,7 @@ function speakTextWithCallback(text, onEnd, onStart) {
   if (!text) return;
   
   stopTTS();
+  newAudioSession();  // v1.4: New session invalidates any in-flight fetches
   
   const provider = localStorage.getItem('tts_provider') || 'browser';
   const apiKey = localStorage.getItem('openai_tts_key');
@@ -156,6 +204,7 @@ function speakTextWithCallback(text, onEnd, onStart) {
 }
 
 async function speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart) {
+  const mySession = audioSessionId;  // Capture session before fetch
   try {
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
@@ -172,7 +221,22 @@ async function speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart) {
     
     if (!response.ok) throw new Error('OpenAI TTS error');
     
+    // SESSION CHECK: Still valid after fetch?
+    if (!canPlayAudio(mySession)) {
+      console.log('[OpenAI TTS] Session expired, skipping playback');
+      if (onEnd) onEnd();
+      return;
+    }
+    
     const blob = await response.blob();
+    
+    // SESSION CHECK again before play
+    if (!canPlayAudio(mySession)) {
+      console.log('[OpenAI TTS] Session expired before play');
+      if (onEnd) onEnd();
+      return;
+    }
+    
     const url = URL.createObjectURL(blob);
     currentTTSAudio = new Audio(url);
     
@@ -194,6 +258,7 @@ async function speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart) {
 }
 
 async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart, fallbackOpenAIKey, fallbackVoice) {
+  const mySession = audioSessionId;  // Capture session before fetch
   try {
     console.log('[ElevenLabs Callback] Starting TTS...');
     const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
@@ -215,7 +280,6 @@ async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart
     
     if (!response.ok) {
       console.warn('[ElevenLabs Callback] Error:', response.status, '- trying OpenAI fallback');
-      // Fallback to OpenAI if available
       if (fallbackOpenAIKey && fallbackOpenAIKey.startsWith('sk-')) {
         speakWithOpenAICallback(text, fallbackOpenAIKey, fallbackVoice || 'nova', onEnd, onStart);
         return;
@@ -223,8 +287,23 @@ async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart
       throw new Error('ElevenLabs TTS error: ' + response.status);
     }
     
+    // SESSION CHECK: Still valid after fetch?
+    if (!canPlayAudio(mySession)) {
+      console.log('[ElevenLabs Callback] Session expired, skipping playback');
+      if (onEnd) onEnd();
+      return;
+    }
+    
     const blob = await response.blob();
     console.log('[ElevenLabs Callback] Audio blob received:', blob.size, 'bytes');
+    
+    // SESSION CHECK again before play
+    if (!canPlayAudio(mySession)) {
+      console.log('[ElevenLabs Callback] Session expired before play');
+      if (onEnd) onEnd();
+      return;
+    }
+    
     const url = URL.createObjectURL(blob);
     currentTTSAudio = new Audio(url);
     
@@ -243,14 +322,12 @@ async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart
       if (onEnd) onEnd();
     };
     
-    // Notify that audio is about to start
     if (onStart) onStart();
     await currentTTSAudio.play();
     console.log('[ElevenLabs Callback] Audio playing');
     
   } catch (e) {
     console.error('ElevenLabs TTS error:', e);
-    // Fallback to OpenAI if available
     if (fallbackOpenAIKey && fallbackOpenAIKey.startsWith('sk-')) {
       console.log('[ElevenLabs Callback] Falling back to OpenAI TTS');
       speakWithOpenAICallback(text, fallbackOpenAIKey, fallbackVoice || 'nova', onEnd, onStart);
@@ -265,6 +342,7 @@ function speakText(text) {
   if (!text) return;
   
   stopTTS();
+  newAudioSession();  // v1.4: New session invalidates any in-flight fetches
   if (typeof updateChatControlLeft === 'function') updateChatControlLeft('stop');
   
   const provider = localStorage.getItem('tts_provider') || 'browser';
@@ -297,6 +375,7 @@ function speakText(text) {
 
 // ElevenLabs with OpenAI fallback
 async function speakWithElevenLabsFallback(text, apiKey, voiceId, fallbackKey, fallbackVoice) {
+  const mySession = audioSessionId;  // Capture session
   try {
     console.log('[ElevenLabs] Starting TTS...');
     const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
@@ -325,7 +404,21 @@ async function speakWithElevenLabsFallback(text, apiKey, voiceId, fallbackKey, f
       throw new Error('ElevenLabs TTS error: ' + response.status);
     }
     
+    // SESSION CHECK
+    if (!canPlayAudio(mySession)) {
+      console.log('[ElevenLabs] Session expired, skipping');
+      if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+      return;
+    }
+    
     const blob = await response.blob();
+    
+    if (!canPlayAudio(mySession)) {
+      console.log('[ElevenLabs] Session expired before play');
+      if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+      return;
+    }
+    
     console.log('[ElevenLabs] Audio blob received:', blob.size, 'bytes');
     const url = URL.createObjectURL(blob);
     currentTTSAudio = new Audio(url);
@@ -427,6 +520,7 @@ async function speakWithElevenLabs(text, apiKey, voiceId) {
 }
 
 async function speakWithOpenAI(text, apiKey, voice) {
+  const mySession = audioSessionId;  // Capture session
   try {
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
@@ -443,7 +537,21 @@ async function speakWithOpenAI(text, apiKey, voice) {
     
     if (!response.ok) throw new Error('OpenAI TTS error');
     
+    // SESSION CHECK
+    if (!canPlayAudio(mySession)) {
+      console.log('[OpenAI] Session expired, skipping');
+      if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+      return;
+    }
+    
     const blob = await response.blob();
+    
+    if (!canPlayAudio(mySession)) {
+      console.log('[OpenAI] Session expired before play');
+      if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+      return;
+    }
+    
     const url = URL.createObjectURL(blob);
     currentTTSAudio = new Audio(url);
     
@@ -461,6 +569,9 @@ async function speakWithOpenAI(text, apiKey, voice) {
 }
 
 function stopTTS() {
+  // v1.4: Increment session to invalidate in-flight fetches
+  audioSessionId++;
+  
   // Stop regular Audio playback
   if (currentTTSAudio) {
     currentTTSAudio.pause();
@@ -480,6 +591,11 @@ function stopTTS() {
     } catch (e) {
       console.error('[TTS] Error stopping Streaming TTS:', e);
     }
+  }
+  
+  // Stop AudioContext playback (from chat.js)
+  if (typeof stopAudioPlayback === 'function') {
+    stopAudioPlayback();
   }
   
   // Reset global streaming flag if exists
