@@ -623,13 +623,27 @@ function openAskAI() {
 }
 
 function handleChatControlLeft() {
-  // If ASKI is speaking (any TTS including streaming) - stop it
-  if (askiIsSpeaking || currentTTSAudio || streamingTTSIsActive) {
+  // If ASKI is speaking, processing, or any TTS active - STOP everything
+  if (askiIsSpeaking || askiIsProcessing || currentTTSAudio || streamingTTSIsActive) {
+    console.log('[Chat] STOP pressed — interrupting ASKI');
+    // Stop all audio
     askiStopSpeaking();
     stopTTS();
-    // Reset streaming flag
     streamingTTSIsActive = false;
+    
+    // Reset processing state
+    askiIsProcessing = false;
+    voiceModeLocked = false;
+    setAskiBusy(false);
+    
+    // Reset LEFT button → HIDE
     updateChatControlLeft('hide');
+    
+    // Reset RIGHT button → TAP TO TALK / sleeping
+    if (isVoiceModeEnabled()) {
+      voiceModeSleeping = true;
+      updateVoiceModeIndicator('sleeping');
+    }
     return;
   }
   // Otherwise - close chat
