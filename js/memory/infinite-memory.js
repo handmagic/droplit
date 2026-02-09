@@ -352,10 +352,16 @@ window.InfiniteMemory = new InfiniteMemory();
   const isMobile = ('ontouchstart' in window) && window.innerWidth < 768;
 
   if (isMobile) {
-    // Mobile: WASM model too heavy for main thread — causes UI lag
-    // TODO: move to Web Worker in Phase 2
-    console.log('[InfiniteMemory] Mobile detected — disabled (WASM too heavy for main thread)');
-    window.InfiniteMemory.config.enabled = false;
+    // Mobile: delayed init to let UI settle first
+    console.log('[InfiniteMemory] Mobile detected — delayed init (Web Worker mode)');
+    setTimeout(() => {
+      window.InfiniteMemory.init().then(ok => {
+        if (ok) {
+          console.log('[InfiniteMemory] Auto-initialized (mobile, Worker)');
+          window.InfiniteMemory.importFromChatHistory();
+        }
+      });
+    }, 5000); // 5 sec delay on mobile for UI to fully load
   } else {
     // Desktop: как раньше, автоматически через 3 секунды
     setTimeout(() => {
