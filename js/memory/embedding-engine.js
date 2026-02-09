@@ -1,21 +1,23 @@
 // ============================================================
-// embedding-engine.js — Transformers.js для ASKI Infinite Memory
-// Version: 1.2 — MiniLM model (23MB, fast load)
+// embedding-engine.js — Proxy to Web Worker for Transformers.js
+// Version: 2.0 — Web Worker architecture (zero main thread blocking)
 //
-// Uses Xenova/all-MiniLM-L6-v2 — same model as local-embeddings.js
-// Small (23MB), 384 dimensions, good for EN+basic RU
-// Future: switch to multilingual-e5-small when preloading is ready
+// Same API as v1.2 but all WASM inference runs in a Web Worker.
+// Main thread only sends/receives messages — never blocks UI.
 //
 // Расположение: js/memory/embedding-engine.js
+// Зависимости: embedding-worker.js (loaded as Web Worker)
 // ============================================================
 
 class EmbeddingEngine {
   constructor() {
-    this.pipeline = null;
+    this.worker = null;
     this.ready = false;
     this.loading = false;
-    this.modelId = 'Xenova/all-MiniLM-L6-v2'; // 23MB, same as local-embeddings.js
+    this.modelId = 'Xenova/all-MiniLM-L6-v2';
     this._initPromise = null;
+    this._pendingRequests = new Map(); // id → { resolve, reject }
+    this._nextId = 1;
   }
 
   // ─── ИНИЦИАЛИЗАЦИЯ ─────────────────────────────────────
@@ -25,9 +27,9 @@ class EmbeddingEngine {
     if (this.loading) return this._initPromise;
 
     this.loading = true;
-    console.log('[EmbeddingEngine] Loading model:', this.modelId);
+    console.log('[EmbeddingEngine] Loading model via Worker:', this.modelId);
 
-    this._initPromise = this._loadModel(timeout);
+    this._initPromise = this._initWorker(timeout);
 
     try {
       await this._initPromise;
@@ -38,113 +40,143 @@ class EmbeddingEngine {
     }
   }
 
-  async _loadModel(timeout) {
-    const startTime = Date.now();
+  async _initWorker(timeout) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error('Worker init timeout (' + (timeout / 1000) + 's)'));
+      }, timeout);
 
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Model load timeout (' + (timeout/1000) + 's)')), timeout);
-    });
-
-    const loadPromise = (async () => {
       try {
-        // Dynamic import — same approach as local-embeddings.js
-        const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+        // Create Web Worker
+        this.worker = new Worker('/js/memory/embedding-worker.js', { type: 'module' });
 
-        env.allowLocalModels = false;
-        env.useBrowserCache = true;
+        // Listen for all messages from worker
+        this.worker.onmessage = (event) => {
+          this._handleWorkerMessage(event.data);
+        };
 
-        this._emitProgress({ stage: 'downloading', percent: 0, message: 'Загрузка модели...' });
+        this.worker.onerror = (error) => {
+          console.error('[EmbeddingEngine] Worker error:', error.message);
+          clearTimeout(timer);
+          this.loading = false;
+          reject(new Error('Worker failed: ' + error.message));
+        };
 
-        this.pipeline = await pipeline('feature-extraction', this.modelId, {
-          progress_callback: (progress) => {
-            if (progress.status === 'progress' && progress.total) {
-              const percent = Math.round((progress.loaded / progress.total) * 100);
-              this._emitProgress({
-                stage: 'downloading',
-                percent,
-                file: progress.file || '',
-                message: `Загрузка: ${percent}%`
-              });
-            }
+        // Send init command
+        const initId = this._nextId++;
+        this._pendingRequests.set(initId, {
+          resolve: (data) => {
+            clearTimeout(timer);
+            this.ready = true;
+            this.loading = false;
+            const elapsed = data.elapsed || '?';
+            console.log(`[EmbeddingEngine] Model ready via Worker (${elapsed}s)`);
+            this._emitProgress({ stage: 'ready', percent: 100, message: 'Model ready' });
+            resolve();
+          },
+          reject: (error) => {
+            clearTimeout(timer);
+            this.loading = false;
+            reject(error);
           }
         });
 
-        this.ready = true;
-        this.loading = false;
-
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        console.log(`[EmbeddingEngine] Model ready (${elapsed}s)`);
-
-        this._emitProgress({ stage: 'ready', percent: 100, message: 'Модель готова' });
+        this.worker.postMessage({ id: initId, type: 'init', payload: {} });
 
       } catch (error) {
+        clearTimeout(timer);
         this.loading = false;
-        console.error('[EmbeddingEngine] Load failed:', error);
-        throw error;
+        reject(error);
       }
-    })();
-
-    return Promise.race([loadPromise, timeoutPromise]);
+    });
   }
 
-  // ─── ЭМБЕДДИНГИ ────────────────────────────────────────
+  // ─── WORKER MESSAGE HANDLER ────────────────────────────
+
+  _handleWorkerMessage(data) {
+    const { id, type, payload } = data;
+
+    // Progress events (no id, broadcast)
+    if (type === 'progress') {
+      this._emitProgress(payload);
+      return;
+    }
+
+    // Error from worker
+    if (type === 'error') {
+      const pending = id ? this._pendingRequests.get(id) : null;
+      if (pending) {
+        this._pendingRequests.delete(id);
+        pending.reject(new Error(payload.message));
+      } else {
+        console.error('[EmbeddingEngine] Worker error:', payload.message);
+      }
+      return;
+    }
+
+    // Response to a request
+    if (id && this._pendingRequests.has(id)) {
+      const pending = this._pendingRequests.get(id);
+      this._pendingRequests.delete(id);
+      pending.resolve(payload);
+    }
+  }
+
+  // ─── REQUEST HELPER ────────────────────────────────────
+
+  _sendRequest(type, payload, timeout = 30000) {
+    return new Promise((resolve, reject) => {
+      if (!this.ready || !this.worker) {
+        reject(new Error('EmbeddingEngine not initialized'));
+        return;
+      }
+
+      const id = this._nextId++;
+      const timer = setTimeout(() => {
+        this._pendingRequests.delete(id);
+        reject(new Error(`Worker request timeout (${type})`));
+      }, timeout);
+
+      this._pendingRequests.set(id, {
+        resolve: (data) => {
+          clearTimeout(timer);
+          resolve(data);
+        },
+        reject: (error) => {
+          clearTimeout(timer);
+          reject(error);
+        }
+      });
+
+      this.worker.postMessage({ id, type, payload });
+    });
+  }
+
+  // ─── ЭМБЕДДИНГИ (same API as v1.2) ────────────────────
 
   /**
    * Эмбеддинг для passage (индексируемый текст)
-   * MiniLM не требует префиксов (в отличие от E5)
    */
   async embedPassage(text) {
-    this._checkReady();
-    const output = await this.pipeline(text, {
-      pooling: 'mean',
-      normalize: true
-    });
-    return Array.from(output.data);
+    const result = await this._sendRequest('embed', { text });
+    return result.vector;
   }
 
   /**
    * Эмбеддинг для query (поисковый запрос)
    */
   async embedQuery(text) {
-    this._checkReady();
-    const output = await this.pipeline(text, {
-      pooling: 'mean',
-      normalize: true
-    });
-    return Array.from(output.data);
+    const result = await this._sendRequest('embed', { text });
+    return result.vector;
   }
 
   /**
-   * Батч-эмбеддинг
+   * Батч-эмбеддинг (для импорта истории)
    */
   async embedBatch(texts, type = 'passage') {
-    this._checkReady();
-    const results = [];
-
-    for (let i = 0; i < texts.length; i++) {
-      const output = await this.pipeline(texts[i], {
-        pooling: 'mean',
-        normalize: true
-      });
-      results.push(Array.from(output.data));
-
-      // Прогресс каждые 5 элементов
-      if (i % 5 === 0 || i === texts.length - 1) {
-        this._emitProgress({
-          stage: 'indexing',
-          current: i + 1,
-          total: texts.length,
-          message: `Индексация: ${i + 1}/${texts.length}`
-        });
-      }
-
-      // Yield to UI thread каждые 3 элемента
-      if (i % 3 === 0) {
-        await new Promise(r => setTimeout(r, 0));
-      }
-    }
-
-    return results;
+    // Longer timeout for batches: 5 min
+    const result = await this._sendRequest('embedBatch', { texts }, 300000);
+    return result.vectors;
   }
 
   // ─── УПРАВЛЕНИЕ ────────────────────────────────────────
@@ -153,19 +185,18 @@ class EmbeddingEngine {
   isLoading() { return this.loading; }
 
   destroy() {
-    this.pipeline = null;
+    if (this.worker) {
+      this.worker.postMessage({ id: this._nextId++, type: 'destroy', payload: {} });
+      this.worker.terminate();
+      this.worker = null;
+    }
     this.ready = false;
     this.loading = false;
-    console.log('[EmbeddingEngine] Destroyed');
+    this._pendingRequests.clear();
+    console.log('[EmbeddingEngine] Worker terminated');
   }
 
   // ─── ПРИВАТНЫЕ МЕТОДЫ ──────────────────────────────────
-
-  _checkReady() {
-    if (!this.ready || !this.pipeline) {
-      throw new Error('EmbeddingEngine not initialized. Call init() first.');
-    }
-  }
 
   _emitProgress(data) {
     if (typeof window !== 'undefined') {
