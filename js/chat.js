@@ -1,8 +1,7 @@
 // ============================================
-// DROPLIT CHAT v4.28 - Infinite Memory
+// DROPLIT CHAT v4.29 - Voice Interrupt Fix
 // ASKI Chat, Voice Mode, Streaming
 // Haiku for simple, Sonnet for complex queries
-// Infinite Memory: semantic search over chat history
 // ============================================
 
 // ============================================
@@ -2965,12 +2964,6 @@ function startVoiceModeListening() {
   };
   
   voiceModeRecognition.onresult = (event) => {
-    // v4.28: Guard against mobile STT firing multiple onresult events
-    if (voiceModeLocked) {
-      console.log('[Voice] onresult ignored — already locked');
-      return;
-    }
-    
     const transcript = event.results[0][0].transcript;
     if (transcript.trim()) {
       // User spoke real words
@@ -4177,11 +4170,6 @@ async function handleStreamingResponse(response) {
   
   // Save AI response to persistent history (v4.25)
   saveToChatHistory('assistant', fullText);
-
-  // Infinite Memory: index AI response for semantic search (v4.28)
-  if (window.InfiniteMemory && window.InfiniteMemory.isEnabled() && fullText && fullText.length > 5) {
-    window.InfiniteMemory.indexMessage(fullText, 'assistant').catch(() => {});
-  }
   
   // createDrop is now handled in streaming 'done' event (v4.18)
   // Old code removed to prevent duplicate drops
@@ -4334,11 +4322,6 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   
   // Save to persistent history (v4.25)
   saveToChatHistory(isUser ? 'user' : 'assistant', text, imageUrl);
-
-  // Infinite Memory: index message for semantic search (v4.28)
-  if (window.InfiniteMemory && window.InfiniteMemory.isEnabled() && text && text.length > 5) {
-    window.InfiniteMemory.indexMessage(text, isUser ? 'user' : 'assistant').catch(() => {});
-  }
   
   // AutoDrop: automatically save message as drop
   if (autoDropEnabled) {
@@ -4406,9 +4389,8 @@ async function sendAskAIMessage() {
   
   // Get context from Supabase (v0.9.58 - Dynamic Context)
   let contextForAI = null;
-  let supabaseContext = null; // v4.28 fix: declare in outer scope
   try {
-    supabaseContext = await getSupabaseContext(text, {
+    const supabaseContext = await getSupabaseContext(text, {
       limit: 20,
       recentHours: 24,
       searchEnabled: true
@@ -4515,28 +4497,6 @@ async function sendAskAIMessage() {
     
     console.log('[ASKI] Sending request with image:', attachedImage ? 'YES' : 'NO');
     
-    // ═══════════════════════════════════════════════════════════════
-    // INFINITE MEMORY — semantic search for relevant chat history
-    // Adds context from past conversations to improve ASKI responses
-    // ═══════════════════════════════════════════════════════════════
-    let memoryContext = '';
-    try {
-      if (window.InfiniteMemory && window.InfiniteMemory.isEnabled()) {
-        memoryContext = await window.InfiniteMemory.getContextForPrompt(textForAI || text);
-        if (memoryContext) {
-          console.log(`[InfiniteMemory] 🧠 Context found (${window.InfiniteMemory.status.lastSearchResults} fragments, ${window.InfiniteMemory.status.lastSearchTime}ms)`);
-        }
-      }
-    } catch (memErr) {
-      console.warn('[InfiniteMemory] Context fetch skipped:', memErr.message);
-    }
-    
-    // Combine askiKnowledge with memory context
-    let fullAskiKnowledge = getAskiKnowledge();
-    if (memoryContext) {
-      fullAskiKnowledge = (fullAskiKnowledge || '') + '\n' + memoryContext;
-    }
-    
     const response = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -4544,7 +4504,7 @@ async function sendAskAIMessage() {
         action: 'chat',
         text: textForAI || 'Что на этом изображении?',  // Default question for image-only (v0.9.117)
         image: attachedImage?.data || null, // v0.9.117: Attached image base64
-        history: askAIMessages.slice(-21, -1), // v4.28 fix: exclude current msg (server adds it via 'text' field)
+        history: askAIMessages.slice(-20), // v4.26: More context from chat history
         syntriseContext: syntriseContext, // Legacy
         dropContext: contextObject, // v2: Structured context for server
         currentFeed: currentFeed, // v4.17: Actual drops from user's feed
@@ -4555,7 +4515,7 @@ async function sendAskAIMessage() {
         voiceMode: isVoice, // v4.27: Voice mode flag for server-side model selection
         autoModel: autoSelectedModel, // v4.27: Client-selected model based on complexity
         userEmail: getUserEmail(), // v4.19: User email for send_email tool
-        askiKnowledge: fullAskiKnowledge, // v4.28: Personal knowledge + Infinite Memory context
+        askiKnowledge: getAskiKnowledge(), // v4.20: Personal knowledge base
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone // v4.21: Device timezone
       })
     });
@@ -4785,7 +4745,7 @@ function copyAIResponse(btn) {
 }
 
 function toggleAskAIVoice() {
-  const btn = document.getElementById('askAIVoiceBtn');
+  const btn = document.getElementById('askAIControlRight');
   
   // === VOICE MODE ENABLED ===
   if (isVoiceModeEnabled()) {
@@ -4796,14 +4756,27 @@ function toggleAskAIVoice() {
     }
     
     // If listening/active - go to sleep (user wants to stop)
-    if (voiceModeRecognition || btn.classList.contains('recording')) {
+    if (voiceModeRecognition || (btn && btn.classList.contains('recording'))) {
       enterVoiceModeSleep();
       return;
     }
     
-    // If locked (Aski speaking/processing) - just show message
-    if (voiceModeLocked || askiIsProcessing || askiIsSpeaking) {
-      toast('Wait for Aski to finish');
+    // If ASKI is speaking - STOP playback (allow interruption)
+    if (askiIsSpeaking) {
+      console.log('[Voice] User interrupted ASKI — stopping playback');
+      askiStopSpeaking();
+      stopTTS();
+      streamingTTSIsActive = false;
+      voiceModeLocked = false;
+      updateChatControlLeft('hide');
+      // Go to sleep, user can tap again to talk
+      enterVoiceModeSleep();
+      return;
+    }
+    
+    // If processing (waiting for API response) - just show message
+    if (askiIsProcessing) {
+      toast('ASKI is thinking...');
       return;
     }
     
