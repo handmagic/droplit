@@ -1,10 +1,11 @@
 // ============================================
-// DROPLIT TTS v1.4
+// DROPLIT TTS v1.5
 // Text-to-Speech and Sound functions
 // v1.1: Added StreamingTTS stop support
 // v1.2: Speak button states (Speak/Wait/Stop)
 // v1.3: ElevenLabs fallback to OpenAI, better logging
 // v1.4: Audio Session Manager — prevents ghost playback
+// v1.5: Kokoro TTS local provider (sentence-by-sentence)
 // ============================================
 
 // ============================================
@@ -176,6 +177,12 @@ function speakTextWithCallback(text, onEnd, onStart) {
   
   console.log('[TTS] Provider:', provider, '| OpenAI key:', apiKey ? 'yes' : 'no', '| ElevenLabs key:', elevenlabsKey ? 'yes' : 'no');
   
+  // ── v1.5: Kokoro TTS (local, sentence-by-sentence) ──
+  if (provider === 'kokoro') {
+    speakWithKokoroCallback(text, onEnd, onStart, apiKey, voice);
+    return;
+  }
+  
   // Try ElevenLabs first if selected, with fallback to OpenAI
   if (provider === 'elevenlabs' && elevenlabsKey) {
     speakWithElevenLabsCallback(text, elevenlabsKey, elevenlabsVoice, onEnd, onStart, apiKey, voice);
@@ -202,6 +209,90 @@ function speakTextWithCallback(text, onEnd, onStart) {
     }
   }
 }
+
+// ============================================
+// KOKORO TTS (v1.5) — Local browser TTS
+// Sentence-by-sentence generation with prefetch
+// Falls back to OpenAI if model not loaded
+// ============================================
+
+async function speakWithKokoroCallback(text, onEnd, onStart, fallbackOpenAIKey, fallbackVoice) {
+  const mySession = audioSessionId;
+  
+  // Check if Kokoro provider is available
+  if (!window.KokoroTTS) {
+    console.warn('[Kokoro TTS] Provider not loaded, falling back');
+    _kokoroFallback(text, fallbackOpenAIKey, fallbackVoice, onEnd, onStart);
+    return;
+  }
+  
+  try {
+    // Lazy load model on first use
+    if (!window.KokoroTTS.isReady) {
+      console.log('[Kokoro TTS] Model not loaded, loading...');
+      if (onStart) onStart(); // Show "waiting" state while loading
+      
+      try {
+        await window.KokoroTTS.loadModel((pct, file) => {
+          console.log(`[Kokoro TTS] Loading: ${Math.round(pct)}%`);
+        });
+      } catch(loadErr) {
+        console.error('[Kokoro TTS] Model load failed:', loadErr);
+        _kokoroFallback(text, fallbackOpenAIKey, fallbackVoice, onEnd, onStart);
+        return;
+      }
+    }
+    
+    // Session check after potential model load
+    if (!canPlayAudio(mySession)) {
+      console.log('[Kokoro TTS] Session expired after load');
+      if (onEnd) onEnd();
+      return;
+    }
+    
+    // Speak with Kokoro (sentence-by-sentence, with prefetch)
+    await window.KokoroTTS.speak(text, {
+      sessionId: mySession,
+      onStart: onStart,
+      onEnd: function() {
+        if (onEnd) onEnd();
+        if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+      }
+    });
+    
+  } catch(e) {
+    console.error('[Kokoro TTS] Error:', e);
+    _kokoroFallback(text, fallbackOpenAIKey, fallbackVoice, onEnd, onStart);
+  }
+}
+
+// Kokoro fallback: try OpenAI → Browser
+function _kokoroFallback(text, openaiKey, openaiVoice, onEnd, onStart) {
+  console.log('[Kokoro TTS] Falling back...');
+  if (openaiKey && openaiKey.startsWith('sk-')) {
+    console.log('[Kokoro TTS] → OpenAI');
+    speakWithOpenAICallback(text, openaiKey, openaiVoice || 'nova', onEnd, onStart);
+  } else {
+    console.log('[Kokoro TTS] → Browser');
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US'; // Kokoro is EN only, so fallback in EN
+      utterance.onstart = function() { if (onStart) onStart(); };
+      utterance.onend = function() {
+        if (onEnd) onEnd();
+        if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+      };
+      window.speechSynthesis.speak(utterance);
+    } else {
+      if (onEnd) onEnd();
+    }
+  }
+}
+
+// ============================================
+// OpenAI TTS (with session check)
+// ============================================
 
 async function speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart) {
   const mySession = audioSessionId;  // Capture session before fetch
@@ -256,6 +347,10 @@ async function speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart) {
     if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
   }
 }
+
+// ============================================
+// ElevenLabs TTS (with session check + fallback)
+// ============================================
 
 async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart, fallbackOpenAIKey, fallbackVoice) {
   const mySession = audioSessionId;  // Capture session before fetch
@@ -352,6 +447,19 @@ function speakText(text) {
   const elevenlabsVoice = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
   
   console.log('[speakText] Provider:', provider, '| OpenAI:', openaiKey ? 'yes' : 'no');
+  
+  // ── v1.5: Kokoro TTS ──
+  if (provider === 'kokoro') {
+    speakWithKokoroCallback(text, 
+      function() { // onEnd
+        if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+        if (typeof updateChatControlLeft === 'function') updateChatControlLeft('hide');
+      },
+      null, // onStart
+      openaiKey, openaiVoice
+    );
+    return;
+  }
   
   // Try ElevenLabs first if selected, with fallback to OpenAI
   if (provider === 'elevenlabs' && elevenlabsKey) {
@@ -583,6 +691,12 @@ function stopTTS() {
     window.speechSynthesis.cancel();
   }
   
+  // v1.5: Stop Kokoro TTS
+  if (window.KokoroTTS && window.KokoroTTS.isSpeaking) {
+    window.KokoroTTS.stop();
+    console.log('[TTS] Kokoro stopped');
+  }
+  
   // Stop ElevenLabs Streaming TTS (WebSocket)
   if (window.StreamingTTS && typeof window.StreamingTTS.stop === 'function') {
     try {
@@ -681,6 +795,12 @@ function stopAllTTS() {
       window.StreamingTTS.stop();
     } catch (e) {}
   }
+  // v1.5: Also stop Kokoro
+  if (window.KokoroTTS) {
+    try {
+      window.KokoroTTS.stop();
+    } catch (e) {}
+  }
   isTTSPlaying = false;
 }
 
@@ -699,5 +819,6 @@ window.DropLitTTS = {
   speakWithElevenLabs,
   speakWithElevenLabsFallback,
   speakWithElevenLabsCallback,
+  speakWithKokoroCallback,  // v1.5
   updateSpeakButton
 };
