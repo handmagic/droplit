@@ -1,7 +1,8 @@
 // ============================================
-// DROPLIT CHAT v4.29 - Voice Interrupt Fix
+// DROPLIT CHAT v4.30 - Kokoro TTS Integration
 // ASKI Chat, Voice Mode, Streaming
 // Haiku for simple, Sonnet for complex queries
+// v4.30: Kokoro local TTS provider + settings
 // ============================================
 
 // ============================================
@@ -1794,7 +1795,7 @@ let askiVoice = localStorage.getItem('aski_voice') || 'nova'; // OpenAI TTS voic
 let askiApiKey = localStorage.getItem('openai_tts_key') || '';
 
 // TTS Provider settings
-let ttsProvider = localStorage.getItem('tts_provider') || 'openai'; // openai, elevenlabs, browser
+let ttsProvider = localStorage.getItem('tts_provider') || 'openai'; // openai, elevenlabs, kokoro, browser
 let elevenlabsApiKey = localStorage.getItem('elevenlabs_tts_key') || '';
 let elevenlabsVoice = localStorage.getItem('elevenlabs_voice') || 'Bella';
 let elevenlabsVoiceId = localStorage.getItem('elevenlabs_voice_id') || 'EXAVITQu4vr4xnSDxMaL';
@@ -2050,7 +2051,10 @@ async function askiSpeak(text, lang = null, onEnd = null) {
   askiApiKey = localStorage.getItem('openai_tts_key') || '';
   
   // Route to appropriate TTS provider
-  if (ttsProvider === 'elevenlabs') {
+  if (ttsProvider === 'kokoro') {
+    // v4.30: Kokoro local TTS (English only, sentence-by-sentence)
+    await askiSpeakKokoro(cleanText, onEnd);
+  } else if (ttsProvider === 'elevenlabs') {
     if (elevenlabsApiKey) {
       await askiSpeakElevenLabs(cleanText, onEnd);
     } else {
@@ -2139,6 +2143,88 @@ async function askiSpeakOpenAI(text, onEnd = null) {
     askiIsSpeaking = false;
     updateSpeakingIndicator(false);
     askiSpeakBrowser(text, null, onEnd);
+  }
+}
+
+// Kokoro TTS — Local browser TTS (v4.30)
+async function askiSpeakKokoro(text, onEnd = null) {
+  if (!window.KokoroTTS) {
+    console.warn('[askiSpeakKokoro] Provider not loaded, falling back');
+    if (askiApiKey) {
+      askiSpeakOpenAI(text, onEnd);
+    } else {
+      askiSpeakBrowser(text, null, onEnd);
+    }
+    return;
+  }
+  
+  const mySession = window.getAudioSessionId ? window.getAudioSessionId() : 0;
+  
+  try {
+    askiIsSpeaking = true;
+    updateSpeakingIndicator(true);
+    updateVoiceModeIndicator('speaking');
+    
+    // Lazy load model on first use
+    if (!window.KokoroTTS.isReady) {
+      console.log('[askiSpeakKokoro] Loading model...');
+      try {
+        await window.KokoroTTS.loadModel((pct) => {
+          console.log('[askiSpeakKokoro] Loading:', Math.round(pct) + '%');
+          // Update UI status if settings panel is open
+          const st = document.getElementById('kokoroModelStatus');
+          if (st) st.textContent = '⏳ Loading: ' + Math.round(pct) + '%';
+        });
+        const st = document.getElementById('kokoroModelStatus');
+        if (st) st.textContent = '✅ Model ready';
+      } catch(e) {
+        console.error('[askiSpeakKokoro] Model load failed:', e);
+        askiIsSpeaking = false;
+        updateSpeakingIndicator(false);
+        const st = document.getElementById('kokoroModelStatus');
+        if (st) st.textContent = '❌ Load failed: ' + e.message;
+        // Fallback to OpenAI or browser
+        if (askiApiKey) {
+          askiSpeakOpenAI(text, onEnd);
+        } else {
+          askiSpeakBrowser(text, null, onEnd);
+        }
+        return;
+      }
+    }
+    
+    // Session check after potential model load
+    if (window.canPlayAudio && !window.canPlayAudio(mySession)) {
+      console.log('[askiSpeakKokoro] Session expired');
+      askiIsSpeaking = false;
+      updateSpeakingIndicator(false);
+      if (onEnd) onEnd();
+      return;
+    }
+    
+    // Speak (sentence-by-sentence with prefetch)
+    await window.KokoroTTS.speak(text, {
+      sessionId: mySession,
+      onStart: function() {
+        console.log('[askiSpeakKokoro] Audio started');
+      },
+      onEnd: function() {
+        askiIsSpeaking = false;
+        updateSpeakingIndicator(false);
+        if (onEnd) onEnd();
+      }
+    });
+    
+  } catch(e) {
+    console.error('[askiSpeakKokoro] Error:', e);
+    askiIsSpeaking = false;
+    updateSpeakingIndicator(false);
+    // Fallback
+    if (askiApiKey) {
+      askiSpeakOpenAI(text, onEnd);
+    } else {
+      askiSpeakBrowser(text, null, onEnd);
+    }
   }
 }
 
@@ -3342,9 +3428,13 @@ function setTTSProvider(provider) {
   // Show/hide provider-specific settings
   const openaiSettings = document.getElementById('openaiVoiceSettings');
   const elevenlabsSettings = document.getElementById('elevenlabsVoiceSettings');
+  const kokoroSettings = document.getElementById('kokoroVoiceSettings');
   
   if (openaiSettings) {
     openaiSettings.style.display = (provider === 'openai') ? 'block' : 'none';
+  }
+  if (kokoroSettings) {
+    kokoroSettings.style.display = (provider === 'kokoro') ? 'block' : 'none';
   }
   if (elevenlabsSettings) {
     elevenlabsSettings.style.display = (provider === 'elevenlabs') ? 'block' : 'none';
@@ -3374,7 +3464,62 @@ function setTTSProvider(provider) {
     }
   }
   
-  toast(`TTS: ${provider === 'openai' ? 'OpenAI' : provider === 'elevenlabs' ? 'ElevenLabs' : 'Browser'}`);
+  const providerNames = { openai: 'OpenAI', elevenlabs: 'ElevenLabs', kokoro: '🧠 Kokoro (local)', browser: 'Browser' };
+  toast(`TTS: ${providerNames[provider] || provider}`);
+}
+
+// ============================================
+// KOKORO VOICE SETTINGS (v4.30)
+// ============================================
+
+function setKokoroVoice(voice) {
+  localStorage.setItem('kokoro_voice', voice);
+  if (window.KokoroTTS) window.KokoroTTS.setVoice(voice);
+  
+  // Update UI
+  document.querySelectorAll('#kokoroVoiceSelector .pill-m').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.voice === voice);
+  });
+  
+  toast('Kokoro voice: ' + voice);
+}
+
+function setKokoroSpeed(speed) {
+  const s = parseFloat(speed).toFixed(1);
+  localStorage.setItem('kokoro_speed', s);
+  if (window.KokoroTTS) window.KokoroTTS.setSpeed(s);
+  
+  const label = document.getElementById('kokoroSpeedVal');
+  if (label) label.textContent = s + '×';
+}
+
+async function preloadKokoroModel() {
+  const status = document.getElementById('kokoroModelStatus');
+  if (!window.KokoroTTS) {
+    if (status) status.textContent = 'Error: kokoro-tts.js not loaded';
+    toast('Kokoro module not loaded', 'error');
+    return;
+  }
+  
+  if (window.KokoroTTS.isReady) {
+    if (status) status.textContent = '✅ Model ready';
+    toast('Kokoro model already loaded');
+    return;
+  }
+  
+  if (status) status.textContent = '⏳ Loading model...';
+  toast('Loading Kokoro model (~82MB)...');
+  
+  try {
+    await window.KokoroTTS.loadModel((pct) => {
+      if (status) status.textContent = '⏳ Loading: ' + Math.round(pct) + '%';
+    });
+    if (status) status.textContent = '✅ Model ready';
+    toast('Kokoro model loaded!', 'success');
+  } catch(e) {
+    if (status) status.textContent = '❌ Load failed: ' + e.message;
+    toast('Kokoro load failed', 'error');
+  }
 }
 
 // ElevenLabs voice selection (legacy, kept for compatibility)
