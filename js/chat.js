@@ -1,9 +1,30 @@
 // ============================================
-// DROPLIT CHAT v4.30 - Kokoro TTS Integration
+// DROPLIT CHAT v4.31 - Ollama Local LLM
 // ASKI Chat, Voice Mode, Streaming
 // Haiku for simple, Sonnet for complex queries
 // v4.30: Kokoro local TTS provider + settings
+// v4.31: Ollama local LLM integration (Qwen3)
 // ============================================
+
+// ============================================
+// LLM PROVIDER SETTINGS (v4.31)
+// ============================================
+let llmProvider = localStorage.getItem('llm_provider') || 'claude'; // claude, ollama
+let ollamaUrl = localStorage.getItem('ollama_url') || 'http://localhost:11434';
+let ollamaModel = localStorage.getItem('ollama_model') || 'qwen3:4b';
+
+// ASKI system prompt for Ollama (simplified, no tools)
+const OLLAMA_SYSTEM_PROMPT = `You are ASKI — a friendly, smart AI assistant inside DropLit app.
+DropLit is a voice-first idea capture app. Users record voice notes called "drops".
+
+Rules:
+- Respond in the same language the user writes in (Russian or English)
+- Be concise but helpful. For voice mode, keep answers under 3 sentences
+- You can help with: answering questions, brainstorming, analysis, creative tasks
+- You do NOT have access to user's drops or tools in this mode (local LLM)
+- If asked to create/delete/search drops, explain that this requires Cloud AI mode
+- Use markdown formatting when appropriate
+- Be warm, enthusiastic, and supportive`;
 
 // ============================================
 // ASK AI CHAT FUNCTIONS
@@ -3469,6 +3490,69 @@ function setTTSProvider(provider) {
 }
 
 // ============================================
+// LLM PROVIDER SETTINGS (v4.31)
+// ============================================
+
+function setLLMProvider(provider) {
+  llmProvider = provider;
+  localStorage.setItem('llm_provider', provider);
+  
+  // Update pill buttons
+  document.querySelectorAll('#llmProviderSelector .pill-m').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.provider === provider);
+  });
+  
+  // Show/hide provider-specific settings
+  const ollamaSettings = document.getElementById('ollamaLLMSettings');
+  if (ollamaSettings) {
+    ollamaSettings.style.display = (provider === 'ollama') ? 'block' : 'none';
+  }
+  
+  const providerNames = { claude: '☁️ Claude (cloud)', ollama: '🧠 Ollama (local)' };
+  toast(`AI: ${providerNames[provider] || provider}`);
+  
+  // Check Ollama connection when switching
+  if (provider === 'ollama') {
+    checkOllamaStatus();
+  }
+}
+
+async function checkOllamaStatus() {
+  const statusEl = document.getElementById('ollamaStatus');
+  if (!statusEl) return;
+  
+  statusEl.textContent = '⏳ Connecting...';
+  statusEl.style.color = 'var(--color-text-muted)';
+  
+  const result = await checkOllamaConnection();
+  
+  if (result.connected) {
+    const hasModel = result.models?.some(m => m.startsWith(ollamaModel.split(':')[0]));
+    if (hasModel) {
+      statusEl.textContent = '✅ Connected • ' + ollamaModel + ' ready';
+      statusEl.style.color = '#10B981';
+    } else {
+      statusEl.textContent = '⚠️ Connected but model "' + ollamaModel + '" not found. Available: ' + (result.models?.join(', ') || 'none');
+      statusEl.style.color = '#F59E0B';
+    }
+  } else {
+    statusEl.textContent = '❌ Cannot connect to ' + ollamaUrl + ' — ' + result.error;
+    statusEl.style.color = '#EF4444';
+  }
+}
+
+function setOllamaUrl(url) {
+  ollamaUrl = url.replace(/\/$/, ''); // strip trailing slash
+  localStorage.setItem('ollama_url', ollamaUrl);
+}
+
+function setOllamaModel(model) {
+  ollamaModel = model;
+  localStorage.setItem('ollama_model', ollamaModel);
+  toast('Ollama model: ' + model);
+}
+
+// ============================================
 // KOKORO VOICE SETTINGS (v4.30)
 // ============================================
 
@@ -4560,6 +4644,247 @@ function hideAskAITyping() {
   if (typing) typing.remove();
 }
 
+// ============================================
+// OLLAMA LOCAL LLM (v4.31)
+// Direct browser → Ollama API
+// ============================================
+
+async function checkOllamaConnection() {
+  try {
+    const res = await fetch(ollamaUrl + '/api/tags', { 
+      method: 'GET',
+      signal: AbortSignal.timeout(3000)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const models = data.models?.map(m => m.name) || [];
+      console.log('[Ollama] Connected. Models:', models.join(', '));
+      return { connected: true, models };
+    }
+    return { connected: false, error: 'Status ' + res.status };
+  } catch(e) {
+    console.warn('[Ollama] Not reachable:', e.message);
+    return { connected: false, error: e.message };
+  }
+}
+
+async function sendToOllama(text, history, knowledge) {
+  // Build messages array in OpenAI/Ollama format
+  const messages = [];
+  
+  // System prompt
+  let systemPrompt = OLLAMA_SYSTEM_PROMPT;
+  if (knowledge) {
+    systemPrompt += '\n\nUser\'s personal knowledge base:\n' + knowledge;
+  }
+  messages.push({ role: 'system', content: systemPrompt });
+  
+  // Chat history (last 10 messages)
+  const recentHistory = (history || []).slice(-10);
+  for (const msg of recentHistory) {
+    messages.push({
+      role: msg.isUser ? 'user' : 'assistant',
+      content: msg.text || ''
+    });
+  }
+  
+  // Current message
+  messages.push({ role: 'user', content: text });
+  
+  console.log('[Ollama] Sending to', ollamaUrl, 'model:', ollamaModel, 'messages:', messages.length);
+  
+  const response = await fetch(ollamaUrl + '/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: ollamaModel,
+      messages: messages,
+      stream: true,
+      options: {
+        num_ctx: 4096,
+        temperature: 0.7,
+        top_p: 0.9
+      }
+    })
+  });
+  
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Ollama error ${response.status}: ${errText}`);
+  }
+  
+  return response;
+}
+
+async function handleOllamaStreamingResponse(response) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  
+  const messagesDiv = document.getElementById('askAIMessages');
+  const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'ask-ai-message ai';
+  msgDiv.innerHTML = '<div class="ask-ai-bubble"><span class="streaming-text"></span><span class="streaming-indicator" style="font-size:10px; opacity:0.5; margin-left:4px;">🧠 local</span></div><div class="ask-ai-time">' + time + '</div>';
+  messagesDiv.appendChild(msgDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  
+  const textSpan = msgDiv.querySelector('.streaming-text');
+  const indicator = msgDiv.querySelector('.streaming-indicator');
+  let fullText = '';
+  let buffer = '';
+  let thinkingContent = '';
+  let isInsideThinking = false;
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        
+        try {
+          const parsed = JSON.parse(line);
+          
+          if (parsed.message?.content) {
+            let chunk = parsed.message.content;
+            
+            // Handle Qwen3 thinking blocks: strip <think>...</think>
+            // Accumulate thinking separately, don't show to user
+            if (isInsideThinking) {
+              const endIdx = chunk.indexOf('</think>');
+              if (endIdx !== -1) {
+                thinkingContent += chunk.substring(0, endIdx);
+                chunk = chunk.substring(endIdx + 8); // skip </think>
+                isInsideThinking = false;
+                if (thinkingContent.trim()) {
+                  console.log('[Ollama] Thinking:', thinkingContent.substring(0, 100) + '...');
+                }
+              } else {
+                thinkingContent += chunk;
+                continue; // skip, still thinking
+              }
+            }
+            
+            const thinkStart = chunk.indexOf('<think>');
+            if (thinkStart !== -1) {
+              const beforeThink = chunk.substring(0, thinkStart);
+              const afterThink = chunk.substring(thinkStart + 7);
+              
+              if (beforeThink) {
+                fullText += beforeThink;
+                textSpan.textContent = fullText;
+              }
+              
+              const endIdx = afterThink.indexOf('</think>');
+              if (endIdx !== -1) {
+                thinkingContent = afterThink.substring(0, endIdx);
+                const remaining = afterThink.substring(endIdx + 8);
+                if (remaining) {
+                  fullText += remaining;
+                  textSpan.textContent = fullText;
+                }
+                console.log('[Ollama] Thinking:', thinkingContent.substring(0, 100) + '...');
+              } else {
+                isInsideThinking = true;
+                thinkingContent = afterThink;
+              }
+              continue;
+            }
+            
+            fullText += chunk;
+            textSpan.textContent = fullText;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          }
+          
+          if (parsed.done) {
+            console.log('[Ollama] Stream done. Total tokens:', parsed.eval_count || 'N/A', 
+              'Speed:', parsed.eval_count && parsed.eval_duration ? 
+                (parsed.eval_count / (parsed.eval_duration / 1e9)).toFixed(1) + ' tok/s' : 'N/A');
+          }
+        } catch(e) {
+          // Not valid JSON line, skip
+        }
+      }
+    }
+  } catch(e) {
+    console.error('[Ollama] Streaming error:', e);
+    if (!fullText) {
+      fullText = '⚠️ Ollama connection error: ' + e.message;
+      textSpan.textContent = fullText;
+    }
+  }
+  
+  // Remove indicator
+  if (indicator) indicator.remove();
+  
+  const bubble = msgDiv.querySelector('.ask-ai-bubble');
+  
+  // Apply validation (CASCADE 1)
+  let validatedText = fullText;
+  let wasBlocked = false;
+  
+  if (typeof window.AskiValidator !== 'undefined') {
+    const context = {
+      history: askAIMessages.slice(-10),
+      feed: []
+    };
+    const validation = window.AskiValidator.validateOutput(fullText, context);
+    if (validation.blocked) {
+      console.warn('[Ollama] Response blocked by CASCADE 1:', validation.reason);
+      validatedText = validation.sanitized;
+      wasBlocked = true;
+      bubble.querySelector('.streaming-text').textContent = validatedText;
+    }
+  }
+  
+  fullText = validatedText;
+  
+  // Apply markdown rendering
+  if (typeof window.renderMarkdown === 'function') {
+    bubble.innerHTML = window.renderMarkdown(fullText);
+  }
+  
+  bubble.dataset.originalText = fullText;
+  
+  // Add action buttons
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'ask-ai-actions';
+  const autoDropEnabled = localStorage.getItem('droplit_autodrop') === 'true';
+  const createDropBtn = autoDropEnabled 
+    ? '<button class="ask-ai-action-btn created autodrop-saved"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Saved</button>'
+    : '<button class="ask-ai-action-btn" onclick="createDropFromAI(this)">Create Drop</button>';
+  actionsDiv.innerHTML = '<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button><button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button>' + createDropBtn;
+  bubble.after(actionsDiv);
+  
+  // Save to history
+  askAIMessages.push({ text: fullText, isUser: false });
+  saveToChatHistory('assistant', fullText);
+  
+  // Smart AutoDrop
+  if (autoDropEnabled && !wasBlocked) {
+    if (shouldAutoSaveToDrop(fullText)) {
+      autoSaveMessageAsDrop(fullText, false);
+    }
+  }
+  
+  // TTS
+  if (isAutoSpeakEnabled() && fullText) {
+    try {
+      speakText(fullText);
+    } catch (e) {
+      console.error('[Ollama] TTS error:', e);
+    }
+  }
+  
+  unlockVoiceMode();
+}
+
 async function sendAskAIMessage() {
   console.log('sendAskAIMessage called');
   
@@ -4628,7 +4953,44 @@ async function sendAskAIMessage() {
     }
   }
   
-  console.log('Sending to:', AI_API_URL);
+  console.log('Sending to:', llmProvider === 'ollama' ? ollamaUrl : AI_API_URL);
+  
+  // ═══════════════════════════════════════════════════════════════
+  // OLLAMA LOCAL LLM PATH (v4.31)
+  // Bypass Vercel, call Ollama directly from browser
+  // ═══════════════════════════════════════════════════════════════
+  if (llmProvider === 'ollama') {
+    try {
+      const knowledge = getAskiKnowledge();
+      const response = await sendToOllama(text, askAIMessages.slice(-21, -1), knowledge);
+      
+      hideAskAITyping();
+      await handleOllamaStreamingResponse(response);
+      
+    } catch(e) {
+      console.error('[Ollama] Error:', e);
+      hideAskAITyping();
+      
+      let errorMsg = '⚠️ Ollama error: ' + e.message;
+      if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+        errorMsg = '⚠️ Cannot connect to Ollama.\n\n' +
+          '**Check:**\n' +
+          '1. Ollama is running (app should be open)\n' +
+          '2. URL is correct: `' + ollamaUrl + '`\n' +
+          '3. Model is downloaded: `ollama pull ' + ollamaModel + '`';
+      }
+      
+      addAskAIMessage(errorMsg, false);
+      unlockVoiceMode();
+    }
+    
+    askiIsProcessing = false;
+    return;
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // CLAUDE CLOUD PATH (original)
+  // ═══════════════════════════════════════════════════════════════
   
   // v2 API: Send structured context, server handles formatting
   const INJECT_CONTEXT_INTO_MESSAGE = false; // v2: Server handles context
