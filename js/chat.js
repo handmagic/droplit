@@ -4736,6 +4736,42 @@ async function handleOllamaStreamingResponse(response) {
   let thinkingContent = '';
   let isInsideThinking = false;
   
+  // v4.31: Streaming Kokoro TTS — speak as sentences arrive
+  const useKokoroStream = isAutoSpeakEnabled() && 
+                          localStorage.getItem('tts_provider') === 'kokoro' &&
+                          window.KokoroTTS?.isReady;
+  let kokoroStreamActive = false;
+  let sentenceBuffer = '';
+  
+  if (useKokoroStream) {
+    const mySession = window.getAudioSessionId ? window.getAudioSessionId() : 0;
+    window.KokoroTTS.startStream({
+      sessionId: mySession,
+      onStart: () => { console.log('[Ollama+Kokoro] First sound'); },
+      onEnd: () => { 
+        console.log('[Ollama+Kokoro] TTS done');
+        unlockVoiceMode(); 
+      }
+    });
+    kokoroStreamActive = true;
+  }
+  
+  // Helper: extract complete sentences from buffer
+  function flushSentences() {
+    if (!kokoroStreamActive) return;
+    // Match sentences ending with . ! ?
+    const match = sentenceBuffer.match(/^([\s\S]*?[.!?])\s*/);
+    if (match) {
+      const sentence = match[1].trim();
+      if (sentence.length > 2) {
+        window.KokoroTTS.feedSentence(sentence);
+      }
+      sentenceBuffer = sentenceBuffer.slice(match[0].length);
+      // Recursively flush if multiple sentences
+      flushSentences();
+    }
+  }
+  
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -4779,6 +4815,7 @@ async function handleOllamaStreamingResponse(response) {
               if (beforeThink) {
                 fullText += beforeThink;
                 textSpan.textContent = fullText;
+                if (kokoroStreamActive) { sentenceBuffer += beforeThink; flushSentences(); }
               }
               
               const endIdx = afterThink.indexOf('</think>');
@@ -4788,6 +4825,7 @@ async function handleOllamaStreamingResponse(response) {
                 if (remaining) {
                   fullText += remaining;
                   textSpan.textContent = fullText;
+                  if (kokoroStreamActive) { sentenceBuffer += remaining; flushSentences(); }
                 }
                 console.log('[Ollama] Thinking:', thinkingContent.substring(0, 100) + '...');
               } else {
@@ -4800,6 +4838,12 @@ async function handleOllamaStreamingResponse(response) {
             fullText += chunk;
             textSpan.textContent = fullText;
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // v4.31: Feed to streaming Kokoro TTS
+            if (kokoroStreamActive) {
+              sentenceBuffer += chunk;
+              flushSentences();
+            }
           }
           
           if (parsed.done) {
@@ -4874,7 +4918,14 @@ async function handleOllamaStreamingResponse(response) {
   }
   
   // TTS
-  if (isAutoSpeakEnabled() && fullText) {
+  if (kokoroStreamActive) {
+    // Flush remaining text that didn't end with punctuation
+    if (sentenceBuffer.trim().length > 2) {
+      window.KokoroTTS.feedSentence(sentenceBuffer.trim());
+    }
+    window.KokoroTTS.finishStream();
+    // unlockVoiceMode called by stream onEnd callback
+  } else if (isAutoSpeakEnabled() && fullText) {
     try {
       speakText(fullText);
     } catch (e) {
@@ -4882,7 +4933,9 @@ async function handleOllamaStreamingResponse(response) {
     }
   }
   
-  unlockVoiceMode();
+  if (!kokoroStreamActive) {
+    unlockVoiceMode();
+  }
 }
 
 async function sendAskAIMessage() {
