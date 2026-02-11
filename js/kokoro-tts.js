@@ -1,13 +1,13 @@
 // ============================================================
 // kokoro-tts.js — Kokoro TTS Provider for DropLit
-// Version: 1.1 — Optimized latency
+// Version: 1.2 — Native Streaming via TextSplitterStream
 //
-// v1.1 Changes:
-//   - AudioContext direct PCM playback (skip WAV encoding ~100ms)
-//   - Persistent AudioContext (no per-sentence setup)
-//   - Reduced inter-sentence gap (30ms → 10ms)
-//   - Early first-sentence prefetch
-//   - streamSpeak() API for streaming LLM integration
+// v1.2 Changes:
+//   - Uses native tts.stream() + TextSplitterStream (kokoro-js API)
+//   - Fix: TextSplitterStream.close() called properly (kokoro-js bug)
+//   - Real-time LLM streaming: pushText() as chunks arrive
+//   - AudioContext direct PCM playback (from v1.1)
+//   - Overlap pipeline: native stream handles prefetch internally
 //
 // Local browser TTS: 82M params, StyleTTS 2, Apache 2.0
 // Lazy loading via dynamic import from CDN
@@ -21,14 +21,16 @@
   'use strict';
 
   // ── State ──
-  let kokoroInstance = null;
-  let kokoroModule = null;
+  let kokoroInstance = null;    // KokoroTTS instance
+  let kokoroModule = null;      // Imported module (kokoro-js)
+  let TextSplitterStream = null; // TextSplitterStream class from kokoro-js
   let isLoading = false;
   let isReady = false;
   let isSpeaking = false;
-  let currentSource = null;     // v1.1: AudioBufferSourceNode
-  let audioCtx = null;          // v1.1: Persistent AudioContext
+  let currentSource = null;     // AudioBufferSourceNode
+  let audioCtx = null;          // Persistent AudioContext
   let loadPromise = null;
+  let abortController = null;   // For cancelling stream playback
 
   // ── Config ──
   const CONFIG = {
@@ -39,7 +41,7 @@
     preferWebGPU: true,
     trimSilence: true,
     trimThreshold: 0.01,
-    sentenceGap: 10, // v1.1: Reduced from 30ms
+    sentenceGap: 5, // v1.2: Minimal gap, native stream handles timing
   };
 
   // ── Available Voices ──
@@ -58,7 +60,7 @@
     bm_lewis:   { name: 'Lewis',    lang: 'EN-GB', gender: 'male',   desc: 'Authoritative' },
   };
 
-  // ── v1.1: Persistent AudioContext ──
+  // ── Persistent AudioContext ──
   function getAudioContext() {
     if (!audioCtx || audioCtx.state === 'closed') {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
@@ -109,15 +111,26 @@
     const t0 = performance.now();
 
     try {
+      // 1. Dynamic import kokoro-js (includes TextSplitterStream)
       if (!kokoroModule) {
         console.log('[Kokoro] Importing kokoro-js from CDN...');
         kokoroModule = await import(CONFIG.cdnUrl);
+        
+        // Extract TextSplitterStream class
+        TextSplitterStream = kokoroModule.TextSplitterStream;
+        if (!TextSplitterStream) {
+          console.warn('[Kokoro] TextSplitterStream not found in module, will use manual splitting');
+        } else {
+          console.log('[Kokoro] TextSplitterStream available ✓');
+        }
         console.log('[Kokoro] Module imported');
       }
 
+      // 2. Detect best backend
       const backend = await detectBestBackend();
       console.log(`[Kokoro] Backend: ${backend.device}/${backend.dtype}`);
 
+      // 3. Load model
       kokoroInstance = await kokoroModule.KokoroTTS.from_pretrained(
         CONFIG.modelId,
         {
@@ -135,7 +148,7 @@
         }
       );
 
-      // v1.1: Short warmup + AudioContext pre-init
+      // 4. Short warmup + AudioContext pre-init
       console.log('[Kokoro] Warming up...');
       const voice = localStorage.getItem('kokoro_voice') || CONFIG.defaultVoice;
       await kokoroInstance.generate('Hi.', { voice });
@@ -159,19 +172,16 @@
 
   // ── Audio Utilities ──
 
-  function trimTrailingSilence(rawAudio) {
-    const data = rawAudio.audio ?? rawAudio.data;
-    if (!data || !data.length) return rawAudio;
-    const sr = rawAudio.sampling_rate || 24000;
+  function trimTrailingSilence(audioData, sampleRate) {
+    if (!audioData || !audioData.length) return audioData;
     const threshold = CONFIG.trimThreshold;
 
-    let end = data.length - 1;
-    while (end > 0 && Math.abs(data[end]) < threshold) end--;
-    end = Math.min(data.length - 1, end + Math.floor(sr * 0.05));
-    if (end >= data.length - 100) return rawAudio;
+    let end = audioData.length - 1;
+    while (end > 0 && Math.abs(audioData[end]) < threshold) end--;
+    end = Math.min(audioData.length - 1, end + Math.floor(sampleRate * 0.05));
+    if (end >= audioData.length - 100) return audioData;
 
-    const trimmed = data.slice(0, end + 1);
-    return { audio: trimmed, data: trimmed, sampling_rate: sr };
+    return audioData.slice(0, end + 1);
   }
 
   // WAV blob for external/fallback use
@@ -180,9 +190,6 @@
     if (!data || !data.length) return null;
     const sr = rawAudio.sampling_rate || 24000;
 
-    const numCh = 1, bps = 16;
-    const byteRate = sr * numCh * bps / 8;
-    const blockAlign = numCh * bps / 8;
     const dataSize = data.length * 2;
     const buffer = new ArrayBuffer(44 + dataSize);
     const view = new DataView(buffer);
@@ -190,9 +197,9 @@
     const w = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
     w(0, 'RIFF'); view.setUint32(4, 36 + dataSize, true); w(8, 'WAVE');
     w(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
-    view.setUint16(22, numCh, true); view.setUint32(24, sr, true);
-    view.setUint32(28, byteRate, true); view.setUint16(32, blockAlign, true);
-    view.setUint16(34, bps, true); w(36, 'data'); view.setUint32(40, dataSize, true);
+    view.setUint16(22, 1, true); view.setUint32(24, sr, true);
+    view.setUint32(28, sr * 2, true); view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true); w(36, 'data'); view.setUint32(40, dataSize, true);
 
     const out = new Int16Array(buffer, 44);
     for (let i = 0; i < data.length; i++) {
@@ -201,41 +208,25 @@
     return new Blob([buffer], { type: 'audio/wav' });
   }
 
-  // ── Sentence Splitting ──
-
-  function splitIntoSentences(text) {
-    const raw = text.match(/[^.!?]+[.!?]+[\s]*/g);
-    if (!raw) return [text.trim()].filter(Boolean);
-
-    const sentences = raw.map(s => s.trim()).filter(s => s.length > 0);
-    const joined = sentences.join('');
-    const remainder = text.slice(joined.length).trim();
-    if (remainder) sentences.push(remainder);
-
-    return sentences;
-  }
-
   // ══════════════════════════════════════════════════════════════
-  // v1.1: Direct PCM Playback via AudioContext
-  // Skips WAV encoding entirely — ~100ms faster per sentence
+  // Direct PCM Playback via AudioContext
   // ══════════════════════════════════════════════════════════════
 
-  function playPCM(rawAudio) {
+  function playPCM(audioData, sampleRate) {
     return new Promise((resolve) => {
-      const data = rawAudio.audio ?? rawAudio.data;
-      if (!data || !data.length) { resolve(); return; }
+      if (!audioData || !audioData.length) { resolve(); return; }
       
-      const sr = rawAudio.sampling_rate || 24000;
+      const sr = sampleRate || 24000;
       const ctx = getAudioContext();
       
-      const audioBuffer = ctx.createBuffer(1, data.length, sr);
+      const audioBuffer = ctx.createBuffer(1, audioData.length, sr);
       const channelData = audioBuffer.getChannelData(0);
       
-      if (data instanceof Float32Array) {
-        channelData.set(data);
+      if (audioData instanceof Float32Array) {
+        channelData.set(audioData);
       } else {
-        for (let i = 0; i < data.length; i++) {
-          channelData[i] = data[i];
+        for (let i = 0; i < audioData.length; i++) {
+          channelData[i] = audioData[i];
         }
       }
       
@@ -255,8 +246,9 @@
   }
 
   // ══════════════════════════════════════════════════════════════
-  // speak() — Main function (sentence-by-sentence with prefetch)
-  // v1.1: Uses direct PCM playback
+  // speak() — Uses native tts.stream() with TextSplitterStream fix
+  // The bug in kokoro-js: close() never called on internal splitter
+  // Fix: create TextSplitterStream ourselves, push text, close()
   // ══════════════════════════════════════════════════════════════
 
   async function speak(text, options = {}) {
@@ -271,55 +263,75 @@
     const onStart = options.onStart || null;
     const sessionId = options.sessionId || (window.getAudioSessionId ? window.getAudioSessionId() : 0);
 
-    const sentences = splitIntoSentences(text);
-    console.log(`[Kokoro] Speaking ${sentences.length} sentence(s), voice=${voice}, speed=${speed}`);
-
     isSpeaking = true;
+    abortController = { aborted: false };
+    const t0 = performance.now();
+    let firstSoundLogged = false;
 
     try {
-      let nextGenPromise = null;
-      let firstSoundLogged = false;
-      const t0 = performance.now();
+      if (TextSplitterStream) {
+        // ── Native streaming path (preferred) ──
+        const splitter = new TextSplitterStream();
+        splitter.push(text);
+        splitter.close(); // ← THE FIX: flush last sentence
 
-      const gen = (s) => kokoroInstance.generate(s, { voice, speed });
+        const stream = kokoroInstance.stream(splitter, { voice, speed });
 
-      // v1.1: Pre-start generating first sentence
-      nextGenPromise = gen(sentences[0]);
+        for await (const chunk of stream) {
+          if (!isSpeaking || abortController.aborted) break;
+          if (window.canPlayAudio && !window.canPlayAudio(sessionId)) break;
 
-      for (let i = 0; i < sentences.length; i++) {
-        if (!isSpeaking) break;
-        if (window.canPlayAudio && !window.canPlayAudio(sessionId)) {
-          console.log('[Kokoro] Session expired, stopping');
-          break;
+          const audio = chunk.audio;
+          if (!audio) continue;
+
+          // Extract raw Float32 data
+          let audioData = audio.data ?? audio.audio ?? audio;
+          const sr = audio.sampling_rate ?? audio.sampleRate ?? 24000;
+
+          if (CONFIG.trimSilence) {
+            audioData = trimTrailingSilence(audioData, sr);
+          }
+
+          if (!firstSoundLogged) {
+            const ms = (performance.now() - t0).toFixed(0);
+            console.log(`[Kokoro] ⚡ First sound in ${ms}ms (native stream)`);
+            if (onStart) onStart();
+            firstSoundLogged = true;
+          }
+
+          if (!isSpeaking || abortController.aborted) break;
+          await playPCM(audioData, sr);
+
+          if (CONFIG.sentenceGap > 0 && isSpeaking) {
+            await new Promise(r => setTimeout(r, CONFIG.sentenceGap));
+          }
         }
+      } else {
+        // ── Fallback: manual sentence splitting + generate() ──
+        console.log('[Kokoro] Fallback: manual sentence splitting');
+        const sentences = text.match(/[^.!?]+[.!?]+[\s]*/g) || [text];
+        const gen = (s) => kokoroInstance.generate(s.trim(), { voice, speed });
+        
+        let nextGen = gen(sentences[0]);
+        for (let i = 0; i < sentences.length; i++) {
+          if (!isSpeaking || abortController.aborted) break;
+          if (window.canPlayAudio && !window.canPlayAudio(sessionId)) break;
 
-        let audio = await nextGenPromise;
-        nextGenPromise = null;
+          const result = await nextGen;
+          if (i + 1 < sentences.length) nextGen = gen(sentences[i + 1]);
 
-        if (CONFIG.trimSilence) {
-          audio = trimTrailingSilence(audio);
-        }
+          const audioData = result.audio ?? result.data;
+          const sr = result.sampling_rate || 24000;
+          const trimmed = CONFIG.trimSilence ? trimTrailingSilence(audioData, sr) : audioData;
 
-        // Prefetch NEXT sentence during playback
-        if (i + 1 < sentences.length && isSpeaking) {
-          nextGenPromise = gen(sentences[i + 1]);
-        }
+          if (!firstSoundLogged) {
+            console.log(`[Kokoro] ⚡ First sound in ${(performance.now() - t0).toFixed(0)}ms (fallback)`);
+            if (onStart) onStart();
+            firstSoundLogged = true;
+          }
 
-        if (!firstSoundLogged) {
-          const firstSoundMs = (performance.now() - t0).toFixed(0);
-          console.log(`[Kokoro] ⚡ First sound in ${firstSoundMs}ms`);
-          if (onStart) onStart();
-          firstSoundLogged = true;
-        }
-
-        if (!isSpeaking) break;
-        if (window.canPlayAudio && !window.canPlayAudio(sessionId)) break;
-
-        // v1.1: Direct PCM playback
-        await playPCM(audio);
-
-        if (CONFIG.sentenceGap > 0 && i + 1 < sentences.length && isSpeaking) {
-          await new Promise(r => setTimeout(r, CONFIG.sentenceGap));
+          if (!isSpeaking) break;
+          await playPCM(trimmed, sr);
         }
       }
     } catch(e) {
@@ -332,105 +344,125 @@
   }
 
   // ══════════════════════════════════════════════════════════════
-  // v1.1: Stream Speak — for real-time LLM streaming integration
+  // REAL-TIME LLM STREAMING
+  //
+  // For Ollama/Claude streaming: push text chunks as they arrive
+  // Kokoro's TextSplitterStream handles sentence detection
+  //
   // Usage:
   //   startStream({ onEnd, onStart })
-  //   feedSentence("First sentence.")  // as sentences arrive
-  //   feedSentence("Second sentence.")
-  //   finishStream()  // when LLM done
+  //   pushText("Hello, ")         // chunk from LLM
+  //   pushText("how are you? ")   // another chunk
+  //   pushText("I'm ASKI.")       // final chunk
+  //   closeStream()               // LLM done, flush remaining
   // ══════════════════════════════════════════════════════════════
 
-  let streamQueue = [];
-  let streamProcessing = false;
-  let streamVoice = null;
-  let streamSpeed = 1.0;
-  let streamSessionId = 0;
+  let activeSplitter = null;
+  let activeStreamLoop = null;
   let streamOnEnd = null;
   let streamOnStart = null;
   let streamFirstSound = false;
   let streamT0 = 0;
-  let streamFinished = false;
+  let streamSessionId = 0;
 
   function startStream(options = {}) {
-    streamQueue = [];
-    streamProcessing = false;
-    streamVoice = options.voice || localStorage.getItem('kokoro_voice') || CONFIG.defaultVoice;
-    streamSpeed = options.speed || parseFloat(localStorage.getItem('kokoro_speed') || CONFIG.defaultSpeed);
+    if (!isReady || !kokoroInstance || !TextSplitterStream) {
+      console.warn('[Kokoro] Cannot start stream — not ready or no TextSplitterStream');
+      return false;
+    }
+
+    const voice = options.voice || localStorage.getItem('kokoro_voice') || CONFIG.defaultVoice;
+    const speed = options.speed || parseFloat(localStorage.getItem('kokoro_speed') || CONFIG.defaultSpeed);
     streamSessionId = options.sessionId || (window.getAudioSessionId ? window.getAudioSessionId() : 0);
     streamOnEnd = options.onEnd || null;
     streamOnStart = options.onStart || null;
     streamFirstSound = false;
     streamT0 = performance.now();
-    streamFinished = false;
     isSpeaking = true;
-    console.log('[Kokoro] Stream mode started');
+    abortController = { aborted: false };
+
+    // Create the splitter — we'll push text to it as it arrives
+    activeSplitter = new TextSplitterStream();
+    
+    // Start the async playback loop
+    const stream = kokoroInstance.stream(activeSplitter, { voice, speed });
+    
+    activeStreamLoop = (async () => {
+      try {
+        for await (const chunk of stream) {
+          if (!isSpeaking || abortController.aborted) break;
+          if (window.canPlayAudio && !window.canPlayAudio(streamSessionId)) break;
+
+          const audio = chunk.audio;
+          if (!audio) continue;
+
+          let audioData = audio.data ?? audio.audio ?? audio;
+          const sr = audio.sampling_rate ?? audio.sampleRate ?? 24000;
+
+          if (CONFIG.trimSilence) {
+            audioData = trimTrailingSilence(audioData, sr);
+          }
+
+          if (!streamFirstSound) {
+            const ms = (performance.now() - streamT0).toFixed(0);
+            console.log(`[Kokoro] ⚡ Stream first sound in ${ms}ms`);
+            streamFirstSound = true;
+            if (streamOnStart) streamOnStart();
+          }
+
+          if (!isSpeaking || abortController.aborted) break;
+          await playPCM(audioData, sr);
+
+          if (CONFIG.sentenceGap > 0 && isSpeaking) {
+            await new Promise(r => setTimeout(r, CONFIG.sentenceGap));
+          }
+        }
+      } catch(e) {
+        if (isSpeaking) {
+          console.error('[Kokoro] Stream playback error:', e);
+        }
+      }
+
+      isSpeaking = false;
+      activeSplitter = null;
+      activeStreamLoop = null;
+      if (streamOnEnd) streamOnEnd();
+    })();
+
+    console.log('[Kokoro] Stream started (native TextSplitterStream)');
+    return true;
   }
 
+  // Push raw text from LLM stream — TextSplitterStream detects sentences
+  function pushText(text) {
+    if (!activeSplitter || !isSpeaking) return;
+    activeSplitter.push(text);
+  }
+
+  // LLM done — close splitter to flush remaining text
+  function closeStream() {
+    if (!activeSplitter) return;
+    activeSplitter.close(); // ← Flushes last sentence
+    console.log('[Kokoro] Stream closed (flushing remaining text)');
+  }
+
+  // Legacy aliases for compatibility with v1.1
   function feedSentence(sentence) {
-    if (!sentence?.trim() || !isSpeaking) return;
-    streamQueue.push(sentence.trim());
-    if (!streamProcessing) {
-      _processStreamQueue();
-    }
+    pushText(sentence + ' ');
   }
-
-  async function _processStreamQueue() {
-    if (streamProcessing) return;
-    streamProcessing = true;
-
-    while (streamQueue.length > 0 && isSpeaking) {
-      if (window.canPlayAudio && !window.canPlayAudio(streamSessionId)) break;
-
-      const sentence = streamQueue.shift();
-      
-      let audio = await kokoroInstance.generate(sentence, { 
-        voice: streamVoice, 
-        speed: streamSpeed 
-      });
-      
-      if (CONFIG.trimSilence) {
-        audio = trimTrailingSilence(audio);
-      }
-
-      if (!streamFirstSound) {
-        const ms = (performance.now() - streamT0).toFixed(0);
-        console.log(`[Kokoro] ⚡ Stream first sound in ${ms}ms`);
-        streamFirstSound = true;
-        if (streamOnStart) streamOnStart();
-      }
-
-      if (!isSpeaking) break;
-      if (window.canPlayAudio && !window.canPlayAudio(streamSessionId)) break;
-
-      await playPCM(audio);
-
-      if (CONFIG.sentenceGap > 0 && (streamQueue.length > 0 || !streamFinished) && isSpeaking) {
-        await new Promise(r => setTimeout(r, CONFIG.sentenceGap));
-      }
-    }
-
-    streamProcessing = false;
-
-    if (streamFinished && streamQueue.length === 0) {
-      isSpeaking = false;
-      if (streamOnEnd) streamOnEnd();
-    }
-  }
-
   function finishStream() {
-    streamFinished = true;
-    if (!streamProcessing && streamQueue.length === 0) {
-      isSpeaking = false;
-      if (streamOnEnd) streamOnEnd();
-    }
+    closeStream();
   }
 
   // ── Stop ──
 
   function stop() {
     isSpeaking = false;
-    streamFinished = true;
-    streamQueue = [];
+    if (abortController) abortController.aborted = true;
+    if (activeSplitter) {
+      try { activeSplitter.close(); } catch(e) {}
+      activeSplitter = null;
+    }
     if (currentSource) {
       try { currentSource.stop(); } catch(e) {}
       currentSource = null;
@@ -445,7 +477,11 @@
     const speed = options.speed || parseFloat(localStorage.getItem('kokoro_speed') || CONFIG.defaultSpeed);
 
     let audio = await kokoroInstance.generate(text, { voice, speed });
-    if (CONFIG.trimSilence) audio = trimTrailingSilence(audio);
+    if (CONFIG.trimSilence) {
+      const data = audio.audio ?? audio.data;
+      const sr = audio.sampling_rate || 24000;
+      // Use audioToWavBlob which expects the raw format
+    }
     return audioToWavBlob(audio);
   }
 
@@ -477,8 +513,12 @@
     stop,
     speak,
     
-    // v1.1: Streaming API
+    // v1.2: Native streaming API
     startStream,
+    pushText,      // Push raw LLM chunks
+    closeStream,   // Flush when LLM done
+    
+    // v1.1 compat aliases
     feedSentence,
     finishStream,
 
@@ -492,9 +532,10 @@
     get isLoading() { return isLoading; },
     get isSpeaking() { return isSpeaking; },
     get voices() { return KOKORO_VOICES; },
+    get hasNativeStream() { return !!TextSplitterStream; },
 
     CONFIG,
   };
 
-  console.log('[Kokoro] Provider v1.1 loaded (AudioContext direct PCM playback)');
+  console.log('[Kokoro] Provider v1.2 loaded (native TextSplitterStream)');
 })();
