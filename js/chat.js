@@ -24,8 +24,7 @@ Rules:
 - You do NOT have access to user's drops or tools in this mode (local LLM)
 - If asked to create/delete/search drops, explain that this requires Cloud AI mode
 - Use markdown formatting when appropriate
-- Be warm, enthusiastic, and supportive
-- Do NOT use <think> blocks. Respond directly without internal reasoning. /no_think`;
+- Be warm, enthusiastic, and supportive`;
 
 // ============================================
 // ASK AI CHAT FUNCTIONS
@@ -4705,8 +4704,7 @@ async function sendToOllama(text, history, knowledge) {
         num_ctx: 4096,
         temperature: 0.7,
         top_p: 0.9
-      },
-      think: false  // v4.31: Disable Qwen3 thinking mode for faster responses
+      }
     })
   });
   
@@ -4776,19 +4774,18 @@ async function handleOllamaStreamingResponse(response) {
             let chunk = parsed.message.content;
             
             // Handle Qwen3 thinking blocks: strip <think>...</think>
-            // Accumulate thinking separately, don't show to user
             if (isInsideThinking) {
               const endIdx = chunk.indexOf('</think>');
               if (endIdx !== -1) {
                 thinkingContent += chunk.substring(0, endIdx);
-                chunk = chunk.substring(endIdx + 8); // skip </think>
+                chunk = chunk.substring(endIdx + 8);
                 isInsideThinking = false;
                 if (thinkingContent.trim()) {
                   console.log('[Ollama] Thinking:', thinkingContent.substring(0, 100) + '...');
                 }
               } else {
                 thinkingContent += chunk;
-                continue; // skip, still thinking
+                continue;
               }
             }
             
@@ -4824,7 +4821,6 @@ async function handleOllamaStreamingResponse(response) {
             textSpan.textContent = fullText;
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             
-            // v4.31: Push raw text to Kokoro's TextSplitterStream
             if (kokoroStreamActive) {
               window.KokoroTTS.pushText(chunk);
             }
