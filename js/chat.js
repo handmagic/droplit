@@ -11,7 +11,7 @@
 // ============================================
 let llmProvider = localStorage.getItem('llm_provider') || 'claude'; // claude, ollama
 let ollamaUrl = localStorage.getItem('ollama_url') || 'http://localhost:11434';
-let ollamaModel = localStorage.getItem('ollama_model') || 'qwen3:4b';
+let ollamaModel = localStorage.getItem('ollama_model') || 'gemma3:4b';
 
 // ASKI system prompt for Ollama (simplified, no tools)
 const OLLAMA_SYSTEM_PROMPT = `You are ASKI — a friendly, smart AI assistant inside DropLit app.
@@ -3527,12 +3527,34 @@ async function checkOllamaStatus() {
   const result = await checkOllamaConnection();
   
   if (result.connected) {
-    const hasModel = result.models?.some(m => m.startsWith(ollamaModel.split(':')[0]));
+    const models = result.models || [];
+    
+    // Dynamically populate dropdown with installed models
+    const selectEl = document.getElementById('ollamaModelSelect');
+    if (selectEl && models.length > 0) {
+      selectEl.innerHTML = '';
+      models.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        selectEl.appendChild(opt);
+      });
+      
+      // Select current model if available, otherwise pick first
+      if (models.includes(ollamaModel)) {
+        selectEl.value = ollamaModel;
+      } else {
+        selectEl.value = models[0];
+        setOllamaModel(models[0]);
+      }
+    }
+    
+    const hasModel = models.some(m => m === ollamaModel || m.startsWith(ollamaModel.split(':')[0]));
     if (hasModel) {
-      statusEl.textContent = '✅ Connected • ' + ollamaModel + ' ready';
+      statusEl.textContent = '✅ Connected • ' + ollamaModel + ' ready • ' + models.length + ' models';
       statusEl.style.color = '#10B981';
     } else {
-      statusEl.textContent = '⚠️ Connected but model "' + ollamaModel + '" not found. Available: ' + (result.models?.join(', ') || 'none');
+      statusEl.textContent = '⚠️ Connected but "' + ollamaModel + '" not found';
       statusEl.style.color = '#F59E0B';
     }
   } else {
