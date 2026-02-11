@@ -24,7 +24,8 @@ Rules:
 - You do NOT have access to user's drops or tools in this mode (local LLM)
 - If asked to create/delete/search drops, explain that this requires Cloud AI mode
 - Use markdown formatting when appropriate
-- Be warm, enthusiastic, and supportive`;
+- Be warm, enthusiastic, and supportive
+- Do NOT use <think> blocks. Respond directly without internal reasoning. /no_think`;
 
 // ============================================
 // ASK AI CHAT FUNCTIONS
@@ -4704,7 +4705,8 @@ async function sendToOllama(text, history, knowledge) {
         num_ctx: 4096,
         temperature: 0.7,
         top_p: 0.9
-      }
+      },
+      think: false  // v4.31: Disable Qwen3 thinking mode for faster responses
     })
   });
   
