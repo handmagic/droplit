@@ -1,11 +1,12 @@
 // ============================================
-// DROPLIT TTS v1.5
+// DROPLIT TTS v1.6
 // Text-to-Speech and Sound functions
 // v1.1: Added StreamingTTS stop support
 // v1.2: Speak button states (Speak/Wait/Stop)
 // v1.3: ElevenLabs fallback to OpenAI, better logging
 // v1.4: Audio Session Manager — prevents ghost playback
 // v1.5: Kokoro TTS local provider (sentence-by-sentence)
+// v1.6: gpt-4o-mini-tts + instructions + OpenAI streaming stop
 // ============================================
 
 // ============================================
@@ -304,9 +305,12 @@ async function speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'tts-1',
+        model: 'gpt-4o-mini-tts',
         input: text,
-        voice: voice
+        voice: voice,
+        ...(localStorage.getItem('openai_tts_instructions')?.trim() 
+          ? { instructions: localStorage.getItem('openai_tts_instructions').trim() }
+          : {})
       })
     });
     
@@ -637,9 +641,12 @@ async function speakWithOpenAI(text, apiKey, voice) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'tts-1',
+        model: 'gpt-4o-mini-tts',
         input: text,
-        voice: voice
+        voice: voice,
+        ...(localStorage.getItem('openai_tts_instructions')?.trim() 
+          ? { instructions: localStorage.getItem('openai_tts_instructions').trim() }
+          : {})
       })
     });
     
@@ -695,6 +702,16 @@ function stopTTS() {
   if (window.KokoroTTS && window.KokoroTTS.isSpeaking) {
     window.KokoroTTS.stop();
     console.log('[TTS] Kokoro stopped');
+  }
+  
+  // Stop OpenAI Streaming TTS (sentence-by-sentence)
+  if (window.OpenAIStreamingTTS && window.OpenAIStreamingTTS.isActive) {
+    try {
+      window.OpenAIStreamingTTS.stop();
+      console.log('[TTS] OpenAI Streaming TTS stopped');
+    } catch (e) {
+      console.error('[TTS] Error stopping OpenAI Streaming TTS:', e);
+    }
   }
   
   // Stop ElevenLabs Streaming TTS (WebSocket)
@@ -790,6 +807,9 @@ function stopAllTTS() {
     currentTTSAudio = null;
   }
   // Also stop streaming TTS
+  if (window.OpenAIStreamingTTS) {
+    try { window.OpenAIStreamingTTS.stop(); } catch (e) {}
+  }
   if (window.StreamingTTS) {
     try {
       window.StreamingTTS.stop();
