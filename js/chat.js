@@ -2113,9 +2113,7 @@ async function askiSpeakOpenAI(text, onEnd = null) {
         input: text,
         voice: askiVoice,
         response_format: 'mp3',
-        ...(localStorage.getItem('openai_tts_instructions')?.trim() 
-          ? { instructions: localStorage.getItem('openai_tts_instructions').trim() }
-          : {})
+        instructions: (localStorage.getItem('openai_tts_instructions') || 'Speak naturally at a normal conversational pace.').trim()
       })
     });
     
