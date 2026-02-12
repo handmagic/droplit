@@ -104,6 +104,7 @@
   <script src="js/tts.js"></script>
   <script src="js/kokoro-tts.js"></script>
   <script src="js/tts-stream.js"></script>
+  <script src="js/tts-openai-stream.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/validator.js"></script>
   <script src="js/command-validator.js"></script>
@@ -1338,6 +1339,10 @@
               <button class="pill-m" data-voice="onyx" onclick="setAskiVoice('onyx')">Onyx</button>
               <button class="pill-m" data-voice="echo" onclick="setAskiVoice('echo')">Echo</button>
               <button class="pill-m" data-voice="fable" onclick="setAskiVoice('fable')">Fable</button>
+              <button class="pill-m" data-voice="ash" onclick="setAskiVoice('ash')">Ash</button>
+              <button class="pill-m" data-voice="ballad" onclick="setAskiVoice('ballad')">Ballad</button>
+              <button class="pill-m" data-voice="coral" onclick="setAskiVoice('coral')">Coral</button>
+              <button class="pill-m" data-voice="sage" onclick="setAskiVoice('sage')">Sage</button>
             </div>
             <div class="voice-preview-hint" style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">Tap voice to preview</div>
           </div>
@@ -1352,6 +1357,20 @@
               <button class="pill-m" onclick="toggleApiKeyVisibility('openai')" id="apiKeyToggleBtn" style="min-width: 60px;">Show</button>
             </div>
             <div id="apiKeyStatus" style="font-size: 0.75rem; color: var(--color-text-muted);"></div>
+          </div>
+          
+          <!-- Voice Instructions (gpt-4o-mini-tts) -->
+          <div class="settings-item no-border" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+            <div class="settings-item-left">
+              <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+              <span class="settings-item-label">Voice Instructions</span>
+            </div>
+            <textarea id="openaiTTSInstructions" 
+              placeholder="e.g. Speak warmly and naturally, with a friendly conversational tone"
+              style="width: 100%; min-height: 50px; background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 14px; font-size: 0.85rem; resize: vertical; font-family: var(--font-main);"
+              oninput="localStorage.setItem('openai_tts_instructions', this.value)"
+            ></textarea>
+            <div style="font-size: 0.7rem; color: var(--color-text-muted);">Controls how the voice speaks — tone, emotion, speed. Leave empty for default.</div>
           </div>
         </div>
         
@@ -1660,7 +1679,7 @@
             <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
           </div>
           <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.124 • Syntrise Inc. © 2026</div>
+          <div class="menu-about-ver">v0.9.125 • Syntrise Inc. © 2026</div>
           <div style="font-size: 0.7rem; color: var(--color-primary); margin-top: 8px;">Tap for more info</div>
         </div>
       </div>
@@ -1674,7 +1693,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.124 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.125 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -3851,9 +3870,12 @@ async function speakEditText() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'tts-1',
-          input: text.substring(0, 4096), // API limit
-          voice: voice
+          model: 'gpt-4o-mini-tts',
+          input: text.substring(0, 1500), // gpt-4o-mini-tts limit ~2000 tokens
+          voice: voice,
+          ...(localStorage.getItem('openai_tts_instructions')?.trim() 
+            ? { instructions: localStorage.getItem('openai_tts_instructions').trim() }
+            : {})
         })
       });
       
@@ -7481,6 +7503,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   if (openaiVoiceSettings) openaiVoiceSettings.style.display = (savedProvider === 'openai') ? 'block' : 'none';
   if (elevenlabsVoiceSettings) elevenlabsVoiceSettings.style.display = (savedProvider === 'elevenlabs') ? 'block' : 'none';
   if (kokoroVoiceSettings) kokoroVoiceSettings.style.display = (savedProvider === 'kokoro') ? 'block' : 'none';
+  
+  // Initialize Voice Instructions (gpt-4o-mini-tts)
+  const ttsInstrInput = document.getElementById('openaiTTSInstructions');
+  if (ttsInstrInput) ttsInstrInput.value = localStorage.getItem('openai_tts_instructions') || '';
   
   // Initialize Kokoro voice settings (v0.9.124)
   const savedKokoroVoice = localStorage.getItem('kokoro_voice') || 'af_heart';
