@@ -1366,11 +1366,11 @@
               <span class="settings-item-label">Voice Instructions</span>
             </div>
             <textarea id="openaiTTSInstructions" 
-              placeholder="e.g. Speak warmly and naturally, with a friendly conversational tone"
+              placeholder="Speak naturally at a normal conversational pace."
               style="width: 100%; min-height: 50px; background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 14px; font-size: 0.85rem; resize: vertical; font-family: var(--font-main);"
               oninput="localStorage.setItem('openai_tts_instructions', this.value)"
             ></textarea>
-            <div style="font-size: 0.7rem; color: var(--color-text-muted);">Controls how the voice speaks — tone, emotion, speed. Leave empty for default.</div>
+            <div style="font-size: 0.7rem; color: var(--color-text-muted);">Controls how the voice speaks. Default is shown as placeholder.</div>
           </div>
         </div>
         
@@ -3873,9 +3873,7 @@ async function speakEditText() {
           model: 'gpt-4o-mini-tts',
           input: text.substring(0, 1500), // gpt-4o-mini-tts limit ~2000 tokens
           voice: voice,
-          ...(localStorage.getItem('openai_tts_instructions')?.trim() 
-            ? { instructions: localStorage.getItem('openai_tts_instructions').trim() }
-            : {})
+          instructions: (localStorage.getItem('openai_tts_instructions') || 'Speak naturally at a normal conversational pace.').trim()
         })
       });
       
