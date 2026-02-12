@@ -308,9 +308,7 @@ async function speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart) {
         model: 'gpt-4o-mini-tts',
         input: text,
         voice: voice,
-        ...(localStorage.getItem('openai_tts_instructions')?.trim() 
-          ? { instructions: localStorage.getItem('openai_tts_instructions').trim() }
-          : {})
+        instructions: (localStorage.getItem('openai_tts_instructions') || 'Speak naturally at a normal conversational pace.').trim()
       })
     });
     
@@ -644,9 +642,7 @@ async function speakWithOpenAI(text, apiKey, voice) {
         model: 'gpt-4o-mini-tts',
         input: text,
         voice: voice,
-        ...(localStorage.getItem('openai_tts_instructions')?.trim() 
-          ? { instructions: localStorage.getItem('openai_tts_instructions').trim() }
-          : {})
+        instructions: (localStorage.getItem('openai_tts_instructions') || 'Speak naturally at a normal conversational pace.').trim()
       })
     });
     
