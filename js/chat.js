@@ -2109,10 +2109,13 @@ async function askiSpeakOpenAI(text, onEnd = null) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'tts-1',
+        model: 'gpt-4o-mini-tts',
         input: text,
         voice: askiVoice,
-        response_format: 'mp3'
+        response_format: 'mp3',
+        ...(localStorage.getItem('openai_tts_instructions')?.trim() 
+          ? { instructions: localStorage.getItem('openai_tts_instructions').trim() }
+          : {})
       })
     });
     
@@ -3905,15 +3908,28 @@ async function handleStreamingResponse(response) {
   let buffer = '';
   let createDropData = null;
   
-  // FIX v1.5: Delayed streaming TTS init - start ONLY when first text arrives
-  // This prevents blocking when tools (send_email, create_drop) are processing
-  const useStreamingTTS = isAutoSpeakEnabled() && 
-                          localStorage.getItem('tts_provider') === 'elevenlabs' &&
+  // v1.7: Streaming TTS — supports ElevenLabs WebSocket AND OpenAI sentence-by-sentence
+  const currentTTSProvider = localStorage.getItem('tts_provider') || 'openai';
+  
+  // ElevenLabs streaming (WebSocket)
+  const useElevenLabsStreaming = isAutoSpeakEnabled() && 
+                          currentTTSProvider === 'elevenlabs' &&
                           localStorage.getItem('elevenlabs_tts_key') &&
                           window.StreamingTTS;
+  
+  // OpenAI streaming (sentence-by-sentence gpt-4o-mini-tts)
+  const useOpenAIStreaming = isAutoSpeakEnabled() && 
+                          currentTTSProvider === 'openai' &&
+                          localStorage.getItem('openai_tts_key') &&
+                          window.OpenAIStreamingTTS;
+  
+  const useStreamingTTS = useElevenLabsStreaming || useOpenAIStreaming;
   let streamingTTSActive = false;
   let streamingTTSInitialized = false;
-  let useStreamingTTSForThisResponse = useStreamingTTS; // Can be disabled if tools detected
+  let useStreamingTTSForThisResponse = useStreamingTTS;
+  
+  // Which streaming engine to use
+  let streamingEngine = useElevenLabsStreaming ? 'elevenlabs' : (useOpenAIStreaming ? 'openai' : null);
   
   // Function to lazily initialize streaming TTS on first text
   async function initStreamingTTSIfNeeded() {
@@ -3921,9 +3937,18 @@ async function handleStreamingResponse(response) {
     streamingTTSInitialized = true;
     
     try {
-      console.log('[Chat] Starting Streaming TTS for ElevenLabs (lazy init)...');
-      streamingTTSActive = await window.StreamingTTS.start();
-      console.log('[Chat] Streaming TTS started:', streamingTTSActive);
+      if (streamingEngine === 'openai') {
+        // OpenAI sentence-by-sentence streaming (gpt-4o-mini-tts)
+        console.log('[Chat] Starting OpenAI Streaming TTS (lazy init)...');
+        streamingTTSActive = window.OpenAIStreamingTTS.start();
+        console.log('[Chat] OpenAI Streaming TTS started:', streamingTTSActive);
+      } else {
+        // ElevenLabs WebSocket streaming
+        console.log('[Chat] Starting ElevenLabs Streaming TTS (lazy init)...');
+        streamingTTSActive = await window.StreamingTTS.start();
+        console.log('[Chat] ElevenLabs Streaming TTS started:', streamingTTSActive);
+      }
+      
       if (streamingTTSActive) {
         streamingTTSIsActive = true;
         updateChatControlLeft('stop');
@@ -3981,7 +4006,11 @@ async function handleStreamingResponse(response) {
               
               // Feed to streaming TTS
               if (streamingTTSActive) {
-                window.StreamingTTS.feedText(parsed.content);
+                if (streamingEngine === 'openai') {
+                  window.OpenAIStreamingTTS.feedText(parsed.content);
+                } else {
+                  window.StreamingTTS.feedText(parsed.content);
+                }
               }
             }
             
@@ -3993,10 +4022,13 @@ async function handleStreamingResponse(response) {
               }
               
               // FIX v1.6: Disable streaming TTS when tools are used
-              // Tools can take long time, causing TTS WebSocket timeout
               if (streamingTTSActive) {
                 console.log('[Chat] Tool detected, cancelling streaming TTS');
-                window.StreamingTTS.cancel();
+                if (streamingEngine === 'openai') {
+                  window.OpenAIStreamingTTS.cancel();
+                } else {
+                  window.StreamingTTS.cancel();
+                }
                 streamingTTSActive = false;
                 streamingTTSIsActive = false;
               }
@@ -4411,7 +4443,11 @@ async function handleStreamingResponse(response) {
               
               // Feed to streaming TTS
               if (streamingTTSActive) {
-                window.StreamingTTS.feedText(parsed.delta.text);
+                if (streamingEngine === 'openai') {
+                  window.OpenAIStreamingTTS.feedText(parsed.delta.text);
+                } else {
+                  window.StreamingTTS.feedText(parsed.delta.text);
+                }
               }
             }
             
@@ -4501,18 +4537,27 @@ async function handleStreamingResponse(response) {
   
   // Handle TTS
   if (streamingTTSActive) {
-    // Set callback BEFORE finishing - prevents race condition
-    window.StreamingTTS.onEnd(() => {
-      console.log('[Chat] Streaming TTS ended, unlocking voice mode');
-      // Reset global flag and button
-      streamingTTSIsActive = false;
-      updateChatControlLeft('hide');
-      unlockVoiceMode();
-    });
-    // Now finish streaming TTS - audio continues playing
-    window.StreamingTTS.finish();
+    if (streamingEngine === 'openai') {
+      // OpenAI sentence-by-sentence streaming
+      window.OpenAIStreamingTTS.onEnd = () => {
+        console.log('[Chat] OpenAI Streaming TTS ended, unlocking voice mode');
+        streamingTTSIsActive = false;
+        updateChatControlLeft('hide');
+        unlockVoiceMode();
+      };
+      window.OpenAIStreamingTTS.finish();
+    } else {
+      // ElevenLabs WebSocket streaming
+      window.StreamingTTS.onEnd(() => {
+        console.log('[Chat] ElevenLabs Streaming TTS ended, unlocking voice mode');
+        streamingTTSIsActive = false;
+        updateChatControlLeft('hide');
+        unlockVoiceMode();
+      });
+      window.StreamingTTS.finish();
+    }
   } else if (isAutoSpeakEnabled() && fullText) {
-    // Fallback to regular TTS (OpenAI, browser, or ElevenLabs REST)
+    // Fallback to regular TTS (non-streaming)
     try {
       speakText(fullText);
     } catch (e) {
