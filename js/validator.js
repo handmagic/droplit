@@ -362,19 +362,21 @@ const AskiValidator = (function() {
       }
     }
     
-    // 3.3 Architecture leak
-    for (const pattern of db.architectureLeak) {
-      if (textLower.includes(pattern.toLowerCase())) {
-        result.valid = false;
-        result.blocked = true;
-        result.reason = 'architecture_leak';
-        result.sanitized = FALLBACKS.architecture_leak;
-        logBlock(text, 'architecture_leak', pattern);
-        updateStats('architecture_leak', false);
-        result.processingTime = performance.now() - startTime;
-        return result;
-      }
-    }
+    // 3.3 Architecture leak — DISABLED v1.1
+    // Was blocking normal conversations about app settings (e.g. "openai", "api")
+    // Patterns too broad for a voice assistant that legitimately discusses its own features
+    // for (const pattern of db.architectureLeak) {
+    //   if (textLower.includes(pattern.toLowerCase())) {
+    //     result.valid = false;
+    //     result.blocked = true;
+    //     result.reason = 'architecture_leak';
+    //     result.sanitized = FALLBACKS.architecture_leak;
+    //     logBlock(text, 'architecture_leak', pattern);
+    //     updateStats('architecture_leak', false);
+    //     result.processingTime = performance.now() - startTime;
+    //     return result;
+    //   }
+    // }
     
     // 3.4 Hallucination markers (without context verification)
     for (const pattern of db.hallucinationMarkers) {
