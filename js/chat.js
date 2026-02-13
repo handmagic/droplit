@@ -152,11 +152,11 @@ async function searchMemory(queryText) {
 
   try {
     // Get settings from config
-    let topK = 8, threshold = 0.3;
+    let topK = 10, threshold = 0.15;
     if (typeof appConfig !== 'undefined' && appConfig.loaded) {
       const ms = appConfig.getMemorySettings();
-      topK = ms.warm_search_top_k || 8;
-      threshold = ms.warm_min_similarity || 0.3;
+      topK = ms.warm_search_top_k || 10;
+      threshold = ms.warm_min_similarity || 0.15;
     }
 
     // Vector search
@@ -190,14 +190,35 @@ async function searchMemory(queryText) {
       return '';
     }
 
-    // Sort by similarity (keyword results have keywordScore, normalize to similarity range)
+    // Sort by similarity
     merged.sort((a, b) => (b.similarity || b.keywordScore || 0) - (a.similarity || a.keywordScore || 0));
-    const topResults = merged.slice(0, topK);
 
-    console.log(`[Memory] Found ${topResults.length} relevant memories (${vectorResults.length} vector + ${keywordResults.filter(kr => !vectorResults.find(vr => vr.id === kr.id)).length} keyword, top: ${Math.round((topResults[0].similarity || topResults[0].keywordScore || 0) * 100)}%)`);
+    // PROPAGATE phase: expand with temporal neighbors (±2 messages)
+    // This catches answers next to questions, decisions next to discussions
+    let expanded = merged;
+    if (typeof memoryStore.expandWithNeighbors === 'function') {
+      try {
+        let propagateWindow = 2, propagateDecay = 0.7, propagateMax = 12;
+        if (typeof appConfig !== 'undefined' && appConfig.loaded) {
+          const ms = appConfig.getMemorySettings();
+          propagateWindow = ms.propagate_window || 2;
+          propagateDecay = ms.propagate_decay || 0.7;
+          propagateMax = ms.propagate_max_results || 12;
+        }
+        expanded = await memoryStore.expandWithNeighbors(
+          merged.slice(0, topK), propagateWindow, propagateDecay, propagateMax
+        );
+      } catch(e) {
+        console.warn('[Memory] PROPAGATE failed, using direct results:', e.message);
+      }
+    }
+
+    const topResults = expanded.slice(0, topK);
+
+    console.log(`[Memory] Found ${topResults.length} memories (${vectorResults.length} vector + ${keywordResults.filter(kr => !vectorResults.find(vr => vr.id === kr.id)).length} keyword, ${topResults.filter(r => r._source === 'propagate').length} propagated, top: ${Math.round((topResults[0].similarity || topResults[0].keywordScore || 0) * 100)}%)`);
     // Log first 3 results for debugging
     topResults.slice(0, 3).forEach((r, i) => {
-      console.log(`[Memory] #${i+1}: "${(r.text || '').substring(0, 80)}..." (${Math.round((r.similarity || r.keywordScore || 0) * 100)}%, ${r.role})`);
+      console.log(`[Memory] #${i+1}: "${(r.text || '').substring(0, 80)}..." (${Math.round((r.similarity || r.keywordScore || 0) * 100)}%, ${r.role}, ${r._source || 'direct'})`);
     });
     return MemoryContext.formatForPrompt(topResults, 1500);
 
@@ -5075,14 +5096,9 @@ async function sendToOllama(text, history, knowledge) {
     systemPrompt += '\n\nUser\'s personal knowledge base:\n' + knowledge;
   }
   
-  // v4.33: Smart memory search — only when user references past conversations
-  const ollamaTopicIntent = detectTopicIntent(text);
-  const ollamaNeedsMemory = ['HISTORY_REFERENCE', 'RECALL_REQUEST', 'EXPLICIT_SEARCH', 'TOPIC_CONTINUATION'].includes(ollamaTopicIntent.intent);
-  
+  // v4.34: ALWAYS search memory for Ollama too
   let memCtx = '';
-  if (ollamaNeedsMemory) {
-    try { memCtx = await searchMemory(text); } catch(e) {}
-  }
+  try { memCtx = await searchMemory(text); } catch(e) {}
   if (memCtx) {
     systemPrompt += '\n\n' + memCtx;
     console.log('[Ollama+Memory] Injecting', memCtx.length, 'chars of memory context');
@@ -5396,23 +5412,15 @@ async function sendAskAIMessage() {
     }
   }
   
-  // v4.33: Smart memory search — only activate when user references past conversations
+  // v4.34: ALWAYS search memory — Topic Detector removed, search is fast enough (~50ms)
   let memoryContext = '';
-  const topicIntent = detectTopicIntent(text);
-  const needsMemorySearch = ['HISTORY_REFERENCE', 'RECALL_REQUEST', 'EXPLICIT_SEARCH', 'TOPIC_CONTINUATION'].includes(topicIntent.intent);
-  
-  if (needsMemorySearch) {
-    try {
-      console.log(`[Memory] Topic Detector: ${topicIntent.intent} (${topicIntent.language}), searching...`);
-      memoryContext = await searchMemory(text);
-      if (memoryContext) {
-        console.log('[Memory] Injecting', memoryContext.length, 'chars of memory context');
-      }
-    } catch (e) {
-      console.warn('[Memory] Search failed, continuing without memory:', e.message);
+  try {
+    memoryContext = await searchMemory(text);
+    if (memoryContext) {
+      console.log('[Memory] Injecting', memoryContext.length, 'chars of memory context');
     }
-  } else {
-    console.log(`[Memory] Topic: ${topicIntent.intent} — skipping memory search (fast path)`);
+  } catch (e) {
+    console.warn('[Memory] Search failed, continuing without memory:', e.message);
   }
   
   console.log('Sending to:', llmProvider === 'ollama' ? ollamaUrl : AI_API_URL);
