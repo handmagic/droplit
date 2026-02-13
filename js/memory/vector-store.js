@@ -320,11 +320,15 @@ class VectorStore {
 
     // Extract keywords (words > 2 chars, no common stop words)
     const stopWords = new Set(['the','and','for','are','but','not','you','all','can','her','was','one','our','из','что','как','это','все','они','его','для','при','без']);
-    const keywords = queryText
+    const words = queryText
       .toLowerCase()
       .replace(/[^\w\sа-яё]/gi, ' ')
       .split(/\s+/)
       .filter(w => w.length > 2 && !stopWords.has(w));
+    
+    // Also extract raw numbers (important for recall queries like "число 5000000")
+    const numbers = queryText.match(/\d{3,}/g) || [];
+    const keywords = [...new Set([...words, ...numbers])];
 
     if (keywords.length === 0) return [];
 
@@ -357,14 +361,24 @@ class VectorStore {
         }
 
         if (matches > 0) {
+          // Boost score for number matches (exact recall is critical)
+          let boost = 1.0;
+          for (const kw of keywords) {
+            if (/^\d+$/.test(kw) && textLower.includes(kw)) {
+              boost = 2.0; // Double score when a specific number is found
+              break;
+            }
+          }
+          const score = Math.min((matches / keywords.length) * boost, 1.0);
+          
           results.push({
             id: entry.id,
             text: entry.text,
             role: entry.role,
             timestamp: entry.timestamp,
             sessionId: entry.sessionId,
-            keywordScore: matches / keywords.length,
-            similarity: matches / keywords.length, // normalize for MemoryContext compatibility
+            keywordScore: score,
+            similarity: score, // normalize for MemoryContext compatibility
             metadata: entry.metadata || {}
           });
         }
@@ -377,6 +391,114 @@ class VectorStore {
   }
 
   // ─── ОЧИСТКА ───────────────────────────────────────────
+
+  // ─── PROPAGATE: NEIGHBOR EXPANSION ──────────────────────
+
+  /**
+   * PROPAGATE phase: expand results with temporal neighbors.
+   * When search finds message M, includes M-2, M-1, M+1, M+2.
+   * Captures: answer after question, decision after discussion.
+   *
+   * @param {Array} results - search results [{id, text, similarity, timestamp, ...}]
+   * @param {number} window - messages before/after to include (default: 2)
+   * @param {number} decay - score multiplier for neighbors (default: 0.7)
+   * @param {number} maxExpanded - max total results (default: 12)
+   * @returns {Array} expanded results, sorted by similarity
+   */
+  async expandWithNeighbors(results, window = 2, decay = 0.7, maxExpanded = 12) {
+    if (!results || results.length === 0) return results;
+
+    try {
+      await this._ensureOpen();
+
+      // Load all messages (id + timestamp, no vectors) sorted by timestamp
+      const timeline = await new Promise((resolve, reject) => {
+        const tx = this.db.transaction(this.storeName, 'readonly');
+        const store = tx.objectStore(this.storeName);
+        const items = [];
+
+        store.openCursor().onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (!cursor) {
+            items.sort((a, b) => a.timestamp - b.timestamp);
+            resolve(items);
+            return;
+          }
+          const v = cursor.value;
+          items.push({
+            id: v.id,
+            text: v.text,
+            role: v.role,
+            timestamp: v.timestamp,
+            sessionId: v.sessionId,
+            metadata: v.metadata || {}
+          });
+          cursor.continue();
+        };
+        tx.onerror = (e) => reject(e.target.error);
+      });
+
+      if (timeline.length === 0) return results;
+
+      // Build position index: id → position in timeline
+      const posMap = new Map();
+      for (let i = 0; i < timeline.length; i++) {
+        posMap.set(timeline[i].id, i);
+      }
+
+      // Collect expanded set
+      const expanded = new Map();
+
+      // Add original results
+      for (const r of results) {
+        expanded.set(r.id, { ...r, _source: 'direct' });
+      }
+
+      // For each original, add temporal neighbors
+      for (const r of results) {
+        const pos = posMap.get(r.id);
+        if (pos === undefined) continue;
+
+        for (let offset = -window; offset <= window; offset++) {
+          if (offset === 0) continue;
+
+          const nPos = pos + offset;
+          if (nPos < 0 || nPos >= timeline.length) continue;
+
+          const neighbor = timeline[nPos];
+          if (expanded.has(neighbor.id)) continue;
+
+          // Score decays with distance from hit
+          const distFactor = 1.0 - (Math.abs(offset) - 1) * 0.15;
+          const nScore = (r.similarity || r.keywordScore || 0.5) * decay * distFactor;
+
+          expanded.set(neighbor.id, {
+            ...neighbor,
+            similarity: nScore,
+            _source: 'propagate',
+            _parentId: r.id,
+            _offset: offset
+          });
+        }
+      }
+
+      // Sort by similarity, return top results
+      const result = [...expanded.values()]
+        .sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
+        .slice(0, maxExpanded);
+
+      const propagatedCount = result.filter(r => r._source === 'propagate').length;
+      if (propagatedCount > 0) {
+        console.log(`[VectorStore] PROPAGATE: ${results.length} → ${result.length} results (+${propagatedCount} neighbors)`);
+      }
+
+      return result;
+
+    } catch (err) {
+      console.warn('[VectorStore] expandWithNeighbors failed:', err.message);
+      return results; // graceful fallback
+    }
+  }
 
   /**
    * Полная очистка хранилища
