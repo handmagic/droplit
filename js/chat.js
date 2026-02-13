@@ -1,10 +1,11 @@
 // ============================================
-// DROPLIT CHAT v4.32 - Infinite Memory
+// DROPLIT CHAT v4.33 - Dynamic Memory + Config
 // ASKI Chat, Voice Mode, Streaming
 // Haiku for simple, Sonnet for complex queries
 // v4.30: Kokoro local TTS provider + settings
 // v4.31: Ollama local LLM integration (Qwen3)
 // v4.32: Infinite Memory (vector search over chat history)
+// v4.33: Topic Detector, keyword fallback, config-loader, memory protocol
 // ============================================
 
 // ============================================
@@ -73,24 +74,128 @@ async function indexToMemory(text, role, extras = {}) {
   }
 }
 
+// ============================================
+// TOPIC DETECTOR (v4.33)
+// Determines if user is referencing past conversations
+// Patterns loaded from app_config, fallback to defaults
+// ============================================
+function detectTopicIntent(text) {
+  if (!text || text.length < 3) return { intent: 'CONTINUATION', keywords: [], language: 'en' };
+
+  // Detect language
+  const cyrillicRatio = (text.match(/[а-яА-ЯёЁ]/g) || []).length / text.length;
+  const lang = cyrillicRatio > 0.3 ? 'ru' : 'en';
+
+  // Get patterns from config or use defaults
+  let patterns;
+  if (typeof appConfig !== 'undefined' && appConfig.loaded) {
+    patterns = appConfig.getTopicPatterns(lang);
+  } else {
+    // Hardcoded fallback
+    patterns = lang === 'ru' ? {
+      history_reference: ['мы обсуждали', 'помнишь', 'мы говорили', 'найди в чате', 'в прошлый раз', 'ранее'],
+      recall_request: ['что я говорил', 'что ты помнишь', 'вспомни', 'какое число', 'что мы решили'],
+      explicit_search: ['найди в чате', 'поищи в истории', 'найди в разговоре'],
+      topic_continuation: ['продолжим', 'вернёмся к', 'так что насчёт']
+    } : {
+      history_reference: ['we discussed', 'remember when', 'we talked about', 'find in chat', 'last time', 'earlier'],
+      recall_request: ['what did I say', 'do you remember', 'recall', 'what number', 'what did we decide'],
+      explicit_search: ['find in chat', 'search history', 'find in our conversation'],
+      topic_continuation: ['continue with', 'back to', 'so about']
+    };
+  }
+
+  const lower = text.toLowerCase();
+
+  // Check each intent category
+  for (const p of (patterns.explicit_search || [])) {
+    if (lower.includes(p)) return { intent: 'EXPLICIT_SEARCH', keywords: extractKeywords(text), language: lang };
+  }
+  for (const p of (patterns.recall_request || [])) {
+    if (lower.includes(p)) return { intent: 'RECALL_REQUEST', keywords: extractKeywords(text), language: lang };
+  }
+  for (const p of (patterns.history_reference || [])) {
+    if (lower.includes(p)) return { intent: 'HISTORY_REFERENCE', keywords: extractKeywords(text), language: lang };
+  }
+  for (const p of (patterns.topic_continuation || [])) {
+    if (lower.includes(p)) return { intent: 'TOPIC_CONTINUATION', keywords: extractKeywords(text), language: lang };
+  }
+
+  return { intent: 'NEW_TOPIC', keywords: [], language: lang };
+}
+
+function extractKeywords(text) {
+  const stopWords = new Set([
+    // English
+    'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'can', 'shall', 'to', 'of', 'in', 'for',
+    'on', 'with', 'at', 'by', 'from', 'as', 'into', 'about', 'that',
+    'this', 'it', 'not', 'but', 'and', 'or', 'if', 'my', 'your', 'we',
+    'you', 'me', 'i', 'he', 'she', 'they', 'what', 'which', 'who',
+    // Russian
+    'и', 'в', 'на', 'с', 'не', 'что', 'он', 'как', 'я', 'это', 'но',
+    'по', 'из', 'за', 'то', 'все', 'мы', 'ты', 'мне', 'мой', 'наш',
+    'нас', 'вы', 'они', 'для', 'был', 'ли', 'от', 'бы', 'уже', 'же',
+    'его', 'ее', 'их', 'так', 'тоже', 'при', 'без', 'чем', 'где', 'кто'
+  ]);
+
+  return text
+    .toLowerCase()
+    .replace(/[^\w\sа-яё]/gi, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stopWords.has(w));
+}
+
 async function searchMemory(queryText) {
   if (!memoryReady || !memoryEngine || !memoryStore) return '';
 
   try {
+    // Get settings from config
+    let topK = 8, threshold = 0.3;
+    if (typeof appConfig !== 'undefined' && appConfig.loaded) {
+      const ms = appConfig.getMemorySettings();
+      topK = ms.warm_search_top_k || 8;
+      threshold = ms.warm_min_similarity || 0.3;
+    }
+
+    // Vector search
     const queryVector = await memoryEngine.embedQuery(queryText);
-    const results = await memoryStore.search(queryVector, {
-      topK: 8,
-      threshold: 0.3,
+    const vectorResults = await memoryStore.search(queryVector, {
+      topK,
+      threshold,
       excludeSessionId: currentSessionId
     });
 
-    if (results.length === 0) {
+    // Keyword fallback search (cross-language mitigation)
+    let keywordResults = [];
+    if (typeof memoryStore.searchByKeywords === 'function') {
+      try {
+        keywordResults = await memoryStore.searchByKeywords(queryText, 5);
+      } catch(e) { /* keyword search is optional */ }
+    }
+
+    // Merge results (vector results take priority, add unique keyword hits)
+    const seenIds = new Set(vectorResults.map(r => r.id));
+    const merged = [...vectorResults];
+    for (const kr of keywordResults) {
+      if (!seenIds.has(kr.id)) {
+        merged.push(kr);
+        seenIds.add(kr.id);
+      }
+    }
+
+    if (merged.length === 0) {
       console.log('[Memory] No relevant memories found');
       return '';
     }
 
-    console.log(`[Memory] Found ${results.length} relevant memories (top: ${Math.round(results[0].similarity * 100)}%)`);
-    return MemoryContext.formatForPrompt(results, 1500);
+    // Sort by similarity (keyword results have keywordScore, normalize to similarity range)
+    merged.sort((a, b) => (b.similarity || b.keywordScore || 0) - (a.similarity || a.keywordScore || 0));
+    const topResults = merged.slice(0, topK);
+
+    console.log(`[Memory] Found ${topResults.length} relevant memories (${vectorResults.length} vector + ${keywordResults.filter(kr => !vectorResults.find(vr => vr.id === kr.id)).length} keyword, top: ${Math.round((topResults[0].similarity || topResults[0].keywordScore || 0) * 100)}%)`);
+    return MemoryContext.formatForPrompt(topResults, 1500);
 
   } catch (error) {
     console.error('[Memory] Search error:', error);
@@ -194,17 +299,35 @@ let ollamaUrl = localStorage.getItem('ollama_url') || 'http://localhost:11434';
 let ollamaModel = localStorage.getItem('ollama_model') || 'gemma3:4b';
 
 // ASKI system prompt for Ollama (simplified, no tools)
-const OLLAMA_SYSTEM_PROMPT = `You are ASKI — a friendly, smart AI assistant inside DropLit app.
+// OLLAMA_SYSTEM_PROMPT is built dynamically from config.
+// Fallback constant used only if ConfigLoader is not available.
+const OLLAMA_SYSTEM_PROMPT_FALLBACK = `You are ASKI, a smart AI assistant inside DropLit app.
 DropLit is a voice-first idea capture app. Users record voice notes called "drops".
 
 Rules:
 - Respond in the same language the user writes in (Russian or English)
-- Be concise but helpful. For voice mode, keep answers under 3 sentences
-- You can help with: answering questions, brainstorming, analysis, creative tasks
-- You do NOT have access to user's drops or tools in this mode (local LLM)
+- Be concise (1-3 sentences by default). Expand only when asked
+- Be honest. If you do not know something, say so clearly
+- NEVER fabricate or invent information
 - If asked to create/delete/search drops, explain that this requires Cloud AI mode
-- Use markdown formatting when appropriate
-- Be warm, enthusiastic, and supportive`;
+- No emojis. No excessive apologies
+
+Memory Protocol:
+Your context may include a section called "Relevant Chat History" with messages from past conversations.
+- This is REAL data from actual past conversations with this user — TRUST it completely
+- When user asks about past discussions, CHECK this section FIRST
+- If relevant content found, present it clearly
+- If NOT found, say honestly: "I do not see that in our conversation history"
+- NEVER say "I cannot search" or "I have no access to memory" — the data IS in your context
+- NEVER invent or fabricate conversation history that is not in your context`;
+
+function getOllamaSystemPrompt() {
+  if (typeof appConfig !== 'undefined' && appConfig.loaded) {
+    const prompt = appConfig.buildPromptForTier('tier_c');
+    if (prompt) return prompt;
+  }
+  return OLLAMA_SYSTEM_PROMPT_FALLBACK;
+}
 
 // ============================================
 // ASK AI CHAT FUNCTIONS
@@ -4923,15 +5046,20 @@ async function sendToOllama(text, history, knowledge) {
   // Build messages array in OpenAI/Ollama format
   const messages = [];
   
-  // System prompt
-  let systemPrompt = OLLAMA_SYSTEM_PROMPT;
+  // System prompt from config (with fallback)
+  let systemPrompt = getOllamaSystemPrompt();
   if (knowledge) {
     systemPrompt += '\n\nUser\'s personal knowledge base:\n' + knowledge;
   }
   
-  // v4.32: Inject vector memory context for Ollama too
+  // v4.33: Smart memory search — only when user references past conversations
+  const ollamaTopicIntent = detectTopicIntent(text);
+  const ollamaNeedsMemory = ['HISTORY_REFERENCE', 'RECALL_REQUEST', 'EXPLICIT_SEARCH', 'TOPIC_CONTINUATION'].includes(ollamaTopicIntent.intent);
+  
   let memCtx = '';
-  try { memCtx = await searchMemory(text); } catch(e) {}
+  if (ollamaNeedsMemory) {
+    try { memCtx = await searchMemory(text); } catch(e) {}
+  }
   if (memCtx) {
     systemPrompt += '\n\n' + memCtx;
     console.log('[Ollama+Memory] Injecting', memCtx.length, 'chars of memory context');
@@ -5245,15 +5373,23 @@ async function sendAskAIMessage() {
     }
   }
   
-  // v4.32: Search vector memory for relevant past conversations
+  // v4.33: Smart memory search — only activate when user references past conversations
   let memoryContext = '';
-  try {
-    memoryContext = await searchMemory(text);
-    if (memoryContext) {
-      console.log('[Memory] Injecting', memoryContext.length, 'chars of memory context');
+  const topicIntent = detectTopicIntent(text);
+  const needsMemorySearch = ['HISTORY_REFERENCE', 'RECALL_REQUEST', 'EXPLICIT_SEARCH', 'TOPIC_CONTINUATION'].includes(topicIntent.intent);
+  
+  if (needsMemorySearch) {
+    try {
+      console.log(`[Memory] Topic Detector: ${topicIntent.intent} (${topicIntent.language}), searching...`);
+      memoryContext = await searchMemory(text);
+      if (memoryContext) {
+        console.log('[Memory] Injecting', memoryContext.length, 'chars of memory context');
+      }
+    } catch (e) {
+      console.warn('[Memory] Search failed, continuing without memory:', e.message);
     }
-  } catch (e) {
-    console.warn('[Memory] Search failed, continuing without memory:', e.message);
+  } else {
+    console.log(`[Memory] Topic: ${topicIntent.intent} — skipping memory search (fast path)`);
   }
   
   console.log('Sending to:', llmProvider === 'ollama' ? ollamaUrl : AI_API_URL);
@@ -5751,6 +5887,13 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Load persistent chat history (v4.25)
   loadChatHistory(0, false);
+  
+  // v4.33: Load config from cache (instant), then refresh from Supabase (background)
+  if (typeof appConfig !== 'undefined') {
+    appConfig.loadCached();
+    // Background refresh after app is functional
+    setTimeout(() => { appConfig.refreshFromSupabase(); }, 2000);
+  }
   
   // v4.32: Start Infinite Memory in background (23MB model, cached after first load)
   initMemory();
