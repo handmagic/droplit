@@ -34,9 +34,14 @@ async function initMemory() {
     console.log('[Memory] VectorStore opened:', stats.totalMessages, 'messages indexed');
 
     memoryEngine = new EmbeddingEngine();
+    let lastLoggedPercent = -10; // throttle: log every 10%
     window.addEventListener('memory-progress', (e) => {
       const { stage, percent, message } = e.detail;
-      console.log(`[Memory] ${stage}: ${message} ${percent ? percent + '%' : ''}`);
+      const p = parseInt(percent) || 0;
+      if (stage === 'ready' || stage === 'error' || p >= lastLoggedPercent + 10) {
+        console.log(`[Memory] ${stage}: ${message} ${percent ? percent + '%' : ''}`);
+        lastLoggedPercent = p;
+      }
     });
 
     await memoryEngine.init();
