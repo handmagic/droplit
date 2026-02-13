@@ -3153,7 +3153,8 @@ export default async function handler(req) {
       targetLang, 
       history, 
       dropContext, 
-      syntriseContext, 
+      syntriseContext,
+      memoryContext,  // v4.32: Vector memory from past conversations
       userProfile, 
       stream,
       userId,  // Accept userId from frontend
@@ -3350,6 +3351,13 @@ export default async function handler(req) {
       const maxTokens = isExpansion ? 4096 : 4096;  // v4.23: increased for structured responses
       const systemPrompt = buildSystemPrompt(formattedContext, userProfile, coreContext, isExpansion, userTimezone, currentFeed, askiKnowledge);
       
+      // v4.32: Inject vector memory context
+      let finalSystemPrompt = systemPrompt;
+      if (memoryContext && memoryContext.trim()) {
+        finalSystemPrompt += '\n\n' + memoryContext;
+        console.log('[Memory] Injected', memoryContext.length, 'chars of memory into system prompt');
+      }
+      
       // Add system prompt debug info (AFTER systemPrompt is built)
       coreDebug.systemPromptHasCoreMemory = systemPrompt.includes('### Known facts:');
       coreDebug.systemPromptHasEntities = systemPrompt.includes('### Key entities:');
@@ -3405,7 +3413,7 @@ export default async function handler(req) {
         const writer = writable.getWriter();
         
         // Start streaming in background, pass debug info, userId, model config, userEmail and askiKnowledge
-        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId, modelConfig, currentFeed, userEmail, askiKnowledge)
+        handleStreamingChatWithTools(apiKey, finalSystemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId, modelConfig, currentFeed, userEmail, askiKnowledge)
           .catch(error => {
             console.error('Streaming error:', error);
             const encoder = new TextEncoder();
@@ -3425,7 +3433,7 @@ export default async function handler(req) {
 
       // NON-STREAMING MODE (fallback)
       const { resultText, toolResults, usage } = await handleNonStreamingChat(
-        apiKey, systemPrompt, messages, maxTokens, formattedContext, effectiveUserId, modelConfig, currentFeed, userEmail, askiKnowledge
+        apiKey, finalSystemPrompt, messages, maxTokens, formattedContext, effectiveUserId, modelConfig, currentFeed, userEmail, askiKnowledge
       );
       
       const createDropAction = toolResults.find(t => t.toolName === 'create_drop');
