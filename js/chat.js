@@ -1,10 +1,152 @@
 // ============================================
-// DROPLIT CHAT v4.31 - Ollama Local LLM
+// DROPLIT CHAT v4.32 - Infinite Memory
 // ASKI Chat, Voice Mode, Streaming
 // Haiku for simple, Sonnet for complex queries
 // v4.30: Kokoro local TTS provider + settings
 // v4.31: Ollama local LLM integration (Qwen3)
+// v4.32: Infinite Memory (vector search over chat history)
 // ============================================
+
+// ============================================
+// INFINITE MEMORY (Vector Store + Embeddings)
+// ============================================
+let memoryEngine = null;    // EmbeddingEngine instance
+let memoryStore = null;     // VectorStore instance
+let memoryReady = false;    // true когда модель загружена
+let memoryLoading = false;  // true во время загрузки
+let currentSessionId = null; // ID текущей сессии чата
+
+async function initMemory() {
+  if (typeof EmbeddingEngine === 'undefined' || typeof VectorStore === 'undefined') {
+    console.warn('[Memory] Classes not loaded, skipping memory init');
+    return;
+  }
+  if (memoryReady || memoryLoading) return;
+  memoryLoading = true;
+  currentSessionId = 'session_' + Date.now();
+
+  try {
+    memoryStore = new VectorStore();
+    await memoryStore.open();
+    const stats = await memoryStore.getStats();
+    console.log('[Memory] VectorStore opened:', stats.totalMessages, 'messages indexed');
+
+    memoryEngine = new EmbeddingEngine();
+    window.addEventListener('memory-progress', (e) => {
+      const { stage, percent, message } = e.detail;
+      console.log(`[Memory] ${stage}: ${message} ${percent ? percent + '%' : ''}`);
+    });
+
+    await memoryEngine.init();
+    memoryReady = true;
+    memoryLoading = false;
+    console.log('[Memory] ✅ Ready! Engine + Store initialized');
+
+    // Index existing history in background
+    indexExistingHistory();
+
+  } catch (error) {
+    console.error('[Memory] ❌ Init failed:', error);
+    memoryLoading = false;
+  }
+}
+
+async function indexToMemory(text, role, extras = {}) {
+  if (!memoryReady || !memoryEngine || !memoryStore) return;
+  if (!text || text.trim().length < 10) return;
+  if (text.startsWith('[System]') || text.startsWith('Error:')) return;
+
+  try {
+    const vector = await memoryEngine.embedPassage(text);
+    const entry = {
+      id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      text: text.substring(0, 2000),
+      role: role,
+      vector: vector,
+      timestamp: Date.now(),
+      sessionId: currentSessionId,
+      metadata: { model: extras.model || 'unknown' }
+    };
+    await memoryStore.add(entry);
+  } catch (error) {
+    console.error('[Memory] Index error:', error);
+  }
+}
+
+async function searchMemory(queryText) {
+  if (!memoryReady || !memoryEngine || !memoryStore) return '';
+
+  try {
+    const queryVector = await memoryEngine.embedQuery(queryText);
+    const results = await memoryStore.search(queryVector, {
+      topK: 8,
+      threshold: 0.3,
+      excludeSessionId: currentSessionId
+    });
+
+    if (results.length === 0) {
+      console.log('[Memory] No relevant memories found');
+      return '';
+    }
+
+    console.log(`[Memory] Found ${results.length} relevant memories (top: ${Math.round(results[0].similarity * 100)}%)`);
+    return MemoryContext.formatForPrompt(results, 1500);
+
+  } catch (error) {
+    console.error('[Memory] Search error:', error);
+    return '';
+  }
+}
+
+async function indexExistingHistory() {
+  if (!memoryReady || !memoryEngine || !memoryStore) return;
+
+  try {
+    const alreadyIndexed = await memoryStore.getMeta('history_indexed');
+    if (alreadyIndexed) {
+      console.log('[Memory] History already indexed, skipping');
+      return;
+    }
+
+    const rawHistory = localStorage.getItem('askAI_chat_history');
+    if (!rawHistory) {
+      await memoryStore.setMeta('history_indexed', true);
+      return;
+    }
+
+    const history = JSON.parse(rawHistory);
+    const messages = history.filter(m => m.text && m.text.length >= 10);
+
+    if (messages.length === 0) {
+      await memoryStore.setMeta('history_indexed', true);
+      return;
+    }
+
+    console.log(`[Memory] Indexing ${messages.length} historical messages...`);
+
+    const texts = messages.map(m => m.text.substring(0, 2000));
+    const vectors = await memoryEngine.embedBatch(texts);
+
+    const entries = messages.map((m, i) => ({
+      id: 'hist_' + i + '_' + Date.now(),
+      text: m.text.substring(0, 2000),
+      role: m.isUser ? 'user' : 'assistant',
+      vector: vectors[i],
+      timestamp: m.timestamp || (Date.now() - (messages.length - i) * 60000),
+      sessionId: 'history_import',
+      metadata: { imported: true }
+    }));
+
+    await memoryStore.addBatch(entries);
+    await memoryStore.setMeta('history_indexed', true);
+
+    const stats = await memoryStore.getStats();
+    console.log(`[Memory] ✅ History indexed: ${stats.totalMessages} total messages`);
+
+  } catch (error) {
+    console.error('[Memory] History indexing failed:', error);
+  }
+}
 
 // ============================================
 // LLM PROVIDER SETTINGS (v4.31)
@@ -4518,6 +4660,9 @@ async function handleStreamingResponse(response) {
   
   askAIMessages.push({ text: fullText, isUser: false });
   
+  // v4.32: Index AI response to vector memory
+  indexToMemory(fullText, 'assistant');
+  
   // Save AI response to persistent history (v4.25)
   saveToChatHistory('assistant', fullText);
   
@@ -4679,6 +4824,9 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   
   askAIMessages.push({ text, isUser, time, hasImage: !!imageUrl, msgId });
   
+  // v4.32: Index to vector memory
+  if (isUser) indexToMemory(text, 'user');
+  
   // Save to persistent history (v4.25)
   saveToChatHistory(isUser ? 'user' : 'assistant', text, imageUrl);
   
@@ -4742,6 +4890,15 @@ async function sendToOllama(text, history, knowledge) {
   if (knowledge) {
     systemPrompt += '\n\nUser\'s personal knowledge base:\n' + knowledge;
   }
+  
+  // v4.32: Inject vector memory context for Ollama too
+  let memCtx = '';
+  try { memCtx = await searchMemory(text); } catch(e) {}
+  if (memCtx) {
+    systemPrompt += '\n\n' + memCtx;
+    console.log('[Ollama+Memory] Injecting', memCtx.length, 'chars of memory context');
+  }
+  
   messages.push({ role: 'system', content: systemPrompt });
   
   // Chat history (last 10 messages)
@@ -4953,6 +5110,7 @@ async function handleOllamaStreamingResponse(response) {
   
   // Save to history
   askAIMessages.push({ text: fullText, isUser: false });
+  indexToMemory(fullText, 'assistant'); // v4.32
   saveToChatHistory('assistant', fullText);
   
   // Smart AutoDrop
@@ -5046,6 +5204,17 @@ async function sendAskAIMessage() {
     } catch (e) {
       console.warn('Syntrise context fetch skipped');
     }
+  }
+  
+  // v4.32: Search vector memory for relevant past conversations
+  let memoryContext = '';
+  try {
+    memoryContext = await searchMemory(text);
+    if (memoryContext) {
+      console.log('[Memory] Injecting', memoryContext.length, 'chars of memory context');
+    }
+  } catch (e) {
+    console.warn('[Memory] Search failed, continuing without memory:', e.message);
   }
   
   console.log('Sending to:', llmProvider === 'ollama' ? ollamaUrl : AI_API_URL);
@@ -5187,7 +5356,8 @@ async function sendAskAIMessage() {
         autoModel: autoSelectedModel, // v4.27: Client-selected model based on complexity
         userEmail: getUserEmail(), // v4.19: User email for send_email tool
         askiKnowledge: getAskiKnowledge(), // v4.20: Personal knowledge base
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone // v4.21: Device timezone
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // v4.21: Device timezone
+        memoryContext: memoryContext // v4.32: Vector memory context from past conversations
       })
     });
     
@@ -5542,6 +5712,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Load persistent chat history (v4.25)
   loadChatHistory(0, false);
+  
+  // v4.32: Start Infinite Memory in background (23MB model, cached after first load)
+  initMemory();
   
   // Load API key
   // (API key is stored on server, not needed here)
