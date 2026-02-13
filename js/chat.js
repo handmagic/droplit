@@ -102,17 +102,15 @@ async function indexExistingHistory() {
   if (!memoryReady || !memoryEngine || !memoryStore) return;
 
   try {
-    const alreadyIndexed = await memoryStore.getMeta('history_indexed');
-    if (alreadyIndexed) {
-      console.log('[Memory] History already indexed, skipping');
-      return;
-    }
+    // Check how many are already indexed
+    const stats = await memoryStore.getStats();
+    const alreadyIndexed = stats.totalMessages;
 
     // Find the correct localStorage key for chat history
     const possibleKeys = Object.keys(localStorage).filter(k => 
       k.includes('chat') || k.includes('history') || k.includes('askAI') || k.includes('messages')
     );
-    console.log('[Memory] Looking for chat history. Candidate keys:', possibleKeys);
+    console.log('[Memory] Candidate localStorage keys:', possibleKeys.join(', '));
 
     // Try known keys
     const keysToTry = ['askAI_chat_history', 'chat_history', 'droplit_chat_history', ...possibleKeys];
@@ -124,7 +122,7 @@ async function indexExistingHistory() {
       if (val && val.startsWith('[')) {
         try {
           const parsed = JSON.parse(val);
-          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
+          if (Array.isArray(parsed) && parsed.length > 0 && (parsed[0].text || parsed[0].content || parsed[0].message)) {
             rawHistory = val;
             foundKey = key;
             console.log(`[Memory] Found history in "${key}": ${parsed.length} messages`);
@@ -135,48 +133,53 @@ async function indexExistingHistory() {
     }
 
     if (!rawHistory) {
-      console.log('[Memory] No chat history found in localStorage');
-      await memoryStore.setMeta('history_indexed', true);
+      console.log('[Memory] No chat history found in localStorage. Keys tried:', keysToTry.length);
       return;
     }
 
     const history = JSON.parse(rawHistory);
-    const messages = history.filter(m => m.text && m.text.length >= 10);
+    
+    // Normalize: support different message formats
+    const messages = history.filter(m => {
+      const text = m.text || m.content || m.message || '';
+      return text.length >= 10;
+    });
 
-    if (messages.length === 0) {
-      await memoryStore.setMeta('history_indexed', true);
+    if (messages.length <= alreadyIndexed) {
+      console.log(`[Memory] History up to date: ${alreadyIndexed} indexed, ${messages.length} in localStorage`);
       return;
     }
 
-    console.log(`[Memory] Indexing ${messages.length} historical messages from "${foundKey}"...`);
+    // Only index messages not yet indexed (skip first alreadyIndexed)
+    const newMessages = alreadyIndexed > 0 ? messages.slice(alreadyIndexed) : messages;
+    console.log(`[Memory] Indexing ${newMessages.length} new messages (${alreadyIndexed} already indexed, ${messages.length} total in "${foundKey}")`);
 
-    // Batch in chunks of 20 to avoid blocking
+    // Batch in chunks of 20
     const BATCH_SIZE = 20;
     let indexed = 0;
     
-    for (let i = 0; i < messages.length; i += BATCH_SIZE) {
-      const batch = messages.slice(i, i + BATCH_SIZE);
-      const texts = batch.map(m => m.text.substring(0, 2000));
+    for (let i = 0; i < newMessages.length; i += BATCH_SIZE) {
+      const batch = newMessages.slice(i, i + BATCH_SIZE);
+      const texts = batch.map(m => (m.text || m.content || m.message || '').substring(0, 2000));
       const vectors = await memoryEngine.embedBatch(texts);
 
       const entries = batch.map((m, j) => ({
-        id: 'hist_' + (i + j) + '_' + Date.now(),
-        text: m.text.substring(0, 2000),
-        role: m.isUser ? 'user' : 'assistant',
+        id: 'hist_' + Date.now() + '_' + (i + j) + '_' + Math.random().toString(36).substr(2, 4),
+        text: texts[j],
+        role: (m.isUser || m.role === 'user') ? 'user' : 'assistant',
         vector: vectors[j],
-        timestamp: m.timestamp || m.time ? new Date(m.time).getTime() : (Date.now() - (messages.length - i - j) * 60000),
+        timestamp: m.timestamp || (m.time ? new Date(m.time).getTime() : Date.now() - (newMessages.length - i - j) * 60000),
         sessionId: 'history_import',
         metadata: { imported: true }
       }));
 
       await memoryStore.addBatch(entries);
       indexed += entries.length;
-      console.log(`[Memory] Indexed batch: ${indexed}/${messages.length}`);
+      console.log(`[Memory] Indexed batch: ${indexed}/${newMessages.length}`);
     }
 
-    await memoryStore.setMeta('history_indexed', true);
-    const stats = await memoryStore.getStats();
-    console.log(`[Memory] ✅ History indexed: ${stats.totalMessages} total messages`);
+    const finalStats = await memoryStore.getStats();
+    console.log(`[Memory] ✅ History indexed: ${finalStats.totalMessages} total messages in vector store`);
 
   } catch (error) {
     console.error('[Memory] History indexing failed:', error);
