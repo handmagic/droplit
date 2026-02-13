@@ -395,6 +395,33 @@ class VectorStore {
   // ─── PROPAGATE: NEIGHBOR EXPANSION ──────────────────────
 
   /**
+   * Get all message IDs (lightweight, no vectors/text loaded)
+   * Used for incremental sync with chat history.
+   * @returns {Array<string>} array of IDs
+   */
+  async getAllIds() {
+    await this._ensureOpen();
+    
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(this.storeName, 'readonly');
+      const store = tx.objectStore(this.storeName);
+      const ids = [];
+      
+      store.openKeyCursor().onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (!cursor) {
+          resolve(ids);
+          return;
+        }
+        ids.push(cursor.key);
+        cursor.continue();
+      };
+      
+      tx.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  /**
    * PROPAGATE phase: expand results with temporal neighbors.
    * When search finds message M, includes M-2, M-1, M+1, M+2.
    * Captures: answer after question, decision after discussion.
