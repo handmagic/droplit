@@ -314,7 +314,7 @@ class VectorStore {
    * @param {number} limit - max results
    * @returns {Array} - matches with keywordScore
    */
-  async searchByKeywords(queryText, limit = 5) {
+  async searchByKeywords(queryText, limit = 5, excludeSessionId = null) {
     if (!queryText || queryText.length < 2) return [];
     await this._ensureOpen();
 
@@ -343,6 +343,12 @@ class VectorStore {
 
         const entry = cursor.value;
         if (!entry.text) { cursor.continue(); return; }
+
+        // Skip current session
+        if (excludeSessionId && entry.sessionId === excludeSessionId) {
+          cursor.continue();
+          return;
+        }
 
         const textLower = entry.text.toLowerCase();
         let matches = 0;
