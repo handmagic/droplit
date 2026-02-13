@@ -175,13 +175,14 @@ class ConfigLoader {
 
   async _doRefresh() {
     // Check if Supabase client is available
-    if (typeof supabase === 'undefined' || !supabase) {
-      console.warn('[Config] Supabase not available, using cache');
+    const sbClient = window._supabaseClient;
+    if (!sbClient) {
+      console.warn('[Config] Supabase client not available, using cache');
       return;
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await sbClient
         .from('app_config')
         .select('key, value, version')
         .in('key', CONFIG_KEYS);
