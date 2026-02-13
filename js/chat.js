@@ -108,8 +108,34 @@ async function indexExistingHistory() {
       return;
     }
 
-    const rawHistory = localStorage.getItem('askAI_chat_history');
+    // Find the correct localStorage key for chat history
+    const possibleKeys = Object.keys(localStorage).filter(k => 
+      k.includes('chat') || k.includes('history') || k.includes('askAI') || k.includes('messages')
+    );
+    console.log('[Memory] Looking for chat history. Candidate keys:', possibleKeys);
+
+    // Try known keys
+    const keysToTry = ['askAI_chat_history', 'chat_history', 'droplit_chat_history', ...possibleKeys];
+    let rawHistory = null;
+    let foundKey = null;
+
+    for (const key of keysToTry) {
+      const val = localStorage.getItem(key);
+      if (val && val.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
+            rawHistory = val;
+            foundKey = key;
+            console.log(`[Memory] Found history in "${key}": ${parsed.length} messages`);
+            break;
+          }
+        } catch(e) {}
+      }
+    }
+
     if (!rawHistory) {
+      console.log('[Memory] No chat history found in localStorage');
       await memoryStore.setMeta('history_indexed', true);
       return;
     }
@@ -122,24 +148,33 @@ async function indexExistingHistory() {
       return;
     }
 
-    console.log(`[Memory] Indexing ${messages.length} historical messages...`);
+    console.log(`[Memory] Indexing ${messages.length} historical messages from "${foundKey}"...`);
 
-    const texts = messages.map(m => m.text.substring(0, 2000));
-    const vectors = await memoryEngine.embedBatch(texts);
+    // Batch in chunks of 20 to avoid blocking
+    const BATCH_SIZE = 20;
+    let indexed = 0;
+    
+    for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+      const batch = messages.slice(i, i + BATCH_SIZE);
+      const texts = batch.map(m => m.text.substring(0, 2000));
+      const vectors = await memoryEngine.embedBatch(texts);
 
-    const entries = messages.map((m, i) => ({
-      id: 'hist_' + i + '_' + Date.now(),
-      text: m.text.substring(0, 2000),
-      role: m.isUser ? 'user' : 'assistant',
-      vector: vectors[i],
-      timestamp: m.timestamp || (Date.now() - (messages.length - i) * 60000),
-      sessionId: 'history_import',
-      metadata: { imported: true }
-    }));
+      const entries = batch.map((m, j) => ({
+        id: 'hist_' + (i + j) + '_' + Date.now(),
+        text: m.text.substring(0, 2000),
+        role: m.isUser ? 'user' : 'assistant',
+        vector: vectors[j],
+        timestamp: m.timestamp || m.time ? new Date(m.time).getTime() : (Date.now() - (messages.length - i - j) * 60000),
+        sessionId: 'history_import',
+        metadata: { imported: true }
+      }));
 
-    await memoryStore.addBatch(entries);
+      await memoryStore.addBatch(entries);
+      indexed += entries.length;
+      console.log(`[Memory] Indexed batch: ${indexed}/${messages.length}`);
+    }
+
     await memoryStore.setMeta('history_indexed', true);
-
     const stats = await memoryStore.getStats();
     console.log(`[Memory] ✅ History indexed: ${stats.totalMessages} total messages`);
 
@@ -5181,8 +5216,9 @@ async function sendAskAIMessage() {
   
   // Get context from Supabase (v0.9.58 - Dynamic Context)
   let contextForAI = null;
+  let supabaseContext = null;
   try {
-    const supabaseContext = await getSupabaseContext(text, {
+    supabaseContext = await getSupabaseContext(text, {
       limit: 20,
       recentHours: 24,
       searchEnabled: true
