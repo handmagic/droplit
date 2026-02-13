@@ -5,7 +5,7 @@
 // v4.30: Kokoro local TTS provider + settings
 // v4.31: Ollama local LLM integration (Qwen3)
 // v4.32: Infinite Memory (vector search over chat history)
-// v4.33: Topic Detector, keyword fallback, config-loader, memory protocol
+// v4.35: Topic Detector restored, PROPAGATE with quality gate, incremental sync
 // ============================================
 
 // ============================================
@@ -16,6 +16,7 @@ let memoryStore = null;     // VectorStore instance
 let memoryReady = false;    // true когда модель загружена
 let memoryLoading = false;  // true во время загрузки
 let currentSessionId = null; // ID текущей сессии чата
+let memoryIndexingActive = false; // true during background indexing
 
 async function initMemory() {
   if (typeof EmbeddingEngine === 'undefined' || typeof VectorStore === 'undefined') {
@@ -93,15 +94,15 @@ function detectTopicIntent(text) {
   } else {
     // Hardcoded fallback
     patterns = lang === 'ru' ? {
-      history_reference: ['мы обсуждали', 'помнишь', 'мы говорили', 'найди в чате', 'в прошлый раз', 'ранее'],
-      recall_request: ['что я говорил', 'что ты помнишь', 'вспомни', 'какое число', 'что мы решили'],
-      explicit_search: ['найди в чате', 'поищи в истории', 'найди в разговоре'],
-      topic_continuation: ['продолжим', 'вернёмся к', 'так что насчёт']
+      history_reference: ['мы обсуждали', 'помнишь', 'мы говорили', 'найди в чате', 'в прошлый раз', 'ранее', 'раньше', 'до этого', 'прошлом', 'обсуждении'],
+      recall_request: ['что я говорил', 'что ты помнишь', 'вспомни', 'какое число', 'что мы решили', 'я упоминал', 'я рассказывал', 'запомни', 'запоминай', 'ты знаешь обо мне', 'что ты знаешь', 'я тебе говорил', 'я просил'],
+      explicit_search: ['найди в чате', 'поищи в истории', 'найди в разговоре', 'найди в памяти', 'поищи в памяти'],
+      topic_continuation: ['продолжим', 'вернёмся к', 'так что насчёт', 'вернемся к', 'к слову о']
     } : {
-      history_reference: ['we discussed', 'remember when', 'we talked about', 'find in chat', 'last time', 'earlier'],
-      recall_request: ['what did I say', 'do you remember', 'recall', 'what number', 'what did we decide'],
-      explicit_search: ['find in chat', 'search history', 'find in our conversation'],
-      topic_continuation: ['continue with', 'back to', 'so about']
+      history_reference: ['we discussed', 'remember when', 'we talked about', 'find in chat', 'last time', 'earlier', 'previously', 'before this', 'our discussion'],
+      recall_request: ['what did I say', 'do you remember', 'recall', 'what number', 'what did we decide', 'I mentioned', 'I told you', 'remember this', 'you know about me', 'what do you know', 'I asked you'],
+      explicit_search: ['find in chat', 'search history', 'find in our conversation', 'search memory', 'find in memory'],
+      topic_continuation: ['continue with', 'back to', 'so about', 'getting back to', 'as for']
     };
   }
 
@@ -151,12 +152,12 @@ async function searchMemory(queryText) {
   if (!memoryReady || !memoryEngine || !memoryStore) return '';
 
   try {
-    // Get settings from config
-    let topK = 10, threshold = 0.15;
+    // Settings: conservative defaults — quality over quantity
+    let topK = 5, threshold = 0.45;
     if (typeof appConfig !== 'undefined' && appConfig.loaded) {
       const ms = appConfig.getMemorySettings();
-      topK = ms.warm_search_top_k || 10;
-      threshold = ms.warm_min_similarity || 0.15;
+      topK = ms.warm_search_top_k || 5;
+      threshold = ms.warm_min_similarity || 0.45;
     }
 
     // Vector search
@@ -167,15 +168,15 @@ async function searchMemory(queryText) {
       excludeSessionId: currentSessionId
     });
 
-    // Keyword fallback search (cross-language mitigation)
+    // Keyword fallback (only if vector found < 3 results — don't pollute good results)
     let keywordResults = [];
-    if (typeof memoryStore.searchByKeywords === 'function') {
+    if (vectorResults.length < 3 && typeof memoryStore.searchByKeywords === 'function') {
       try {
-        keywordResults = await memoryStore.searchByKeywords(queryText, 5, currentSessionId);
-      } catch(e) { /* keyword search is optional */ }
+        keywordResults = await memoryStore.searchByKeywords(queryText, 3, currentSessionId);
+      } catch(e) {}
     }
 
-    // Merge results (vector results take priority, add unique keyword hits)
+    // Merge (vector first, then unique keyword hits)
     const seenIds = new Set(vectorResults.map(r => r.id));
     const merged = [...vectorResults];
     for (const kr of keywordResults) {
@@ -193,34 +194,34 @@ async function searchMemory(queryText) {
     // Sort by similarity
     merged.sort((a, b) => (b.similarity || b.keywordScore || 0) - (a.similarity || a.keywordScore || 0));
 
-    // PROPAGATE phase: expand with temporal neighbors (±2 messages)
-    // This catches answers next to questions, decisions next to discussions
-    let expanded = merged;
-    if (typeof memoryStore.expandWithNeighbors === 'function') {
+    // Quality gate: only keep results above 0.3 (even keyword hits)
+    const quality = merged.filter(r => (r.similarity || r.keywordScore || 0) >= 0.3);
+    if (quality.length === 0) {
+      console.log('[Memory] Results below quality threshold, skipping');
+      return '';
+    }
+
+    // PROPAGATE: only when top result is high-confidence (>0.5)
+    // This prevents neighbor expansion from flooding low-quality results
+    let final = quality.slice(0, topK);
+    const topScore = final[0].similarity || final[0].keywordScore || 0;
+    
+    if (topScore >= 0.5 && typeof memoryStore.expandWithNeighbors === 'function') {
       try {
-        let propagateWindow = 2, propagateDecay = 0.7, propagateMax = 12;
-        if (typeof appConfig !== 'undefined' && appConfig.loaded) {
-          const ms = appConfig.getMemorySettings();
-          propagateWindow = ms.propagate_window || 2;
-          propagateDecay = ms.propagate_decay || 0.7;
-          propagateMax = ms.propagate_max_results || 12;
-        }
-        expanded = await memoryStore.expandWithNeighbors(
-          merged.slice(0, topK), propagateWindow, propagateDecay, propagateMax
-        );
+        const expanded = await memoryStore.expandWithNeighbors(final, 2, 0.7, 8);
+        // Only keep propagated results above 0.25
+        final = expanded.filter(r => (r.similarity || 0) >= 0.25).slice(0, topK);
       } catch(e) {
-        console.warn('[Memory] PROPAGATE failed, using direct results:', e.message);
+        console.warn('[Memory] PROPAGATE failed:', e.message);
       }
     }
 
-    const topResults = expanded.slice(0, topK);
-
-    console.log(`[Memory] Found ${topResults.length} memories (${vectorResults.length} vector + ${keywordResults.filter(kr => !vectorResults.find(vr => vr.id === kr.id)).length} keyword, ${topResults.filter(r => r._source === 'propagate').length} propagated, top: ${Math.round((topResults[0].similarity || topResults[0].keywordScore || 0) * 100)}%)`);
-    // Log first 3 results for debugging
-    topResults.slice(0, 3).forEach((r, i) => {
+    const propagated = final.filter(r => r._source === 'propagate').length;
+    console.log(`[Memory] Found ${final.length} memories (${vectorResults.length} vec, ${keywordResults.length} kw, ${propagated} prop, top: ${Math.round(topScore * 100)}%)`);
+    final.slice(0, 3).forEach((r, i) => {
       console.log(`[Memory] #${i+1}: "${(r.text || '').substring(0, 80)}..." (${Math.round((r.similarity || r.keywordScore || 0) * 100)}%, ${r.role}, ${r._source || 'direct'})`);
     });
-    return MemoryContext.formatForPrompt(topResults, 1500);
+    return MemoryContext.formatForPrompt(final, 1000);
 
   } catch (error) {
     console.error('[Memory] Search error:', error);
@@ -257,70 +258,96 @@ async function indexExistingHistory() {
       return;
     }
 
-    // Normalize: filter messages with meaningful text, build ID set
+    // Filter messages with meaningful text
     const messages = rawHistory.filter(m => {
       const text = m.text || m.content || m.message || '';
       return text.length >= 10;
     });
 
-    // Build a set of message IDs currently in localStorage
-    const currentIds = new Set();
+    // Assign stable IDs to messages (for incremental sync)
     messages.forEach(m => {
-      // Use message id if available, or generate deterministic id from content+timestamp
-      const msgId = m.id || ('hash_' + simpleHash((m.text || m.content || m.message || '') + (m.ts || m.time || '')));
-      currentIds.add(msgId);
+      if (!m.id) {
+        m.id = 'hash_' + simpleHash((m.text || m.content || m.message || '') + (m.ts || m.time || ''));
+      }
     });
 
-    // Get all indexed IDs from vector store
-    const stats = await memoryStore.getStats();
-    const indexedCount = stats.totalMessages;
+    // Get set of already-indexed IDs from vector store
+    const indexedIds = await memoryStore.getAllIds();
+    const indexedSet = new Set(indexedIds);
+    const chatIds = new Set(messages.map(m => m.id));
+
+    // Find new messages (in chat but not indexed)
+    const toIndex = messages.filter(m => !indexedSet.has(m.id));
     
-    // Quick check: if counts match, likely in sync
-    if (indexedCount === messages.length) {
-      console.log(`[Memory] History in sync: ${indexedCount} indexed = ${messages.length} in localStorage`);
+    // Find orphaned (indexed but not in chat — deleted by user)
+    const toDelete = indexedIds.filter(id => !chatIds.has(id));
+
+    if (toIndex.length === 0 && toDelete.length === 0) {
+      console.log(`[Memory] History in sync: ${indexedSet.size} indexed = ${messages.length} in chat`);
       return;
     }
 
-    // Counts differ — need full sync
-    console.log(`[Memory] History out of sync: ${indexedCount} indexed vs ${messages.length} in localStorage. Rebuilding...`);
-    
-    // Clear and reindex (safest approach — avoids orphaned vectors from deleted messages)
-    await memoryStore.clear();
-    console.log(`[Memory] Cleared old index. Reindexing ${messages.length} messages...`);
+    console.log(`[Memory] Sync: +${toIndex.length} new, -${toDelete.length} deleted (${indexedSet.size} indexed, ${messages.length} in chat)`);
 
-    // Batch in chunks of 20
-    const BATCH_SIZE = 20;
-    let indexed = 0;
-    
-    for (let i = 0; i < messages.length; i += BATCH_SIZE) {
-      const batch = messages.slice(i, i + BATCH_SIZE);
-      const texts = batch.map(m => (m.text || m.content || m.message || '').substring(0, 2000));
-      const vectors = await memoryEngine.embedBatch(texts);
-
-      const entries = batch.map((m, j) => ({
-        id: m.id || ('hist_' + i + '_' + j + '_' + Math.random().toString(36).substr(2, 4)),
-        text: texts[j],
-        role: (m.isUser || m.role === 'user') ? 'user' : 'assistant',
-        vector: vectors[j],
-        timestamp: m.timestamp || (m.ts ? new Date(m.ts).getTime() : (m.time ? new Date(m.time).getTime() : Date.now() - (messages.length - i - j) * 60000)),
-        sessionId: 'history_import',
-        metadata: { imported: true }
-      }));
-
-      await memoryStore.addBatch(entries);
-      indexed += entries.length;
-      
-      // Log progress every batch
-      if (indexed % 100 === 0 || i + BATCH_SIZE >= messages.length) {
-        console.log(`[Memory] Indexed: ${indexed}/${messages.length}`);
+    // Delete orphaned entries
+    if (toDelete.length > 0) {
+      for (const id of toDelete) {
+        try { await memoryStore.delete(id); } catch(e) {}
       }
+      console.log(`[Memory] Removed ${toDelete.length} orphaned entries`);
+    }
+
+    // Index new messages in batches — PAUSES when user sends a message
+    if (toIndex.length > 0) {
+      memoryIndexingActive = true;
+      const BATCH_SIZE = 30; // smaller batches = more responsive to pause
+      let indexed = 0;
+      const startTime = Date.now();
+
+      for (let i = 0; i < toIndex.length; i += BATCH_SIZE) {
+        // Pause while AI is generating response (typing indicator visible)
+        const typingEl = document.getElementById('askAITyping');
+        while (typingEl && typingEl.style.display !== 'none' && typingEl.offsetParent !== null) {
+          await new Promise(r => setTimeout(r, 500));
+        }
+
+        const batch = toIndex.slice(i, i + BATCH_SIZE);
+        const texts = batch.map(m => (m.text || m.content || m.message || '').substring(0, 2000));
+        const vectors = await memoryEngine.embedBatch(texts);
+
+        const entries = batch.map((m, j) => ({
+          id: m.id,
+          text: texts[j],
+          role: (m.isUser || m.role === 'user') ? 'user' : 'assistant',
+          vector: vectors[j],
+          timestamp: m.timestamp || (m.ts ? new Date(m.ts).getTime() : (m.time ? new Date(m.time).getTime() : Date.now() - (toIndex.length - i - j) * 60000)),
+          sessionId: 'history_import',
+          metadata: { imported: true }
+        }));
+
+        await memoryStore.addBatch(entries);
+        indexed += entries.length;
+
+        // Log progress every 200 or at end
+        if (indexed % 200 === 0 || i + BATCH_SIZE >= toIndex.length) {
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+          const rate = (indexed / (Date.now() - startTime) * 1000).toFixed(0);
+          console.log(`[Memory] Indexed: ${indexed}/${toIndex.length} (${elapsed}s, ${rate} msg/s)`);
+        }
+
+        // Yield to UI thread — longer pause for mobile
+        if (i + BATCH_SIZE < toIndex.length) {
+          await new Promise(r => setTimeout(r, 50));
+        }
+      }
+      memoryIndexingActive = false;
     }
 
     const finalStats = await memoryStore.getStats();
-    console.log(`[Memory] ✅ History reindexed: ${finalStats.totalMessages} total messages in vector store`);
+    console.log(`[Memory] ✅ Sync complete: ${finalStats.totalMessages} messages indexed`);
 
   } catch (error) {
-    console.error('[Memory] History indexing failed:', error);
+    console.error('[Memory] History sync failed:', error);
   }
 }
 
@@ -5096,9 +5123,14 @@ async function sendToOllama(text, history, knowledge) {
     systemPrompt += '\n\nUser\'s personal knowledge base:\n' + knowledge;
   }
   
-  // v4.34: ALWAYS search memory for Ollama too
+  // v4.35: Topic Detector guard for Ollama too
+  const ollamaIntent = detectTopicIntent(text);
+  const ollamaNeedsMemory = ['HISTORY_REFERENCE', 'RECALL_REQUEST', 'EXPLICIT_SEARCH', 'TOPIC_CONTINUATION'].includes(ollamaIntent.intent);
+  
   let memCtx = '';
-  try { memCtx = await searchMemory(text); } catch(e) {}
+  if (ollamaNeedsMemory) {
+    try { memCtx = await searchMemory(text); } catch(e) {}
+  }
   if (memCtx) {
     systemPrompt += '\n\n' + memCtx;
     console.log('[Ollama+Memory] Injecting', memCtx.length, 'chars of memory context');
@@ -5412,15 +5444,28 @@ async function sendAskAIMessage() {
     }
   }
   
-  // v4.34: ALWAYS search memory — Topic Detector removed, search is fast enough (~50ms)
+  // v4.35: Topic Detector restored as quality guard
+  // Without it, every "привет" floods context with 1800 random old messages
+  // Memory search only fires when user likely references past conversations
   let memoryContext = '';
-  try {
-    memoryContext = await searchMemory(text);
-    if (memoryContext) {
-      console.log('[Memory] Injecting', memoryContext.length, 'chars of memory context');
+  const topicIntent = detectTopicIntent(text);
+  const needsMemory = [
+    'HISTORY_REFERENCE', 'RECALL_REQUEST', 
+    'EXPLICIT_SEARCH', 'TOPIC_CONTINUATION'
+  ].includes(topicIntent.intent);
+  
+  if (needsMemory) {
+    try {
+      console.log(`[Memory] Topic: ${topicIntent.intent} (${topicIntent.language}), searching...`);
+      memoryContext = await searchMemory(text);
+      if (memoryContext) {
+        console.log('[Memory] Injecting', memoryContext.length, 'chars');
+      }
+    } catch (e) {
+      console.warn('[Memory] Search failed:', e.message);
     }
-  } catch (e) {
-    console.warn('[Memory] Search failed, continuing without memory:', e.message);
+  } else {
+    // Silent skip — no log spam for normal messages
   }
   
   console.log('Sending to:', llmProvider === 'ollama' ? ollamaUrl : AI_API_URL);
