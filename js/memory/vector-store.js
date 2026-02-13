@@ -1,6 +1,6 @@
 // ============================================================
 // vector-store.js — IndexedDB хранилище для ASKI Infinite Memory
-// Version: 1.0
+// Version: 1.1 — resilient _ensureOpen (auto-reconnect if connection closed)
 //
 // Хранит эмбеддинги сообщений чата в IndexedDB.
 // Выполняет cosine similarity поиск по всем векторам.
@@ -369,10 +369,22 @@ class VectorStore {
   // ─── ПРИВАТНЫЕ МЕТОДЫ ──────────────────────────────────
 
   /**
-   * Гарантировать что БД открыта
+   * Гарантировать что БД открыта (v1.1: resilient to closed connections)
    */
   async _ensureOpen() {
-    if (!this.db) await this.open();
+    // If db reference exists but connection was closed by another module, reopen
+    if (this.db) {
+      try {
+        // Test if connection is alive by attempting a transaction
+        this.db.transaction(this.storeName, 'readonly');
+        return; // Connection is alive
+      } catch (e) {
+        // Connection is dead (closing/closed) — reset and reopen
+        console.warn('[VectorStore] Connection lost, reopening...');
+        this.db = null;
+      }
+    }
+    await this.open();
   }
 
   /**
