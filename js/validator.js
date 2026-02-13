@@ -12,7 +12,7 @@ const AskiValidator = (function() {
   
   const CONFIG = {
     MAX_INPUT_LENGTH: 500,      // Max user message length
-    MAX_OUTPUT_LENGTH: 8000,    // Max ASKI response length
+    MAX_OUTPUT_LENGTH: 3000,    // Max ASKI response length
     STORAGE_KEY: 'droplit_validator_db',
     VERSION: '1.0'
   };
@@ -73,8 +73,8 @@ const AskiValidator = (function() {
       'интегрирован с банк',
       'интегрирован с google',
       'интегрирован с apple',
-      //'подключу к интернету',
-      //'подключу к api',
+      'подключу к интернету',
+      'подключу к api',
       // 'имею доступ к камере',
       // 'имею доступ к микрофону',
       // 'имею доступ к геолокации',
@@ -92,10 +92,10 @@ const AskiValidator = (function() {
       // 'скоро будет доступно',
       // 'планируется добавить',
       // 'планируется внедрить',
-      //'работаем над этим',
+      'работаем над этим',
       // 'в разработке',
       // 'будет реализовано',
-      //'обещаю добавить'
+      'обещаю добавить'
     ],
     
     architectureLeak: [
@@ -110,7 +110,7 @@ const AskiValidator = (function() {
       //'мой промпт',
       //'меня запрограммировали',
       //'меня настроили',
-      //'меня обучили',
+      'меня обучили',
       //'в моих инструкциях',
       //'мои ограничения установлены',
       //'мои ограничения заданы',
@@ -118,7 +118,7 @@ const AskiValidator = (function() {
       //'я работаю на модели',
       //'я основан на',
       // 'моя архитектура',
-      //'мой исходный код'
+      'мой исходный код'
     ],
     
     hallucinationMarkers: [
@@ -145,14 +145,14 @@ const AskiValidator = (function() {
     ],
     
     manipulation: [
-      //'доверься мне',
-      //'поверь мне',
+      'доверься мне',
+      'поверь мне',
       'я никогда не ошибаюсь',
       'я никогда не вру',
       'я никогда не обманываю',
       'только между нами',
       'не говори никому',
-      //'это секрет',
+      'это секрет',
       // 'никто не узнает',
       'ты должен мне верить',
       // 'я твой друг',
@@ -210,6 +210,18 @@ const AskiValidator = (function() {
       const stored = localStorage.getItem(CONFIG.STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
+        // v1.1: Clear obsolete hallucination patterns from localStorage
+        // These were valid before vector memory, now they block legitimate memory responses
+        if (parsed.hallucinationMarkers) {
+          delete parsed.hallucinationMarkers;
+        }
+        if (parsed.learnedBadPatterns && Array.isArray(parsed.learnedBadPatterns)) {
+          parsed.learnedBadPatterns = parsed.learnedBadPatterns.filter(p => 
+            !p.includes('обсуждали') && !p.includes('говорили') && !p.includes('упоминал') &&
+            !p.includes('рассказывал') && !p.includes('ранее') && !p.includes('прошлый раз') &&
+            !p.includes('помню') && !p.includes('знаю, что ты')
+          );
+        }
         // Merge with defaults to ensure all fields exist
         db = mergeDeep(JSON.parse(JSON.stringify(DEFAULT_DB)), parsed);
       } else {
@@ -362,21 +374,19 @@ const AskiValidator = (function() {
       }
     }
     
-    // 3.3 Architecture leak — DISABLED v1.1
-    // Was blocking normal conversations about app settings (e.g. "openai", "api")
-    // Patterns too broad for a voice assistant that legitimately discusses its own features
-    // for (const pattern of db.architectureLeak) {
-    //   if (textLower.includes(pattern.toLowerCase())) {
-    //     result.valid = false;
-    //     result.blocked = true;
-    //     result.reason = 'architecture_leak';
-    //     result.sanitized = FALLBACKS.architecture_leak;
-    //     logBlock(text, 'architecture_leak', pattern);
-    //     updateStats('architecture_leak', false);
-    //     result.processingTime = performance.now() - startTime;
-    //     return result;
-    //   }
-    // }
+    // 3.3 Architecture leak
+    for (const pattern of db.architectureLeak) {
+      if (textLower.includes(pattern.toLowerCase())) {
+        result.valid = false;
+        result.blocked = true;
+        result.reason = 'architecture_leak';
+        result.sanitized = FALLBACKS.architecture_leak;
+        logBlock(text, 'architecture_leak', pattern);
+        updateStats('architecture_leak', false);
+        result.processingTime = performance.now() - startTime;
+        return result;
+      }
+    }
     
     // 3.4 Hallucination markers (without context verification)
     for (const pattern of db.hallucinationMarkers) {
