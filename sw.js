@@ -42,6 +42,11 @@ self.addEventListener('install', (event) => {
 // ============================================
 // ACTIVATE: Clean old caches, start scheduler
 // ============================================
+// IMPORTANT: transformers-cache holds the 23MB ML model (MiniLM/e5-small).
+// Deleting it forces re-download every SW update (40s desktop, 90s mobile).
+// We preserve it and only delete old droplit-* versioned caches.
+const PRESERVE_CACHES = ['transformers-cache'];
+
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating...');
   event.waitUntil(
@@ -49,7 +54,7 @@ self.addEventListener('activate', (event) => {
       .then((cacheNames) => {
         return Promise.all(
           cacheNames
-            .filter((name) => name !== CACHE_NAME)
+            .filter((name) => name !== CACHE_NAME && !PRESERVE_CACHES.includes(name))
             .map((name) => {
               console.log('[SW] Deleting old cache:', name);
               return caches.delete(name);
@@ -57,6 +62,7 @@ self.addEventListener('activate', (event) => {
         );
       })
       .then(() => {
+        console.log('[SW] Preserved caches:', PRESERVE_CACHES.join(', '));
         // Start command scheduler
         startCommandScheduler();
         return self.clients.claim();
@@ -66,23 +72,45 @@ self.addEventListener('activate', (event) => {
 
 // ============================================
 // FETCH: Network first, fallback to cache
+// Smart caching: skip API calls, preserve model files
 // ============================================
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (!event.request.url.startsWith('http')) return;
+
+  const url = new URL(event.request.url);
+  
+  // Never cache API calls (Supabase, Vercel functions, etc.)
+  const skipCache = 
+    url.hostname.includes('supabase.co') ||
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/rest/') ||
+    url.hostname.includes('api.anthropic.com') ||
+    url.hostname.includes('api.openai.com') ||
+    url.hostname.includes('api.elevenlabs.io');
+
+  if (skipCache) {
+    // Network only for API calls — no caching
+    return;
+  }
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
         if (response.status === 200) {
           const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
+          // Cache ML models in their own cache, everything else in app cache
+          const targetCache = url.hostname.includes('huggingface.co') || 
+                              url.hostname.includes('cdn-lfs') 
+                              ? 'transformers-cache' : CACHE_NAME;
+          caches.open(targetCache).then((cache) => {
             cache.put(event.request, responseClone);
           });
         }
         return response;
       })
       .catch(() => {
+        // Try all caches for offline fallback
         return caches.match(event.request)
           .then((cachedResponse) => {
             if (cachedResponse) {
