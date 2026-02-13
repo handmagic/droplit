@@ -1,6 +1,6 @@
 // ============================================================
 // vector-store.js — IndexedDB хранилище для ASKI Infinite Memory
-// Version: 1.1 — resilient _ensureOpen (auto-reconnect if connection closed)
+// Version: 1.2 — keyword search for cross-language fallback
 //
 // Хранит эмбеддинги сообщений чата в IndexedDB.
 // Выполняет cosine similarity поиск по всем векторам.
@@ -296,6 +296,73 @@ class VectorStore {
         }
         cursor.delete();
         deleted++;
+        cursor.continue();
+      };
+
+      tx.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  // ─── ОЧИСТКА ───────────────────────────────────────────
+
+  // ─── KEYWORD SEARCH (v1.2: cross-language fallback) ────
+
+  /**
+   * Text-based keyword search — catches cross-language matches
+   * that vector search misses (e.g., "P vs NP" in both languages)
+   * @param {string} queryText - raw query text
+   * @param {number} limit - max results
+   * @returns {Array} - matches with keywordScore
+   */
+  async searchByKeywords(queryText, limit = 5) {
+    if (!queryText || queryText.length < 2) return [];
+    await this._ensureOpen();
+
+    // Extract keywords (words > 2 chars, no common stop words)
+    const stopWords = new Set(['the','and','for','are','but','not','you','all','can','her','was','one','our','из','что','как','это','все','они','его','для','при','без']);
+    const keywords = queryText
+      .toLowerCase()
+      .replace(/[^\w\sа-яё]/gi, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w));
+
+    if (keywords.length === 0) return [];
+
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(this.storeName, 'readonly');
+      const store = tx.objectStore(this.storeName);
+      const results = [];
+
+      store.openCursor().onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (!cursor) {
+          results.sort((a, b) => b.keywordScore - a.keywordScore);
+          resolve(results.slice(0, limit));
+          return;
+        }
+
+        const entry = cursor.value;
+        if (!entry.text) { cursor.continue(); return; }
+
+        const textLower = entry.text.toLowerCase();
+        let matches = 0;
+        for (const kw of keywords) {
+          if (textLower.includes(kw)) matches++;
+        }
+
+        if (matches > 0) {
+          results.push({
+            id: entry.id,
+            text: entry.text,
+            role: entry.role,
+            timestamp: entry.timestamp,
+            sessionId: entry.sessionId,
+            keywordScore: matches / keywords.length,
+            similarity: matches / keywords.length, // normalize for MemoryContext compatibility
+            metadata: entry.metadata || {}
+          });
+        }
+
         cursor.continue();
       };
 
