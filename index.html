@@ -109,11 +109,12 @@
   <script src="js/validator.js"></script>
   <script src="js/command-validator.js"></script>
 
-  <!-- Infinite Memory — semantic search over chat history (v0.9.124) -->
+  <!-- Infinite Memory — semantic search over chat history (v0.9.125) -->
   <script src="js/memory/vector-store.js"></script>
-  <script src="js/memory/embedding-engine.js"></script>
   <script src="js/memory/memory-context.js"></script>
-  <script src="js/memory/infinite-memory.js"></script>
+  <script src="js/memory/embedding-engine.js"></script>
+  <!-- embedding-worker.js loaded dynamically by embedding-engine.js -->
+  <!-- infinite-memory.js not needed — integration is in chat.js -->
   
   <script>
     // AutoDrop check - must be defined before chat.js
