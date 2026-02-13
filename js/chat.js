@@ -5891,8 +5891,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // v4.33: Load config from cache (instant), then refresh from Supabase (background)
   if (typeof appConfig !== 'undefined') {
     appConfig.loadCached();
-    // Background refresh after app is functional
-    setTimeout(() => { appConfig.refreshFromSupabase(); }, 2000);
+    // Background refresh — wait for Supabase client to be ready (auth initializes it)
+    setTimeout(() => { appConfig.refreshFromSupabase(); }, 5000);
   }
   
   // v4.32: Start Infinite Memory in background (23MB model, cached after first load)
