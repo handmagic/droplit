@@ -702,21 +702,201 @@ async function pullFromServer() {
   if (!currentUser) return;
   
   try {
-    const { count, error } = await supabaseClient
+    // Check if local storage already has drops
+    const localRaw = localStorage.getItem('droplit_ideas');
+    const localDrops = localRaw ? JSON.parse(localRaw) : [];
+    
+    // Count server drops
+    const { count, error: countErr } = await supabaseClient
       .from('drops')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', currentUser.id);
     
-    if (error) throw error;
+    if (countErr) throw countErr;
     
-    if (count > 0) {
-      console.log('[Auth] Server has', count, 'drops');
+    console.log('[Auth] Server has', count, 'drops, local has', localDrops.length);
+    
+    // If local is populated, skip full pull (backgroundSync handles incremental)
+    if (localDrops.length > 0) {
+      lastSyncTime = new Date();
+      return;
+    }
+    
+    // Local is empty but server has data → full pull (cache cleared, new device, etc.)
+    if (count === 0) {
+      lastSyncTime = new Date();
+      return;
+    }
+    
+    console.log('[Auth] Local empty, pulling', count, 'drops from server...');
+    if (typeof updateSyncUI === 'function') updateSyncUI('syncing', 'Restoring...');
+    
+    // Fetch all drops in pages of 500
+    const allServerDrops = [];
+    const PAGE_SIZE = 500;
+    let from = 0;
+    
+    while (from < count) {
+      const { data, error } = await supabaseClient
+        .from('drops')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+      
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      
+      allServerDrops.push(...data);
+      from += data.length;
+      
+      console.log('[Auth] Fetched', allServerDrops.length, '/', count);
+    }
+    
+    // Convert server drops → local format
+    const encModule = window.DropLitEncryption;
+    const keysModule = window.DropLitKeys;
+    let encKey = null;
+    
+    // Try to get decryption key
+    if (encModule?.decryptDrop && keysModule?.retrieveKey) {
+      try {
+        const keyData = await keysModule.retrieveKey(currentUser.id);
+        if (keyData?.key) encKey = keyData.key;
+      } catch (e) { /* no key */ }
+    }
+    
+    const restoredDrops = [];
+    let decryptedCount = 0;
+    let plaintextCount = 0;
+    let failedCount = 0;
+    
+    for (const serverDrop of allServerDrops) {
+      try {
+        let localDrop;
+        
+        if (serverDrop.encrypted_content && serverDrop.encryption_version > 0 && encKey) {
+          // Decrypt encrypted drop
+          const decrypted = await encModule.decryptDrop(serverDrop, encKey);
+          localDrop = mapServerToLocal(decrypted, serverDrop);
+          decryptedCount++;
+        } else if (serverDrop.encrypted_content && !encKey) {
+          // Encrypted but no key — store minimal info
+          localDrop = mapServerToLocal(null, serverDrop);
+          localDrop._encrypted = true;
+          localDrop._needsDecryption = true;
+          failedCount++;
+        } else {
+          // Plaintext drop
+          localDrop = mapServerToLocal(null, serverDrop);
+          plaintextCount++;
+        }
+        
+        restoredDrops.push(localDrop);
+        
+      } catch (dropErr) {
+        console.warn('[Auth] Failed to process drop:', serverDrop.external_id, dropErr.message);
+        failedCount++;
+      }
+    }
+    
+    // Sort by timestamp descending (newest first)
+    restoredDrops.sort((a, b) => b.id - a.id);
+    
+    // Save to localStorage
+    localStorage.setItem('droplit_ideas', JSON.stringify(restoredDrops));
+    
+    // Rebuild sync tracker (all these drops are already on server)
+    const syncTracker = {};
+    const now = Date.now();
+    for (const d of restoredDrops) {
+      syncTracker[String(d.id)] = now;
+    }
+    localStorage.setItem('droplit_sync_tracker_' + currentUser.id, JSON.stringify(syncTracker));
+    
+    console.log('[Auth] ✅ Restored', restoredDrops.length, 'drops (' +
+      decryptedCount + ' decrypted, ' + plaintextCount + ' plaintext, ' + failedCount + ' failed)');
+    
+    // Trigger UI refresh
+    if (typeof render === 'function') render();
+    if (typeof toast === 'function') {
+      toast('Restored ' + restoredDrops.length + ' drops', 'success');
     }
     
     lastSyncTime = new Date();
+    if (typeof updateSyncUI === 'function') updateSyncUI('synced', 'Restored');
+    
   } catch (error) {
     console.error('[Auth] Pull error:', error);
+    if (typeof updateSyncUI === 'function') updateSyncUI('error', 'Restore failed');
   }
+}
+
+/**
+ * Convert server drop → local format (for localStorage)
+ * Inverse of mapDropToServer
+ */
+function mapServerToLocal(decryptedData, serverDrop) {
+  const meta = serverDrop.metadata || {};
+  
+  const local = {
+    // ID: use external_id (which is our original Date.now() id)
+    id: parseInt(serverDrop.external_id) || Date.now(),
+    
+    // Text content (from decrypted data or server plaintext)
+    text: decryptedData?.text || serverDrop.content || '',
+    
+    // Category and classification
+    category: serverDrop.category || 'inbox',
+    
+    // Timestamps
+    timestamp: meta.timestamp || serverDrop.created_at,
+    date: meta.date || null,
+    time: meta.time || null,
+    
+    // Creator
+    creator: serverDrop.creator || 'user',
+    source: serverDrop.source || 'droplit',
+    
+    // Tags and markers
+    tags: serverDrop.tags || [],
+    markers: serverDrop.markers || [],
+    
+    // Flags
+    isMedia: serverDrop.is_media || false,
+    isMerged: serverDrop.is_merged || false,
+    aiGenerated: serverDrop.ai_generated || false,
+    
+    // Text fields
+    transcription: decryptedData?.transcription || serverDrop.transcription || null,
+    originalText: serverDrop.original_text || null,
+    notes: decryptedData?.notes || serverDrop.notes || null,
+    
+    // Media (from decrypted or metadata)
+    audioData: decryptedData?.audioData || null,
+    image: decryptedData?.image || null,
+    audioFormat: meta.audio_format || null,
+    audioSize: meta.audio_size || null,
+    duration: meta.audio_duration || null,
+    
+    // Geo (sensitive, from decrypted only)
+    geo: decryptedData?.geo || null,
+    
+    // Session
+    sessionId: meta.session_id || null,
+    
+    // Lifecycle
+    lifecycle_state: serverDrop.is_archived ? 'archived' : 'active',
+    
+    // Privacy
+    privacy_level: serverDrop.privacy_level || 'standard',
+    
+    // Sync marker
+    synced: true,
+    syntrise_id: serverDrop.id  // server UUID
+  };
+  
+  return local;
 }
 
 // ============================================
