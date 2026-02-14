@@ -75,9 +75,15 @@ async function initSupabase() {
       await pullFromServer();
       updateSyncUI('synced', 'Synced');
     } else {
-      // No session — onboarding.js will handle login
-      console.log('ℹ️ No session — waiting for onboarding to authenticate user');
-      updateSyncUI('offline', 'Not signed in');
+      // No session — try dev auto-login
+      // TODO: Remove this block before public beta launch
+      console.log('🔐 No session — attempting dev auto-login...');
+      const devLogin = await devAutoLogin();
+      if (!devLogin) {
+        // Dev login failed — onboarding.js will handle
+        console.log('ℹ️ Dev login failed — waiting for onboarding');
+        updateSyncUI('offline', 'Not signed in');
+      }
     }
     
     console.log('✅ Auth initialized');
@@ -311,10 +317,45 @@ function updateSyncUI(status, text) {
 }
 
 // ============================================
+// DEV AUTO-LOGIN
+// TODO: Remove this entire block before public beta
+// ============================================
+async function devAutoLogin() {
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: 'test2@syntrise.com',
+      password: '12345'
+    });
+    
+    if (error) {
+      console.warn('⚠️ Dev auto-login failed:', error.message);
+      return false;
+    }
+    
+    currentUser = data.user;
+    console.log('✅ Dev auto-login:', currentUser.email);
+    if (typeof toast === 'function') toast('✅ Dev: ' + currentUser.email, 'success');
+    
+    await pullFromServer();
+    updateSyncUI('synced', 'Synced');
+    return true;
+  } catch (e) {
+    console.warn('⚠️ Dev auto-login error:', e.message);
+    return false;
+  }
+}
+
+// ============================================
 // INITIALIZE ON LOAD
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(initSupabase, 300);
+  // Expose promise so onboarding.js can wait for auth to complete
+  window.__DROPLIT_AUTH_PROMISE = new Promise(resolve => {
+    setTimeout(async () => {
+      await initSupabase();
+      resolve();
+    }, 300);
+  });
 });
 
 // ============================================
