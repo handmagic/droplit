@@ -1,6 +1,7 @@
 // ============================================
-// DROPLIT AUTH v1.0
+// DROPLIT AUTH v2.0
 // Supabase authentication and sync
+// No forced login — works with onboarding.js
 // ============================================
 
 // ============================================
@@ -48,14 +49,13 @@ async function initSupabase() {
     // Check for existing session
     let { data: { session } } = await supabaseClient.auth.getSession();
     
-    // v1.2: ALWAYS refresh token on init — cached expires_at can be stale
-    // refreshSession() is cheap and idempotent
+    // Refresh token if session exists
     if (session) {
       console.log('🔄 Refreshing JWT token...');
       try {
         const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
         if (refreshError) {
-          console.warn('⚠️ Token refresh failed:', refreshError.message, '— will re-login');
+          console.warn('⚠️ Token refresh failed:', refreshError.message);
           session = null;
         } else if (refreshData?.session) {
           session = refreshData.session;
@@ -67,105 +67,56 @@ async function initSupabase() {
       }
     }
     
-    // If session exists but NOT our test user - sign out first
-    const TEST_USER_ID = '10531fa2-b07e-41db-bc41-f6bd955beb26';
-    
-    if (session && session.user.id !== TEST_USER_ID) {
-      console.log('🔄 Wrong user, signing out...', session.user.id.substring(0, 8));
-      await supabaseClient.auth.signOut();
-      await signInWithTestAccount();
-    } else if (session && session.user.id === TEST_USER_ID) {
+    if (session) {
+      // Session exists — user already authenticated (via onboarding or previous session)
       currentUser = session.user;
-      if (typeof toast === 'function') toast('✅ User: ' + currentUser.id.substring(0, 8) + '...', 'success');
-      console.log('✅ Correct session found:', currentUser.id.substring(0, 8) + '...');
+      console.log('✅ Session found:', currentUser.email, currentUser.id.substring(0, 8) + '...');
+      if (typeof toast === 'function') toast('✅ Welcome back, ' + (currentUser.email || 'user'), 'success');
       await pullFromServer();
       updateSyncUI('synced', 'Synced');
     } else {
-      // No session - sign in
-      await signInWithTestAccount();
+      // No session — onboarding.js will handle login
+      console.log('ℹ️ No session — waiting for onboarding to authenticate user');
+      updateSyncUI('offline', 'Not signed in');
     }
     
-    // NO AUTH LISTENER - disabled to stop loop
-    // Auth state will be checked manually when needed
-    console.log('✅ Auth initialized - NO listener (disabled to stop loop)');
+    // Listen for auth state changes (user signs in via onboarding)
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔔 Auth state:', event);
+      
+      if (event === 'SIGNED_IN' && session) {
+        currentUser = session.user;
+        console.log('✅ Signed in:', currentUser.email);
+        
+        // Check if first time — migrate local data
+        const migrated = localStorage.getItem('droplit_migrated_' + currentUser.id);
+        if (!migrated && typeof ideas !== 'undefined' && ideas.length > 0) {
+          await migrateLocalData();
+        } else {
+          await pullFromServer();
+        }
+        updateSyncUI('synced', 'Synced');
+        
+        // Update account UI
+        if (typeof updateAccountUI === 'function') updateAccountUI();
+      
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        currentUser = session.user;
+        console.log('🔄 Token refreshed');
+      
+      } else if (event === 'SIGNED_OUT') {
+        currentUser = null;
+        updateSyncUI('offline', 'Signed out');
+        console.log('👋 Signed out');
+      }
+    });
     
+    console.log('✅ Auth initialized');
     return true;
+    
   } catch (error) {
     console.error('❌ Supabase init error:', error);
     updateSyncUI('error', 'Error');
-    return false;
-  }
-}
-
-// ============================================
-// SIGN IN WITH TEST ACCOUNT
-// ============================================
-async function signInWithTestAccount() {
-  try {
-    updateSyncUI('syncing', 'Connecting...');
-    if (typeof toast === 'function') toast('🔐 Logging in...', 'info');
-    
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email: 'test2@syntrise.com',
-      password: '12345'
-    });
-    
-    if (error) {
-      if (typeof toast === 'function') toast('❌ Login error: ' + error.message, 'error');
-      throw error;
-    }
-    
-    currentUser = data.user;
-    if (typeof toast === 'function') toast('✅ Logged in: ' + currentUser.id.substring(0, 8) + '...', 'success');
-    console.log('✅ Signed in as:', currentUser.email, currentUser.id.substring(0, 8) + '...');
-    
-    // Check if first time - migrate local data
-    const migrated = localStorage.getItem('droplit_migrated_' + currentUser.id);
-    if (!migrated && typeof ideas !== 'undefined' && ideas.length > 0) {
-      await migrateLocalData();
-    } else {
-      // Sync from server
-      await pullFromServer();
-    }
-    
-    updateSyncUI('synced', 'Synced');
-    return true;
-  } catch (error) {
-    console.error('❌ Sign in error:', error);
-    if (typeof toast === 'function') toast('❌ Auth failed: ' + error.message, 'error');
-    updateSyncUI('error', 'Auth error');
-    return false;
-  }
-}
-
-// ============================================
-// ANONYMOUS SIGN IN (BACKUP)
-// ============================================
-async function signInAnonymously() {
-  try {
-    updateSyncUI('syncing', 'Connecting...');
-    
-    const { data, error } = await supabaseClient.auth.signInAnonymously();
-    
-    if (error) throw error;
-    
-    currentUser = data.user;
-    console.log('✅ Signed in anonymously:', currentUser.id.substring(0, 8) + '...');
-    
-    // Check if first time - migrate local data
-    const migrated = localStorage.getItem('droplit_migrated_' + currentUser.id);
-    if (!migrated && typeof ideas !== 'undefined' && ideas.length > 0) {
-      await migrateLocalData();
-    } else {
-      // Sync from server
-      await pullFromServer();
-    }
-    
-    updateSyncUI('synced', 'Synced');
-    return true;
-  } catch (error) {
-    console.error('❌ Anonymous sign in error:', error);
-    updateSyncUI('error', 'Auth error');
     return false;
   }
 }
@@ -180,7 +131,6 @@ async function migrateLocalData() {
   console.log(`📦 Migrating ${ideas.length} drops to Supabase...`);
   
   try {
-    // Filter only text drops (skip media for MVP)
     const textDrops = ideas.filter(i => !i.isMedia && !i.image && !i.audioData);
     
     const dropsToInsert = textDrops.map(idea => ({
@@ -209,20 +159,15 @@ async function migrateLocalData() {
     }));
     
     if (dropsToInsert.length > 0) {
-      // Insert in batches of 50
       for (let i = 0; i < dropsToInsert.length; i += 50) {
         const batch = dropsToInsert.slice(i, i + 50);
         const { error } = await supabaseClient
           .from('drops')
           .upsert(batch, { onConflict: 'external_id', ignoreDuplicates: false });
-        
-        if (error) {
-          console.error('Migration batch error:', error);
-        }
+        if (error) console.error('Migration batch error:', error);
       }
     }
     
-    // Log migration
     await supabaseClient.from('sync_log').insert({
       user_id: currentUser.id,
       action: 'migrate',
@@ -232,7 +177,6 @@ async function migrateLocalData() {
     
     localStorage.setItem('droplit_migrated_' + currentUser.id, 'true');
     console.log(`✅ Migrated ${dropsToInsert.length} text drops`);
-    
     updateSyncUI('synced', 'Migrated!');
     if (typeof toast === 'function') toast(`Synced ${dropsToInsert.length} drops to cloud!`, 'success');
     
@@ -249,21 +193,14 @@ async function pullFromServer() {
   if (!currentUser) return;
   
   try {
-    // Lightweight sync check — just count, don't pull full data
-    // Full merge will be implemented in TODO: proper conflict resolution
     const { count, error } = await supabaseClient
       .from('drops')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', currentUser.id);
     
     if (error) throw error;
-    
-    if (count > 0) {
-      console.log(`📥 Server has ${count} drops (sync check only)`);
-    }
-    
+    if (count > 0) console.log(`📥 Server has ${count} drops (sync check only)`);
     lastSyncTime = new Date();
-    
   } catch (error) {
     console.error('❌ Pull error:', error);
   }
@@ -278,7 +215,6 @@ async function syncDropToServer(idea, action = 'create') {
     return false;
   }
   
-  // Skip media drops for MVP
   if (idea.isMedia || idea.image || idea.audioData) {
     console.log('⏸️ Skipping media drop sync (MVP)');
     return true;
@@ -312,25 +248,16 @@ async function syncDropToServer(idea, action = 'create') {
       }
     };
     
-    console.log('📤 Syncing drop:', dropData.external_id);
-    
-    const { error, data } = await supabaseClient
+    const { error } = await supabaseClient
       .from('drops')
-      .upsert(dropData, { 
-        onConflict: 'external_id',
-        ignoreDuplicates: false 
-      })
+      .upsert(dropData, { onConflict: 'external_id', ignoreDuplicates: false })
       .select();
     
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
-    }
+    if (error) throw error;
     
     console.log(`☁️ Synced drop ${String(idea.id).substring(0, 8)}... (${action})`);
     updateSyncUI('synced', 'Synced');
     lastSyncTime = new Date();
-    
     return true;
   } catch (error) {
     console.error('❌ Sync error:', error);
@@ -347,7 +274,6 @@ async function deleteDropFromServer(ideaId) {
   
   try {
     updateSyncUI('syncing', 'Deleting...');
-    
     const { error } = await supabaseClient
       .from('drops')
       .delete()
@@ -355,10 +281,8 @@ async function deleteDropFromServer(ideaId) {
       .eq('user_id', currentUser.id);
     
     if (error) throw error;
-    
     console.log(`🗑️ Deleted drop ${String(ideaId).substring(0, 8)}...`);
     updateSyncUI('synced', 'Synced');
-    
     return true;
   } catch (error) {
     console.error('❌ Delete sync error:', error);
@@ -375,7 +299,6 @@ async function manualSync() {
   
   if (!currentUser) {
     if (typeof toast === 'function') toast('Not connected to cloud', 'warning');
-    initSupabase();
     return;
   }
   
@@ -383,7 +306,6 @@ async function manualSync() {
   if (typeof toast === 'function') toast('Syncing...', 'info');
   
   try {
-    // Sync all local text drops
     const textDrops = (typeof ideas !== 'undefined' ? ideas : []).filter(i => !i.isMedia && !i.image && !i.audioData);
     let synced = 0;
     
@@ -395,7 +317,6 @@ async function manualSync() {
     lastSyncTime = new Date();
     updateLastSyncInfo();
     if (typeof toast === 'function') toast(`Synced ${synced} drops to cloud`, 'success');
-    
   } catch (error) {
     console.error('❌ Manual sync error:', error);
     if (typeof toast === 'function') toast('Sync failed: ' + error.message, 'error');
@@ -410,16 +331,10 @@ async function manualSync() {
 function updateLastSyncInfo() {
   const el = document.getElementById('lastSyncInfo');
   if (!el) return;
-  
-  if (lastSyncTime) {
-    el.textContent = 'Last sync: ' + lastSyncTime.toLocaleTimeString();
-  } else {
-    el.textContent = 'Last sync: —';
-  }
+  el.textContent = lastSyncTime ? 'Last sync: ' + lastSyncTime.toLocaleTimeString() : 'Last sync: —';
 }
 
 function updateSyncUI(status, text) {
-  // Update lastSyncInfo if synced
   if (status === 'synced') {
     lastSyncTime = new Date();
     updateLastSyncInfo();
@@ -430,8 +345,7 @@ function updateSyncUI(status, text) {
 // INITIALIZE ON LOAD
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Signal that auth is starting - onboarding.js should wait for this
-  window.__DROPLIT_AUTH_PROMISE = initSupabase(); // Run immediately, expose promise
+  setTimeout(initSupabase, 300);
 });
 
 // ============================================
@@ -439,8 +353,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 window.DropLitAuth = {
   initSupabase,
-  signInWithTestAccount,
-  signInAnonymously,
   syncDropToServer,
   deleteDropFromServer,
   manualSync,
