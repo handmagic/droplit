@@ -1,6 +1,7 @@
 // ============================================
-// DROPLIT AUTH v1.0
-// Supabase authentication and sync
+// DROPLIT AUTH v3.0 — UNIFIED
+// Replaces: auth.js v1.0 + onboarding.js v1.0
+// Eliminates race condition between two files
 // ============================================
 
 // ============================================
@@ -26,84 +27,249 @@ const DEVICE_ID = localStorage.getItem('droplit_device_id') || (() => {
 console.log('📱 Device ID:', DEVICE_ID);
 
 // ============================================
-// INITIALIZE SUPABASE
+// DEV MODE DETECTION
 // ============================================
-async function initSupabase() {
-  try {
-    if (typeof window.supabase === 'undefined') {
-      console.log('⚠️ Supabase SDK not loaded');
-      updateSyncUI('offline', 'No SDK');
-      return false;
-    }
-    
-    // Use global client if exists, otherwise create
-    if (!window._supabaseClient) {
-      window._supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      console.log('✅ Supabase client initialized (auth.js)');
-    } else {
-      console.log('✅ Using existing Supabase client');
-    }
+function isDevMode() {
+  return new URLSearchParams(location.search).has('dev')
+    || location.hostname === 'localhost'
+    || location.hostname === '127.0.0.1'
+    || localStorage.getItem('droplit_dev_mode') === 'true';
+}
+
+// ============================================
+// SUPABASE CLIENT — SINGLE INSTANCE
+// ============================================
+function ensureSupabaseClient() {
+  if (supabaseClient) return true;
+  
+  if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+    console.log('⚠️ Supabase SDK not loaded');
+    return false;
+  }
+  
+  if (window._supabaseClient) {
     supabaseClient = window._supabaseClient;
-    
-    // Check for existing session
+    console.log('[Auth] Using existing global Supabase client');
+  } else {
+    window._supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = window._supabaseClient;
+    console.log('[Auth] Created global Supabase client');
+  }
+  return true;
+}
+
+// ============================================
+// UNIFIED INIT — SINGLE ENTRY POINT
+// ============================================
+async function initAuth() {
+  console.log('[Auth] v3.0 initializing...');
+  
+  // Wait for Supabase SDK if not ready
+  if (typeof window.supabase === 'undefined') {
+    console.log('[Auth] Waiting for Supabase SDK...');
+    setTimeout(initAuth, 100);
+    return;
+  }
+  
+  if (!ensureSupabaseClient()) {
+    console.error('[Auth] Cannot create Supabase client');
+    updateSyncUI('offline', 'No SDK');
+    return;
+  }
+  
+  // Setup auth state listener FIRST (once)
+  setupAuthListener();
+  
+  // Check for existing session
+  try {
     let { data: { session } } = await supabaseClient.auth.getSession();
     
-    // v1.2: ALWAYS refresh token on init — cached expires_at can be stale
-    // refreshSession() is cheap and idempotent
+    // Refresh token if session exists
     if (session) {
-      console.log('🔄 Refreshing JWT token...');
+      console.log('[Auth] Found session, refreshing token...');
       try {
         const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
         if (refreshError) {
-          console.warn('⚠️ Token refresh failed:', refreshError.message, '— will re-login');
+          console.warn('[Auth] Token refresh failed:', refreshError.message);
           session = null;
         } else if (refreshData?.session) {
           session = refreshData.session;
-          console.log('✅ Token refreshed, expires:', new Date(session.expires_at * 1000).toLocaleTimeString());
+          console.log('[Auth] Token refreshed, expires:', new Date(session.expires_at * 1000).toLocaleTimeString());
         }
       } catch (e) {
-        console.warn('⚠️ Token refresh error:', e.message);
+        console.warn('[Auth] Token refresh error:', e.message);
         session = null;
       }
     }
     
-    // If session exists but NOT our test user - sign out first
-    const TEST_USER_ID = '10531fa2-b07e-41db-bc41-f6bd955beb26';
-    
-    if (session && session.user.id !== TEST_USER_ID) {
-      console.log('🔄 Wrong user, signing out...', session.user.id.substring(0, 8));
-      await supabaseClient.auth.signOut();
-      await signInWithTestAccount();
-    } else if (session && session.user.id === TEST_USER_ID) {
+    if (session && session.user) {
+      // ✅ User is already authenticated
+      console.log('[Auth] User authenticated:', session.user.email);
       currentUser = session.user;
-      if (typeof toast === 'function') toast('✅ User: ' + currentUser.id.substring(0, 8) + '...', 'success');
-      console.log('✅ Correct session found:', currentUser.id.substring(0, 8) + '...');
+      window.currentUser = currentUser;
+      
+      hideOnboardingModal();
       await pullFromServer();
       updateSyncUI('synced', 'Synced');
-    } else {
-      // No session - sign in
-      await signInWithTestAccount();
+      
+      // Update account UI
+      if (typeof updateAccountUI === 'function') {
+        updateAccountUI();
+      }
+      
+      // Trigger encryption check
+      triggerEncryptionCheck(currentUser);
+      
+      return;
     }
     
-    // NO AUTH LISTENER - disabled to stop loop
-    // Auth state will be checked manually when needed
-    console.log('✅ Auth initialized - NO listener (disabled to stop loop)');
+    // No valid session
+    console.log('[Auth] No session found');
     
-    return true;
+    // DEV MODE: auto-login with test account
+    if (isDevMode()) {
+      console.log('[Auth] DEV MODE — auto-login test2@syntrise.com');
+      await signInWithTestAccount();
+      return;
+    }
+    
+    // PRODUCTION: show login modal
+    console.log('[Auth] Showing login screen');
+    showOnboardingModal();
+    
   } catch (error) {
-    console.error('❌ Supabase init error:', error);
+    console.error('[Auth] Init error:', error);
     updateSyncUI('error', 'Error');
-    return false;
+    
+    // Show login on error so user can retry
+    if (!isDevMode()) {
+      showOnboardingModal();
+    }
   }
 }
 
 // ============================================
-// SIGN IN WITH TEST ACCOUNT
+// AUTH STATE LISTENER — ONE LISTENER
+// ============================================
+function setupAuthListener() {
+  if (window._authListenerSetup) {
+    console.log('[Auth] Listener already setup, skipping');
+    return;
+  }
+  
+  window._authListenerSetup = true;
+  console.log('[Auth] Setting up auth state listener');
+  
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    console.log('[Auth] State change:', event);
+    
+    if (event === 'SIGNED_IN' && session?.user) {
+      // Prevent duplicate handling
+      if (window._authEventHandled) {
+        console.log('[Auth] SIGNED_IN already handled, skipping');
+        return;
+      }
+      window._authEventHandled = true;
+      
+      const user = session.user;
+      currentUser = user;
+      window.currentUser = user;
+      
+      // Process pending invite code (from onboarding flow)
+      const pendingInvite = localStorage.getItem('droplit_pending_invite');
+      const pendingInviteCode = localStorage.getItem('droplit_pending_invite_code');
+      
+      if (pendingInvite) {
+        await useInviteCode(pendingInvite, user.id);
+        localStorage.removeItem('droplit_pending_invite');
+      }
+      
+      // Assign user plan based on invite code
+      if (pendingInviteCode) {
+        let userPlan = 'beta'; // default for beta testers
+        
+        if (pendingInviteCode === 'ALEX2026' || pendingInviteCode === 'OWNER') {
+          userPlan = 'owner';
+        } else if (pendingInviteCode.startsWith('PRO')) {
+          userPlan = 'pro';
+        } else if (pendingInviteCode.startsWith('BIZ')) {
+          userPlan = 'business';
+        }
+        
+        localStorage.setItem('droplit_user_plan', userPlan);
+        localStorage.removeItem('droplit_pending_invite_code');
+        console.log('[Auth] Plan assigned:', userPlan);
+      }
+      
+      // Hide onboarding, sync data
+      hideOnboardingModal();
+      
+      // Check for first-time migration
+      const migrated = localStorage.getItem('droplit_migrated_' + user.id);
+      if (!migrated && typeof ideas !== 'undefined' && ideas.length > 0) {
+        await migrateLocalData();
+      } else {
+        await pullFromServer();
+      }
+      
+      updateSyncUI('synced', 'Synced');
+      
+      // Update account UI
+      if (typeof updateAccountUI === 'function') {
+        updateAccountUI();
+      }
+      
+      // Welcome toast (only for non-dev logins)
+      if (!isDevMode() && typeof toast === 'function') {
+        toast('Welcome to DropLit! 🎉', 'success');
+      }
+      
+      // Trigger encryption check after auth settles
+      triggerEncryptionCheck(user);
+      
+    } else if (event === 'SIGNED_OUT') {
+      console.log('[Auth] User signed out');
+      currentUser = null;
+      window.currentUser = null;
+      window._authEventHandled = false;
+      
+      // Don't show modal in dev mode — just re-login
+      if (isDevMode()) {
+        console.log('[Auth] DEV MODE — re-login after signout');
+        setTimeout(() => signInWithTestAccount(), 300);
+      } else {
+        showOnboardingModal();
+      }
+    }
+  });
+}
+
+// ============================================
+// ENCRYPTION CHECK (after auth)
+// ============================================
+function triggerEncryptionCheck(user) {
+  setTimeout(() => {
+    if (typeof DropLitKeys !== 'undefined' && typeof DropLitEncryptionUI !== 'undefined') {
+      DropLitKeys.hasStoredKey(user.id).then(hasKey => {
+        if (!hasKey) {
+          DropLitEncryptionUI.showEncryptionSetupModal(user.id);
+        } else if (typeof resumeEncryption === 'function') {
+          resumeEncryption();
+        }
+      }).catch(err => {
+        console.log('[Auth] Encryption check skipped:', err.message);
+      });
+    }
+  }, 500);
+}
+
+// ============================================
+// DEV: TEST ACCOUNT LOGIN
 // ============================================
 async function signInWithTestAccount() {
   try {
     updateSyncUI('syncing', 'Connecting...');
-    if (typeof toast === 'function') toast('🔐 Logging in...', 'info');
+    if (typeof toast === 'function') toast('🔐 Dev login...', 'info');
     
     const { data, error } = await supabaseClient.auth.signInWithPassword({
       email: 'test2@syntrise.com',
@@ -111,30 +277,130 @@ async function signInWithTestAccount() {
     });
     
     if (error) {
-      if (typeof toast === 'function') toast('❌ Login error: ' + error.message, 'error');
-      throw error;
+      if (typeof toast === 'function') toast('❌ Dev login error: ' + error.message, 'error');
+      console.error('[Auth] Dev login error:', error);
+      // Fallback: show login modal even in dev mode
+      showOnboardingModal();
+      return false;
     }
     
     currentUser = data.user;
-    if (typeof toast === 'function') toast('✅ Logged in: ' + currentUser.id.substring(0, 8) + '...', 'success');
-    console.log('✅ Signed in as:', currentUser.email, currentUser.id.substring(0, 8) + '...');
+    window.currentUser = currentUser;
+    if (typeof toast === 'function') toast('✅ Dev: ' + currentUser.email, 'success');
+    console.log('[Auth] Dev signed in:', currentUser.email);
     
-    // Check if first time - migrate local data
+    hideOnboardingModal();
+    
     const migrated = localStorage.getItem('droplit_migrated_' + currentUser.id);
     if (!migrated && typeof ideas !== 'undefined' && ideas.length > 0) {
       await migrateLocalData();
     } else {
-      // Sync from server
       await pullFromServer();
     }
     
     updateSyncUI('synced', 'Synced');
+    
+    if (typeof updateAccountUI === 'function') {
+      updateAccountUI();
+    }
+    
     return true;
   } catch (error) {
-    console.error('❌ Sign in error:', error);
-    if (typeof toast === 'function') toast('❌ Auth failed: ' + error.message, 'error');
+    console.error('[Auth] Dev sign in error:', error);
     updateSyncUI('error', 'Auth error');
     return false;
+  }
+}
+
+// ============================================
+// OAUTH: GOOGLE
+// ============================================
+async function signInWithGoogle() {
+  if (!ensureSupabaseClient()) {
+    showOnboardingError('Database not available');
+    return;
+  }
+  
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname
+      }
+    });
+    
+    if (error) {
+      console.error('[Auth] Google sign in error:', error);
+      showOnboardingError('Google sign in failed: ' + error.message);
+    }
+    // Redirect happens automatically
+  } catch (err) {
+    console.error('[Auth] Google sign in error:', err);
+    showOnboardingError('Connection error');
+  }
+}
+
+// ============================================
+// OAUTH: APPLE
+// ============================================
+async function signInWithApple() {
+  if (!ensureSupabaseClient()) {
+    showOnboardingError('Database not available');
+    return;
+  }
+  
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname
+      }
+    });
+    
+    if (error) {
+      console.error('[Auth] Apple sign in error:', error);
+      showOnboardingError('Apple sign in failed: ' + error.message);
+    }
+  } catch (err) {
+    console.error('[Auth] Apple sign in error:', err);
+    showOnboardingError('Connection error');
+  }
+}
+
+// ============================================
+// EMAIL + PASSWORD
+// ============================================
+async function signInWithEmail(email, password, isSignUp = false) {
+  if (!ensureSupabaseClient()) {
+    showOnboardingError('Database not available');
+    return;
+  }
+  
+  try {
+    let result;
+    
+    if (isSignUp) {
+      result = await supabaseClient.auth.signUp({
+        email: email,
+        password: password
+      });
+    } else {
+      result = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+    }
+    
+    if (result.error) {
+      showOnboardingError(result.error.message);
+      return;
+    }
+    
+    // Success — auth state listener handles the rest
+    
+  } catch (err) {
+    console.error('[Auth] Email sign in error:', err);
+    showOnboardingError('Connection error');
   }
 }
 
@@ -146,41 +412,255 @@ async function signInAnonymously() {
     updateSyncUI('syncing', 'Connecting...');
     
     const { data, error } = await supabaseClient.auth.signInAnonymously();
-    
     if (error) throw error;
     
     currentUser = data.user;
-    console.log('✅ Signed in anonymously:', currentUser.id.substring(0, 8) + '...');
+    window.currentUser = currentUser;
+    console.log('[Auth] Signed in anonymously:', currentUser.id.substring(0, 8) + '...');
     
-    // Check if first time - migrate local data
     const migrated = localStorage.getItem('droplit_migrated_' + currentUser.id);
     if (!migrated && typeof ideas !== 'undefined' && ideas.length > 0) {
       await migrateLocalData();
     } else {
-      // Sync from server
       await pullFromServer();
     }
     
     updateSyncUI('synced', 'Synced');
     return true;
   } catch (error) {
-    console.error('❌ Anonymous sign in error:', error);
+    console.error('[Auth] Anonymous sign in error:', error);
     updateSyncUI('error', 'Auth error');
     return false;
   }
 }
 
 // ============================================
-// MIGRATE LOCAL DATA TO SUPABASE
+// INVITE CODE FUNCTIONS
+// ============================================
+async function checkInviteCode(code) {
+  if (!ensureSupabaseClient()) {
+    return { valid: false, error: 'Database not available' };
+  }
+  
+  const normalizedCode = code.trim().toUpperCase();
+  console.log('[Auth] Checking invite code:', normalizedCode);
+  
+  try {
+    const { data, error } = await supabaseClient
+      .from('beta_invites')
+      .select('*')
+      .eq('code', normalizedCode)
+      .eq('is_active', true)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('[Auth] Invite check error:', error);
+      return { valid: false, error: error.message || 'Database error' };
+    }
+    
+    if (!data) {
+      return { valid: false, error: 'Invalid invite code' };
+    }
+    
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      return { valid: false, error: 'Invite code expired' };
+    }
+    
+    if (data.used_count >= data.max_uses) {
+      return { valid: false, error: 'Invite code already used' };
+    }
+    
+    return { 
+      valid: true, 
+      invite: data,
+      name: data.intended_name || 'Beta Tester'
+    };
+  } catch (err) {
+    console.error('[Auth] Check invite error:', err);
+    return { valid: false, error: 'Error: ' + (err.message || 'Connection failed') };
+  }
+}
+
+async function useInviteCode(inviteId, userId) {
+  if (!supabaseClient) return false;
+  
+  try {
+    await supabaseClient.from('beta_invite_uses').insert({
+      invite_id: inviteId,
+      user_id: userId,
+      user_agent: navigator.userAgent
+    });
+    
+    await supabaseClient.rpc('increment_invite_usage', { invite_id: inviteId });
+    console.log('[Auth] Invite code used successfully');
+    return true;
+  } catch (err) {
+    console.error('[Auth] Use invite error:', err);
+    return true; // Non-critical, continue anyway
+  }
+}
+
+// ============================================
+// ONBOARDING UI FUNCTIONS
+// ============================================
+let _validateTimer = null;
+
+function showOnboardingModal() {
+  const modal = document.getElementById('onboardingModal');
+  if (modal) {
+    modal.classList.add('show');
+    
+    // Check for invite code in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteCode = urlParams.get('invite');
+    if (inviteCode) {
+      const input = document.getElementById('onboardingInviteCode');
+      if (input) {
+        input.value = inviteCode.toUpperCase();
+        validateInviteInput();
+      }
+    }
+  }
+}
+
+function hideOnboardingModal() {
+  const modal = document.getElementById('onboardingModal');
+  if (modal) {
+    modal.classList.remove('show');
+  }
+}
+
+function showOnboardingStep(step) {
+  document.querySelectorAll('.onboarding-step').forEach(el => {
+    el.classList.remove('active');
+  });
+  const target = document.getElementById('onboardingStep' + step);
+  if (target) {
+    target.classList.add('active');
+  }
+}
+
+function showOnboardingError(message) {
+  // Try both error containers (step 2 and step 3)
+  const errorEl = document.getElementById('onboardingError') || document.getElementById('onboardingError2');
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+    setTimeout(() => {
+      errorEl.style.display = 'none';
+    }, 5000);
+  }
+}
+
+async function validateInviteInput() {
+  const input = document.getElementById('onboardingInviteCode');
+  const btn = document.getElementById('onboardingContinueBtn');
+  const status = document.getElementById('onboardingInviteStatus');
+  
+  if (!input || !btn) return;
+  
+  const code = input.value.trim().toUpperCase();
+  input.value = code;
+  
+  if (code.length < 4) {
+    btn.disabled = true;
+    if (status) status.textContent = '';
+    return;
+  }
+  
+  // Debounce — don't spam API on every keystroke
+  if (_validateTimer) clearTimeout(_validateTimer);
+  
+  btn.disabled = true;
+  if (status) {
+    status.textContent = 'Checking...';
+    status.className = 'onboarding-invite-status checking';
+  }
+  
+  _validateTimer = setTimeout(async () => {
+    const result = await checkInviteCode(code);
+    
+    if (result.valid) {
+      btn.disabled = false;
+      btn.dataset.inviteId = result.invite.id;
+      if (status) {
+        status.textContent = '✓ Welcome, ' + result.name + '!';
+        status.className = 'onboarding-invite-status valid';
+      }
+    } else {
+      btn.disabled = true;
+      if (status) {
+        status.textContent = '✗ ' + result.error;
+        status.className = 'onboarding-invite-status invalid';
+      }
+    }
+  }, 500);
+}
+
+function proceedToAuth() {
+  const btn = document.getElementById('onboardingContinueBtn');
+  const codeInput = document.getElementById('onboardingInviteCode');
+  
+  if (btn && !btn.disabled) {
+    // Store invite for after auth completes
+    const inviteId = btn.dataset.inviteId;
+    if (inviteId) {
+      localStorage.setItem('droplit_pending_invite', inviteId);
+    }
+    if (codeInput && codeInput.value) {
+      localStorage.setItem('droplit_pending_invite_code', codeInput.value.trim().toUpperCase());
+    }
+    
+    showOnboardingStep(2);
+  }
+}
+
+function showEmailForm() {
+  showOnboardingStep(3);
+}
+
+function backToAuthMethods() {
+  showOnboardingStep(2);
+}
+
+async function submitEmailAuth(isSignUp) {
+  const email = document.getElementById('onboardingEmail').value.trim();
+  const password = document.getElementById('onboardingPassword').value;
+  
+  if (!email || !password) {
+    showOnboardingError('Please enter email and password');
+    return;
+  }
+  
+  if (password.length < 6) {
+    showOnboardingError('Password must be at least 6 characters');
+    return;
+  }
+  
+  const btn = document.getElementById('onboardingEmailSubmit');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = isSignUp ? 'Creating account...' : 'Signing in...';
+  }
+  
+  await signInWithEmail(email, password, isSignUp);
+  
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = isSignUp ? 'Create Account' : 'Sign In';
+  }
+}
+
+// ============================================
+// SYNC: MIGRATE LOCAL DATA TO SUPABASE
 // ============================================
 async function migrateLocalData() {
   if (!currentUser || typeof ideas === 'undefined' || ideas.length === 0) return;
   
   updateSyncUI('syncing', 'Migrating...');
-  console.log(`📦 Migrating ${ideas.length} drops to Supabase...`);
+  console.log('[Auth] Migrating', ideas.length, 'drops to Supabase...');
   
   try {
-    // Filter only text drops (skip media for MVP)
     const textDrops = ideas.filter(i => !i.isMedia && !i.image && !i.audioData);
     
     const dropsToInsert = textDrops.map(idea => ({
@@ -209,20 +689,16 @@ async function migrateLocalData() {
     }));
     
     if (dropsToInsert.length > 0) {
-      // Insert in batches of 50
       for (let i = 0; i < dropsToInsert.length; i += 50) {
         const batch = dropsToInsert.slice(i, i + 50);
         const { error } = await supabaseClient
           .from('drops')
           .upsert(batch, { onConflict: 'external_id', ignoreDuplicates: false });
         
-        if (error) {
-          console.error('Migration batch error:', error);
-        }
+        if (error) console.error('[Auth] Migration batch error:', error);
       }
     }
     
-    // Log migration
     await supabaseClient.from('sync_log').insert({
       user_id: currentUser.id,
       action: 'migrate',
@@ -231,26 +707,24 @@ async function migrateLocalData() {
     });
     
     localStorage.setItem('droplit_migrated_' + currentUser.id, 'true');
-    console.log(`✅ Migrated ${dropsToInsert.length} text drops`);
+    console.log('[Auth] Migrated', dropsToInsert.length, 'text drops');
     
     updateSyncUI('synced', 'Migrated!');
-    if (typeof toast === 'function') toast(`Synced ${dropsToInsert.length} drops to cloud!`, 'success');
+    if (typeof toast === 'function') toast('Synced ' + dropsToInsert.length + ' drops to cloud!', 'success');
     
   } catch (error) {
-    console.error('❌ Migration error:', error);
+    console.error('[Auth] Migration error:', error);
     updateSyncUI('error', 'Migration failed');
   }
 }
 
 // ============================================
-// PULL DROPS FROM SERVER
+// SYNC: PULL DROPS FROM SERVER
 // ============================================
 async function pullFromServer() {
   if (!currentUser) return;
   
   try {
-    // Lightweight sync check — just count, don't pull full data
-    // Full merge will be implemented in TODO: proper conflict resolution
     const { count, error } = await supabaseClient
       .from('drops')
       .select('id', { count: 'exact', head: true })
@@ -259,18 +733,17 @@ async function pullFromServer() {
     if (error) throw error;
     
     if (count > 0) {
-      console.log(`📥 Server has ${count} drops (sync check only)`);
+      console.log('[Auth] Server has', count, 'drops');
     }
     
     lastSyncTime = new Date();
-    
   } catch (error) {
-    console.error('❌ Pull error:', error);
+    console.error('[Auth] Pull error:', error);
   }
 }
 
 // ============================================
-// SYNC SINGLE DROP TO SERVER
+// SYNC: SINGLE DROP TO SERVER
 // ============================================
 async function syncDropToServer(idea, action = 'create') {
   if (!syncEnabled || !currentUser || !supabaseClient) {
@@ -278,7 +751,6 @@ async function syncDropToServer(idea, action = 'create') {
     return false;
   }
   
-  // Skip media drops for MVP
   if (idea.isMedia || idea.image || idea.audioData) {
     console.log('⏸️ Skipping media drop sync (MVP)');
     return true;
@@ -312,35 +784,27 @@ async function syncDropToServer(idea, action = 'create') {
       }
     };
     
-    console.log('📤 Syncing drop:', dropData.external_id);
-    
-    const { error, data } = await supabaseClient
+    const { error } = await supabaseClient
       .from('drops')
-      .upsert(dropData, { 
-        onConflict: 'external_id',
-        ignoreDuplicates: false 
-      })
+      .upsert(dropData, { onConflict: 'external_id', ignoreDuplicates: false })
       .select();
     
-    if (error) {
-      console.error('Supabase error:', error);
-      throw error;
-    }
+    if (error) throw error;
     
-    console.log(`☁️ Synced drop ${String(idea.id).substring(0, 8)}... (${action})`);
+    console.log('☁️ Synced drop', String(idea.id).substring(0, 8) + '...', '(' + action + ')');
     updateSyncUI('synced', 'Synced');
     lastSyncTime = new Date();
     
     return true;
   } catch (error) {
-    console.error('❌ Sync error:', error);
+    console.error('[Auth] Sync error:', error);
     updateSyncUI('error', 'Sync failed');
     return false;
   }
 }
 
 // ============================================
-// DELETE DROP FROM SERVER
+// SYNC: DELETE DROP FROM SERVER
 // ============================================
 async function deleteDropFromServer(ideaId) {
   if (!syncEnabled || !currentUser || !supabaseClient) return false;
@@ -356,26 +820,25 @@ async function deleteDropFromServer(ideaId) {
     
     if (error) throw error;
     
-    console.log(`🗑️ Deleted drop ${String(ideaId).substring(0, 8)}...`);
+    console.log('🗑️ Deleted drop', String(ideaId).substring(0, 8) + '...');
     updateSyncUI('synced', 'Synced');
-    
     return true;
   } catch (error) {
-    console.error('❌ Delete sync error:', error);
+    console.error('[Auth] Delete sync error:', error);
     updateSyncUI('error', 'Delete failed');
     return false;
   }
 }
 
 // ============================================
-// MANUAL SYNC
+// SYNC: MANUAL FULL SYNC
 // ============================================
 async function manualSync() {
   if (isSyncing) return;
   
   if (!currentUser) {
     if (typeof toast === 'function') toast('Not connected to cloud', 'warning');
-    initSupabase();
+    initAuth();
     return;
   }
   
@@ -383,7 +846,6 @@ async function manualSync() {
   if (typeof toast === 'function') toast('Syncing...', 'info');
   
   try {
-    // Sync all local text drops
     const textDrops = (typeof ideas !== 'undefined' ? ideas : []).filter(i => !i.isMedia && !i.image && !i.audioData);
     let synced = 0;
     
@@ -394,10 +856,10 @@ async function manualSync() {
     
     lastSyncTime = new Date();
     updateLastSyncInfo();
-    if (typeof toast === 'function') toast(`Synced ${synced} drops to cloud`, 'success');
+    if (typeof toast === 'function') toast('Synced ' + synced + ' drops to cloud', 'success');
     
   } catch (error) {
-    console.error('❌ Manual sync error:', error);
+    console.error('[Auth] Manual sync error:', error);
     if (typeof toast === 'function') toast('Sync failed: ' + error.message, 'error');
   }
   
@@ -419,7 +881,6 @@ function updateLastSyncInfo() {
 }
 
 function updateSyncUI(status, text) {
-  // Update lastSyncInfo if synced
   if (status === 'synced') {
     lastSyncTime = new Date();
     updateLastSyncInfo();
@@ -427,17 +888,21 @@ function updateSyncUI(status, text) {
 }
 
 // ============================================
-// INITIALIZE ON LOAD
+// EXPOSE GLOBALS
 // ============================================
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(initSupabase, 500); // Delay to ensure SDK loaded
-});
 
-// ============================================
-// EXPORTS
-// ============================================
+// onclick handlers for onboarding modal HTML (same names as before)
+window.onboardingValidateInvite = validateInviteInput;
+window.onboardingProceedToAuth = proceedToAuth;
+window.onboardingSignInGoogle = signInWithGoogle;
+window.onboardingSignInApple = signInWithApple;
+window.onboardingShowEmailForm = showEmailForm;
+window.onboardingBackToAuth = backToAuthMethods;
+window.onboardingSubmitEmail = submitEmailAuth;
+
+// API used by index.html and other scripts
 window.DropLitAuth = {
-  initSupabase,
+  initAuth,
   signInWithTestAccount,
   signInAnonymously,
   syncDropToServer,
@@ -449,3 +914,26 @@ window.DropLitAuth = {
   getDeviceId: () => DEVICE_ID,
   isAuthenticated: () => !!currentUser
 };
+
+// Keep DropLitOnboarding for backward compatibility
+window.DropLitOnboarding = {
+  init: initAuth,
+  showModal: showOnboardingModal,
+  hideModal: hideOnboardingModal,
+  showStep: showOnboardingStep,
+  checkInvite: checkInviteCode,
+  signInWithGoogle: signInWithGoogle,
+  signInWithApple: signInWithApple,
+  signInWithEmail: signInWithEmail
+};
+
+// ============================================
+// INIT ON DOM READY
+// ============================================
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAuth);
+} else {
+  // DOM already loaded — start immediately
+  // Small delay to ensure Supabase SDK script has executed
+  setTimeout(initAuth, 100);
+}
