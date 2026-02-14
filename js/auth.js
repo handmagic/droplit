@@ -16,6 +16,9 @@ let syncEnabled = true;
 let isSyncing = false;
 let syncQueue = [];
 let lastSyncTime = null;
+let _bgSyncInterval = null;
+const SYNC_INTERVAL_MS = 60000;   // 60 seconds
+const SYNC_MIN_AGE_MS = 120000;   // 2 minutes (wait for NEW period)
 
 // Device ID for tracking
 const DEVICE_ID = localStorage.getItem('droplit_device_id') || (() => {
@@ -110,6 +113,7 @@ async function initAuth() {
       
       hideOnboardingModal();
       await pullFromServer();
+      startBackgroundSync();
       updateSyncUI('synced', 'Synced');
       
       // Update account UI
@@ -212,6 +216,7 @@ function setupAuthListener() {
         await pullFromServer();
       }
       
+      startBackgroundSync();
       updateSyncUI('synced', 'Synced');
       
       // Update account UI
@@ -232,6 +237,7 @@ function setupAuthListener() {
       currentUser = null;
       window.currentUser = null;
       window._authEventHandled = false;
+      stopBackgroundSync();
       
       // Don't show modal in dev mode — just re-login
       if (isDevMode()) {
@@ -664,30 +670,7 @@ async function migrateLocalData() {
   try {
     const textDrops = ideas.filter(i => !i.isMedia && !i.image && !i.audioData);
     
-    const dropsToInsert = textDrops.map(idea => ({
-      user_id: currentUser.id,
-      external_id: String(idea.id),
-      content: idea.text || '',
-      category: idea.category || 'inbox',
-      tags: idea.tags || [],
-      markers: idea.markers || [],
-      source: 'droplit',
-      language: 'ru',
-      is_media: false,
-      has_local_media: !!(idea.image || idea.audioData),
-      is_merged: idea.isMerged || false,
-      ai_generated: idea.aiGenerated || false,
-      transcription: idea.transcription || null,
-      original_text: idea.originalText || null,
-      notes: idea.notes || null,
-      local_id: String(idea.id),
-      device_id: DEVICE_ID,
-      metadata: {
-        date: idea.date,
-        time: idea.time,
-        timestamp: idea.timestamp
-      }
-    }));
+    const dropsToInsert = textDrops.map(idea => mapDropToServer(idea));
     
     if (dropsToInsert.length > 0) {
       for (let i = 0; i < dropsToInsert.length; i += 50) {
@@ -699,13 +682,6 @@ async function migrateLocalData() {
         if (error) console.error('[Auth] Migration batch error:', error);
       }
     }
-    
-    await supabaseClient.from('sync_log').insert({
-      user_id: currentUser.id,
-      action: 'migrate',
-      device_id: DEVICE_ID,
-      details: { count: dropsToInsert.length, total_local: ideas.length }
-    });
     
     localStorage.setItem('droplit_migrated_' + currentUser.id, 'true');
     console.log('[Auth] Migrated', dropsToInsert.length, 'text drops');
@@ -744,75 +720,248 @@ async function pullFromServer() {
 }
 
 // ============================================
-// SYNC: SINGLE DROP TO SERVER
+// SYNC: MAP CLIENT DROP → SERVER SCHEMA
 // ============================================
-async function syncDropToServer(idea, action = 'create') {
-  if (!syncEnabled || !currentUser || !supabaseClient) {
-    console.log('⏸️ Sync disabled or not connected');
-    return false;
-  }
+function mapDropToServer(drop) {
+  const isMedia = !!(drop.isMedia || drop.image || drop.audioData);
+  const hasTextContent = !!(drop.text || drop.transcription);
   
-  if (idea.isMedia || idea.image || idea.audioData) {
-    console.log('⏸️ Skipping media drop sync (MVP)');
-    return true;
-  }
+  // Determine drop_type
+  let dropType = 'text';
+  if (drop.audioData) dropType = 'audio';
+  else if (drop.image) dropType = 'photo';
+  else if (drop.isLink) dropType = 'link';
+  else if (drop.isMerged) dropType = 'merged';
+  
+  return {
+    user_id: currentUser.id,
+    external_id: String(drop.id),
+    
+    // Content
+    content: drop.text || drop.transcription || '',
+    
+    // Classification (real DB columns)
+    drop_group: 'info',
+    drop_type: dropType,
+    category: drop.category || 'inbox',
+    tags: drop.tags || [],
+    markers: drop.markers || [],
+    
+    // Creator & source
+    creator: drop.creator || 'user',
+    source: drop.source || 'droplit',
+    language: 'ru',
+    
+    // Flags
+    is_media: isMedia,
+    has_local_media: isMedia,
+    is_merged: drop.isMerged || false,
+    ai_generated: drop.aiGenerated || false,
+    
+    // Text fields
+    transcription: drop.transcription || null,
+    original_text: drop.originalText || null,
+    notes: drop.notes || null,
+    
+    // Sync tracking
+    local_id: String(drop.id),
+    device_id: DEVICE_ID,
+    
+    // Processing (core-worker will pick up)
+    processed: false,
+    deep_process: hasTextContent,
+    
+    // Archive state
+    is_archived: drop.lifecycle_state === 'archived',
+    
+    // Metadata (everything else)
+    metadata: {
+      date: drop.date,
+      time: drop.time,
+      timestamp: drop.timestamp,
+      session_id: drop.sessionId || null,
+      encrypted: drop.encrypted || false,
+      source_file: drop.sourceFile || null,
+      source_drop_id: drop.sourceDropId || null,
+      // Media-specific
+      ...(isMedia ? {
+        media_status: hasTextContent ? 'described' : 'raw',
+        audio_format: drop.audioFormat || null,
+        audio_size: drop.audioSize || null,
+        audio_duration: drop.duration || null,
+        image_dimensions: drop.imageDimensions || null,
+        geo: drop.geo || null
+      } : {})
+    }
+  };
+}
+
+// ============================================
+// BACKGROUND SYNC — MAIN ENGINE
+// ============================================
+async function backgroundSync() {
+  // Guards
+  if (!syncEnabled || !currentUser || !supabaseClient) return;
+  if (isSyncing) return;
+  if (typeof ideas === 'undefined') return;
+  
+  isSyncing = true;
   
   try {
-    updateSyncUI('syncing', 'Saving...');
+    // --- STEP 1: Find drops that need syncing ---
+    const now = Date.now();
+    const toSync = [];
+    const toDelete = [];
     
-    const dropData = {
-      user_id: currentUser.id,
-      external_id: String(idea.id),
-      content: idea.text || '',
-      category: idea.category || 'inbox',
-      tags: idea.tags || [],
-      markers: idea.markers || [],
-      source: 'droplit',
-      language: 'ru',
-      is_media: !!(idea.isMedia || idea.image || idea.audioData),
-      has_local_media: !!(idea.image || idea.audioData),
-      is_merged: idea.isMerged || false,
-      ai_generated: idea.aiGenerated || false,
-      transcription: idea.transcription || null,
-      original_text: idea.originalText || null,
-      notes: idea.notes || null,
-      local_id: String(idea.id),
-      device_id: DEVICE_ID,
-      metadata: {
-        date: idea.date,
-        time: idea.time,
-        timestamp: idea.timestamp
+    // Get list of synced external_ids from Supabase
+    const syncTracker = JSON.parse(localStorage.getItem('droplit_sync_tracker_' + currentUser.id) || '{}');
+    
+    for (const drop of ideas) {
+      if (!drop || !drop.id) continue;
+      
+      const dropAge = now - drop.id;  // id = Date.now() at creation
+      
+      // Skip too new (< 2 min, user may delete)
+      if (dropAge < SYNC_MIN_AGE_MS) continue;
+      
+      // Skip media without text content (RAW — nothing to send)
+      if ((drop.isMedia || drop.image || drop.audioData) && !drop.text && !drop.transcription) continue;
+      
+      // Skip if already synced and not modified
+      const syncedAt = syncTracker[String(drop.id)];
+      const updatedAt = drop._updatedAt || drop.id;
+      if (syncedAt && syncedAt >= updatedAt) continue;
+      
+      // Needs sync
+      toSync.push(drop);
+    }
+    
+    // --- STEP 2: Find locally deleted drops ---
+    const localIds = new Set(ideas.map(i => String(i.id)));
+    for (const extId in syncTracker) {
+      if (!localIds.has(extId)) {
+        toDelete.push(extId);
       }
-    };
+    }
     
-    const { error } = await supabaseClient
-      .from('drops')
-      .upsert(dropData, { onConflict: 'external_id', ignoreDuplicates: false })
-      .select();
+    // Nothing to do
+    if (toSync.length === 0 && toDelete.length === 0) {
+      isSyncing = false;
+      return;
+    }
     
-    if (error) throw error;
+    // --- STEP 3: Upsert new/updated drops ---
+    if (toSync.length > 0) {
+      console.log('[Sync] Syncing', toSync.length, 'drops...');
+      updateSyncUI('syncing', 'Saving...');
+      
+      for (let i = 0; i < toSync.length; i += 20) {
+        const batch = toSync.slice(i, i + 20).map(d => mapDropToServer(d));
+        
+        const { error } = await supabaseClient
+          .from('drops')
+          .upsert(batch, { onConflict: 'external_id', ignoreDuplicates: false });
+        
+        if (error) {
+          console.error('[Sync] Batch error:', error);
+        } else {
+          // Mark as synced in tracker
+          const synced = now;
+          for (const d of toSync.slice(i, i + 20)) {
+            syncTracker[String(d.id)] = synced;
+          }
+        }
+      }
+    }
     
-    console.log('☁️ Synced drop', String(idea.id).substring(0, 8) + '...', '(' + action + ')');
-    updateSyncUI('synced', 'Synced');
+    // --- STEP 4: Delete remotely ---
+    if (toDelete.length > 0) {
+      console.log('[Sync] Deleting', toDelete.length, 'drops from server...');
+      
+      for (const extId of toDelete) {
+        const { error } = await supabaseClient
+          .from('drops')
+          .delete()
+          .eq('external_id', extId)
+          .eq('user_id', currentUser.id);
+        
+        if (error) {
+          console.error('[Sync] Delete error for', extId, ':', error);
+        } else {
+          delete syncTracker[extId];
+        }
+      }
+    }
+    
+    // --- STEP 5: Save tracker & update UI ---
+    localStorage.setItem('droplit_sync_tracker_' + currentUser.id, JSON.stringify(syncTracker));
     lastSyncTime = new Date();
+    updateSyncUI('synced', 'Synced');
+    updateLastSyncInfo();
     
-    return true;
+    if (toSync.length > 0 || toDelete.length > 0) {
+      console.log('[Sync] Done:', toSync.length, 'upserted,', toDelete.length, 'deleted');
+    }
+    
   } catch (error) {
-    console.error('[Auth] Sync error:', error);
-    updateSyncUI('error', 'Sync failed');
-    return false;
+    console.error('[Sync] Background sync error:', error);
+    updateSyncUI('error', 'Sync error');
+  }
+  
+  isSyncing = false;
+}
+
+// ============================================
+// SYNC: START / STOP BACKGROUND SYNC
+// ============================================
+function startBackgroundSync() {
+  if (_bgSyncInterval) return;  // already running
+  
+  console.log('[Sync] Starting background sync (every', SYNC_INTERVAL_MS / 1000, 'sec)');
+  
+  // Run first sync after 10 seconds (give app time to load)
+  setTimeout(backgroundSync, 10000);
+  
+  // Then every 60 seconds
+  _bgSyncInterval = setInterval(backgroundSync, SYNC_INTERVAL_MS);
+}
+
+function stopBackgroundSync() {
+  if (_bgSyncInterval) {
+    clearInterval(_bgSyncInterval);
+    _bgSyncInterval = null;
+    console.log('[Sync] Background sync stopped');
   }
 }
 
 // ============================================
-// SYNC: DELETE DROP FROM SERVER
+// SYNC: LEGACY WRAPPERS (backward compatibility)
 // ============================================
+
+// syncDropToServer — now just marks drop for next backgroundSync cycle
+// Kept for existing call sites that pass drop argument
+async function syncDropToServer(idea, action = 'create') {
+  if (!syncEnabled || !currentUser) return false;
+  // Drop will be picked up by backgroundSync on next cycle
+  // Just mark as updated so sync knows to process it
+  if (idea) {
+    idea._updatedAt = Date.now();
+    if (typeof save === 'function' && action !== 'create') {
+      // Save updated timestamp to localStorage
+      try {
+        localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
+      } catch (e) { /* ignore */ }
+    }
+  }
+  console.log('[Sync] Drop queued for background sync:', String(idea?.id).substring(0, 8) + '...');
+  return true;
+}
+
+// deleteDropFromServer — immediate delete (don't wait for bg cycle)
 async function deleteDropFromServer(ideaId) {
   if (!syncEnabled || !currentUser || !supabaseClient) return false;
   
   try {
-    updateSyncUI('syncing', 'Deleting...');
-    
     const { error } = await supabaseClient
       .from('drops')
       .delete()
@@ -821,19 +970,21 @@ async function deleteDropFromServer(ideaId) {
     
     if (error) throw error;
     
+    // Remove from sync tracker
+    const trackerKey = 'droplit_sync_tracker_' + currentUser.id;
+    const tracker = JSON.parse(localStorage.getItem(trackerKey) || '{}');
+    delete tracker[String(ideaId)];
+    localStorage.setItem(trackerKey, JSON.stringify(tracker));
+    
     console.log('🗑️ Deleted drop', String(ideaId).substring(0, 8) + '...');
-    updateSyncUI('synced', 'Synced');
     return true;
   } catch (error) {
-    console.error('[Auth] Delete sync error:', error);
-    updateSyncUI('error', 'Delete failed');
+    console.error('[Sync] Delete error:', error);
     return false;
   }
 }
 
-// ============================================
-// SYNC: MANUAL FULL SYNC
-// ============================================
+// manualSync — triggers immediate background sync
 async function manualSync() {
   if (isSyncing) return;
   
@@ -843,28 +994,11 @@ async function manualSync() {
     return;
   }
   
-  isSyncing = true;
   if (typeof toast === 'function') toast('Syncing...', 'info');
   
-  try {
-    const textDrops = (typeof ideas !== 'undefined' ? ideas : []).filter(i => !i.isMedia && !i.image && !i.audioData);
-    let synced = 0;
-    
-    for (const idea of textDrops) {
-      const success = await syncDropToServer(idea, 'sync');
-      if (success) synced++;
-    }
-    
-    lastSyncTime = new Date();
-    updateLastSyncInfo();
-    if (typeof toast === 'function') toast('Synced ' + synced + ' drops to cloud', 'success');
-    
-  } catch (error) {
-    console.error('[Auth] Manual sync error:', error);
-    if (typeof toast === 'function') toast('Sync failed: ' + error.message, 'error');
-  }
+  await backgroundSync();
   
-  isSyncing = false;
+  if (typeof toast === 'function') toast('Sync complete!', 'success');
 }
 
 // ============================================
@@ -910,6 +1044,9 @@ window.DropLitAuth = {
   deleteDropFromServer,
   manualSync,
   pullFromServer,
+  backgroundSync,
+  startBackgroundSync,
+  stopBackgroundSync,
   getSupabase: () => supabaseClient,
   getCurrentUser: () => currentUser,
   getDeviceId: () => DEVICE_ID,
