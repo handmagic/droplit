@@ -803,9 +803,21 @@ async function backgroundSync() {
   // Guards
   if (!syncEnabled || !currentUser || !supabaseClient) return;
   if (isSyncing) return;
-  if (typeof ideas === 'undefined') return;
+  
+  // Read drops from localStorage directly (don't depend on global 'ideas')
+  let localDrops;
+  try {
+    const raw = localStorage.getItem('droplit_ideas');
+    localDrops = raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.error('[Sync] Cannot read localStorage:', e);
+    return;
+  }
+  
+  if (!localDrops || localDrops.length === 0) return;
   
   isSyncing = true;
+  console.log('[Sync] Checking', localDrops.length, 'local drops...');
   
   try {
     // --- STEP 1: Find drops that need syncing ---
@@ -816,7 +828,7 @@ async function backgroundSync() {
     // Get list of synced external_ids from Supabase
     const syncTracker = JSON.parse(localStorage.getItem('droplit_sync_tracker_' + currentUser.id) || '{}');
     
-    for (const drop of ideas) {
+    for (const drop of localDrops) {
       if (!drop || !drop.id) continue;
       
       const dropAge = now - drop.id;  // id = Date.now() at creation
@@ -837,7 +849,7 @@ async function backgroundSync() {
     }
     
     // --- STEP 2: Find locally deleted drops ---
-    const localIds = new Set(ideas.map(i => String(i.id)));
+    const localIds = new Set(localDrops.map(i => String(i.id)));
     for (const extId in syncTracker) {
       if (!localIds.has(extId)) {
         toDelete.push(extId);
@@ -946,12 +958,6 @@ async function syncDropToServer(idea, action = 'create') {
   // Just mark as updated so sync knows to process it
   if (idea) {
     idea._updatedAt = Date.now();
-    if (typeof save === 'function' && action !== 'create') {
-      // Save updated timestamp to localStorage
-      try {
-        localStorage.setItem('droplit_ideas', JSON.stringify(ideas));
-      } catch (e) { /* ignore */ }
-    }
   }
   console.log('[Sync] Drop queued for background sync:', String(idea?.id).substring(0, 8) + '...');
   return true;
