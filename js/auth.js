@@ -632,8 +632,9 @@ async function submitEmailAuth(isSignUp) {
     return;
   }
   
-  if (password.length < 6) {
-    showOnboardingError('Password must be at least 6 characters');
+  // Only check password length for sign-up, not sign-in
+  if (isSignUp && password.length < 8) {
+    showOnboardingError('Password must be at least 8 characters');
     return;
   }
   
