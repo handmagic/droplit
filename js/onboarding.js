@@ -268,6 +268,8 @@
     }
   }
   
+  let _validateTimer = null;
+  
   async function validateInviteInput() {
     const input = document.getElementById('onboardingInviteCode');
     const btn = document.getElementById('onboardingContinueBtn');
@@ -284,29 +286,36 @@
       return;
     }
     
-    // Check code
+    // Debounce: wait 500ms after last keystroke
+    if (_validateTimer) clearTimeout(_validateTimer);
+    
     btn.disabled = true;
     if (status) {
       status.textContent = 'Checking...';
       status.className = 'onboarding-invite-status checking';
     }
     
-    const result = await checkInviteCode(code);
-    
-    if (result.valid) {
-      btn.disabled = false;
-      btn.dataset.inviteId = result.invite.id;
-      if (status) {
-        status.textContent = '✓ Welcome, ' + result.name + '!';
-        status.className = 'onboarding-invite-status valid';
+    _validateTimer = setTimeout(async () => {
+      const result = await checkInviteCode(code);
+      
+      // Make sure input hasn't changed during async call
+      if (input.value.trim().toUpperCase() !== code) return;
+      
+      if (result.valid) {
+        btn.disabled = false;
+        btn.dataset.inviteId = result.invite.id;
+        if (status) {
+          status.textContent = '✓ Welcome, ' + result.name + '!';
+          status.className = 'onboarding-invite-status valid';
+        }
+      } else {
+        btn.disabled = true;
+        if (status) {
+          status.textContent = '✗ ' + result.error;
+          status.className = 'onboarding-invite-status invalid';
+        }
       }
-    } else {
-      btn.disabled = true;
-      if (status) {
-        status.textContent = '✗ ' + result.error;
-        status.className = 'onboarding-invite-status invalid';
-      }
-    }
+    }, 500);
   }
   
   function proceedToAuth() {
@@ -431,6 +440,11 @@
         // Update global currentUser
         if (typeof window.currentUser !== 'undefined') {
           window.currentUser = user;
+        }
+        
+        // Trigger sync after auth
+        if (typeof pullFromServer === 'function') {
+          pullFromServer();
         }
         
         // Hide onboarding
