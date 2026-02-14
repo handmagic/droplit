@@ -1,11 +1,10 @@
 // ============================================
-// DROPLIT CHAT v4.33 - Dynamic Memory + Config
+// DROPLIT CHAT v4.32 - Infinite Memory
 // ASKI Chat, Voice Mode, Streaming
 // Haiku for simple, Sonnet for complex queries
 // v4.30: Kokoro local TTS provider + settings
 // v4.31: Ollama local LLM integration (Qwen3)
 // v4.32: Infinite Memory (vector search over chat history)
-// v4.35: Topic Detector restored, PROPAGATE with quality gate, incremental sync
 // ============================================
 
 // ============================================
@@ -16,7 +15,6 @@ let memoryStore = null;     // VectorStore instance
 let memoryReady = false;    // true когда модель загружена
 let memoryLoading = false;  // true во время загрузки
 let currentSessionId = null; // ID текущей сессии чата
-let memoryIndexingActive = false; // true during background indexing
 
 async function initMemory() {
   if (typeof EmbeddingEngine === 'undefined' || typeof VectorStore === 'undefined') {
@@ -34,14 +32,9 @@ async function initMemory() {
     console.log('[Memory] VectorStore opened:', stats.totalMessages, 'messages indexed');
 
     memoryEngine = new EmbeddingEngine();
-    let lastLoggedPercent = -10; // throttle: log every 10%
     window.addEventListener('memory-progress', (e) => {
       const { stage, percent, message } = e.detail;
-      const p = parseInt(percent) || 0;
-      if (stage === 'ready' || stage === 'error' || p >= lastLoggedPercent + 10) {
-        console.log(`[Memory] ${stage}: ${message} ${percent ? percent + '%' : ''}`);
-        lastLoggedPercent = p;
-      }
+      console.log(`[Memory] ${stage}: ${message} ${percent ? percent + '%' : ''}`);
     });
 
     await memoryEngine.init();
@@ -80,153 +73,24 @@ async function indexToMemory(text, role, extras = {}) {
   }
 }
 
-// ============================================
-// TOPIC DETECTOR (v4.33)
-// Determines if user is referencing past conversations
-// Patterns loaded from app_config, fallback to defaults
-// ============================================
-function detectTopicIntent(text) {
-  if (!text || text.length < 3) return { intent: 'CONTINUATION', keywords: [], language: 'en' };
-
-  // Detect language
-  const cyrillicRatio = (text.match(/[а-яА-ЯёЁ]/g) || []).length / text.length;
-  const lang = cyrillicRatio > 0.3 ? 'ru' : 'en';
-
-  // Get patterns from config or use defaults
-  let patterns;
-  if (typeof appConfig !== 'undefined' && appConfig.loaded) {
-    patterns = appConfig.getTopicPatterns(lang);
-  } else {
-    // Hardcoded fallback
-    patterns = lang === 'ru' ? {
-      history_reference: ['мы обсуждали', 'помнишь', 'мы говорили', 'найди в чате', 'в прошлый раз', 'ранее', 'раньше', 'до этого', 'прошлом', 'обсуждении'],
-      recall_request: ['что я говорил', 'что ты помнишь', 'вспомни', 'какое число', 'что мы решили', 'я упоминал', 'я рассказывал', 'запомни', 'запоминай', 'ты знаешь обо мне', 'что ты знаешь', 'я тебе говорил', 'я просил'],
-      explicit_search: ['найди в чате', 'поищи в истории', 'найди в разговоре', 'найди в памяти', 'поищи в памяти'],
-      topic_continuation: ['продолжим', 'вернёмся к', 'так что насчёт', 'вернемся к', 'к слову о']
-    } : {
-      history_reference: ['we discussed', 'remember when', 'we talked about', 'find in chat', 'last time', 'earlier', 'previously', 'before this', 'our discussion'],
-      recall_request: ['what did I say', 'do you remember', 'recall', 'what number', 'what did we decide', 'I mentioned', 'I told you', 'remember this', 'you know about me', 'what do you know', 'I asked you'],
-      explicit_search: ['find in chat', 'search history', 'find in our conversation', 'search memory', 'find in memory'],
-      topic_continuation: ['continue with', 'back to', 'so about', 'getting back to', 'as for']
-    };
-  }
-
-  const lower = text.toLowerCase();
-
-  // Check each intent category
-  for (const p of (patterns.explicit_search || [])) {
-    if (lower.includes(p)) return { intent: 'EXPLICIT_SEARCH', keywords: extractKeywords(text), language: lang };
-  }
-  for (const p of (patterns.recall_request || [])) {
-    if (lower.includes(p)) return { intent: 'RECALL_REQUEST', keywords: extractKeywords(text), language: lang };
-  }
-  for (const p of (patterns.history_reference || [])) {
-    if (lower.includes(p)) return { intent: 'HISTORY_REFERENCE', keywords: extractKeywords(text), language: lang };
-  }
-  for (const p of (patterns.topic_continuation || [])) {
-    if (lower.includes(p)) return { intent: 'TOPIC_CONTINUATION', keywords: extractKeywords(text), language: lang };
-  }
-
-  return { intent: 'NEW_TOPIC', keywords: [], language: lang };
-}
-
-function extractKeywords(text) {
-  const stopWords = new Set([
-    // English
-    'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
-    'should', 'may', 'might', 'can', 'shall', 'to', 'of', 'in', 'for',
-    'on', 'with', 'at', 'by', 'from', 'as', 'into', 'about', 'that',
-    'this', 'it', 'not', 'but', 'and', 'or', 'if', 'my', 'your', 'we',
-    'you', 'me', 'i', 'he', 'she', 'they', 'what', 'which', 'who',
-    // Russian
-    'и', 'в', 'на', 'с', 'не', 'что', 'он', 'как', 'я', 'это', 'но',
-    'по', 'из', 'за', 'то', 'все', 'мы', 'ты', 'мне', 'мой', 'наш',
-    'нас', 'вы', 'они', 'для', 'был', 'ли', 'от', 'бы', 'уже', 'же',
-    'его', 'ее', 'их', 'так', 'тоже', 'при', 'без', 'чем', 'где', 'кто'
-  ]);
-
-  return text
-    .toLowerCase()
-    .replace(/[^\w\sа-яё]/gi, ' ')
-    .split(/\s+/)
-    .filter(w => w.length > 2 && !stopWords.has(w));
-}
-
 async function searchMemory(queryText) {
   if (!memoryReady || !memoryEngine || !memoryStore) return '';
 
   try {
-    // Settings: conservative defaults — quality over quantity
-    let topK = 5, threshold = 0.45;
-    if (typeof appConfig !== 'undefined' && appConfig.loaded) {
-      const ms = appConfig.getMemorySettings();
-      topK = ms.warm_search_top_k || 5;
-      threshold = ms.warm_min_similarity || 0.45;
-    }
-
-    // Vector search
     const queryVector = await memoryEngine.embedQuery(queryText);
-    const vectorResults = await memoryStore.search(queryVector, {
-      topK,
-      threshold,
+    const results = await memoryStore.search(queryVector, {
+      topK: 8,
+      threshold: 0.3,
       excludeSessionId: currentSessionId
     });
 
-    // Keyword fallback (only if vector found < 3 results — don't pollute good results)
-    let keywordResults = [];
-    if (vectorResults.length < 3 && typeof memoryStore.searchByKeywords === 'function') {
-      try {
-        keywordResults = await memoryStore.searchByKeywords(queryText, 3, currentSessionId);
-      } catch(e) {}
-    }
-
-    // Merge (vector first, then unique keyword hits)
-    const seenIds = new Set(vectorResults.map(r => r.id));
-    const merged = [...vectorResults];
-    for (const kr of keywordResults) {
-      if (!seenIds.has(kr.id)) {
-        merged.push(kr);
-        seenIds.add(kr.id);
-      }
-    }
-
-    if (merged.length === 0) {
+    if (results.length === 0) {
       console.log('[Memory] No relevant memories found');
       return '';
     }
 
-    // Sort by similarity
-    merged.sort((a, b) => (b.similarity || b.keywordScore || 0) - (a.similarity || a.keywordScore || 0));
-
-    // Quality gate: only keep results above 0.3 (even keyword hits)
-    const quality = merged.filter(r => (r.similarity || r.keywordScore || 0) >= 0.3);
-    if (quality.length === 0) {
-      console.log('[Memory] Results below quality threshold, skipping');
-      return '';
-    }
-
-    // PROPAGATE: only when top result is high-confidence (>0.5)
-    // This prevents neighbor expansion from flooding low-quality results
-    let final = quality.slice(0, topK);
-    const topScore = final[0].similarity || final[0].keywordScore || 0;
-    
-    if (topScore >= 0.5 && typeof memoryStore.expandWithNeighbors === 'function') {
-      try {
-        const expanded = await memoryStore.expandWithNeighbors(final, 2, 0.7, 8);
-        // Only keep propagated results above 0.25
-        final = expanded.filter(r => (r.similarity || 0) >= 0.25).slice(0, topK);
-      } catch(e) {
-        console.warn('[Memory] PROPAGATE failed:', e.message);
-      }
-    }
-
-    const propagated = final.filter(r => r._source === 'propagate').length;
-    console.log(`[Memory] Found ${final.length} memories (${vectorResults.length} vec, ${keywordResults.length} kw, ${propagated} prop, top: ${Math.round(topScore * 100)}%)`);
-    final.slice(0, 3).forEach((r, i) => {
-      console.log(`[Memory] #${i+1}: "${(r.text || '').substring(0, 80)}..." (${Math.round((r.similarity || r.keywordScore || 0) * 100)}%, ${r.role}, ${r._source || 'direct'})`);
-    });
-    return MemoryContext.formatForPrompt(final, 1000);
+    console.log(`[Memory] Found ${results.length} relevant memories (top: ${Math.round(results[0].similarity * 100)}%)`);
+    return MemoryContext.formatForPrompt(results, 1500);
 
   } catch (error) {
     console.error('[Memory] Search error:', error);
@@ -238,8 +102,18 @@ async function indexExistingHistory() {
   if (!memoryReady || !memoryEngine || !memoryStore) return;
 
   try {
-    // Find chat history in localStorage
-    const keysToTry = ['droplit_chat_history', 'askAI_chat_history', 'chat_history'];
+    // Check how many are already indexed
+    const stats = await memoryStore.getStats();
+    const alreadyIndexed = stats.totalMessages;
+
+    // Find the correct localStorage key for chat history
+    const possibleKeys = Object.keys(localStorage).filter(k => 
+      k.includes('chat') || k.includes('history') || k.includes('askAI') || k.includes('messages')
+    );
+    console.log('[Memory] Candidate localStorage keys:', possibleKeys.join(', '));
+
+    // Try known keys
+    const keysToTry = ['askAI_chat_history', 'chat_history', 'droplit_chat_history', ...possibleKeys];
     let rawHistory = null;
     let foundKey = null;
 
@@ -249,7 +123,7 @@ async function indexExistingHistory() {
         try {
           const parsed = JSON.parse(val);
           if (Array.isArray(parsed) && parsed.length > 0 && (parsed[0].text || parsed[0].content || parsed[0].message)) {
-            rawHistory = parsed;
+            rawHistory = val;
             foundKey = key;
             console.log(`[Memory] Found history in "${key}": ${parsed.length} messages`);
             break;
@@ -259,112 +133,57 @@ async function indexExistingHistory() {
     }
 
     if (!rawHistory) {
-      console.log('[Memory] No chat history found in localStorage');
+      console.log('[Memory] No chat history found in localStorage. Keys tried:', keysToTry.length);
       return;
     }
 
-    // Filter messages with meaningful text
-    const messages = rawHistory.filter(m => {
+    const history = JSON.parse(rawHistory);
+    
+    // Normalize: support different message formats
+    const messages = history.filter(m => {
       const text = m.text || m.content || m.message || '';
       return text.length >= 10;
     });
 
-    // Assign stable IDs to messages (for incremental sync)
-    messages.forEach(m => {
-      if (!m.id) {
-        m.id = 'hash_' + simpleHash((m.text || m.content || m.message || '') + (m.ts || m.time || ''));
-      }
-    });
-
-    // Get set of already-indexed IDs from vector store
-    const indexedIds = await memoryStore.getAllIds();
-    const indexedSet = new Set(indexedIds);
-    const chatIds = new Set(messages.map(m => m.id));
-
-    // Find new messages (in chat but not indexed)
-    const toIndex = messages.filter(m => !indexedSet.has(m.id));
-    
-    // Find orphaned (indexed but not in chat — deleted by user)
-    const toDelete = indexedIds.filter(id => !chatIds.has(id));
-
-    if (toIndex.length === 0 && toDelete.length === 0) {
-      console.log(`[Memory] History in sync: ${indexedSet.size} indexed = ${messages.length} in chat`);
+    if (messages.length <= alreadyIndexed) {
+      console.log(`[Memory] History up to date: ${alreadyIndexed} indexed, ${messages.length} in localStorage`);
       return;
     }
 
-    console.log(`[Memory] Sync: +${toIndex.length} new, -${toDelete.length} deleted (${indexedSet.size} indexed, ${messages.length} in chat)`);
+    // Only index messages not yet indexed (skip first alreadyIndexed)
+    const newMessages = alreadyIndexed > 0 ? messages.slice(alreadyIndexed) : messages;
+    console.log(`[Memory] Indexing ${newMessages.length} new messages (${alreadyIndexed} already indexed, ${messages.length} total in "${foundKey}")`);
 
-    // Delete orphaned entries
-    if (toDelete.length > 0) {
-      for (const id of toDelete) {
-        try { await memoryStore.delete(id); } catch(e) {}
-      }
-      console.log(`[Memory] Removed ${toDelete.length} orphaned entries`);
-    }
+    // Batch in chunks of 20
+    const BATCH_SIZE = 20;
+    let indexed = 0;
+    
+    for (let i = 0; i < newMessages.length; i += BATCH_SIZE) {
+      const batch = newMessages.slice(i, i + BATCH_SIZE);
+      const texts = batch.map(m => (m.text || m.content || m.message || '').substring(0, 2000));
+      const vectors = await memoryEngine.embedBatch(texts);
 
-    // Index new messages in batches — PAUSES when user sends a message
-    if (toIndex.length > 0) {
-      memoryIndexingActive = true;
-      const BATCH_SIZE = 30; // smaller batches = more responsive to pause
-      let indexed = 0;
-      const startTime = Date.now();
+      const entries = batch.map((m, j) => ({
+        id: 'hist_' + Date.now() + '_' + (i + j) + '_' + Math.random().toString(36).substr(2, 4),
+        text: texts[j],
+        role: (m.isUser || m.role === 'user') ? 'user' : 'assistant',
+        vector: vectors[j],
+        timestamp: m.timestamp || (m.time ? new Date(m.time).getTime() : Date.now() - (newMessages.length - i - j) * 60000),
+        sessionId: 'history_import',
+        metadata: { imported: true }
+      }));
 
-      for (let i = 0; i < toIndex.length; i += BATCH_SIZE) {
-        // Pause while AI is generating response (typing indicator visible)
-        const typingEl = document.getElementById('askAITyping');
-        while (typingEl && typingEl.style.display !== 'none' && typingEl.offsetParent !== null) {
-          await new Promise(r => setTimeout(r, 500));
-        }
-
-        const batch = toIndex.slice(i, i + BATCH_SIZE);
-        const texts = batch.map(m => (m.text || m.content || m.message || '').substring(0, 2000));
-        const vectors = await memoryEngine.embedBatch(texts);
-
-        const entries = batch.map((m, j) => ({
-          id: m.id,
-          text: texts[j],
-          role: (m.isUser || m.role === 'user') ? 'user' : 'assistant',
-          vector: vectors[j],
-          timestamp: m.timestamp || (m.ts ? new Date(m.ts).getTime() : (m.time ? new Date(m.time).getTime() : Date.now() - (toIndex.length - i - j) * 60000)),
-          sessionId: 'history_import',
-          metadata: { imported: true }
-        }));
-
-        await memoryStore.addBatch(entries);
-        indexed += entries.length;
-
-        // Log progress every 200 or at end
-        if (indexed % 200 === 0 || i + BATCH_SIZE >= toIndex.length) {
-          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-          const rate = (indexed / (Date.now() - startTime) * 1000).toFixed(0);
-          console.log(`[Memory] Indexed: ${indexed}/${toIndex.length} (${elapsed}s, ${rate} msg/s)`);
-        }
-
-        // Yield to UI thread — longer pause for mobile
-        if (i + BATCH_SIZE < toIndex.length) {
-          await new Promise(r => setTimeout(r, 50));
-        }
-      }
-      memoryIndexingActive = false;
+      await memoryStore.addBatch(entries);
+      indexed += entries.length;
+      console.log(`[Memory] Indexed batch: ${indexed}/${newMessages.length}`);
     }
 
     const finalStats = await memoryStore.getStats();
-    console.log(`[Memory] ✅ Sync complete: ${finalStats.totalMessages} messages indexed`);
+    console.log(`[Memory] ✅ History indexed: ${finalStats.totalMessages} total messages in vector store`);
 
   } catch (error) {
-    console.error('[Memory] History sync failed:', error);
+    console.error('[Memory] History indexing failed:', error);
   }
-}
-
-// Simple hash for deduplication (not cryptographic)
-function simpleHash(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return Math.abs(hash).toString(36);
 }
 
 // ============================================
@@ -375,35 +194,17 @@ let ollamaUrl = localStorage.getItem('ollama_url') || 'http://localhost:11434';
 let ollamaModel = localStorage.getItem('ollama_model') || 'gemma3:4b';
 
 // ASKI system prompt for Ollama (simplified, no tools)
-// OLLAMA_SYSTEM_PROMPT is built dynamically from config.
-// Fallback constant used only if ConfigLoader is not available.
-const OLLAMA_SYSTEM_PROMPT_FALLBACK = `You are ASKI, a smart AI assistant inside DropLit app.
+const OLLAMA_SYSTEM_PROMPT = `You are ASKI — a friendly, smart AI assistant inside DropLit app.
 DropLit is a voice-first idea capture app. Users record voice notes called "drops".
 
 Rules:
 - Respond in the same language the user writes in (Russian or English)
-- Be concise (1-3 sentences by default). Expand only when asked
-- Be honest. If you do not know something, say so clearly
-- NEVER fabricate or invent information
+- Be concise but helpful. For voice mode, keep answers under 3 sentences
+- You can help with: answering questions, brainstorming, analysis, creative tasks
+- You do NOT have access to user's drops or tools in this mode (local LLM)
 - If asked to create/delete/search drops, explain that this requires Cloud AI mode
-- No emojis. No excessive apologies
-
-Memory Protocol:
-Your context may include a section called "Relevant Chat History" with messages from past conversations.
-- This is REAL data from actual past conversations with this user — TRUST it completely
-- When user asks about past discussions, CHECK this section FIRST
-- If relevant content found, present it clearly
-- If NOT found, say honestly: "I do not see that in our conversation history"
-- NEVER say "I cannot search" or "I have no access to memory" — the data IS in your context
-- NEVER invent or fabricate conversation history that is not in your context`;
-
-function getOllamaSystemPrompt() {
-  if (typeof appConfig !== 'undefined' && appConfig.loaded) {
-    const prompt = appConfig.buildPromptForTier('tier_c');
-    if (prompt) return prompt;
-  }
-  return OLLAMA_SYSTEM_PROMPT_FALLBACK;
-}
+- Use markdown formatting when appropriate
+- Be warm, enthusiastic, and supportive`;
 
 // ============================================
 // ASK AI CHAT FUNCTIONS
@@ -2916,7 +2717,7 @@ function recorderDelete() {
   toast('Recording deleted');
 }
 
-function recorderCreateDrop() {
+async function recorderCreateDrop() {
   if (!recorderBlob) return;
   
   const createBtn = document.querySelector('#audioRecorderModal .act-btn.create');
@@ -2929,82 +2730,109 @@ function recorderCreateDrop() {
   if (deleteBtn) deleteBtn.disabled = true;
   if (shareBtn) shareBtn.disabled = true;
   
-  const reader = new FileReader();
-  
-  reader.onload = function() {
-    try {
-      const base64Data = reader.result;
-      
-      const timeText = document.getElementById('recorderTime').textContent;
-      const parts = timeText.split(':');
-      const duration = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-      
-      const now = new Date();
-      const drop = {
-        id: Date.now(),
-        text: '',
-        category: 'audio',
-        timestamp: now.toISOString(),
-        date: now.toLocaleDateString('ru-RU'),
-        time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
-        isMedia: true,
-        audioData: base64Data,
-        audioFormat: recorderBlob.type.split('/')[1] || 'webm',
-        audioSize: recorderBlob.size,
-        audioBitrate: duration > 0 ? Math.round((recorderBlob.size * 8) / duration) : 0,
-        duration: duration,
-        waveform: [],
-        notes: '',
-        encrypted: window.DROPLIT_PRIVACY_ENABLED || false
-      };
-      
-      ideas.unshift(drop);
-      save(drop);
-      playDropSound(); // Play signature sound
-      render();
-      counts();
-      
-      // Success
-      createBtn.textContent = 'CREATED!';
-      createBtn.style.background = '#10B981';
-      createBtn.style.color = 'white';
-      const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
-      toast(encIcon + 'Audio saved!', 'success');
-      
-      // Reset
-      recorderBlob = null;
-      recorderState = 'ready';
-      document.getElementById('recorderTime').textContent = '0:00';
-      updateRecorderUI();
-      
-      setTimeout(() => {
-        createBtn.textContent = 'CREATE DROP';
-        createBtn.style.background = '#D1FAE5';
-        createBtn.style.color = '#065F46';
-      }, 1500);
-      
-    } catch (err) {
-      console.error('recorderCreateDrop error:', err);
-      createBtn.textContent = 'ERROR';
-      createBtn.style.background = '#FEE2E2';
-      toast('Error: ' + err.message, 'error');
-      setTimeout(() => {
-        createBtn.textContent = 'CREATE DROP';
-        createBtn.style.background = '#D1FAE5';
-        createBtn.style.color = '#065F46';
-        createBtn.disabled = false;
-        if (deleteBtn) deleteBtn.disabled = false;
-        if (shareBtn) shareBtn.disabled = false;
-      }, 2000);
+  try {
+    const timeText = document.getElementById('recorderTime').textContent;
+    const parts = timeText.split(':');
+    const duration = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    
+    const now = new Date();
+    const dropId = Date.now();
+    
+    // === OPFS: Save original audio blob before converting to base64 ===
+    let mediaRef = null;
+    let mediaSaved = false;
+    let audioDataForLocalStorage = null;
+    
+    const originalBlob = recorderBlob; // keep reference before clearing
+    
+    if (window.DropLitMediaStorage && window.DropLitMediaStorage.isInitialized()) {
+      try {
+        const result = await window.DropLitMediaStorage.saveOriginal(dropId, originalBlob, 'audio');
+        if (result.success) {
+          mediaRef = result.filename;
+          mediaSaved = true;
+          // No base64 needed in localStorage — OPFS has the original
+          audioDataForLocalStorage = null;
+          console.log('[Audio] Original saved to OPFS:', result.filename,
+            '(' + Math.round(originalBlob.size/1024) + 'KB)');
+        }
+      } catch (err) {
+        console.warn('[Audio] OPFS save failed, falling back to base64:', err.message);
+      }
     }
-  };
-  
-  reader.onerror = function() {
+    
+    // Fallback: convert to base64 only if OPFS failed
+    if (!mediaSaved) {
+      audioDataForLocalStorage = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('FileReader failed'));
+        reader.readAsDataURL(originalBlob);
+      });
+    }
+    
+    const drop = {
+      id: dropId,
+      text: '',
+      category: 'audio',
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('ru-RU'),
+      time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
+      isMedia: true,
+      audioData: audioDataForLocalStorage,  // null if OPFS saved, base64 if fallback
+      audioFormat: originalBlob.type.split('/')[1] || 'webm',
+      audioSize: originalBlob.size,
+      audioBitrate: duration > 0 ? Math.round((originalBlob.size * 8) / duration) : 0,
+      duration: duration,
+      waveform: [],
+      notes: '',
+      encrypted: window.DROPLIT_PRIVACY_ENABLED || false,
+      // OPFS media reference
+      mediaRef: mediaRef,
+      mediaSize: originalBlob.size,
+      mediaSaved: mediaSaved
+    };
+    
+    ideas.unshift(drop);
+    save(drop);
+    playDropSound();
+    render();
+    counts();
+    
+    // Success
+    createBtn.textContent = 'CREATED!';
+    createBtn.style.background = '#10B981';
+    createBtn.style.color = 'white';
+    const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
+    const vaultIcon = mediaSaved ? '🗄️ ' : '';
+    toast(encIcon + vaultIcon + 'Audio saved!', 'success');
+    
+    // Reset
+    recorderBlob = null;
+    recorderState = 'ready';
+    document.getElementById('recorderTime').textContent = '0:00';
+    updateRecorderUI();
+    
+    setTimeout(() => {
+      createBtn.textContent = 'CREATE DROP';
+      createBtn.style.background = '#D1FAE5';
+      createBtn.style.color = '#065F46';
+    }, 1500);
+    
+  } catch (err) {
+    console.error('recorderCreateDrop error:', err);
     createBtn.textContent = 'ERROR';
-    toast('File read error', 'error');
-  };
-  
-  reader.readAsDataURL(recorderBlob);
+    createBtn.style.background = '#FEE2E2';
+    toast('Error: ' + err.message, 'error');
+    setTimeout(() => {
+      createBtn.textContent = 'CREATE DROP';
+      createBtn.style.background = '#D1FAE5';
+      createBtn.style.color = '#065F46';
+      createBtn.disabled = false;
+      if (deleteBtn) deleteBtn.disabled = false;
+      if (shareBtn) shareBtn.disabled = false;
+    }, 2000);
+  }
 }
 
 async function recorderShare() {
@@ -5122,20 +4950,15 @@ async function sendToOllama(text, history, knowledge) {
   // Build messages array in OpenAI/Ollama format
   const messages = [];
   
-  // System prompt from config (with fallback)
-  let systemPrompt = getOllamaSystemPrompt();
+  // System prompt
+  let systemPrompt = OLLAMA_SYSTEM_PROMPT;
   if (knowledge) {
     systemPrompt += '\n\nUser\'s personal knowledge base:\n' + knowledge;
   }
   
-  // v4.35: Topic Detector guard for Ollama too
-  const ollamaIntent = detectTopicIntent(text);
-  const ollamaNeedsMemory = ['HISTORY_REFERENCE', 'RECALL_REQUEST', 'EXPLICIT_SEARCH', 'TOPIC_CONTINUATION'].includes(ollamaIntent.intent);
-  
+  // v4.32: Inject vector memory context for Ollama too
   let memCtx = '';
-  if (ollamaNeedsMemory) {
-    try { memCtx = await searchMemory(text); } catch(e) {}
-  }
+  try { memCtx = await searchMemory(text); } catch(e) {}
   if (memCtx) {
     systemPrompt += '\n\n' + memCtx;
     console.log('[Ollama+Memory] Injecting', memCtx.length, 'chars of memory context');
@@ -5449,28 +5272,15 @@ async function sendAskAIMessage() {
     }
   }
   
-  // v4.35: Topic Detector restored as quality guard
-  // Without it, every "привет" floods context with 1800 random old messages
-  // Memory search only fires when user likely references past conversations
+  // v4.32: Search vector memory for relevant past conversations
   let memoryContext = '';
-  const topicIntent = detectTopicIntent(text);
-  const needsMemory = [
-    'HISTORY_REFERENCE', 'RECALL_REQUEST', 
-    'EXPLICIT_SEARCH', 'TOPIC_CONTINUATION'
-  ].includes(topicIntent.intent);
-  
-  if (needsMemory) {
-    try {
-      console.log(`[Memory] Topic: ${topicIntent.intent} (${topicIntent.language}), searching...`);
-      memoryContext = await searchMemory(text);
-      if (memoryContext) {
-        console.log('[Memory] Injecting', memoryContext.length, 'chars');
-      }
-    } catch (e) {
-      console.warn('[Memory] Search failed:', e.message);
+  try {
+    memoryContext = await searchMemory(text);
+    if (memoryContext) {
+      console.log('[Memory] Injecting', memoryContext.length, 'chars of memory context');
     }
-  } else {
-    // Silent skip — no log spam for normal messages
+  } catch (e) {
+    console.warn('[Memory] Search failed, continuing without memory:', e.message);
   }
   
   console.log('Sending to:', llmProvider === 'ollama' ? ollamaUrl : AI_API_URL);
@@ -5968,13 +5778,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Load persistent chat history (v4.25)
   loadChatHistory(0, false);
-  
-  // v4.33: Load config from cache (instant), then refresh from Supabase (background)
-  if (typeof appConfig !== 'undefined') {
-    appConfig.loadCached();
-    // Background refresh — wait for Supabase client to be ready (auth initializes it)
-    setTimeout(() => { appConfig.refreshFromSupabase(); }, 5000);
-  }
   
   // v4.32: Start Infinite Memory in background (23MB model, cached after first load)
   initMemory();
