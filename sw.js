@@ -3,7 +3,7 @@
 // Caching + Offline + Push + Command Executor
 // ============================================
 
-const CACHE_NAME = 'droplit-v2.0.1';
+const CACHE_NAME = 'droplit-v2.0.2';
 const EXECUTOR_ID = 'service_worker';
 const CHECK_INTERVAL = 15000; // 15 seconds
 const CLAIM_TIMEOUT = 60000; // 60 seconds
