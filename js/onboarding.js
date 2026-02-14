@@ -268,8 +268,6 @@
     }
   }
   
-  let _validateTimer = null;
-  
   async function validateInviteInput() {
     const input = document.getElementById('onboardingInviteCode');
     const btn = document.getElementById('onboardingContinueBtn');
@@ -286,36 +284,29 @@
       return;
     }
     
-    // Debounce: wait 500ms after last keystroke
-    if (_validateTimer) clearTimeout(_validateTimer);
-    
+    // Check code
     btn.disabled = true;
     if (status) {
       status.textContent = 'Checking...';
       status.className = 'onboarding-invite-status checking';
     }
     
-    _validateTimer = setTimeout(async () => {
-      const result = await checkInviteCode(code);
-      
-      // Make sure input hasn't changed during async call
-      if (input.value.trim().toUpperCase() !== code) return;
-      
-      if (result.valid) {
-        btn.disabled = false;
-        btn.dataset.inviteId = result.invite.id;
-        if (status) {
-          status.textContent = '✓ Welcome, ' + result.name + '!';
-          status.className = 'onboarding-invite-status valid';
-        }
-      } else {
-        btn.disabled = true;
-        if (status) {
-          status.textContent = '✗ ' + result.error;
-          status.className = 'onboarding-invite-status invalid';
-        }
+    const result = await checkInviteCode(code);
+    
+    if (result.valid) {
+      btn.disabled = false;
+      btn.dataset.inviteId = result.invite.id;
+      if (status) {
+        status.textContent = '✓ Welcome, ' + result.name + '!';
+        status.className = 'onboarding-invite-status valid';
       }
-    }, 500);
+    } else {
+      btn.disabled = true;
+      if (status) {
+        status.textContent = '✗ ' + result.error;
+        status.className = 'onboarding-invite-status invalid';
+      }
+    }
   }
   
   function proceedToAuth() {
@@ -442,11 +433,6 @@
           window.currentUser = user;
         }
         
-        // Trigger sync after auth
-        if (typeof pullFromServer === 'function') {
-          pullFromServer();
-        }
-        
         // Hide onboarding
         hideOnboardingModal();
         
@@ -473,13 +459,10 @@
         }, 500);
         
       } else if (event === 'SIGNED_OUT') {
+        // Reset auth handled flag but NOT listener flag
         window._dropLitAuthHandled = false;
-        // Don't show modal if auth.js is still initializing
-        if (window.__DROPLIT_AUTH_PROMISE && !window.currentUser) {
-          console.log('[Onboarding] SIGNED_OUT during auth init — ignoring');
-        } else if (!window.currentUser) {
-          showOnboardingModal();
-        }
+        // User signed out - show onboarding
+        showOnboardingModal();
       }
     });
   }
@@ -526,18 +509,6 @@
       console.log('[Onboarding] Waiting for Supabase SDK...');
       setTimeout(initOnboarding, 100);
       return;
-    }
-    
-    // Wait for auth.js to finish (dev auto-login or session check)
-    if (window.__DROPLIT_AUTH_PROMISE) {
-      console.log('[Onboarding] Waiting for auth.js...');
-      try { await window.__DROPLIT_AUTH_PROMISE; } catch(e) {}
-      // If auth.js logged in successfully, skip onboarding
-      if (window.currentUser) {
-        console.log('[Onboarding] Skipped — user already authenticated by auth.js');
-        hideOnboardingModal();
-        return;
-      }
     }
     
     initSupabase();
