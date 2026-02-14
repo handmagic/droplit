@@ -891,6 +891,14 @@ function mapServerToLocal(decryptedData, serverDrop) {
     // Privacy
     privacy_level: serverDrop.privacy_level || 'standard',
     
+    // Media vault references (OPFS / Cloud)
+    mediaRef: meta.media_ref || null,
+    mediaSize: meta.media_size || null,
+    mediaSaved: meta.media_saved || false,
+    cloudRef: meta.cloud_ref || null,
+    originalWidth: meta.original_width || null,
+    originalHeight: meta.original_height || null,
+    
     // Sync marker
     synced: true,
     syntrise_id: serverDrop.id  // server UUID
@@ -978,6 +986,15 @@ function mapDropToServer(drop, options = {}) {
     session_id: drop.sessionId || null,
     source_file: drop.sourceFile || null,
     source_drop_id: drop.sourceDropId || null,
+    // Media vault references (OPFS / Cloud)
+    ...(drop.mediaRef ? {
+      media_ref: drop.mediaRef,
+      media_size: drop.mediaSize || null,
+      media_saved: drop.mediaSaved || false,
+      cloud_ref: drop.cloudRef || null,
+      original_width: drop.originalWidth || null,
+      original_height: drop.originalHeight || null
+    } : {}),
     // Media-specific metadata (non-sensitive)
     ...(isMedia ? {
       media_status: hasTextContent ? 'described' : 'raw',
@@ -1031,8 +1048,8 @@ async function backgroundSync() {
       // Skip too new (< 2 min, user may delete)
       if (dropAge < SYNC_MIN_AGE_MS) continue;
       
-      // Skip media without text content (RAW — nothing to send)
-      if ((drop.isMedia || drop.image || drop.audioData) && !drop.text && !drop.transcription) continue;
+      // Media without text: still sync metadata (media_ref, size, type)
+      // Original file stays in OPFS/Cloud, only metadata goes to Supabase
       
       // Skip if already synced and not modified
       const syncedAt = syncTracker[String(drop.id)];
