@@ -192,6 +192,7 @@
   <script src="js/privacy/sync-encrypted.js"></script>
   <script src="js/privacy/encryption-ui.js"></script>
   <script src="js/privacy/privacy-integration.js"></script>
+  <script src="js/privacy/media-storage.js"></script>
   
   <script>
     // Privacy System Version
@@ -2693,11 +2694,14 @@ function handlePhoto(e){
   
   toast('Processing photo...','info');
   
-  // Compress image before saving
+  // === OPFS: Save original BEFORE any resize ===
+  const originalBlob = file;  // keep reference to original File
+  
   const img=new Image();
-  img.onload=function(){
+  img.onload=async function(){
+    // Generate thumbnail for localStorage (compact, for feed display)
     const canvas=document.createElement('canvas');
-    const maxSize=1200; // Max dimension
+    const maxSize=1200; // Max dimension for thumbnail
     let w=img.width,h=img.height;
     
     if(w>maxSize||h>maxSize){
@@ -2710,9 +2714,40 @@ function handlePhoto(e){
     const ctx=canvas.getContext('2d');
     ctx.drawImage(img,0,0,w,h);
     
-    // Compress to JPEG 70% quality
-    const dataUrl=canvas.toDataURL('image/jpeg',0.7);
-    savePhoto(dataUrl,null);
+    // Compress to JPEG 70% quality (thumbnail for UI)
+    const thumbnailDataUrl=canvas.toDataURL('image/jpeg',0.7);
+    
+    // Save drop with thumbnail
+    const dropId = Date.now();
+    
+    // Try to save original to OPFS vault
+    let mediaRef = null;
+    let mediaSize = originalBlob.size;
+    let mediaSaved = false;
+    
+    if (window.DropLitMediaStorage && window.DropLitMediaStorage.isInitialized()) {
+      try {
+        const result = await window.DropLitMediaStorage.saveOriginal(dropId, originalBlob, 'photo');
+        if (result.success) {
+          mediaRef = result.filename;
+          mediaSaved = true;
+          console.log('[Photo] Original saved to OPFS:', result.filename, 
+            '(' + Math.round(originalBlob.size/1024) + 'KB original,',
+            Math.round(thumbnailDataUrl.length/1024) + 'KB thumbnail)');
+        }
+      } catch (err) {
+        console.warn('[Photo] OPFS save failed, keeping thumbnail only:', err.message);
+      }
+    }
+    
+    savePhoto(thumbnailDataUrl, null, {
+      id: dropId,
+      mediaRef: mediaRef,
+      mediaSize: mediaSize,
+      mediaSaved: mediaSaved,
+      originalWidth: img.width,
+      originalHeight: img.height
+    });
   };
   img.onerror=function(){
     toast('Failed to load photo','error');
@@ -2729,9 +2764,9 @@ function handlePhoto(e){
   e.target.value='';
 }
 
-function savePhoto(dataUrl,geo){
+function savePhoto(dataUrl,geo,mediaInfo){
   const idea={
-    id:Date.now(),
+    id:mediaInfo?.id || Date.now(),
     text:'',
     notes:'',
     image:dataUrl,
@@ -2741,13 +2776,20 @@ function savePhoto(dataUrl,geo){
     time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
     geo:geo,
     isMedia:true,
-    encrypted:window.DROPLIT_PRIVACY_ENABLED||false
+    encrypted:window.DROPLIT_PRIVACY_ENABLED||false,
+    // OPFS media reference
+    mediaRef:mediaInfo?.mediaRef || null,
+    mediaSize:mediaInfo?.mediaSize || null,
+    mediaSaved:mediaInfo?.mediaSaved || false,
+    originalWidth:mediaInfo?.originalWidth || null,
+    originalHeight:mediaInfo?.originalHeight || null
   };
   ideas.push(idea);
   save();
   playDropSound(); // Play signature sound
   const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
-  toast(encIcon + 'Photo saved!','success');
+  const vaultIcon = mediaInfo?.mediaSaved ? '🗄️ ' : '';
+  toast(encIcon + vaultIcon + 'Photo saved!','success');
   try{
     resetToShowAll();
   }catch(err){
@@ -8615,6 +8657,23 @@ async function initializePrivacySystem() {
         updateEncryptionButton(true);
         updateSecurityIndicator();
         console.log("[Privacy] ✅ System activated");
+        // Initialize OPFS media vault after encryption is ready
+        if (window.DropLitMediaStorage) {
+          window.DropLitMediaStorage.init().then(function(r) {
+            if (r.supported) {
+              console.log("[MediaVault] ✅ OPFS ready, persisted:", r.persisted);
+              // Migrate existing base64 media to OPFS
+              window.DropLitMediaStorage.migrateExistingMedia().then(function(m) {
+                if (m.migrated > 0) {
+                  console.log("[MediaVault] Migrated", m.migrated, "media files to OPFS");
+                  if (typeof render === 'function') render();
+                }
+              });
+            } else {
+              console.warn("[MediaVault] OPFS not supported");
+            }
+          });
+        }
         // Only show toast if user triggered it manually (not auto-init)
         if (document.visibilityState === 'visible') {
           toast("🔐 Encryption active", "success");
