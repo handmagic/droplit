@@ -430,7 +430,8 @@ function updateSyncUI(status, text) {
 // INITIALIZE ON LOAD
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(initSupabase, 500); // Delay to ensure SDK loaded
+  // Signal that auth is starting - onboarding.js should wait for this
+  window.__DROPLIT_AUTH_PROMISE = initSupabase(); // Run immediately, expose promise
 });
 
 // ============================================
