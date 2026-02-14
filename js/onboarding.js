@@ -473,10 +473,13 @@
         }, 500);
         
       } else if (event === 'SIGNED_OUT') {
-        // Reset auth handled flag but NOT listener flag
         window._dropLitAuthHandled = false;
-        // User signed out - show onboarding
-        showOnboardingModal();
+        // Don't show modal if auth.js is still initializing
+        if (window.__DROPLIT_AUTH_PROMISE && !window.currentUser) {
+          console.log('[Onboarding] SIGNED_OUT during auth init — ignoring');
+        } else if (!window.currentUser) {
+          showOnboardingModal();
+        }
       }
     });
   }
@@ -523,6 +526,18 @@
       console.log('[Onboarding] Waiting for Supabase SDK...');
       setTimeout(initOnboarding, 100);
       return;
+    }
+    
+    // Wait for auth.js to finish (dev auto-login or session check)
+    if (window.__DROPLIT_AUTH_PROMISE) {
+      console.log('[Onboarding] Waiting for auth.js...');
+      try { await window.__DROPLIT_AUTH_PROMISE; } catch(e) {}
+      // If auth.js logged in successfully, skip onboarding
+      if (window.currentUser) {
+        console.log('[Onboarding] Skipped — user already authenticated by auth.js');
+        hideOnboardingModal();
+        return;
+      }
     }
     
     initSupabase();
