@@ -20,27 +20,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   
-  <!-- Desktop Layout (loaded conditionally) -->
-  <script>
-    (function() {
-      const isDesktop = 
-        window.location.hostname === 'desktop.droplit.app' ||
-        new URLSearchParams(window.location.search).has('desktop') ||
-        (window.innerWidth > 1024 && !('ontouchstart' in window));
-      
-      if (isDesktop) {
-        document.documentElement.classList.add('desktop-mode');
-        // Load desktop CSS
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'css/desktop.css';
-        document.head.appendChild(link);
-        // Will add class to body when DOM ready
-        window.__DROPLIT_DESKTOP = true;
-      }
-    })();
-  </script>
-  
   <!-- Archive System Styles (v0.9.113) -->
   <style>
     /* Archived card - orange left border */
@@ -7461,20 +7440,6 @@ document.addEventListener('visibilitychange', () => {
 });
 
 document.addEventListener('DOMContentLoaded',()=>{
-  // Desktop layout: add class to body, auto-open ASKI panel
-  if (window.__DROPLIT_DESKTOP) {
-    document.body.classList.add('layout-desktop');
-    console.log('[DropLit] Desktop layout activated');
-    // Auto-show ASKI panel (it's always visible on desktop)
-    setTimeout(() => {
-      const panel = document.getElementById('askAIPanel');
-      if (panel) {
-        panel.style.display = 'flex';
-        panel.classList.add('open');
-      }
-    }, 100);
-  }
-  
   // Initialize roll-up mode BEFORE render
   if (localStorage.getItem('droplit_rollup_mode') === 'true') {
     rollUpMode = true;
