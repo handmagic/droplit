@@ -722,7 +722,8 @@ async function pullFromServer() {
 // ============================================
 // SYNC: MAP CLIENT DROP → SERVER SCHEMA
 // ============================================
-function mapDropToServer(drop) {
+function mapDropToServer(drop, options = {}) {
+  const { encrypted = null, privacyLevel = null } = options;
   const isMedia = !!(drop.isMedia || drop.image || drop.audioData);
   const hasTextContent = !!(drop.text || drop.transcription);
   
@@ -733,12 +734,9 @@ function mapDropToServer(drop) {
   else if (drop.isLink) dropType = 'link';
   else if (drop.isMerged) dropType = 'merged';
   
-  return {
+  const serverDrop = {
     user_id: currentUser.id,
     external_id: String(drop.id),
-    
-    // Content
-    content: drop.text || drop.transcription || '',
     
     // Classification (real DB columns)
     drop_group: 'info',
@@ -758,11 +756,6 @@ function mapDropToServer(drop) {
     is_merged: drop.isMerged || false,
     ai_generated: drop.aiGenerated || false,
     
-    // Text fields
-    transcription: drop.transcription || null,
-    original_text: drop.originalText || null,
-    notes: drop.notes || null,
-    
     // Sync tracking
     local_id: String(drop.id),
     device_id: DEVICE_ID,
@@ -774,26 +767,48 @@ function mapDropToServer(drop) {
     // Archive state
     is_archived: drop.lifecycle_state === 'archived',
     
-    // Metadata (everything else)
-    metadata: {
-      date: drop.date,
-      time: drop.time,
-      timestamp: drop.timestamp,
-      session_id: drop.sessionId || null,
-      encrypted: drop.encrypted || false,
-      source_file: drop.sourceFile || null,
-      source_drop_id: drop.sourceDropId || null,
-      // Media-specific
-      ...(isMedia ? {
-        media_status: hasTextContent ? 'described' : 'raw',
-        audio_format: drop.audioFormat || null,
-        audio_size: drop.audioSize || null,
-        audio_duration: drop.duration || null,
-        image_dimensions: drop.imageDimensions || null,
-        geo: drop.geo || null
-      } : {})
-    }
+    // Privacy
+    privacy_level: privacyLevel || drop.privacy_level || 'standard'
   };
+  
+  // --- CONTENT: encrypted vs plaintext ---
+  if (encrypted && encrypted.encrypted_content) {
+    // Encrypted mode: sensitive fields in blob, plaintext cleared
+    serverDrop.encrypted_content = encrypted.encrypted_content;
+    serverDrop.encryption_nonce = encrypted.encryption_nonce;
+    serverDrop.encryption_version = encrypted.encryption_version || 1;
+    serverDrop.content = null;
+    serverDrop.transcription = null;
+    serverDrop.original_text = null;
+    serverDrop.notes = null;
+  } else {
+    // Plaintext mode (no key, legacy)
+    serverDrop.content = drop.text || drop.transcription || '';
+    serverDrop.transcription = drop.transcription || null;
+    serverDrop.original_text = drop.originalText || null;
+    serverDrop.notes = drop.notes || null;
+    serverDrop.encryption_version = 0;
+  }
+  
+  // Metadata (non-sensitive, always open for filtering/sorting)
+  serverDrop.metadata = {
+    date: drop.date,
+    time: drop.time,
+    timestamp: drop.timestamp,
+    session_id: drop.sessionId || null,
+    source_file: drop.sourceFile || null,
+    source_drop_id: drop.sourceDropId || null,
+    // Media-specific metadata (non-sensitive)
+    ...(isMedia ? {
+      media_status: hasTextContent ? 'described' : 'raw',
+      audio_format: drop.audioFormat || null,
+      audio_size: drop.audioSize || null,
+      audio_duration: drop.duration || null,
+      image_dimensions: drop.imageDimensions || null
+    } : {})
+  };
+  
+  return serverDrop;
 }
 
 // ============================================
@@ -867,8 +882,86 @@ async function backgroundSync() {
       console.log('[Sync] Syncing', toSync.length, 'drops...');
       updateSyncUI('syncing', 'Saving...');
       
+      // --- Resolve encryption key (once per cycle, not per drop) ---
+      const encModule = window.DropLitEncryption;
+      const keysModule = window.DropLitKeys;
+      let encKey = null;
+      
+      if (encModule?.encryptDrop && keysModule?.retrieveKey && currentUser) {
+        try {
+          const keyData = await keysModule.retrieveKey(currentUser.id);
+          if (keyData?.key) encKey = keyData.key;
+        } catch (e) { /* no key — plaintext mode */ }
+      }
+      
+      if (encKey) {
+        console.log('[Sync] 🔐 Encryption active');
+      }
+      
+      // --- Resolve ZK search availability ---
+      const zkModule = window.DropLitZKSearch;
+      const zkReady = zkModule?.isReady?.() && zkModule?.generateDropTokens;
+      
+      // --- Resolve audit availability ---
+      const auditModule = window.DropLitAudit;
+      const auditReady = auditModule?.logDropCreate || auditModule?.logSyncPush;
+      
+      // --- Process and upsert in batches ---
+      const zkTokenQueue = [];  // {external_id, tokens} — sync after upsert
+      
       for (let i = 0; i < toSync.length; i += 20) {
-        const batch = toSync.slice(i, i + 20).map(d => mapDropToServer(d));
+        const batchDrops = toSync.slice(i, i + 20);
+        const batch = [];
+        
+        for (const d of batchDrops) {
+          // Privacy check: maximum = local only, never sync
+          if (encModule?.shouldSync && !encModule.shouldSync(d)) {
+            console.log('[Sync] Skip local-only drop:', String(d.id).substring(0, 8));
+            syncTracker[String(d.id)] = now;  // mark so we don't re-check
+            continue;
+          }
+          
+          let serverDrop;
+          
+          if (encKey) {
+            // --- ENCRYPTED PATH ---
+            try {
+              // 1. Generate ZK search tokens BEFORE encryption (from plaintext)
+              if (zkReady) {
+                try {
+                  const tokens = await zkModule.generateDropTokens(d);
+                  if (tokens?.length > 0) {
+                    zkTokenQueue.push({ external_id: String(d.id), tokens });
+                  }
+                } catch (zkErr) {
+                  console.warn('[Sync] ZK token generation failed:', zkErr.message);
+                }
+              }
+              
+              // 2. Encrypt sensitive fields (text, audioData, image, notes, geo)
+              const encrypted = await encModule.encryptDrop(d, encKey);
+              
+              // 3. Build server object with encrypted content
+              serverDrop = mapDropToServer(d, {
+                encrypted: encrypted,
+                privacyLevel: d.privacy_level || 'standard'
+              });
+              
+            } catch (encErr) {
+              // Encryption failed — NEVER send plaintext as fallback
+              // This protects against partial encryption bugs leaking data
+              console.error('[Sync] Encryption failed, SKIPPING drop:', encErr.message);
+              continue;
+            }
+          } else {
+            // --- PLAINTEXT PATH (no key setup yet) ---
+            serverDrop = mapDropToServer(d);
+          }
+          
+          batch.push(serverDrop);
+        }
+        
+        if (batch.length === 0) continue;
         
         const { error } = await supabaseClient
           .from('drops')
@@ -877,11 +970,54 @@ async function backgroundSync() {
         if (error) {
           console.error('[Sync] Batch error:', error);
         } else {
-          // Mark as synced in tracker
           const synced = now;
-          for (const d of toSync.slice(i, i + 20)) {
+          for (const d of batchDrops) {
             syncTracker[String(d.id)] = synced;
           }
+        }
+      }
+      
+      // --- STEP 3b: Sync ZK search tokens ---
+      // Tokens go to separate table, need server-side drop UUID
+      if (zkTokenQueue.length > 0 && encKey) {
+        for (const item of zkTokenQueue) {
+          try {
+            // Look up server UUID by external_id
+            const { data: dropRow } = await supabaseClient
+              .from('drops')
+              .select('id')
+              .eq('external_id', item.external_id)
+              .eq('user_id', currentUser.id)
+              .maybeSingle();
+            
+            if (dropRow?.id) {
+              await supabaseClient
+                .from('drop_search_tokens')
+                .upsert({
+                  drop_id: dropRow.id,
+                  tokens: item.tokens,
+                  updated_at: new Date().toISOString()
+                }, { onConflict: 'drop_id' });
+            }
+          } catch (zkSyncErr) {
+            // Non-critical: drop is synced, tokens can retry next cycle
+            console.warn('[Sync] ZK token sync failed:', zkSyncErr.message);
+          }
+        }
+        console.log('[Sync] ZK tokens synced:', zkTokenQueue.length, 'drops');
+      }
+      
+      // --- STEP 3c: Audit trail ---
+      if (auditReady) {
+        try {
+          if (auditModule.logSyncPush) {
+            await auditModule.logSyncPush({ 
+              count: toSync.length, 
+              encrypted: !!encKey 
+            });
+          }
+        } catch (auditErr) {
+          // Non-critical
         }
       }
     }
