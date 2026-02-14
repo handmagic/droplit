@@ -68,7 +68,7 @@ async function initSupabase() {
     }
     
     if (session) {
-      // Session exists — user already authenticated (via onboarding or previous session)
+      // Session exists — user already authenticated
       currentUser = session.user;
       console.log('✅ Session found:', currentUser.email, currentUser.id.substring(0, 8) + '...');
       if (typeof toast === 'function') toast('✅ Welcome back, ' + (currentUser.email || 'user'), 'success');
@@ -79,37 +79,6 @@ async function initSupabase() {
       console.log('ℹ️ No session — waiting for onboarding to authenticate user');
       updateSyncUI('offline', 'Not signed in');
     }
-    
-    // Listen for auth state changes (user signs in via onboarding)
-    supabaseClient.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔔 Auth state:', event);
-      
-      if (event === 'SIGNED_IN' && session) {
-        currentUser = session.user;
-        console.log('✅ Signed in:', currentUser.email);
-        
-        // Check if first time — migrate local data
-        const migrated = localStorage.getItem('droplit_migrated_' + currentUser.id);
-        if (!migrated && typeof ideas !== 'undefined' && ideas.length > 0) {
-          await migrateLocalData();
-        } else {
-          await pullFromServer();
-        }
-        updateSyncUI('synced', 'Synced');
-        
-        // Update account UI
-        if (typeof updateAccountUI === 'function') updateAccountUI();
-      
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        currentUser = session.user;
-        console.log('🔄 Token refreshed');
-      
-      } else if (event === 'SIGNED_OUT') {
-        currentUser = null;
-        updateSyncUI('offline', 'Signed out');
-        console.log('👋 Signed out');
-      }
-    });
     
     console.log('✅ Auth initialized');
     return true;
