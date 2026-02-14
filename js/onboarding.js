@@ -461,8 +461,12 @@
       } else if (event === 'SIGNED_OUT') {
         // Reset auth handled flag but NOT listener flag
         window._dropLitAuthHandled = false;
-        // User signed out - show onboarding
-        showOnboardingModal();
+        // Only show onboarding if auth.js is NOT handling forced login
+        if (!window.__DROPLIT_AUTH_PROMISE) {
+          showOnboardingModal();
+        } else {
+          console.log('[Onboarding] SIGNED_OUT ignored - auth.js handling forced login');
+        }
       }
     });
   }
@@ -519,6 +523,12 @@
         console.log('[Onboarding] auth.js completed');
       } catch (e) {
         console.warn('[Onboarding] auth.js failed:', e.message);
+      }
+      // If auth.js successfully logged in, skip onboarding entirely
+      if (window.currentUser) {
+        console.log('[Onboarding] User set by auth.js, skipping onboarding entirely');
+        hideOnboardingModal();
+        return;
       }
     }
     
