@@ -511,6 +511,17 @@
       return;
     }
     
+    // Wait for auth.js forced login to complete (if active)
+    if (window.__DROPLIT_AUTH_PROMISE) {
+      console.log('[Onboarding] Waiting for auth.js to complete...');
+      try {
+        await window.__DROPLIT_AUTH_PROMISE;
+        console.log('[Onboarding] auth.js completed');
+      } catch (e) {
+        console.warn('[Onboarding] auth.js failed:', e.message);
+      }
+    }
+    
     initSupabase();
     setupAuthListener();
     
