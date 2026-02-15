@@ -37,10 +37,6 @@
       color: #9A3412;
       letter-spacing: 0.02em;
     }
-    /* Media RAW indicator — red text for unprocessed media */
-    .media-raw {
-      color: #EF4444 !important;
-    }
     
     /* Chat History Styles (v0.9.120) */
     .chat-load-more {
@@ -196,8 +192,6 @@
   <script src="js/privacy/sync-encrypted.js"></script>
   <script src="js/privacy/encryption-ui.js"></script>
   <script src="js/privacy/privacy-integration.js"></script>
-  <script src="js/privacy/media-storage.js"></script>
-  <script src="js/privacy/cloud-gdrive.js"></script>
   
   <script>
     // Privacy System Version
@@ -1542,19 +1536,6 @@
           </div>
         </div>
         
-        <div class="settings-item">
-          <div class="settings-item-left">
-            <span class="settings-item-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span>
-            <span class="settings-item-label">Cloud media backup</span>
-          </div>
-          <div class="settings-toggle" id="cloudBackupToggle" onclick="toggleCloudBackup()"></div>
-        </div>
-        <div class="settings-item no-border" style="flex-direction: column; align-items: flex-start; gap: 4px; padding-top: 0;">
-          <div style="font-size: 0.75rem; color: var(--color-text-muted); line-height: 1.4;">
-            Encrypted backup of photos & audio to your Google Drive. Only you can decrypt them. <span id="cloudBackupStatus"></span>
-          </div>
-        </div>
-        
         <div class="section-divider"><span>Display</span></div>
         
         <div class="settings-item">
@@ -2712,14 +2693,11 @@ function handlePhoto(e){
   
   toast('Processing photo...','info');
   
-  // === OPFS: Save original BEFORE any resize ===
-  const originalBlob = file;  // keep reference to original File
-  
+  // Compress image before saving
   const img=new Image();
-  img.onload=async function(){
-    // Generate thumbnail for localStorage (compact, for feed display)
+  img.onload=function(){
     const canvas=document.createElement('canvas');
-    const maxSize=1200; // Max dimension for thumbnail
+    const maxSize=1200; // Max dimension
     let w=img.width,h=img.height;
     
     if(w>maxSize||h>maxSize){
@@ -2732,40 +2710,9 @@ function handlePhoto(e){
     const ctx=canvas.getContext('2d');
     ctx.drawImage(img,0,0,w,h);
     
-    // Compress to JPEG 70% quality (thumbnail for UI)
-    const thumbnailDataUrl=canvas.toDataURL('image/jpeg',0.7);
-    
-    // Save drop with thumbnail
-    const dropId = Date.now();
-    
-    // Try to save original to OPFS vault
-    let mediaRef = null;
-    let mediaSize = originalBlob.size;
-    let mediaSaved = false;
-    
-    if (window.DropLitMediaStorage && window.DropLitMediaStorage.isInitialized()) {
-      try {
-        const result = await window.DropLitMediaStorage.saveOriginal(dropId, originalBlob, 'photo');
-        if (result.success) {
-          mediaRef = result.filename;
-          mediaSaved = true;
-          console.log('[Photo] Original saved to OPFS:', result.filename, 
-            '(' + Math.round(originalBlob.size/1024) + 'KB original,',
-            Math.round(thumbnailDataUrl.length/1024) + 'KB thumbnail)');
-        }
-      } catch (err) {
-        console.warn('[Photo] OPFS save failed, keeping thumbnail only:', err.message);
-      }
-    }
-    
-    savePhoto(thumbnailDataUrl, null, {
-      id: dropId,
-      mediaRef: mediaRef,
-      mediaSize: mediaSize,
-      mediaSaved: mediaSaved,
-      originalWidth: img.width,
-      originalHeight: img.height
-    });
+    // Compress to JPEG 70% quality
+    const dataUrl=canvas.toDataURL('image/jpeg',0.7);
+    savePhoto(dataUrl,null);
   };
   img.onerror=function(){
     toast('Failed to load photo','error');
@@ -2782,9 +2729,9 @@ function handlePhoto(e){
   e.target.value='';
 }
 
-function savePhoto(dataUrl,geo,mediaInfo){
+function savePhoto(dataUrl,geo){
   const idea={
-    id:mediaInfo?.id || Date.now(),
+    id:Date.now(),
     text:'',
     notes:'',
     image:dataUrl,
@@ -2794,27 +2741,13 @@ function savePhoto(dataUrl,geo,mediaInfo){
     time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
     geo:geo,
     isMedia:true,
-    encrypted:window.DROPLIT_PRIVACY_ENABLED||false,
-    // OPFS media reference
-    mediaRef:mediaInfo?.mediaRef || null,
-    mediaSize:mediaInfo?.mediaSize || null,
-    mediaSaved:mediaInfo?.mediaSaved || false,
-    originalWidth:mediaInfo?.originalWidth || null,
-    originalHeight:mediaInfo?.originalHeight || null
+    encrypted:window.DROPLIT_PRIVACY_ENABLED||false
   };
   ideas.push(idea);
   save();
   playDropSound(); // Play signature sound
   const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
-  const vaultIcon = mediaInfo?.mediaSaved ? '🗄️ ' : '';
-  toast(encIcon + vaultIcon + 'Photo saved!','success');
-  
-  // Soft notification: suggest Cloud Backup after first media drop
-  if (window.DropLitCloudGDrive && window.DropLitCloudGDrive.shouldShowPrompt()) {
-    setTimeout(function() {
-      window.DropLitCloudGDrive.showPrompt();
-    }, 3000);
-  }
+  toast(encIcon + 'Photo saved!','success');
   try{
     resetToShowAll();
   }catch(err){
@@ -4412,8 +4345,7 @@ function render(){
       }
       // Counter: text=chars, audio=duration, image=dimensions, command=action type
       if(i.category==='audio'){
-        const audioRaw = !i.text && !i.transcription;
-        h+='<span class="card-chars'+(audioRaw?' media-raw':'')+'">'+formatDuration(i.duration||0)+'</span>';
+        h+='<span class="card-chars">'+formatDuration(i.duration||0)+'</span>';
       } else if(isCommand){
         // Command drop: show action type instead of char count
         const actionIcons = {push:'📱',email:'📧',telegram:'💬',webhook:'🔗',tts:'🔊'};
@@ -4425,8 +4357,7 @@ function render(){
       } else if(i.isMedia&&i.imageDimensions){
         h+='<span class="card-chars">'+i.imageDimensions+'</span>';
       } else if(i.isMedia){
-        const imgRaw = !i.text && !i.notes;
-        h+='<span class="card-chars'+(imgRaw?' media-raw':'')+'">IMG</span>';
+        h+='<span class="card-chars">IMG</span>';
       } else {
         h+='<span class="card-chars">'+cc+'</span>';
       }
@@ -4441,7 +4372,7 @@ function render(){
       h+='</div>'; // close card-header-content
       h+='</div>'; // close card-header
       // Audio player
-      if(i.category==='audio'&&(i.audioData||i.mediaRef)){
+      if(i.category==='audio'&&i.audioData){
         h+='<div class="card-audio-player" data-audio-id="'+i.id+'">';
         h+='<div class="audio-waveform" id="waveform-'+i.id+'">';
         for(let bi=0;bi<30;bi++){
@@ -8084,68 +8015,6 @@ function initSensitiveSettings() {
   document.querySelectorAll('#sensitiveActionSelector .pill-m').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.action === action);
   });
-  
-  // Cloud backup toggle
-  initCloudBackupSettings();
-}
-
-async function toggleCloudBackup() {
-  const cloud = window.DropLitCloudGDrive;
-  if (!cloud) { toast('Cloud module not loaded', 'error'); return; }
-  
-  const toggle = document.getElementById('cloudBackupToggle');
-  
-  if (cloud.isEnabled()) {
-    cloud.disable();
-    if (toggle) toggle.classList.remove('active');
-    toast('Cloud backup disabled', 'info');
-    updateCloudBackupStatus();
-  } else {
-    if (toggle) toggle.classList.add('active');
-    toast('Connecting to Google Drive...', 'info');
-    const ok = await cloud.enable();
-    if (ok) {
-      toast('☁️ Cloud backup enabled!', 'success');
-      updateCloudBackupStatus();
-      // Sync existing unsynced media
-      cloud.syncAll().then(function(s) {
-        if (s.uploaded > 0) toast('☁️ ' + s.uploaded + ' files backed up', 'success');
-      });
-    } else {
-      if (toggle) toggle.classList.remove('active');
-      toast('Google Drive access required. Check OAuth scope.', 'error');
-    }
-  }
-}
-
-function initCloudBackupSettings() {
-  const cloud = window.DropLitCloudGDrive;
-  const toggle = document.getElementById('cloudBackupToggle');
-  if (toggle && cloud) {
-    toggle.classList.toggle('active', cloud.isEnabled());
-  }
-  updateCloudBackupStatus();
-}
-
-function updateCloudBackupStatus() {
-  const el = document.getElementById('cloudBackupStatus');
-  if (!el) return;
-  const cloud = window.DropLitCloudGDrive;
-  if (!cloud) { el.textContent = ''; return; }
-  
-  if (cloud.isEnabled()) {
-    const size = cloud.getTotalCloudSize();
-    if (size > 0) {
-      const kb = size < 1024*1024 ? Math.round(size/1024) + ' KB' : (size/1024/1024).toFixed(1) + ' MB';
-      el.textContent = '✅ Active · ' + kb + ' backed up';
-      el.style.color = '#059669';
-    } else {
-      el.textContent = '✅ Active';
-      el.style.color = '#059669';
-    }
-  } else {
-    el.textContent = '';
-  }
 }
 
 // Show sensitive warning modal
@@ -8513,20 +8382,32 @@ async function handleLogout() {
   if (!confirm('Sign out of DropLit?')) return;
   
   try {
-    // Use global client
+    // Stop background processes first
+    if (typeof stopBackgroundSync === 'function') stopBackgroundSync();
+    window._authEventHandled = false;
+    
+    // Try signOut with timeout (can hang on network issues)
     if (window._supabaseClient) {
-      await window._supabaseClient.auth.signOut();
+      try {
+        await Promise.race([
+          window._supabaseClient.auth.signOut(),
+          new Promise((_, reject) => setTimeout(() => reject('timeout'), 3000))
+        ]);
+      } catch (e) {
+        console.warn('[Account] signOut timeout/error, forcing cleanup:', e);
+      }
     }
     
-    // Clear local storage auth-related items
+    // Force clear ALL auth-related storage
     localStorage.removeItem('sb-ughfdhmyflotgsysvrrc-auth-token');
+    localStorage.removeItem('droplit_user_plan');
+    localStorage.removeItem('droplit_google_refresh_token');
     
-    // Reset currentUser
+    // Reset state
     window.currentUser = null;
     window._authListenerSetup = false;
-    
-    // Update UI
-    updateAccountUI();
+    window._googleProviderToken = null;
+    window._googleProviderTokenExpiry = 0;
     
     // Close menu
     closeMainMenu();
@@ -8536,16 +8417,16 @@ async function handleLogout() {
       toast('Signed out', 'info');
     }
     
-    // Reload to show onboarding
+    // Force reload bypassing SW cache
     setTimeout(() => {
-      window.location.reload();
-    }, 500);
+      window.location.href = window.location.origin + window.location.pathname + '?logout=' + Date.now();
+    }, 300);
     
   } catch (err) {
     console.error('[Account] Logout error:', err);
-    if (typeof toast === 'function') {
-      toast('Error signing out', 'error');
-    }
+    // Force logout even on error
+    localStorage.removeItem('sb-ughfdhmyflotgsysvrrc-auth-token');
+    window.location.href = window.location.origin + window.location.pathname + '?logout=' + Date.now();
   }
 }
 
@@ -8746,37 +8627,6 @@ async function initializePrivacySystem() {
         updateEncryptionButton(true);
         updateSecurityIndicator();
         console.log("[Privacy] ✅ System activated");
-        // Initialize OPFS media vault after encryption is ready
-        if (window.DropLitMediaStorage) {
-          window.DropLitMediaStorage.init().then(function(r) {
-            if (r.supported) {
-              console.log("[MediaVault] ✅ OPFS ready, persisted:", r.persisted);
-              // Initialize Cloud backup (Google Drive)
-              if (window.DropLitCloudGDrive) {
-                window.DropLitCloudGDrive.init().then(function(cr) {
-                  console.log("[CloudBackup]", cr.enabled ? "✅ Enabled" : "⏸ Disabled (user choice)");
-                  // If enabled, sync unsynced media in background
-                  if (cr.enabled) {
-                    setTimeout(function() {
-                      window.DropLitCloudGDrive.syncAll().then(function(s) {
-                        if (s.uploaded > 0) console.log("[CloudBackup] Synced", s.uploaded, "files");
-                      });
-                    }, 5000); // Delay to not block UI
-                  }
-                });
-              }
-              // Migrate existing base64 media to OPFS
-              window.DropLitMediaStorage.migrateExistingMedia().then(function(m) {
-                if (m.migrated > 0) {
-                  console.log("[MediaVault] Migrated", m.migrated, "media files to OPFS");
-                  if (typeof render === 'function') render();
-                }
-              });
-            } else {
-              console.warn("[MediaVault] OPFS not supported");
-            }
-          });
-        }
         // Only show toast if user triggered it manually (not auto-init)
         if (document.visibilityState === 'visible') {
           toast("🔐 Encryption active", "success");
