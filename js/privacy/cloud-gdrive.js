@@ -574,7 +574,15 @@
       }
     }
     
-    // Strategy 1: Get provider_token from current Supabase session
+    // Strategy 1: Check cached provider token from auth callback (fastest, no async)
+    if (window._googleProviderToken && Date.now() < (window._googleProviderTokenExpiry || 0)) {
+      _accessToken = window._googleProviderToken;
+      _tokenExpiry = window._googleProviderTokenExpiry;
+      console.log(`[${MODULE_NAME}] Using cached provider token`);
+      return _accessToken;
+    }
+    
+    // Strategy 2: Get provider_token from current Supabase session
     try {
       const session = await _safeGetSession();
         
@@ -590,13 +598,6 @@
       }
     } catch (err) {
       // Continue to next strategy
-    }
-    
-    // Strategy 1.5: Check cached provider token from auth callback
-    if (window._googleProviderToken && Date.now() < (window._googleProviderTokenExpiry || 0)) {
-      _accessToken = window._googleProviderToken;
-      _tokenExpiry = window._googleProviderTokenExpiry;
-      return _accessToken;
     }
     
     // Strategy 2: Use saved refresh_token via server endpoint
