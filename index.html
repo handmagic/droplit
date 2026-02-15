@@ -2108,6 +2108,7 @@
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 
 let ideas=JSON.parse(localStorage.getItem('droplit_ideas'))||[];
+window.ideas = ideas; // Expose for external modules (cloud-gdrive, sync)
 
 // ============================================
 // AUTO-FIX: Repair string IDs (v0.9.58)
@@ -2818,6 +2819,7 @@ function saveIdea(t){
     if (cmd === '/clear') {
       if (confirm('⚠️ Delete ALL drops? This cannot be undone!')) {
         ideas = [];
+        window.ideas = ideas;
         localStorage.removeItem('droplit_ideas');
         toast('All drops deleted', 'warning');
         render();
