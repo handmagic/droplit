@@ -2742,34 +2742,57 @@ function handlePhoto(e){
   
   toast('Processing photo...','info');
   
-  // Compress image before saving
-  const img=new Image();
-  img.onload=function(){
-    const canvas=document.createElement('canvas');
-    const maxSize=1200; // Max dimension
-    let w=img.width,h=img.height;
-    
-    if(w>maxSize||h>maxSize){
-      if(w>h){h=Math.round(h*maxSize/w);w=maxSize;}
-      else{w=Math.round(w*maxSize/h);h=maxSize;}
-    }
-    
-    canvas.width=w;
-    canvas.height=h;
-    const ctx=canvas.getContext('2d');
-    ctx.drawImage(img,0,0,w,h);
-    
-    // Compress to JPEG 70% quality
-    const dataUrl=canvas.toDataURL('image/jpeg',0.7);
-    savePhoto(dataUrl,null);
-  };
-  img.onerror=function(){
-    toast('Failed to load photo','error');
-  };
-  
   const reader=new FileReader();
   reader.onload=function(ev){
-    img.src=ev.target.result;
+    const originalDataUrl = ev.target.result;
+    
+    // Detect original dimensions
+    const img=new Image();
+    img.onload=function(){
+      const origW = img.width, origH = img.height;
+      
+      // Create thumbnail for localStorage feed (max 600px, JPEG 60%)
+      const thumbCanvas=document.createElement('canvas');
+      const thumbMax=600;
+      let tw=origW, th=origH;
+      if(tw>thumbMax||th>thumbMax){
+        if(tw>th){th=Math.round(th*thumbMax/tw);tw=thumbMax;}
+        else{tw=Math.round(tw*thumbMax/th);th=thumbMax;}
+      }
+      thumbCanvas.width=tw;
+      thumbCanvas.height=th;
+      thumbCanvas.getContext('2d').drawImage(img,0,0,tw,th);
+      const thumbDataUrl=thumbCanvas.toDataURL('image/jpeg',0.6);
+      
+      // Save with thumbnail in localStorage, original goes to OPFS
+      const idea={
+        id:Date.now(),
+        text:'',
+        notes:'',
+        image:thumbDataUrl,
+        category:'photo',
+        timestamp:new Date().toISOString(),
+        date:new Date().toLocaleDateString('ru-RU'),
+        time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+        geo:null,
+        isMedia:true,
+        imageDimensions: origW + '×' + origH,
+        encrypted:window.DROPLIT_PRIVACY_ENABLED||false
+      };
+      ideas.push(idea);
+      save();
+      playDropSound();
+      const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
+      toast(encIcon + 'Photo saved!','success');
+      try{ resetToShowAll(); }catch(err){}
+      
+      // Save ORIGINAL to OPFS + cloud backup (async, non-blocking)
+      _autoMediaBackup(idea.id, 'photo', originalDataUrl);
+    };
+    img.onerror=function(){
+      toast('Failed to load photo','error');
+    };
+    img.src=originalDataUrl;
   };
   reader.onerror=function(){
     toast('Failed to read photo','error');
@@ -2779,40 +2802,50 @@ function handlePhoto(e){
 }
 
 function savePhoto(dataUrl,geo){
-  const idea={
-    id:Date.now(),
-    text:'',
-    notes:'',
-    image:dataUrl,
-    category:'photo',
-    timestamp:new Date().toISOString(),
-    date:new Date().toLocaleDateString('ru-RU'),
-    time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
-    geo:geo,
-    isMedia:true,
-    encrypted:window.DROPLIT_PRIVACY_ENABLED||false
-  };
-  ideas.push(idea);
-  save();
-  playDropSound(); // Play signature sound
-  const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
-  toast(encIcon + 'Photo saved!','success');
-  try{
-    resetToShowAll();
-  }catch(err){
-    // Silent fail - photo is saved
-  }
-  
-  // Detect dimensions async and persist
-  const dimImg = new Image();
-  dimImg.onload = function() {
-    idea.imageDimensions = this.width + '×' + this.height;
+  // dataUrl is the ORIGINAL full-size image
+  // Create thumbnail for localStorage, original goes to OPFS
+  const origImg = new Image();
+  origImg.onload = function() {
+    const origW = origImg.width, origH = origImg.height;
+    
+    // Thumbnail for localStorage feed (max 600px, JPEG 60%)
+    const thumbCanvas = document.createElement('canvas');
+    const thumbMax = 600;
+    let tw = origW, th = origH;
+    if(tw > thumbMax || th > thumbMax){
+      if(tw > th){ th = Math.round(th * thumbMax / tw); tw = thumbMax; }
+      else { tw = Math.round(tw * thumbMax / th); th = thumbMax; }
+    }
+    thumbCanvas.width = tw;
+    thumbCanvas.height = th;
+    thumbCanvas.getContext('2d').drawImage(origImg, 0, 0, tw, th);
+    const thumbDataUrl = thumbCanvas.toDataURL('image/jpeg', 0.6);
+    
+    const idea = {
+      id: Date.now(),
+      text: '',
+      notes: '',
+      image: thumbDataUrl,
+      category: 'photo',
+      timestamp: new Date().toISOString(),
+      date: new Date().toLocaleDateString('ru-RU'),
+      time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+      geo: geo,
+      isMedia: true,
+      imageDimensions: origW + '×' + origH,
+      encrypted: window.DROPLIT_PRIVACY_ENABLED || false
+    };
+    ideas.push(idea);
     save();
+    playDropSound();
+    const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
+    toast(encIcon + 'Photo saved!', 'success');
+    try { resetToShowAll(); } catch(err) {}
+    
+    // Save ORIGINAL to OPFS + cloud backup (async, non-blocking)
+    _autoMediaBackup(idea.id, 'photo', dataUrl);
   };
-  dimImg.src = dataUrl;
-  
-  // Auto-save to OPFS + cloud backup (async, non-blocking)
-  _autoMediaBackup(idea.id, 'photo', dataUrl);
+  origImg.src = dataUrl;
 }
 
 /**
@@ -3356,53 +3389,55 @@ function handleUploadedImage(e){
   
   toast('Processing image...','info');
   
-  // Compress image before saving
-  const img=new Image();
-  img.onload=function(){
-    const canvas=document.createElement('canvas');
-    const maxSize=1200;
-    let w=img.width,h=img.height;
-    
-    if(w>maxSize||h>maxSize){
-      if(w>h){h=Math.round(h*maxSize/w);w=maxSize;}
-      else{w=Math.round(w*maxSize/h);h=maxSize;}
-    }
-    
-    canvas.width=w;
-    canvas.height=h;
-    const ctx=canvas.getContext('2d');
-    ctx.drawImage(img,0,0,w,h);
-    
-    const dataUrl=canvas.toDataURL('image/jpeg',0.7);
-    
-    // Save as uploaded image (no geo)
-    const idea={
-      id:Date.now(),
-      text:'',
-      notes:'',
-      image:dataUrl,
-      category:'photo',
-      timestamp:new Date().toISOString(),
-      date:new Date().toLocaleDateString('ru-RU'),
-      time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
-      geo:null,
-      isMedia:true,
-      isUploaded:true,
-      encrypted:window.DROPLIT_PRIVACY_ENABLED||false
-    };
-    ideas.push(idea);
-    save();
-    playDropSound();
-    toast('Image uploaded!','success');
-    resetToShowAll();
-  };
-  img.onerror=function(){
-    toast('Failed to load image','error');
-  };
-  
   const reader=new FileReader();
   reader.onload=function(ev){
-    img.src=ev.target.result;
+    const originalDataUrl = ev.target.result;
+    
+    const img=new Image();
+    img.onload=function(){
+      const origW = img.width, origH = img.height;
+      
+      // Create thumbnail for localStorage feed
+      const thumbCanvas=document.createElement('canvas');
+      const thumbMax=600;
+      let tw=origW, th=origH;
+      if(tw>thumbMax||th>thumbMax){
+        if(tw>th){th=Math.round(th*thumbMax/tw);tw=thumbMax;}
+        else{tw=Math.round(tw*thumbMax/th);th=thumbMax;}
+      }
+      thumbCanvas.width=tw;
+      thumbCanvas.height=th;
+      thumbCanvas.getContext('2d').drawImage(img,0,0,tw,th);
+      const thumbDataUrl=thumbCanvas.toDataURL('image/jpeg',0.6);
+      
+      const idea={
+        id:Date.now(),
+        text:'',
+        notes:'',
+        image:thumbDataUrl,
+        category:'photo',
+        timestamp:new Date().toISOString(),
+        date:new Date().toLocaleDateString('ru-RU'),
+        time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+        geo:null,
+        isMedia:true,
+        isUploaded:true,
+        imageDimensions: origW + '×' + origH,
+        encrypted:window.DROPLIT_PRIVACY_ENABLED||false
+      };
+      ideas.push(idea);
+      save();
+      playDropSound();
+      toast('Image uploaded!','success');
+      resetToShowAll();
+      
+      // Save ORIGINAL to OPFS + cloud backup
+      _autoMediaBackup(idea.id, 'photo', originalDataUrl);
+    };
+    img.onerror=function(){
+      toast('Failed to load image','error');
+    };
+    img.src=originalDataUrl;
   };
   reader.onerror=function(){
     toast('Failed to read image','error');
