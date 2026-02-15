@@ -969,16 +969,17 @@ function mapDropToServer(drop, options = {}) {
     serverDrop.encrypted_content = encrypted.encrypted_content;
     serverDrop.encryption_nonce = encrypted.encryption_nonce;
     serverDrop.encryption_version = encrypted.encryption_version || 1;
-    serverDrop.content = null;
-    serverDrop.transcription = null;
-    serverDrop.original_text = null;
-    serverDrop.notes = null;
+    // Use empty strings (not null) — Supabase has NOT NULL constraints
+    serverDrop.content = '';
+    serverDrop.transcription = '';
+    serverDrop.original_text = '';
+    serverDrop.notes = '';
   } else {
     // Plaintext mode (no key, legacy)
     serverDrop.content = drop.text || drop.transcription || '';
-    serverDrop.transcription = drop.transcription || null;
-    serverDrop.original_text = drop.originalText || null;
-    serverDrop.notes = drop.notes || null;
+    serverDrop.transcription = drop.transcription || '';
+    serverDrop.original_text = drop.originalText || '';
+    serverDrop.notes = drop.notes || '';
     serverDrop.encryption_version = 0;
   }
   
