@@ -83,15 +83,24 @@ async function initAuth() {
   // Setup auth state listener FIRST (once)
   setupAuthListener();
   
-  // Check for existing session
+  // Check for existing session (with timeout to prevent hanging)
   try {
-    let { data: { session } } = await supabaseClient.auth.getSession();
+    const sessionPromise = supabaseClient.auth.getSession();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('getSession timeout after 8s')), 8000)
+    );
+    
+    let { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
     
     // Refresh token if session exists
     if (session) {
       console.log('[Auth] Found session, refreshing token...');
       try {
-        const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
+        const refreshPromise = supabaseClient.auth.refreshSession();
+        const refreshTimeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('refreshSession timeout after 8s')), 8000)
+        );
+        const { data: refreshData, error: refreshError } = await Promise.race([refreshPromise, refreshTimeout]);
         if (refreshError) {
           console.warn('[Auth] Token refresh failed:', refreshError.message);
           session = null;
