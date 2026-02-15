@@ -550,37 +550,76 @@
   // INTERNAL: Access token management
   // ============================================
   
+  // Key for storing Google refresh token
+  const REFRESH_TOKEN_KEY = 'droplit_google_refresh_token';
+  
+  // Token exchange endpoint
+  const TOKEN_ENDPOINT = '/api/gdrive-token';
+  
   async function _resolveAccessToken() {
     // Check cached token
     if (_accessToken && Date.now() < _tokenExpiry) {
       return _accessToken;
     }
     
-    // Try to get from Supabase session (provider_token)
+    // Strategy 1: Get provider_token from current Supabase session
     try {
       if (window._supabaseClient) {
         const { data } = await window._supabaseClient.auth.getSession();
         const session = data?.session;
         
-        if (session?.provider_token) {
-          _accessToken = session.provider_token;
-          // provider_token typically lasts ~1 hour
-          _tokenExpiry = Date.now() + 50 * 60 * 1000; // refresh at 50 min
-          return _accessToken;
+        // Save provider_refresh_token whenever we see it
+        if (session?.provider_refresh_token) {
+          localStorage.setItem(REFRESH_TOKEN_KEY, session.provider_refresh_token);
         }
         
-        // Try refresh
-        if (session?.provider_refresh_token) {
-          const { data: refreshed } = await window._supabaseClient.auth.refreshSession();
-          if (refreshed?.session?.provider_token) {
-            _accessToken = refreshed.session.provider_token;
-            _tokenExpiry = Date.now() + 50 * 60 * 1000;
-            return _accessToken;
-          }
+        if (session?.provider_token) {
+          _accessToken = session.provider_token;
+          _tokenExpiry = Date.now() + 50 * 60 * 1000;
+          return _accessToken;
         }
       }
     } catch (err) {
-      console.warn(`[${MODULE_NAME}] Token resolution failed:`, err);
+      // Continue to refresh token flow
+    }
+    
+    // Strategy 2: Use saved refresh_token via server endpoint
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (refreshToken) {
+      try {
+        // Get Supabase JWT for auth
+        let supabaseToken = null;
+        if (window._supabaseClient) {
+          const { data } = await window._supabaseClient.auth.getSession();
+          supabaseToken = data?.session?.access_token;
+        }
+        
+        const response = await fetch(TOKEN_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(supabaseToken ? { 'Authorization': `Bearer ${supabaseToken}` } : {})
+          },
+          body: JSON.stringify({ refresh_token: refreshToken })
+        });
+        
+        if (response.ok) {
+          const tokenData = await response.json();
+          _accessToken = tokenData.access_token;
+          _tokenExpiry = Date.now() + (tokenData.expires_in - 120) * 1000; // refresh 2 min before expiry
+          console.log(`[${MODULE_NAME}] Access token refreshed via server endpoint`);
+          return _accessToken;
+        } else {
+          const err = await response.json().catch(() => ({}));
+          console.warn(`[${MODULE_NAME}] Token refresh failed:`, err.error || response.status);
+          // If refresh token is invalid, clear it
+          if (response.status === 400) {
+            localStorage.removeItem(REFRESH_TOKEN_KEY);
+          }
+        }
+      } catch (err) {
+        console.warn(`[${MODULE_NAME}] Token endpoint error:`, err.message);
+      }
     }
     
     return null;
