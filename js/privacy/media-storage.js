@@ -82,7 +82,7 @@
         if (_persisted) {
           console.log(`[${MODULE_NAME}] Persistent storage granted`);
         } else {
-          console.warn(`[${MODULE_NAME}] Persistent storage denied — data may be evicted`);
+          console.log(`[${MODULE_NAME}] Persistent storage: not granted (normal for desktop Chrome)`);
         }
       } catch (e) {
         console.warn(`[${MODULE_NAME}] persist() not available`);
