@@ -65,7 +65,7 @@ function ensureSupabaseClient() {
 // UNIFIED INIT — SINGLE ENTRY POINT
 // ============================================
 async function initAuth() {
-  console.log('[Auth] v3.0 initializing...');
+  console.log('[Auth] v3.1 initializing...');
   
   // Wait for Supabase SDK if not ready
   if (typeof window.supabase === 'undefined') {
@@ -80,101 +80,15 @@ async function initAuth() {
     return;
   }
   
-  // Setup auth state listener FIRST (once)
+  // Setup auth state listener — this is the SINGLE source of truth.
+  // onAuthStateChange fires INITIAL_SESSION on setup (with or without session),
+  // then SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED on changes.
+  // No getSession() call needed — eliminates the 8s timeout issue entirely.
   setupAuthListener();
-  
-  // Check for existing session (with timeout to prevent hanging)
-  try {
-    const sessionPromise = supabaseClient.auth.getSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('getSession timeout after 8s')), 8000)
-    );
-    
-    let { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
-    
-    // Refresh token if session exists
-    if (session) {
-      console.log('[Auth] Found session, refreshing token...');
-      try {
-        const refreshPromise = supabaseClient.auth.refreshSession();
-        const refreshTimeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('refreshSession timeout after 8s')), 8000)
-        );
-        const { data: refreshData, error: refreshError } = await Promise.race([refreshPromise, refreshTimeout]);
-        if (refreshError) {
-          console.warn('[Auth] Token refresh failed:', refreshError.message);
-          session = null;
-        } else if (refreshData?.session) {
-          session = refreshData.session;
-          console.log('[Auth] Token refreshed, expires:', new Date(session.expires_at * 1000).toLocaleTimeString());
-        }
-      } catch (e) {
-        console.warn('[Auth] Token refresh error:', e.message);
-        session = null;
-      }
-    }
-    
-    if (session && session.user) {
-      // ✅ User is already authenticated
-      console.log('[Auth] User authenticated:', session.user.email);
-      currentUser = session.user;
-      window.currentUser = currentUser;
-      
-      hideOnboardingModal();
-      await pullFromServer();
-      startBackgroundSync();
-      updateSyncUI('synced', 'Synced');
-      
-      // Update account UI
-      if (typeof updateAccountUI === 'function') {
-        updateAccountUI();
-      }
-      
-      // Trigger encryption check
-      triggerEncryptionCheck(currentUser);
-      
-      return;
-    }
-    
-    // No valid session
-    console.log('[Auth] No session found');
-    
-    // DEV MODE: auto-login with test account
-    if (isDevMode()) {
-      console.log('[Auth] DEV MODE — auto-login test2@syntrise.com');
-      await signInWithTestAccount();
-      return;
-    }
-    
-    // PRODUCTION: show login modal
-    console.log('[Auth] Showing login screen');
-    showOnboardingModal();
-    
-  } catch (error) {
-    console.error('[Auth] Init error:', error);
-    
-    // Don't show login if auth listener already handled sign-in
-    if (window._authEventHandled) {
-      console.log('[Auth] Session check failed but auth listener already handled login — continuing');
-      updateSyncUI('synced', 'Synced');
-      // Update account UI since listener set currentUser
-      if (typeof updateAccountUI === 'function') {
-        updateAccountUI();
-      }
-      return;
-    }
-    
-    updateSyncUI('error', 'Error');
-    
-    // Show login on error so user can retry
-    if (!isDevMode()) {
-      showOnboardingModal();
-    }
-  }
 }
 
 // ============================================
-// AUTH STATE LISTENER — ONE LISTENER
+// AUTH STATE LISTENER — SINGLE SOURCE OF TRUTH
 // ============================================
 function setupAuthListener() {
   if (window._authListenerSetup) {
@@ -188,10 +102,11 @@ function setupAuthListener() {
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
     console.log('[Auth] State change:', event);
     
-    if (event === 'SIGNED_IN' && session?.user) {
+    // ── SIGNED IN (initial load or OAuth redirect) ──
+    if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
       // Prevent duplicate handling
       if (window._authEventHandled) {
-        console.log('[Auth] SIGNED_IN already handled, skipping');
+        console.log('[Auth] Auth already handled, skipping duplicate', event);
         return;
       }
       window._authEventHandled = true;
@@ -199,16 +114,16 @@ function setupAuthListener() {
       const user = session.user;
       currentUser = user;
       window.currentUser = user;
+      console.log('[Auth] User authenticated:', user.email);
       
-      // Capture Google provider_refresh_token for Drive API
+      // Capture Google tokens for Drive API
       if (session.provider_refresh_token) {
         localStorage.setItem('droplit_google_refresh_token', session.provider_refresh_token);
         console.log('[Auth] Google refresh token saved');
       }
-      // Cache provider_token for immediate GDrive access
       if (session.provider_token) {
         window._googleProviderToken = session.provider_token;
-        window._googleProviderTokenExpiry = Date.now() + 50 * 60 * 1000; // ~50 min
+        window._googleProviderTokenExpiry = Date.now() + 50 * 60 * 1000;
         console.log('[Auth] Google provider token cached');
       }
       
@@ -221,10 +136,8 @@ function setupAuthListener() {
         localStorage.removeItem('droplit_pending_invite');
       }
       
-      // Assign user plan based on invite code
       if (pendingInviteCode) {
-        let userPlan = 'beta'; // default for beta testers
-        
+        let userPlan = 'beta';
         if (pendingInviteCode === 'ALEX2026' || pendingInviteCode === 'OWNER') {
           userPlan = 'owner';
         } else if (pendingInviteCode.startsWith('PRO')) {
@@ -232,16 +145,14 @@ function setupAuthListener() {
         } else if (pendingInviteCode.startsWith('BIZ')) {
           userPlan = 'business';
         }
-        
         localStorage.setItem('droplit_user_plan', userPlan);
         localStorage.removeItem('droplit_pending_invite_code');
         console.log('[Auth] Plan assigned:', userPlan);
       }
       
-      // Hide onboarding, sync data
+      // UI & data sync
       hideOnboardingModal();
       
-      // Check for first-time migration
       const migrated = localStorage.getItem('droplit_migrated_' + user.id);
       if (!migrated && typeof ideas !== 'undefined' && ideas.length > 0) {
         await migrateLocalData();
@@ -252,19 +163,34 @@ function setupAuthListener() {
       startBackgroundSync();
       updateSyncUI('synced', 'Synced');
       
-      // Update account UI
       if (typeof updateAccountUI === 'function') {
         updateAccountUI();
       }
       
-      // Welcome toast (only for non-dev logins)
-      if (!isDevMode() && typeof toast === 'function') {
+      if (!isDevMode() && typeof toast === 'function' && event === 'SIGNED_IN') {
         toast('Welcome to DropLit! 🎉', 'success');
       }
       
-      // Trigger encryption check after auth settles
       triggerEncryptionCheck(user);
+    
+    // ── NO SESSION on initial load ──
+    } else if (event === 'INITIAL_SESSION' && !session) {
+      console.log('[Auth] No existing session');
       
+      if (isDevMode()) {
+        console.log('[Auth] DEV MODE — auto-login');
+        await signInWithTestAccount();
+      } else {
+        showOnboardingModal();
+      }
+    
+    // ── TOKEN REFRESHED ──
+    } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+      currentUser = session.user;
+      window.currentUser = session.user;
+      console.log('[Auth] Token refreshed, expires:', new Date(session.expires_at * 1000).toLocaleTimeString());
+    
+    // ── SIGNED OUT ──
     } else if (event === 'SIGNED_OUT') {
       console.log('[Auth] User signed out');
       currentUser = null;
@@ -272,12 +198,15 @@ function setupAuthListener() {
       window._authEventHandled = false;
       stopBackgroundSync();
       
-      // Don't show modal in dev mode — just re-login
       if (isDevMode()) {
         console.log('[Auth] DEV MODE — re-login after signout');
         setTimeout(() => signInWithTestAccount(), 300);
       } else {
         showOnboardingModal();
+      }
+      
+      if (typeof updateAccountUI === 'function') {
+        updateAccountUI();
       }
     }
   });
