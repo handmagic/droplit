@@ -76,32 +76,31 @@
   // ============================================
   
   /**
-   * Enable cloud backup. Triggers OAuth consent if needed.
+   * Enable cloud backup. Saves preference immediately.
+   * Access test is non-blocking — actual uploads will retry if needed.
    * @returns {boolean} success
    */
   async function enable() {
-    // Get fresh Google token
-    const token = await _resolveAccessToken();
-    if (!token) {
-      console.error(`[${MODULE_NAME}] Cannot enable: no Google access token`);
-      return false;
-    }
-    
-    // Test access to appDataFolder
-    try {
-      const ok = await _testAccess(token);
-      if (!ok) {
-        console.error(`[${MODULE_NAME}] Cannot access appDataFolder — scope missing?`);
-        return false;
-      }
-    } catch (err) {
-      console.error(`[${MODULE_NAME}] Drive access test failed:`, err);
-      return false;
-    }
-    
+    // Save preference FIRST — so toggle persists across reloads
     _enabled = true;
     localStorage.setItem(SETTINGS_KEY, 'true');
-    console.log(`[${MODULE_NAME}] ✅ Cloud backup enabled`);
+    
+    // Try to get token and verify access (non-blocking for UI)
+    try {
+      const token = await _resolveAccessToken();
+      if (token) {
+        const ok = await _testAccess(token);
+        if (ok) {
+          console.log(`[${MODULE_NAME}] ✅ Cloud backup enabled & verified`);
+        } else {
+          console.warn(`[${MODULE_NAME}] ⚠️ Cloud backup enabled but Drive access failed — will retry on upload`);
+        }
+      } else {
+        console.warn(`[${MODULE_NAME}] ⚠️ Cloud backup enabled but no token yet — will retry on upload`);
+      }
+    } catch (err) {
+      console.warn(`[${MODULE_NAME}] ⚠️ Cloud backup enabled, access test error:`, err.message);
+    }
     
     return true;
   }
