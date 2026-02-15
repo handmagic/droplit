@@ -2862,16 +2862,17 @@ async function _autoMediaBackup(dropId, mediaType, dataUrl) {
       const resp = await fetch(dataUrl);
       const blob = await resp.blob();
       const result = await ms.saveOriginal(dropId, blob, mediaType);
-      if (result && result.ref) {
+      if (result && result.success && result.filename) {
         // Update drop with OPFS reference
         const drop = ideas.find(d => d.id === dropId);
         if (drop) {
-          drop.mediaRef = result.ref;
+          drop.mediaRef = result.filename;
           drop.mediaSaved = true;
-          drop.mediaSize = blob.size;
-          // Remove heavy base64 from localStorage
-          if (mediaType === 'photo') delete drop.image;
+          drop.mediaSize = result.originalSize || blob.size;
+          // Remove heavy base64 from localStorage (thumbnail stays via drop.image for photos)
           if (mediaType === 'audio') delete drop.audioData;
+          // For photos: keep thumbnail in drop.image for fast feed render
+          // Original is in OPFS, viewer loads from there
           save();
         }
         
