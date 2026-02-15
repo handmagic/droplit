@@ -428,7 +428,18 @@
     // Save updated drops with cloudRef
     if (uploaded > 0) {
       try {
-        localStorage.setItem('droplit_ideas', JSON.stringify(drops));
+        // Sync cloudRefs back to in-memory ideas array
+        if (typeof window.ideas !== 'undefined' && Array.isArray(window.ideas)) {
+          for (const drop of drops) {
+            if (drop.cloudRef) {
+              const memDrop = window.ideas.find(d => String(d.id) === String(drop.id));
+              if (memDrop) memDrop.cloudRef = drop.cloudRef;
+            }
+          }
+          if (typeof window.save === 'function') window.save();
+        } else {
+          localStorage.setItem('droplit_ideas', JSON.stringify(drops));
+        }
         console.log(`[${MODULE_NAME}] syncAll complete: ${uploaded} uploaded, ${skipped} skipped, ${failed} failed`);
       } catch (e) {
         console.error(`[${MODULE_NAME}] Failed to save cloudRef updates`);
@@ -729,15 +740,30 @@
     });
     
     if (result.success) {
-      // Update drop's cloudRef in localStorage
-      try {
-        const drops = JSON.parse(localStorage.getItem('droplit_ideas') || '[]');
-        const drop = drops.find(d => String(d.id) === String(dropId));
-        if (drop) {
-          drop.cloudRef = `gdrive:${result.fileId}`;
-          localStorage.setItem('droplit_ideas', JSON.stringify(drops));
+      // Update drop's cloudRef in both memory and localStorage
+      const cloudRefValue = `gdrive:${result.fileId}`;
+      
+      // 1. Update in-memory ideas (if available)
+      if (typeof window.ideas !== 'undefined' && Array.isArray(window.ideas)) {
+        const memDrop = window.ideas.find(d => String(d.id) === String(dropId));
+        if (memDrop) {
+          memDrop.cloudRef = cloudRefValue;
+          // Use app's save() to write consistently
+          if (typeof window.save === 'function') {
+            window.save();
+          }
         }
-      } catch (e) { /* silent */ }
+      } else {
+        // Fallback: direct localStorage update
+        try {
+          const drops = JSON.parse(localStorage.getItem('droplit_ideas') || '[]');
+          const drop = drops.find(d => String(d.id) === String(dropId));
+          if (drop) {
+            drop.cloudRef = cloudRefValue;
+            localStorage.setItem('droplit_ideas', JSON.stringify(drops));
+          }
+        } catch (e) { /* silent */ }
+      }
       
       _lastSyncTime = Date.now();
       localStorage.setItem('droplit_cloud_last_sync', String(_lastSyncTime));
@@ -801,15 +827,26 @@
         // Update manifest
         _manifest[dropId] = { fileId: file.id, type: mediaType, size: parseInt(file.size) || 0, uploaded: Date.now() };
         
-        // Update drop in localStorage if exists
+        // Update drop in memory + localStorage
         try {
-          const drops = JSON.parse(localStorage.getItem('droplit_ideas') || '[]');
-          const drop = drops.find(d => String(d.id) === dropId);
-          if (drop) {
-            drop.mediaRef = `${dropId}_${mediaType}.enc`;
-            drop.mediaSaved = true;
-            drop.cloudRef = `gdrive:${file.id}`;
-            localStorage.setItem('droplit_ideas', JSON.stringify(drops));
+          const dropId_s = String(dropId);
+          if (typeof window.ideas !== 'undefined' && Array.isArray(window.ideas)) {
+            const memDrop = window.ideas.find(d => String(d.id) === dropId_s);
+            if (memDrop) {
+              memDrop.mediaRef = `${dropId}_${mediaType}.enc`;
+              memDrop.mediaSaved = true;
+              memDrop.cloudRef = `gdrive:${file.id}`;
+              if (typeof window.save === 'function') window.save();
+            }
+          } else {
+            const drops = JSON.parse(localStorage.getItem('droplit_ideas') || '[]');
+            const drop = drops.find(d => String(d.id) === dropId_s);
+            if (drop) {
+              drop.mediaRef = `${dropId}_${mediaType}.enc`;
+              drop.mediaSaved = true;
+              drop.cloudRef = `gdrive:${file.id}`;
+              localStorage.setItem('droplit_ideas', JSON.stringify(drops));
+            }
           }
         } catch (e) { /* silent */ }
         
