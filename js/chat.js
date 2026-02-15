@@ -3065,11 +3065,14 @@ async function playAudioDrop(id, event) {
   };
   
   currentAudioElement.ontimeupdate = () => {
+    if (!currentAudioElement) return;
     if (timeEl) {
       timeEl.textContent = formatDuration(currentAudioElement.currentTime);
     }
     // Update waveform progress
-    updateWaveformProgress(id, currentAudioElement.currentTime / currentAudioElement.duration);
+    if (currentAudioElement.duration) {
+      updateWaveformProgress(id, currentAudioElement.currentTime / currentAudioElement.duration);
+    }
   };
   
   currentAudioElement.onended = () => {
