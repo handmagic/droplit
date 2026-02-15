@@ -704,6 +704,184 @@
   }
   
   // ============================================
+  // SYNC ONE — upload single drop immediately
+  // ============================================
+  
+  /**
+   * Upload a single drop's media to Drive right after creation.
+   * Call this from savePhoto/saveAudio hooks.
+   * 
+   * @param {number|string} dropId
+   * @param {string} mediaType - 'photo' or 'audio'
+   * @returns {object} { success, fileId }
+   */
+  async function syncOne(dropId, mediaType) {
+    if (!_enabled || !_initialized) return { success: false, error: 'not enabled' };
+    
+    const mediaStorage = window.DropLitMediaStorage;
+    if (!mediaStorage?.isInitialized()) return { success: false, error: 'OPFS not ready' };
+    
+    const encBlob = await mediaStorage.getEncryptedBlob(dropId, mediaType);
+    if (!encBlob) return { success: false, error: 'no OPFS file' };
+    
+    const result = await upload(dropId, mediaType, encBlob, {
+      mimeType: mediaType === 'audio' ? 'audio/webm' : 'image/jpeg'
+    });
+    
+    if (result.success) {
+      // Update drop's cloudRef in localStorage
+      try {
+        const drops = JSON.parse(localStorage.getItem('droplit_ideas') || '[]');
+        const drop = drops.find(d => String(d.id) === String(dropId));
+        if (drop) {
+          drop.cloudRef = `gdrive:${result.fileId}`;
+          localStorage.setItem('droplit_ideas', JSON.stringify(drops));
+        }
+      } catch (e) { /* silent */ }
+      
+      _lastSyncTime = Date.now();
+      localStorage.setItem('droplit_cloud_last_sync', String(_lastSyncTime));
+      
+      console.log(`[${MODULE_NAME}] syncOne: ${dropId} uploaded`);
+    }
+    
+    return result;
+  }
+  
+  // ============================================
+  // RESTORE ALL — download from Drive to OPFS
+  // ============================================
+  
+  /**
+   * Restore all media from Google Drive back to OPFS.
+   * Used when user logs in on new device or clears cache.
+   * 
+   * @returns {object} { restored, skipped, failed }
+   */
+  async function restoreAll() {
+    const mediaStorage = window.DropLitMediaStorage;
+    if (!mediaStorage?.isInitialized()) {
+      return { restored: 0, skipped: 0, failed: 0, error: 'OPFS not ready' };
+    }
+    
+    let restored = 0, skipped = 0, failed = 0;
+    
+    // Get file list from Drive
+    const files = await listFiles();
+    if (files.length === 0) {
+      return { restored: 0, skipped: 0, failed: 0, error: 'No files in cloud' };
+    }
+    
+    console.log(`[${MODULE_NAME}] restoreAll: ${files.length} files in cloud`);
+    
+    for (const file of files) {
+      try {
+        // Parse dropId and mediaType from filename: "1771122799908_photo.enc"
+        const match = file.name.match(/^(\d+)_(photo|audio)\.enc$/);
+        if (!match) { skipped++; continue; }
+        
+        const [, dropId, mediaType] = match;
+        
+        // Skip if already in OPFS
+        if (mediaStorage.hasOriginal(dropId, mediaType)) {
+          skipped++;
+          // Still update manifest
+          _manifest[dropId] = { fileId: file.id, type: mediaType, size: parseInt(file.size) || 0, uploaded: Date.now() };
+          continue;
+        }
+        
+        // Download encrypted blob
+        const blob = await download(file.id);
+        if (!blob) { failed++; continue; }
+        
+        // Write directly to OPFS (already encrypted)
+        const written = await mediaStorage.writeEncryptedBlob(dropId, mediaType, blob);
+        if (!written) { failed++; continue; }
+        
+        // Update manifest
+        _manifest[dropId] = { fileId: file.id, type: mediaType, size: parseInt(file.size) || 0, uploaded: Date.now() };
+        
+        // Update drop in localStorage if exists
+        try {
+          const drops = JSON.parse(localStorage.getItem('droplit_ideas') || '[]');
+          const drop = drops.find(d => String(d.id) === dropId);
+          if (drop) {
+            drop.mediaRef = `${dropId}_${mediaType}.enc`;
+            drop.mediaSaved = true;
+            drop.cloudRef = `gdrive:${file.id}`;
+            localStorage.setItem('droplit_ideas', JSON.stringify(drops));
+          }
+        } catch (e) { /* silent */ }
+        
+        restored++;
+        console.log(`[${MODULE_NAME}] Restored: ${file.name} (${_formatBytes(parseInt(file.size) || 0)})`);
+        
+      } catch (err) {
+        console.warn(`[${MODULE_NAME}] Restore error for ${file.name}:`, err.message);
+        failed++;
+      }
+    }
+    
+    _saveManifest();
+    
+    console.log(`[${MODULE_NAME}] restoreAll complete: ${restored} restored, ${skipped} skipped, ${failed} failed`);
+    return { restored, skipped, failed };
+  }
+  
+  // ============================================
+  // STATS — for Settings UI
+  // ============================================
+  
+  let _lastSyncTime = parseInt(localStorage.getItem('droplit_cloud_last_sync') || '0');
+  
+  /**
+   * Get cloud backup statistics for UI display.
+   * @returns {object}
+   */
+  function getStats() {
+    const fileCount = Object.keys(_manifest).length;
+    const totalSize = getTotalCloudSize();
+    const lastSync = _lastSyncTime;
+    
+    // Count unsynced
+    let unsynced = 0;
+    try {
+      const drops = JSON.parse(localStorage.getItem('droplit_ideas') || '[]');
+      unsynced = drops.filter(d => d.mediaSaved && d.mediaRef && !d.cloudRef).length;
+    } catch (e) { /* silent */ }
+    
+    return {
+      enabled: _enabled,
+      fileCount,
+      totalSize,
+      totalSizeFormatted: _formatBytes(totalSize),
+      lastSync,
+      lastSyncFormatted: lastSync ? _timeSince(lastSync) : 'Never',
+      unsynced,
+      provider: 'Google Drive'
+    };
+  }
+  
+  function _timeSince(ts) {
+    const sec = Math.floor((Date.now() - ts) / 1000);
+    if (sec < 60) return 'Just now';
+    if (sec < 3600) return Math.floor(sec / 60) + ' min ago';
+    if (sec < 86400) return Math.floor(sec / 3600) + 'h ago';
+    return Math.floor(sec / 86400) + 'd ago';
+  }
+  
+  // Update lastSyncTime after successful syncAll
+  const _origSyncAll = syncAll;
+  syncAll = async function() {
+    const result = await _origSyncAll();
+    if (result.uploaded > 0) {
+      _lastSyncTime = Date.now();
+      localStorage.setItem('droplit_cloud_last_sync', String(_lastSyncTime));
+    }
+    return result;
+  };
+  
+  // ============================================
   // PUBLIC API
   // ============================================
   
@@ -724,6 +902,8 @@
     
     // Sync
     syncAll,
+    syncOne,
+    restoreAll,
     listFiles,
     
     // Prompt
@@ -733,7 +913,8 @@
     
     // Status
     getCloudStatus,
-    getTotalCloudSize
+    getTotalCloudSize,
+    getStats
   };
   
   window.DropLitCloudGDrive = api;
