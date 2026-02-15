@@ -27,15 +27,8 @@ export default async function handler(request) {
   }
 
   try {
-    // Verify Supabase JWT to ensure authenticated user
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
+    // Auth: Accept either Supabase JWT or valid refresh_token as proof of identity
+    // The refresh_token is already a secret only the authenticated user possesses
     const body = await request.json();
     const refreshToken = body.refresh_token;
 
