@@ -103,76 +103,65 @@
       border-color: var(--color-primary);
     }
     
-    /* ═══ Settings Hub ═══ */
-    .settings-hub-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      padding: 4px 0;
-    }
-    .settings-hub-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 20px 12px;
-      border-radius: 16px;
-      border: 1px solid var(--color-border);
-      background: var(--color-bg);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .settings-hub-item:active {
-      transform: scale(0.96);
-      background: var(--color-bg-secondary, #f0f0f0);
-    }
-    .settings-hub-icon {
+    /* ═══ Settings Accordion ═══ */
+    .settings-accordion-header {
       display: flex;
       align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: var(--color-bg-secondary, #f5f5f5);
-      color: var(--color-text);
-    }
-    .settings-hub-icon svg {
-      width: 24px;
-      height: 24px;
-    }
-    .settings-hub-label {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--color-text);
-      text-align: center;
-    }
-    
-    /* Settings Page */
-    .settings-page {
-      animation: settingsPageIn 0.2s ease;
-    }
-    @keyframes settingsPageIn {
-      from { opacity: 0; transform: translateX(20px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-    .settings-back-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 0;
-      margin-bottom: 8px;
+      width: 100%;
+      padding: 14px 4px;
       border: none;
       background: none;
-      color: var(--color-primary);
-      font-size: 0.95rem;
-      font-weight: 600;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
+      border-bottom: 1px solid var(--color-border);
     }
-    .settings-back-btn svg {
+    .settings-accordion-header:active {
+      background: var(--color-bg-secondary, #f5f5f5);
+    }
+    .settings-accordion-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--color-bg-secondary, #f5f5f5);
+      color: var(--color-text);
+      margin-right: 12px;
       flex-shrink: 0;
+    }
+    .settings-accordion-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+    .settings-accordion-title {
+      flex: 1;
+      text-align: left;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    .settings-accordion-chevron {
+      width: 20px;
+      height: 20px;
+      color: var(--color-text-muted);
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+    }
+    .settings-accordion-header.open .settings-accordion-chevron {
+      transform: rotate(180deg);
+    }
+    .settings-accordion-body {
+      display: none;
+      padding: 4px 0 12px 0;
+      animation: accordionIn 0.2s ease;
+    }
+    .settings-accordion-body.open {
+      display: block;
+    }
+    @keyframes accordionIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
   </style>
 
@@ -1255,54 +1244,16 @@
       </button>
       
       <!-- ══════════════════════════════════════════════ -->
-      <!-- SETTINGS HUB — Main Navigation -->
+      <!-- SETTINGS — Accordion Sections -->
       <!-- ══════════════════════════════════════════════ -->
-      <div id="settingsHub">
-        <div class="settings-hub-grid">
-          <button class="settings-hub-item" onclick="openSettingsPage('search')">
-            <span class="settings-hub-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            <span class="settings-hub-label">Search</span>
-          </button>
-          <button class="settings-hub-item" onclick="openSettingsPage('ai')">
-            <span class="settings-hub-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
-            <span class="settings-hub-label">AI & Voice</span>
-          </button>
-          <button class="settings-hub-item" onclick="openSettingsPage('cloud')">
-            <span class="settings-hub-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span>
-            <span class="settings-hub-label">Cloud & Sync</span>
-          </button>
-          <button class="settings-hub-item" onclick="openSettingsPage('display')">
-            <span class="settings-hub-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
-            <span class="settings-hub-label">Display</span>
-          </button>
-          <button class="settings-hub-item" onclick="openSettingsPage('privacy')">
-            <span class="settings-hub-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-            <span class="settings-hub-label">Privacy</span>
-          </button>
-          <button class="settings-hub-item" onclick="openSettingsPage('data')">
-            <span class="settings-hub-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span>
-            <span class="settings-hub-label">Data</span>
-          </button>
-        </div>
-        
-        <!-- About footer in hub -->
-        <div class="menu-about" onclick="closeMainMenu(); openAbout();" style="cursor: pointer; margin-top: 16px;">
-          <div class="menu-about-logo">
-            <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
-          </div>
-          <div class="menu-about-name">DropLit</div>
-          <div class="menu-about-ver">v0.9.127 • Syntrise Inc. © 2026</div>
-        </div>
-      </div>
 
-      <!-- ══════════════════════════════════════════════ -->
-      <!-- PAGE: Search -->
-      <!-- ══════════════════════════════════════════════ -->
-      <div class="settings-page" id="settingsPage_search" style="display:none">
-        <button class="settings-back-btn" onclick="backToSettingsHub()">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-          Search
+      <div class="settings-accordion-section">
+        <button class="settings-accordion-header" onclick="toggleAccordion(this)">
+          <span class="settings-accordion-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <span class="settings-accordion-title">Search</span>
+          <svg class="settings-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
         </button>
+        <div class="settings-accordion-body" id="settingsBody_search">
         <input type="text" class="menu-search-input" id="menuSearchInput" placeholder="Search drops..." onkeypress="if(event.key==='Enter')performSearch()" style="width: 100%; margin-bottom: 16px;">
         <div class="pill-row">
           <button class="pill-m sec" onclick="startVoiceSearch()">
@@ -1339,16 +1290,16 @@
         </button>
         <div class="undo-list" id="undoList"></div>
       
-      </div><!-- /settingsPage_search -->
+        </div>
+      </div>
 
-      <!-- ══════════════════════════════════════════════ -->
-      <!-- PAGE: AI & Voice -->
-      <!-- ══════════════════════════════════════════════ -->
-      <div class="settings-page" id="settingsPage_ai" style="display:none">
-        <button class="settings-back-btn" onclick="backToSettingsHub()">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-          AI & Voice
+      <div class="settings-accordion-section">
+        <button class="settings-accordion-header" onclick="toggleAccordion(this)">
+          <span class="settings-accordion-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
+          <span class="settings-accordion-title">AI & Voice</span>
+          <svg class="settings-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
         </button>
+        <div class="settings-accordion-body" id="settingsBody_ai">
         <div class="section-divider"><span>Aski Brain</span></div>
         
         <div class="settings-item no-border" style="flex-direction: column; align-items: flex-start; gap: 12px;">
@@ -1640,16 +1591,16 @@
           </div>
         </div>
         
-      </div><!-- /settingsPage_ai -->
+        </div>
+      </div>
 
-      <!-- ══════════════════════════════════════════════ -->
-      <!-- PAGE: Cloud & Sync -->
-      <!-- ══════════════════════════════════════════════ -->
-      <div class="settings-page" id="settingsPage_cloud" style="display:none">
-        <button class="settings-back-btn" onclick="backToSettingsHub()">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-          Cloud & Sync
+      <div class="settings-accordion-section">
+        <button class="settings-accordion-header" onclick="toggleAccordion(this)" data-init="initCloudBackupSettings">
+          <span class="settings-accordion-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span>
+          <span class="settings-accordion-title">Cloud & Sync</span>
+          <svg class="settings-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
         </button>
+        <div class="settings-accordion-body" id="settingsBody_cloud">
         
         <div class="section-divider"><span>Media Backup</span></div>
         <div class="settings-item">
@@ -1712,16 +1663,16 @@
           <button class="pill-m sec" onclick="exportData()">Export</button>
         </div>
         
-      </div><!-- /settingsPage_cloud -->
+        </div>
+      </div>
 
-      <!-- ══════════════════════════════════════════════ -->
-      <!-- PAGE: Display -->
-      <!-- ══════════════════════════════════════════════ -->
-      <div class="settings-page" id="settingsPage_display" style="display:none">
-        <button class="settings-back-btn" onclick="backToSettingsHub()">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-          Display
+      <div class="settings-accordion-section">
+        <button class="settings-accordion-header" onclick="toggleAccordion(this)">
+          <span class="settings-accordion-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
+          <span class="settings-accordion-title">Display</span>
+          <svg class="settings-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
         </button>
+        <div class="settings-accordion-body" id="settingsBody_display">
         
         <div class="settings-item">
           <div class="settings-item-left">
@@ -1751,16 +1702,16 @@
           </div>
         </div>
         
-      </div><!-- /settingsPage_display -->
+        </div>
+      </div>
 
-      <!-- ══════════════════════════════════════════════ -->
-      <!-- PAGE: Privacy & Security -->
-      <!-- ══════════════════════════════════════════════ -->
-      <div class="settings-page" id="settingsPage_privacy" style="display:none">
-        <button class="settings-back-btn" onclick="backToSettingsHub()">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-          Privacy & Security
+      <div class="settings-accordion-section">
+        <button class="settings-accordion-header" onclick="toggleAccordion(this)">
+          <span class="settings-accordion-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <span class="settings-accordion-title">Privacy & Security</span>
+          <svg class="settings-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
         </button>
+        <div class="settings-accordion-body" id="settingsBody_privacy">
         <div class="section-divider"><span>Data Protection</span></div>
         
         <div class="settings-item">
@@ -1794,16 +1745,16 @@
         <div style="padding: 6px 0;">
           <button class="pill-m sec" onclick="resetEncryption()" style="width: 100%; font-size: 0.8rem;">🔄 Reset Encryption</button>
         </div>
-      </div><!-- /settingsPage_privacy -->
+        </div>
+      </div>
 
-      <!-- ══════════════════════════════════════════════ -->
-      <!-- PAGE: Data Management -->
-      <!-- ══════════════════════════════════════════════ -->
-      <div class="settings-page" id="settingsPage_data" style="display:none">
-        <button class="settings-back-btn" onclick="backToSettingsHub()">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-          Data
+      <div class="settings-accordion-section">
+        <button class="settings-accordion-header" onclick="toggleAccordion(this)">
+          <span class="settings-accordion-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span>
+          <span class="settings-accordion-title">Data</span>
+          <svg class="settings-accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
         </button>
+        <div class="settings-accordion-body" id="settingsBody_data">
         <div class="section-divider"><span>Chat History</span></div>
         
         <!-- Chat History Stats -->
@@ -1869,7 +1820,17 @@
         <div style="padding: 8px 0;">
           <button class="pill-l sec" onclick="closeMainMenu();openFileExportModal()" style="width: 100%;">📤 Export Drops</button>
         </div>
-      </div><!-- /settingsPage_data -->
+        </div>
+      </div>
+
+      <!-- About footer -->
+      <div class="menu-about" onclick="closeMainMenu(); openAbout();" style="cursor: pointer; margin-top: 16px;">
+        <div class="menu-about-logo">
+          <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
+        </div>
+        <div class="menu-about-name">DropLit</div>
+        <div class="menu-about-ver">v0.9.128 • Syntrise Inc. © 2026</div>
+      </div>
 
       <!-- Footer -->
       <div class="main-menu-footer">
@@ -1880,7 +1841,7 @@
   </div>
 
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.127 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.128 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -8959,8 +8920,8 @@ function openMainMenu() {
   
   if (!menu) return;
   
-  // Always show hub first, hide all pages
-  backToSettingsHub();
+  // Always collapse all sections on menu open
+  collapseAllAccordions();
   
   menu.classList.add('show');
   
@@ -8984,42 +8945,40 @@ function openMainMenu() {
   updateAccountUI();
 }
 
-// ═══ Settings Hub Navigation ═══
+// ═══ Settings Accordion ═══
 
-function openSettingsPage(pageId) {
-  // Hide hub
-  const hub = document.getElementById('settingsHub');
-  if (hub) hub.style.display = 'none';
+function toggleAccordion(header) {
+  var body = header.nextElementSibling;
+  var isOpen = body.classList.contains('open');
   
-  // Hide all pages
-  document.querySelectorAll('.settings-page').forEach(function(p) {
-    p.style.display = 'none';
-  });
-  
-  // Show requested page
-  const page = document.getElementById('settingsPage_' + pageId);
-  if (page) {
-    page.style.display = 'block';
-    // Scroll to top of menu content
-    const content = page.closest('.main-menu-content');
-    if (content) content.scrollTop = 0;
-  }
-  
-  // Page-specific init
-  if (pageId === 'cloud') {
-    initCloudBackupSettings();
+  // Toggle this section
+  if (isOpen) {
+    body.classList.remove('open');
+    header.classList.remove('open');
+  } else {
+    body.classList.add('open');
+    header.classList.add('open');
+    
+    // Scroll header into view smoothly
+    setTimeout(function() {
+      header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+    
+    // Run page-specific init if needed
+    var initFn = header.getAttribute('data-init');
+    if (initFn && typeof window[initFn] === 'function') {
+      window[initFn]();
+    }
   }
 }
 
-function backToSettingsHub() {
-  // Hide all pages
-  document.querySelectorAll('.settings-page').forEach(function(p) {
-    p.style.display = 'none';
+function collapseAllAccordions() {
+  document.querySelectorAll('.settings-accordion-body.open').forEach(function(b) {
+    b.classList.remove('open');
   });
-  
-  // Show hub
-  const hub = document.getElementById('settingsHub');
-  if (hub) hub.style.display = 'block';
+  document.querySelectorAll('.settings-accordion-header.open').forEach(function(h) {
+    h.classList.remove('open');
+  });
 }
 
 function closeMainMenu() {
