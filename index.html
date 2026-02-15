@@ -37,7 +37,7 @@
       color: #9A3412;
       letter-spacing: 0.02em;
     }
-    /* Media RAW indicator — red text for unprocessed media */
+    /* Media safety indicator — red when media is only on device, not cloud backed */
     .media-raw {
       color: #EF4444 !important;
     }
@@ -4364,8 +4364,8 @@ function render(){
       }
       // Counter: text=chars, audio=duration, image=dimensions, command=action type
       if(i.category==='audio'){
-        const audioRaw = !i.text && !i.transcription;
-        h+='<span class="card-chars'+(audioRaw?' media-raw':'')+'">'+formatDuration(i.duration||0)+'</span>';
+        const mediaUnsafe = i.isMedia && !(window.DropLitCloudGDrive && window.DropLitCloudGDrive.getCloudStatus(i.id).backed);
+        h+='<span class="card-chars'+(mediaUnsafe?' media-raw':'')+'">'+formatDuration(i.duration||0)+'</span>';
       } else if(isCommand){
         // Command drop: show action type instead of char count
         const actionIcons = {push:'📱',email:'📧',telegram:'💬',webhook:'🔗',tts:'🔊'};
@@ -4375,10 +4375,11 @@ function render(){
         const actionLabel = actionLabels[actionType] || 'Push';
         h+='<span class="cmd-action-type"><span class="cmd-action-icon">'+actionIcon+'</span>'+actionLabel+'</span>';
       } else if(i.isMedia&&i.imageDimensions){
-        h+='<span class="card-chars">'+i.imageDimensions+'</span>';
+        const mediaUnsafe = !(window.DropLitCloudGDrive && window.DropLitCloudGDrive.getCloudStatus(i.id).backed);
+        h+='<span class="card-chars'+(mediaUnsafe?' media-raw':'')+'">'+i.imageDimensions+'</span>';
       } else if(i.isMedia){
-        const imgRaw = !i.text && !i.notes;
-        h+='<span class="card-chars'+(imgRaw?' media-raw':'')+'">IMG</span>';
+        const mediaUnsafe = !(window.DropLitCloudGDrive && window.DropLitCloudGDrive.getCloudStatus(i.id).backed);
+        h+='<span class="card-chars'+(mediaUnsafe?' media-raw':'')+'">IMG</span>';
       } else {
         h+='<span class="card-chars">'+cc+'</span>';
       }
@@ -8060,7 +8061,10 @@ async function toggleCloudBackup() {
       toast('☁️ Cloud backup enabled!', 'success');
       updateCloudBackupStatus();
       cloud.syncAll().then(function(s) {
-        if (s.uploaded > 0) toast('☁️ ' + s.uploaded + ' files backed up', 'success');
+        if (s.uploaded > 0) {
+          toast('☁️ ' + s.uploaded + ' files backed up', 'success');
+          render(); // Re-render feed to update media safety indicators
+        }
       });
     } else {
       if (toggle) toggle.classList.remove('active');
