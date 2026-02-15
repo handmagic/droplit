@@ -37,6 +37,10 @@
       color: #9A3412;
       letter-spacing: 0.02em;
     }
+    /* Media RAW indicator — red text for unprocessed media */
+    .media-raw {
+      color: #EF4444 !important;
+    }
     
     /* Chat History Styles (v0.9.120) */
     .chat-load-more {
@@ -4360,7 +4364,8 @@ function render(){
       }
       // Counter: text=chars, audio=duration, image=dimensions, command=action type
       if(i.category==='audio'){
-        h+='<span class="card-chars">'+formatDuration(i.duration||0)+'</span>';
+        const audioRaw = !i.text && !i.transcription;
+        h+='<span class="card-chars'+(audioRaw?' media-raw':'')+'">'+formatDuration(i.duration||0)+'</span>';
       } else if(isCommand){
         // Command drop: show action type instead of char count
         const actionIcons = {push:'📱',email:'📧',telegram:'💬',webhook:'🔗',tts:'🔊'};
@@ -4372,7 +4377,8 @@ function render(){
       } else if(i.isMedia&&i.imageDimensions){
         h+='<span class="card-chars">'+i.imageDimensions+'</span>';
       } else if(i.isMedia){
-        h+='<span class="card-chars">IMG</span>';
+        const imgRaw = !i.text && !i.notes;
+        h+='<span class="card-chars'+(imgRaw?' media-raw':'')+'">IMG</span>';
       } else {
         h+='<span class="card-chars">'+cc+'</span>';
       }
