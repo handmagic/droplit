@@ -152,6 +152,14 @@ async function initAuth() {
     
   } catch (error) {
     console.error('[Auth] Init error:', error);
+    
+    // Don't show login if auth listener already handled sign-in
+    if (window._authEventHandled) {
+      console.log('[Auth] Session check failed but auth listener already handled login — continuing');
+      updateSyncUI('synced', 'Synced');
+      return;
+    }
+    
     updateSyncUI('error', 'Error');
     
     // Show login on error so user can retry
