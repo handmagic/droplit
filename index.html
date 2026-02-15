@@ -2858,9 +2858,14 @@ async function _autoMediaBackup(dropId, mediaType, dataUrl) {
     // 1. Save to OPFS if available
     const ms = window.DropLitMediaStorage;
     if (ms && ms.isInitialized()) {
-      // Convert dataUrl to blob
-      const resp = await fetch(dataUrl);
-      const blob = await resp.blob();
+      // Convert dataUrl to blob WITHOUT fetch (CSP blocks data: URLs)
+      const parts = dataUrl.split(',');
+      const mime = parts[0].match(/:(.*?);/)[1];
+      const bstr = atob(parts[1]);
+      const u8arr = new Uint8Array(bstr.length);
+      for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+      const blob = new Blob([u8arr], { type: mime });
+      
       const result = await ms.saveOriginal(dropId, blob, mediaType);
       if (result && result.success && result.filename) {
         // Update drop with OPFS reference
@@ -2869,10 +2874,9 @@ async function _autoMediaBackup(dropId, mediaType, dataUrl) {
           drop.mediaRef = result.filename;
           drop.mediaSaved = true;
           drop.mediaSize = result.originalSize || blob.size;
-          // Remove heavy base64 from localStorage (thumbnail stays via drop.image for photos)
-          if (mediaType === 'audio') delete drop.audioData;
+          // For audio: remove heavy base64 from localStorage
           // For photos: keep thumbnail in drop.image for fast feed render
-          // Original is in OPFS, viewer loads from there
+          if (mediaType === 'audio') delete drop.audioData;
           save();
         }
         
