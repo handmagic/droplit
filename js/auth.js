@@ -157,6 +157,10 @@ async function initAuth() {
     if (window._authEventHandled) {
       console.log('[Auth] Session check failed but auth listener already handled login — continuing');
       updateSyncUI('synced', 'Synced');
+      // Update account UI since listener set currentUser
+      if (typeof updateAccountUI === 'function') {
+        updateAccountUI();
+      }
       return;
     }
     
