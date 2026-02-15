@@ -2803,6 +2803,14 @@ function savePhoto(dataUrl,geo){
     // Silent fail - photo is saved
   }
   
+  // Detect dimensions async and persist
+  const dimImg = new Image();
+  dimImg.onload = function() {
+    idea.imageDimensions = this.width + '×' + this.height;
+    save();
+  };
+  dimImg.src = dataUrl;
+  
   // Auto-save to OPFS + cloud backup (async, non-blocking)
   _autoMediaBackup(idea.id, 'photo', dataUrl);
 }
@@ -4606,6 +4614,32 @@ function render(){
     }
   }
   wrap.innerHTML=h;
+  
+  // Lazy-load OPFS photos (for migrated drops without base64 in localStorage)
+  const opfsImages = wrap.querySelectorAll('[data-opfs-load]');
+  if (opfsImages.length > 0 && window.DropLitMediaStorage?.isInitialized()) {
+    opfsImages.forEach(function(img) {
+      const dropId = img.dataset.opfsLoad;
+      window.DropLitMediaStorage.loadOriginal(dropId, 'photo').then(function(blob) {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          img.src = url;
+          // Detect and persist dimensions
+          img.onload = function() {
+            const drop = ideas.find(d => String(d.id) === String(dropId));
+            if (drop && !drop.imageDimensions) {
+              drop.imageDimensions = img.naturalWidth + '×' + img.naturalHeight;
+              save();
+            }
+          };
+        } else {
+          img.alt = 'Photo unavailable';
+        }
+      }).catch(function() {
+        img.alt = 'Photo unavailable';
+      });
+    });
+  }
 }
 
 function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
@@ -4760,7 +4794,7 @@ function getMediaItems(){
 function viewImage(id,e){
   if(e)e.stopPropagation();
   const item=ideas.find(x=>x.id===id);
-  if(!item||!item.image)return;
+  if(!item||((!item.image)&&(!item.mediaRef)))return;
   
   allMediaIds=getMediaItems().map(i=>i.id);
   currentMediaIndex=allMediaIds.indexOf(id);
@@ -4795,14 +4829,38 @@ function loadCurrentImage(){
   resetTransform();
   applyTransform(false);
   
-  // Detect orientation
-  const tempImg=new Image();
-  tempImg.onload=function(){
-    currentImageOrientation=(this.height>this.width)?'portrait':'landscape';
-    img.classList.add(currentImageOrientation);
-  };
-  tempImg.src=item.image;
-  img.src=item.image;
+  // Function to set image src and detect orientation + dimensions
+  function setImageSrc(src) {
+    const tempImg=new Image();
+    tempImg.onload=function(){
+      currentImageOrientation=(this.height>this.width)?'portrait':'landscape';
+      img.classList.add(currentImageOrientation);
+      // Store dimensions on item for Info modal
+      item.imageDimensions = this.width + '×' + this.height;
+      item._imageWidth = this.width;
+      item._imageHeight = this.height;
+    };
+    tempImg.src=src;
+    img.src=src;
+  }
+  
+  // Try loading full-size from OPFS first, fallback to item.image (may be thumbnail)
+  if (item.mediaRef && window.DropLitMediaStorage?.isInitialized()) {
+    window.DropLitMediaStorage.loadOriginal(item.id, 'photo').then(function(blob) {
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        setImageSrc(url);
+        // Store for AI tools that need item.image
+        item._opfsImageUrl = url;
+      } else if (item.image) {
+        setImageSrc(item.image);
+      }
+    }).catch(function() {
+      if (item.image) setImageSrc(item.image);
+    });
+  } else if (item.image) {
+    setImageSrc(item.image);
+  }
   
   // Meta info
   let meta='<span>'+item.date+' '+item.time+'</span>';
@@ -4892,14 +4950,33 @@ function loadCurrentImageNoReset(){
   const img=document.getElementById('imageViewerImg');
   img.classList.remove('portrait','landscape','zoomed');
   
-  // Detect orientation
-  const tempImg=new Image();
-  tempImg.onload=function(){
-    currentImageOrientation=(this.height>this.width)?'portrait':'landscape';
-    img.classList.add(currentImageOrientation);
-  };
-  tempImg.src=item.image;
-  img.src=item.image;
+  function setImgSrc(src) {
+    const tempImg=new Image();
+    tempImg.onload=function(){
+      currentImageOrientation=(this.height>this.width)?'portrait':'landscape';
+      img.classList.add(currentImageOrientation);
+      item.imageDimensions = this.width + '×' + this.height;
+    };
+    tempImg.src=src;
+    img.src=src;
+  }
+  
+  // Try OPFS full-size first
+  if (item.mediaRef && window.DropLitMediaStorage?.isInitialized()) {
+    window.DropLitMediaStorage.loadOriginal(item.id, 'photo').then(function(blob) {
+      if (blob) {
+        var url = URL.createObjectURL(blob);
+        setImgSrc(url);
+        item._opfsImageUrl = url;
+      } else if (item.image) {
+        setImgSrc(item.image);
+      }
+    }).catch(function() {
+      if (item.image) setImgSrc(item.image);
+    });
+  } else if (item.image) {
+    setImgSrc(item.image);
+  }
   
   // Meta info
   let meta='<span>'+item.date+' '+item.time+'</span>';
