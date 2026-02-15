@@ -8065,11 +8065,15 @@ async function toggleCloudBackup() {
 
 function initCloudBackupSettings() {
   const cloud = window.DropLitCloudGDrive;
-  const toggle = document.getElementById('cloudBackupToggle');
-  if (toggle && cloud) {
-    toggle.classList.toggle('active', cloud.isEnabled());
-  }
-  updateCloudBackupStatus();
+  if (!cloud) return;
+  // Must init module first to read saved state from localStorage
+  cloud.init().then(function() {
+    const toggle = document.getElementById('cloudBackupToggle');
+    if (toggle) {
+      toggle.classList.toggle('active', cloud.isEnabled());
+    }
+    updateCloudBackupStatus();
+  });
 }
 
 function updateCloudBackupStatus() {
