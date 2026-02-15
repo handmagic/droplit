@@ -8630,37 +8630,38 @@ async function updateAccountUI() {
     
     if (logoutBtn) logoutBtn.style.display = 'flex';
     
-    // Fetch plan from database
+    // Plan: show from cache immediately, refresh from DB in background
     let userPlan = localStorage.getItem('droplit_user_plan') || 'beta';
     
-    try {
-      const client = getSupabaseClient();
-      if (client && currentUser?.id) {
-        const { data } = await client.rpc('get_token_balance', { p_user_id: currentUser.id });
-        if (data && data.tier) {
-          userPlan = data.tier;
-          localStorage.setItem('droplit_user_plan', userPlan);
-          console.log('[Account] Plan from DB:', userPlan);
-        } else {
-          console.log('[Account] No tier from DB, using cached:', userPlan);
-        }
-      }
-    } catch (e) {
-      console.log('[Account] Could not fetch plan from DB, using cached:', userPlan, e.message);
-    }
-    
+    // Apply cached plan NOW (no waiting for DB)
     const plan = planConfig[userPlan] || planConfig['beta'];
     
-    // Update card gradient
     if (cardEl) {
       cardEl.className = 'account-card ' + plan.class;
     }
-    
-    // Update badge
     if (badgeEl) {
       badgeEl.textContent = plan.label;
       badgeEl.className = 'account-plan-badge ' + plan.class;
     }
+    
+    // Background: refresh plan from DB (non-blocking)
+    try {
+      const client = getSupabaseClient();
+      if (client && currentUser?.id) {
+        client.rpc('get_token_balance', { p_user_id: currentUser.id }).then(function(result) {
+          if (result.data && result.data.tier && result.data.tier !== userPlan) {
+            localStorage.setItem('droplit_user_plan', result.data.tier);
+            console.log('[Account] Plan updated from DB:', result.data.tier);
+            const freshPlan = planConfig[result.data.tier] || planConfig['beta'];
+            if (cardEl) cardEl.className = 'account-card ' + freshPlan.class;
+            if (badgeEl) {
+              badgeEl.textContent = freshPlan.label;
+              badgeEl.className = 'account-plan-badge ' + freshPlan.class;
+            }
+          }
+        }).catch(function() {});
+      }
+    } catch (e) {}
     
   } else {
     nameEl.textContent = 'Not signed in';
