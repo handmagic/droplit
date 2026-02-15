@@ -8517,23 +8517,14 @@ async function handleLogout() {
   }
 }
 
-// Create single global Supabase client
+// Supabase client is created by auth.js — use window._supabaseClient
 function getSupabaseClient() {
-  if (!window._supabaseClient && typeof supabase !== 'undefined') {
-    window._supabaseClient = supabase.createClient(
-      'https://ughfdhmyflotgsysvrrc.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnaGZkaG15ZmxvdGdzeXN2cnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDgwMTEsImV4cCI6MjA4MjQyNDAxMX0.s6oAvyk6gJU0gcJV00HxPnxkvWIbhF2I3pVnPMNVcrE'
-    );
-    console.log('[Auth] Global Supabase client created');
-  }
-  return window._supabaseClient;
+  return window._supabaseClient || null;
 }
 
-// Update account UI when menu opens - NO AUTH LISTENER
+// Update account UI after auth.js initializes
 document.addEventListener('DOMContentLoaded', function() {
-  // Initial update only
   setTimeout(updateAccountUI, 500);
-  console.log('[Auth] DOMContentLoaded - NO auth listener (disabled to stop loop)');
 });
 
 function openMainMenu() {
