@@ -179,6 +179,12 @@ function setupAuthListener() {
       currentUser = user;
       window.currentUser = user;
       
+      // Capture Google provider_refresh_token for Drive API
+      if (session.provider_refresh_token) {
+        localStorage.setItem('droplit_google_refresh_token', session.provider_refresh_token);
+        console.log('[Auth] Google refresh token saved');
+      }
+      
       // Process pending invite code (from onboarding flow)
       const pendingInvite = localStorage.getItem('droplit_pending_invite');
       const pendingInviteCode = localStorage.getItem('droplit_pending_invite_code');
