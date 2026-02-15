@@ -4450,7 +4450,8 @@ function render(){
       }
       // Counter: text=chars, audio=duration, image=dimensions, command=action type
       if(i.category==='audio'){
-        const mediaUnsafe = i.isMedia && !(window.DropLitCloudGDrive && window.DropLitCloudGDrive.getCloudStatus(i.id).backed);
+        const cloudBacked = i.cloudRef || (window.DropLitCloudGDrive && window.DropLitCloudGDrive.getCloudStatus(i.id).backed);
+        const mediaUnsafe = i.isMedia && !cloudBacked;
         h+='<span class="card-chars'+(mediaUnsafe?' media-raw':'')+'">'+formatDuration(i.duration||0)+'</span>';
       } else if(isCommand){
         // Command drop: show action type instead of char count
@@ -4461,10 +4462,12 @@ function render(){
         const actionLabel = actionLabels[actionType] || 'Push';
         h+='<span class="cmd-action-type"><span class="cmd-action-icon">'+actionIcon+'</span>'+actionLabel+'</span>';
       } else if(i.isMedia&&i.imageDimensions){
-        const mediaUnsafe = !(window.DropLitCloudGDrive && window.DropLitCloudGDrive.getCloudStatus(i.id).backed);
+        const cloudBacked = i.cloudRef || (window.DropLitCloudGDrive && window.DropLitCloudGDrive.getCloudStatus(i.id).backed);
+        const mediaUnsafe = !cloudBacked;
         h+='<span class="card-chars'+(mediaUnsafe?' media-raw':'')+'">'+i.imageDimensions+'</span>';
       } else if(i.isMedia){
-        const mediaUnsafe = !(window.DropLitCloudGDrive && window.DropLitCloudGDrive.getCloudStatus(i.id).backed);
+        const cloudBacked = i.cloudRef || (window.DropLitCloudGDrive && window.DropLitCloudGDrive.getCloudStatus(i.id).backed);
+        const mediaUnsafe = !cloudBacked;
         h+='<span class="card-chars'+(mediaUnsafe?' media-raw':'')+'">IMG</span>';
       } else {
         h+='<span class="card-chars">'+cc+'</span>';
