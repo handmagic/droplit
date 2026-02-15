@@ -4483,7 +4483,7 @@ function render(){
       h+='</div>'; // close card-header-content
       h+='</div>'; // close card-header
       // Audio player
-      if(i.category==='audio'&&i.audioData){
+      if(i.category==='audio'&&(i.audioData||i.mediaRef)){
         h+='<div class="card-audio-player" data-audio-id="'+i.id+'">';
         h+='<div class="audio-waveform" id="waveform-'+i.id+'">';
         for(let bi=0;bi<30;bi++){
@@ -4499,7 +4499,7 @@ function render(){
         h+='<div class="audio-time"><span id="audiotime-'+i.id+'">0:00</span><span>'+formatDuration(i.duration||0)+'</span></div>';
         if(i.audioFormat)h+='<div class="audio-format">'+i.audioFormat.toUpperCase()+'</div>';
         h+='</div>';
-      } else if(i.isMedia&&i.image){
+      } else if(i.isMedia&&(i.image||i.mediaRef)){
         // Chart/Diagram drops: show title above image (v0.9.120)
         if(i.category === 'chart' && i.text){
           h+='<div class="chart-title">📊 '+esc(i.text)+'</div>';
@@ -4507,7 +4507,12 @@ function render(){
         if(i.category === 'diagram' && i.text){
           h+='<div class="chart-title">📐 '+esc(i.text)+'</div>';
         }
-        h+='<img class="card-image'+((i.category==='chart'||i.category==='diagram')?' chart-preview':'')+'" src="'+i.image+'" alt="'+(i.category==='chart'?'Chart':i.category==='diagram'?'Diagram':'Photo')+'" loading="lazy">';
+        if(i.image){
+          h+='<img class="card-image'+((i.category==='chart'||i.category==='diagram')?' chart-preview':'')+'" src="'+i.image+'" alt="'+(i.category==='chart'?'Chart':i.category==='diagram'?'Diagram':'Photo')+'" loading="lazy">';
+        } else {
+          // OPFS-only photo: placeholder that loads async
+          h+='<img class="card-image" id="opfs-img-'+i.id+'" src="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect fill=\'%23f0f0f0\' width=\'300\' height=\'200\'/%3E%3Ctext x=\'150\' y=\'100\' text-anchor=\'middle\' fill=\'%23999\' font-size=\'14\'%3ELoading...%3C/text%3E%3C/svg%3E" alt="Photo" loading="lazy" data-opfs-load="'+i.id+'">';
+        }
         // Show date/geo and notes under image
         h+='<div class="card-media-meta">';
         h+='<span>'+i.date+' '+i.time+'</span>';
