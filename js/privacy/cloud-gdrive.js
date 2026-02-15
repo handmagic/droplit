@@ -580,7 +580,14 @@
         }
       }
     } catch (err) {
-      // Continue to refresh token flow
+      // Continue to next strategy
+    }
+    
+    // Strategy 1.5: Check cached provider token from auth callback
+    if (window._googleProviderToken && Date.now() < (window._googleProviderTokenExpiry || 0)) {
+      _accessToken = window._googleProviderToken;
+      _tokenExpiry = window._googleProviderTokenExpiry;
+      return _accessToken;
     }
     
     // Strategy 2: Use saved refresh_token via server endpoint
