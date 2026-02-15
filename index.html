@@ -1551,7 +1551,37 @@
         </div>
         <div class="settings-item no-border" style="flex-direction: column; align-items: flex-start; gap: 4px; padding-top: 0;">
           <div style="font-size: 0.75rem; color: var(--color-text-muted); line-height: 1.4;">
-            Encrypted backup of photos & audio to your Google Drive. Only you can decrypt them. <span id="cloudBackupStatus"></span>
+            Encrypted backup of photos & audio to your Google Drive. Only you can decrypt them.
+          </div>
+          <div id="cloudBackupStats" style="display:none; width:100%; margin-top:6px; padding:10px 12px; background:var(--color-bg-secondary, #f8f9fa); border-radius:10px; font-size:0.75rem; line-height:1.6;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="color:var(--color-text-muted);">Provider</span>
+              <span id="cloudStatProvider" style="font-weight:500;">Google Drive</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="color:var(--color-text-muted);">Files backed up</span>
+              <span id="cloudStatFiles" style="font-weight:500;">0</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="color:var(--color-text-muted);">Storage used</span>
+              <span id="cloudStatSize" style="font-weight:500;">0 B</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="color:var(--color-text-muted);">Last sync</span>
+              <span id="cloudStatSync" style="font-weight:500;">Never</span>
+            </div>
+            <div id="cloudStatUnsyncedRow" style="display:none; justify-content:space-between; align-items:center;">
+              <span style="color:#D97706;">Waiting to upload</span>
+              <span id="cloudStatUnsynced" style="font-weight:500; color:#D97706;">0</span>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button onclick="cloudSyncNow()" style="flex:1; padding:7px 0; border:none; border-radius:8px; background:#3B82F6; color:#fff; font-size:0.75rem; font-weight:600; cursor:pointer;">
+                ↑ Sync Now
+              </button>
+              <button onclick="cloudRestoreAll()" style="flex:1; padding:7px 0; border:none; border-radius:8px; background:#059669; color:#fff; font-size:0.75rem; font-weight:600; cursor:pointer;">
+                ↓ Restore
+              </button>
+            </div>
           </div>
         </div>
         
@@ -2771,6 +2801,62 @@ function savePhoto(dataUrl,geo){
     resetToShowAll();
   }catch(err){
     // Silent fail - photo is saved
+  }
+  
+  // Auto-save to OPFS + cloud backup (async, non-blocking)
+  _autoMediaBackup(idea.id, 'photo', dataUrl);
+}
+
+/**
+ * Auto-save media to OPFS vault and trigger cloud backup.
+ * Called after savePhoto and audio recording.
+ * Non-blocking — runs in background.
+ */
+async function _autoMediaBackup(dropId, mediaType, dataUrl) {
+  try {
+    // 1. Save to OPFS if available
+    const ms = window.DropLitMediaStorage;
+    if (ms && ms.isInitialized()) {
+      // Convert dataUrl to blob
+      const resp = await fetch(dataUrl);
+      const blob = await resp.blob();
+      const result = await ms.saveOriginal(dropId, blob, mediaType);
+      if (result && result.ref) {
+        // Update drop with OPFS reference
+        const drop = ideas.find(d => d.id === dropId);
+        if (drop) {
+          drop.mediaRef = result.ref;
+          drop.mediaSaved = true;
+          drop.mediaSize = blob.size;
+          // Remove heavy base64 from localStorage
+          if (mediaType === 'photo') delete drop.image;
+          if (mediaType === 'audio') delete drop.audioData;
+          save();
+        }
+        
+        // 2. Cloud backup if enabled
+        const cloud = window.DropLitCloudGDrive;
+        if (cloud && cloud.isEnabled()) {
+          cloud.syncOne(dropId, mediaType).then(function(r) {
+            if (r.success) {
+              if (typeof render === 'function') render();
+              _updateCloudStatusUI();
+            }
+          }).catch(function(e) {
+            console.warn('[Cloud] Auto-backup error:', e.message);
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[AutoBackup] Error:', err.message);
+  }
+}
+
+/** Update cloud status in Settings if panel is open */
+function _updateCloudStatusUI() {
+  if (typeof updateCloudBackupStatus === 'function') {
+    try { updateCloudBackupStatus(); } catch(e) {}
   }
 }
 
@@ -8084,23 +8170,80 @@ function initCloudBackupSettings() {
 }
 
 function updateCloudBackupStatus() {
-  const el = document.getElementById('cloudBackupStatus');
-  if (!el) return;
+  const statsPanel = document.getElementById('cloudBackupStats');
+  if (!statsPanel) return;
   const cloud = window.DropLitCloudGDrive;
-  if (!cloud) { el.textContent = ''; return; }
+  if (!cloud) { statsPanel.style.display = 'none'; return; }
   
   if (cloud.isEnabled()) {
-    const size = cloud.getTotalCloudSize();
-    if (size > 0) {
-      const kb = size < 1024*1024 ? Math.round(size/1024) + ' KB' : (size/1024/1024).toFixed(1) + ' MB';
-      el.textContent = '✅ Active · ' + kb + ' backed up';
-      el.style.color = '#059669';
+    statsPanel.style.display = 'block';
+    
+    const stats = cloud.getStats ? cloud.getStats() : {};
+    
+    const elProvider = document.getElementById('cloudStatProvider');
+    const elFiles = document.getElementById('cloudStatFiles');
+    const elSize = document.getElementById('cloudStatSize');
+    const elSync = document.getElementById('cloudStatSync');
+    const elUnsynced = document.getElementById('cloudStatUnsynced');
+    const elUnsyncedRow = document.getElementById('cloudStatUnsyncedRow');
+    
+    if (elProvider) elProvider.textContent = stats.provider || 'Google Drive';
+    if (elFiles) elFiles.textContent = stats.fileCount || '0';
+    if (elSize) elSize.textContent = stats.totalSizeFormatted || '0 B';
+    if (elSync) elSync.textContent = stats.lastSyncFormatted || 'Never';
+    
+    if (stats.unsynced > 0) {
+      if (elUnsyncedRow) elUnsyncedRow.style.display = 'flex';
+      if (elUnsynced) elUnsynced.textContent = stats.unsynced;
     } else {
-      el.textContent = '✅ Active';
-      el.style.color = '#059669';
+      if (elUnsyncedRow) elUnsyncedRow.style.display = 'none';
     }
   } else {
-    el.textContent = '';
+    statsPanel.style.display = 'none';
+  }
+}
+
+async function cloudSyncNow() {
+  const cloud = window.DropLitCloudGDrive;
+  if (!cloud || !cloud.isEnabled()) { toast('Cloud backup not enabled', 'info'); return; }
+  
+  toast('☁️ Syncing...', 'info');
+  try {
+    const result = await cloud.syncAll();
+    if (result.uploaded > 0) {
+      toast('☁️ ' + result.uploaded + ' files backed up!', 'success');
+      if (typeof render === 'function') render();
+    } else if (result.failed > 0) {
+      toast('⚠️ ' + result.failed + ' files failed to upload', 'error');
+    } else {
+      toast('✅ Everything is backed up', 'success');
+    }
+    updateCloudBackupStatus();
+  } catch (err) {
+    toast('Sync error: ' + err.message, 'error');
+  }
+}
+
+async function cloudRestoreAll() {
+  const cloud = window.DropLitCloudGDrive;
+  if (!cloud || !cloud.isEnabled()) { toast('Cloud backup not enabled', 'info'); return; }
+  
+  if (!confirm('Restore all media from Google Drive?\n\nThis will download encrypted files from your cloud backup and restore them to this device.')) return;
+  
+  toast('☁️ Restoring from cloud...', 'info');
+  try {
+    const result = await cloud.restoreAll();
+    if (result.restored > 0) {
+      toast('☁️ ' + result.restored + ' files restored!', 'success');
+      if (typeof render === 'function') render();
+    } else if (result.error) {
+      toast('Restore: ' + result.error, 'info');
+    } else {
+      toast('✅ All files already present on device', 'success');
+    }
+    updateCloudBackupStatus();
+  } catch (err) {
+    toast('Restore error: ' + err.message, 'error');
   }
 }
 
@@ -8757,11 +8900,16 @@ document.addEventListener("DOMContentLoaded", async function() {
         await DropLitCloudGDrive.init();
         const cloudEnabled = localStorage.getItem('droplit_cloud_backup_enabled') === 'true';
         if (cloudEnabled) {
+          // Update stats panel immediately (before sync)
+          if (typeof updateCloudBackupStatus === 'function') updateCloudBackupStatus();
+          
           DropLitCloudGDrive.syncAll().then(function(s) {
             if (s.uploaded > 0) {
               if (typeof toast === 'function') toast('☁️ ' + s.uploaded + ' files backed up', 'success');
               if (typeof render === 'function') render();
             }
+            // Update stats after sync
+            if (typeof updateCloudBackupStatus === 'function') updateCloudBackupStatus();
           }).catch(function(e) {
             console.warn('[Cloud] Auto-sync error:', e.message);
           });
