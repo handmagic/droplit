@@ -8635,16 +8635,18 @@ async function updateAccountUI() {
     
     try {
       const client = getSupabaseClient();
-      if (client) {
+      if (client && currentUser?.id) {
         const { data } = await client.rpc('get_token_balance', { p_user_id: currentUser.id });
         if (data && data.tier) {
           userPlan = data.tier;
           localStorage.setItem('droplit_user_plan', userPlan);
           console.log('[Account] Plan from DB:', userPlan);
+        } else {
+          console.log('[Account] No tier from DB, using cached:', userPlan);
         }
       }
     } catch (e) {
-      console.log('[Account] Could not fetch plan from DB:', e);
+      console.log('[Account] Could not fetch plan from DB, using cached:', userPlan, e.message);
     }
     
     const plan = planConfig[userPlan] || planConfig['beta'];
@@ -8752,7 +8754,11 @@ function getSupabaseClient() {
 
 // Update account UI after auth.js initializes
 document.addEventListener('DOMContentLoaded', function() {
+  // Initial attempt after 500ms
   setTimeout(updateAccountUI, 500);
+  // Retry after auth listener likely handled SIGNED_IN (covers 8s timeout)
+  setTimeout(updateAccountUI, 2000);
+  setTimeout(updateAccountUI, 9000);
 });
 
 function openMainMenu() {
