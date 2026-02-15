@@ -1,0 +1,690 @@
+// ============================================
+// DROPLIT CLOUD — Google Drive v1.0
+// Encrypted media backup to user's Google Drive
+// ============================================
+//
+// Uses Google Drive API v3 with 'appDataFolder' scope.
+// appDataFolder is a hidden app-specific folder:
+//   - Only DropLit can read/write
+//   - User doesn't see it in Drive UI
+//   - Files are encrypted BEFORE upload
+//   - Google sees only .enc blobs with numeric names
+//
+// Dependencies:
+//   - Google OAuth token (from Supabase Auth provider_token)
+//   - window.DropLitMediaStorage (for OPFS access)
+//
+// Usage:
+//   await DropLitCloudGDrive.init(accessToken);
+//   const fileId = await DropLitCloudGDrive.upload(dropId, 'photo', encryptedBlob);
+//   const blob = await DropLitCloudGDrive.download(fileId);
+//   await DropLitCloudGDrive.remove(fileId);
+// ============================================
+
+(function() {
+  'use strict';
+
+  const MODULE_NAME = 'CloudGDrive';
+  
+  // Google Drive API endpoints
+  const DRIVE_API = 'https://www.googleapis.com/drive/v3';
+  const DRIVE_UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
+  
+  // State
+  let _initialized = false;
+  let _accessToken = null;
+  let _tokenExpiry = 0;
+  let _enabled = false;         // User has opted in
+  let _manifest = {};           // {dropId: {fileId, type, size, uploaded}}
+  
+  // Settings key
+  const SETTINGS_KEY = 'droplit_cloud_backup_enabled';
+  const MANIFEST_KEY = 'droplit_cloud_manifest';
+  const PROMPT_SHOWN_KEY = 'droplit_cloud_prompt_shown';
+  
+  // ============================================
+  // INITIALIZATION
+  // ============================================
+  
+  /**
+   * Initialize Google Drive cloud backup.
+   * Does NOT require access token at init — token resolved lazily.
+   */
+  async function init() {
+    if (_initialized) return { success: true, enabled: _enabled };
+    
+    // Check if user has opted in
+    _enabled = localStorage.getItem(SETTINGS_KEY) === 'true';
+    
+    // Load manifest (local cache of uploaded files)
+    try {
+      const raw = localStorage.getItem(MANIFEST_KEY);
+      _manifest = raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      _manifest = {};
+    }
+    
+    _initialized = true;
+    
+    console.log(`[${MODULE_NAME}] Initialized. Enabled: ${_enabled}, manifest: ${Object.keys(_manifest).length} entries`);
+    
+    return { success: true, enabled: _enabled };
+  }
+  
+  // ============================================
+  // ENABLE / DISABLE
+  // ============================================
+  
+  /**
+   * Enable cloud backup. Triggers OAuth consent if needed.
+   * @returns {boolean} success
+   */
+  async function enable() {
+    // Get fresh Google token
+    const token = await _resolveAccessToken();
+    if (!token) {
+      console.error(`[${MODULE_NAME}] Cannot enable: no Google access token`);
+      return false;
+    }
+    
+    // Test access to appDataFolder
+    try {
+      const ok = await _testAccess(token);
+      if (!ok) {
+        console.error(`[${MODULE_NAME}] Cannot access appDataFolder — scope missing?`);
+        return false;
+      }
+    } catch (err) {
+      console.error(`[${MODULE_NAME}] Drive access test failed:`, err);
+      return false;
+    }
+    
+    _enabled = true;
+    localStorage.setItem(SETTINGS_KEY, 'true');
+    console.log(`[${MODULE_NAME}] ✅ Cloud backup enabled`);
+    
+    return true;
+  }
+  
+  function disable() {
+    _enabled = false;
+    localStorage.setItem(SETTINGS_KEY, 'false');
+    console.log(`[${MODULE_NAME}] Cloud backup disabled`);
+  }
+  
+  function isEnabled() {
+    return _enabled;
+  }
+  
+  // ============================================
+  // UPLOAD encrypted file to Google Drive
+  // ============================================
+  
+  /**
+   * Upload encrypted media blob to Google Drive appDataFolder.
+   * 
+   * @param {string|number} dropId - Drop ID
+   * @param {string} mediaType - 'photo' | 'audio'
+   * @param {Blob} encryptedBlob - Already encrypted data from OPFS
+   * @param {object} meta - { mimeType, originalSize }
+   * @returns {object} { success, fileId, size }
+   */
+  async function upload(dropId, mediaType, encryptedBlob, meta) {
+    if (!_enabled) {
+      return { success: false, error: 'Cloud backup not enabled' };
+    }
+    
+    const token = await _resolveAccessToken();
+    if (!token) {
+      return { success: false, error: 'No access token' };
+    }
+    
+    const dropIdStr = String(dropId);
+    const filename = `${dropIdStr}_${mediaType}.enc`;
+    
+    try {
+      // Check if already uploaded (idempotent)
+      if (_manifest[dropIdStr]?.fileId && _manifest[dropIdStr]?.type === mediaType) {
+        console.log(`[${MODULE_NAME}] Already uploaded: ${filename}`);
+        return { success: true, fileId: _manifest[dropIdStr].fileId, size: encryptedBlob.size, existed: true };
+      }
+      
+      // Multipart upload: metadata + file content
+      const metadata = {
+        name: filename,
+        parents: ['appDataFolder'],
+        properties: {
+          dropId: dropIdStr,
+          mediaType: mediaType,
+          originalSize: String(meta?.originalSize || encryptedBlob.size),
+          mimeType: meta?.mimeType || 'application/octet-stream',
+          uploadedAt: new Date().toISOString()
+        }
+      };
+      
+      // Build multipart body
+      const boundary = '---droplit_upload_' + Date.now();
+      const delimiter = '\r\n--' + boundary + '\r\n';
+      const closeDelimiter = '\r\n--' + boundary + '--';
+      
+      // Metadata part
+      const metaPart = delimiter +
+        'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+        JSON.stringify(metadata);
+      
+      // File part
+      const filePart = delimiter +
+        'Content-Type: application/octet-stream\r\n' +
+        'Content-Transfer-Encoding: binary\r\n\r\n';
+      
+      // Combine into single ArrayBuffer
+      const metaBytes = new TextEncoder().encode(metaPart + filePart);
+      const closeBytes = new TextEncoder().encode(closeDelimiter);
+      const fileBytes = new Uint8Array(await encryptedBlob.arrayBuffer());
+      
+      const body = new Uint8Array(metaBytes.length + fileBytes.length + closeBytes.length);
+      body.set(metaBytes, 0);
+      body.set(fileBytes, metaBytes.length);
+      body.set(closeBytes, metaBytes.length + fileBytes.length);
+      
+      const response = await fetch(
+        `${DRIVE_UPLOAD}/files?uploadType=multipart`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': `multipart/related; boundary=${boundary}`
+          },
+          body: body
+        }
+      );
+      
+      if (!response.ok) {
+        const err = await response.text();
+        console.error(`[${MODULE_NAME}] Upload failed:`, response.status, err);
+        return { success: false, error: `HTTP ${response.status}` };
+      }
+      
+      const file = await response.json();
+      
+      // Update manifest
+      _manifest[dropIdStr] = {
+        fileId: file.id,
+        type: mediaType,
+        size: encryptedBlob.size,
+        uploaded: Date.now()
+      };
+      _saveManifest();
+      
+      console.log(`[${MODULE_NAME}] Uploaded: ${filename} → ${file.id} (${_formatBytes(encryptedBlob.size)})`);
+      
+      return { success: true, fileId: file.id, size: encryptedBlob.size };
+      
+    } catch (err) {
+      console.error(`[${MODULE_NAME}] Upload error:`, err);
+      return { success: false, error: err.message };
+    }
+  }
+  
+  // ============================================
+  // DOWNLOAD from Google Drive
+  // ============================================
+  
+  /**
+   * Download encrypted blob from Google Drive.
+   * 
+   * @param {string} fileId - Google Drive file ID
+   * @returns {Blob|null}
+   */
+  async function download(fileId) {
+    const token = await _resolveAccessToken();
+    if (!token) return null;
+    
+    try {
+      const response = await fetch(
+        `${DRIVE_API}/files/${fileId}?alt=media`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      if (!response.ok) {
+        console.error(`[${MODULE_NAME}] Download failed:`, response.status);
+        return null;
+      }
+      
+      return await response.blob();
+      
+    } catch (err) {
+      console.error(`[${MODULE_NAME}] Download error:`, err);
+      return null;
+    }
+  }
+  
+  /**
+   * Download by dropId (looks up fileId in manifest or searches Drive).
+   * 
+   * @param {string|number} dropId
+   * @param {string} mediaType
+   * @returns {Blob|null}
+   */
+  async function downloadByDropId(dropId, mediaType) {
+    const dropIdStr = String(dropId);
+    
+    // Check manifest first
+    const entry = _manifest[dropIdStr];
+    if (entry?.fileId) {
+      return await download(entry.fileId);
+    }
+    
+    // Search Drive
+    const fileId = await _findFile(dropIdStr, mediaType);
+    if (!fileId) return null;
+    
+    return await download(fileId);
+  }
+  
+  // ============================================
+  // DELETE from Google Drive
+  // ============================================
+  
+  /**
+   * Remove encrypted file from Google Drive.
+   * 
+   * @param {string} fileId - Google Drive file ID
+   * @returns {boolean}
+   */
+  async function remove(fileId) {
+    const token = await _resolveAccessToken();
+    if (!token) return false;
+    
+    try {
+      const response = await fetch(
+        `${DRIVE_API}/files/${fileId}`,
+        {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      // Remove from manifest
+      for (const key in _manifest) {
+        if (_manifest[key].fileId === fileId) {
+          delete _manifest[key];
+          break;
+        }
+      }
+      _saveManifest();
+      
+      return response.ok || response.status === 404;
+      
+    } catch (err) {
+      console.error(`[${MODULE_NAME}] Delete error:`, err);
+      return false;
+    }
+  }
+  
+  /**
+   * Remove by dropId.
+   */
+  async function removeByDropId(dropId) {
+    const entry = _manifest[String(dropId)];
+    if (entry?.fileId) {
+      return await remove(entry.fileId);
+    }
+    return true;
+  }
+  
+  // ============================================
+  // LIST files in appDataFolder
+  // ============================================
+  
+  /**
+   * List all DropLit files in Google Drive appDataFolder.
+   * @returns {Array} [{id, name, size, properties}]
+   */
+  async function listFiles() {
+    const token = await _resolveAccessToken();
+    if (!token) return [];
+    
+    try {
+      const response = await fetch(
+        `${DRIVE_API}/files?spaces=appDataFolder&fields=files(id,name,size,properties,createdTime)&pageSize=1000`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      if (!response.ok) return [];
+      
+      const data = await response.json();
+      return data.files || [];
+      
+    } catch (err) {
+      console.error(`[${MODULE_NAME}] listFiles error:`, err);
+      return [];
+    }
+  }
+  
+  // ============================================
+  // SYNC: Upload all unsynced media from OPFS
+  // ============================================
+  
+  /**
+   * Sync all OPFS media to Google Drive.
+   * Called periodically or manually.
+   * 
+   * @returns {object} { uploaded, skipped, failed }
+   */
+  async function syncAll() {
+    if (!_enabled) return { uploaded: 0, skipped: 0, failed: 0 };
+    
+    const mediaStorage = window.DropLitMediaStorage;
+    if (!mediaStorage?.isInitialized()) return { uploaded: 0, skipped: 0, failed: 0 };
+    
+    let uploaded = 0, skipped = 0, failed = 0;
+    
+    // Get all drops with media from localStorage
+    let drops;
+    try {
+      drops = JSON.parse(localStorage.getItem('droplit_ideas') || '[]');
+    } catch (e) {
+      return { uploaded: 0, skipped: 0, failed: 0 };
+    }
+    
+    const mediaDrops = drops.filter(d => d.mediaSaved && d.mediaRef && !d.cloudRef);
+    
+    if (mediaDrops.length === 0) {
+      return { uploaded: 0, skipped: 0, failed: 0 };
+    }
+    
+    console.log(`[${MODULE_NAME}] syncAll: ${mediaDrops.length} unsynced media files`);
+    
+    for (const drop of mediaDrops) {
+      const mediaType = drop.category === 'audio' ? 'audio' : 'photo';
+      
+      // Get encrypted blob from OPFS (already encrypted)
+      const encBlob = await mediaStorage.getEncryptedBlob(drop.id, mediaType);
+      if (!encBlob) {
+        console.warn(`[${MODULE_NAME}] No OPFS file for ${drop.id}, skipping`);
+        skipped++;
+        continue;
+      }
+      
+      const result = await upload(drop.id, mediaType, encBlob, {
+        mimeType: mediaType === 'audio' ? 'audio/webm' : 'image/jpeg',
+        originalSize: drop.mediaSize
+      });
+      
+      if (result.success) {
+        // Update drop with cloud reference
+        drop.cloudRef = `gdrive:${result.fileId}`;
+        uploaded++;
+      } else {
+        failed++;
+        // Stop on auth errors (don't spam failed requests)
+        if (result.error?.includes('401') || result.error?.includes('403')) {
+          console.warn(`[${MODULE_NAME}] Auth error, stopping sync`);
+          break;
+        }
+      }
+    }
+    
+    // Save updated drops with cloudRef
+    if (uploaded > 0) {
+      try {
+        localStorage.setItem('droplit_ideas', JSON.stringify(drops));
+        console.log(`[${MODULE_NAME}] syncAll complete: ${uploaded} uploaded, ${skipped} skipped, ${failed} failed`);
+      } catch (e) {
+        console.error(`[${MODULE_NAME}] Failed to save cloudRef updates`);
+      }
+    }
+    
+    return { uploaded, skipped, failed };
+  }
+  
+  // ============================================
+  // SOFT PROMPT — show after first media drop
+  // ============================================
+  
+  /**
+   * Check if we should show the cloud backup prompt.
+   * Call after creating a media drop.
+   * 
+   * @returns {boolean} should show prompt
+   */
+  function shouldShowPrompt() {
+    // Already enabled or prompt already shown
+    if (_enabled) return false;
+    if (localStorage.getItem(PROMPT_SHOWN_KEY) === 'true') return false;
+    return true;
+  }
+  
+  /**
+   * Mark prompt as shown (don't show again until Settings).
+   */
+  function dismissPrompt() {
+    localStorage.setItem(PROMPT_SHOWN_KEY, 'true');
+  }
+  
+  /**
+   * Show the cloud backup suggestion as a subtle feed notification.
+   * Not a modal, not a toast — a card in the feed that doesn't demand action.
+   */
+  function showPrompt() {
+    dismissPrompt(); // Mark as shown (one time only)
+    
+    // Create notification card at top of feed
+    const feed = document.querySelector('.ideas-list, #ideasList, .feed');
+    if (!feed) return Promise.resolve(false);
+    
+    const card = document.createElement('div');
+    card.id = 'cloudBackupSuggestion';
+    card.style.cssText = `
+      margin: 8px 16px;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #EBF5FF 0%, #F0F7FF 100%);
+      border: 1px solid #BFDBFE;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #1E40AF;
+      position: relative;
+      animation: fadeIn 0.5s ease-out;
+    `;
+    
+    card.innerHTML = `
+      <button onclick="this.parentElement.remove()" style="
+        position:absolute; top:8px; right:10px; background:none; border:none;
+        color:#93C5FD; font-size:18px; cursor:pointer; padding:0; line-height:1;
+      ">×</button>
+      <div style="font-weight:600; margin-bottom:4px;">☁️ Your media is stored locally</div>
+      <div style="color:#3B82F6;">
+        Photos & audio are encrypted on this device. 
+        Enable <strong>Cloud Backup</strong> in Settings to protect them across devices.
+      </div>
+    `;
+    
+    feed.insertBefore(card, feed.firstChild);
+    
+    // Auto-remove after 30 seconds
+    setTimeout(() => {
+      if (document.getElementById('cloudBackupSuggestion')) {
+        card.style.transition = 'opacity 0.5s';
+        card.style.opacity = '0';
+        setTimeout(() => card.remove(), 500);
+      }
+    }, 30000);
+    
+    return Promise.resolve(false);
+  }
+  
+  // ============================================
+  // GET CLOUD STATUS for a drop
+  // ============================================
+  
+  /**
+   * Check if a drop's media is backed up to cloud.
+   * @param {string|number} dropId
+   * @returns {object} { backed: boolean, fileId, provider }
+   */
+  function getCloudStatus(dropId) {
+    const entry = _manifest[String(dropId)];
+    return {
+      backed: !!entry?.fileId,
+      fileId: entry?.fileId || null,
+      provider: entry ? 'gdrive' : null,
+      uploaded: entry?.uploaded || null
+    };
+  }
+  
+  /**
+   * Get total cloud storage used by DropLit.
+   * @returns {number} bytes
+   */
+  function getTotalCloudSize() {
+    let total = 0;
+    for (const key in _manifest) {
+      total += _manifest[key].size || 0;
+    }
+    return total;
+  }
+  
+  // ============================================
+  // INTERNAL: Access token management
+  // ============================================
+  
+  async function _resolveAccessToken() {
+    // Check cached token
+    if (_accessToken && Date.now() < _tokenExpiry) {
+      return _accessToken;
+    }
+    
+    // Try to get from Supabase session (provider_token)
+    try {
+      if (window._supabaseClient) {
+        const { data } = await window._supabaseClient.auth.getSession();
+        const session = data?.session;
+        
+        if (session?.provider_token) {
+          _accessToken = session.provider_token;
+          // provider_token typically lasts ~1 hour
+          _tokenExpiry = Date.now() + 50 * 60 * 1000; // refresh at 50 min
+          return _accessToken;
+        }
+        
+        // Try refresh
+        if (session?.provider_refresh_token) {
+          const { data: refreshed } = await window._supabaseClient.auth.refreshSession();
+          if (refreshed?.session?.provider_token) {
+            _accessToken = refreshed.session.provider_token;
+            _tokenExpiry = Date.now() + 50 * 60 * 1000;
+            return _accessToken;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[${MODULE_NAME}] Token resolution failed:`, err);
+    }
+    
+    return null;
+  }
+  
+  // ============================================
+  // INTERNAL: Drive helpers
+  // ============================================
+  
+  async function _testAccess(token) {
+    try {
+      const response = await fetch(
+        `${DRIVE_API}/files?spaces=appDataFolder&pageSize=1`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      return response.ok;
+    } catch (err) {
+      return false;
+    }
+  }
+  
+  async function _findFile(dropIdStr, mediaType) {
+    const token = await _resolveAccessToken();
+    if (!token) return null;
+    
+    const filename = `${dropIdStr}_${mediaType}.enc`;
+    
+    try {
+      const response = await fetch(
+        `${DRIVE_API}/files?spaces=appDataFolder&q=name='${filename}'&fields=files(id)`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      if (!response.ok) return null;
+      
+      const data = await response.json();
+      if (data.files?.length > 0) {
+        // Update manifest
+        _manifest[dropIdStr] = {
+          fileId: data.files[0].id,
+          type: mediaType,
+          uploaded: Date.now()
+        };
+        _saveManifest();
+        return data.files[0].id;
+      }
+      
+      return null;
+    } catch (err) {
+      return null;
+    }
+  }
+  
+  function _saveManifest() {
+    try {
+      localStorage.setItem(MANIFEST_KEY, JSON.stringify(_manifest));
+    } catch (e) {
+      console.warn(`[${MODULE_NAME}] Failed to save manifest`);
+    }
+  }
+  
+  function _formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+  
+  // ============================================
+  // PUBLIC API
+  // ============================================
+  
+  const api = {
+    init,
+    
+    // Enable/disable
+    enable,
+    disable,
+    isEnabled,
+    
+    // Core operations
+    upload,
+    download,
+    downloadByDropId,
+    remove,
+    removeByDropId,
+    
+    // Sync
+    syncAll,
+    listFiles,
+    
+    // Prompt
+    shouldShowPrompt,
+    dismissPrompt,
+    showPrompt,
+    
+    // Status
+    getCloudStatus,
+    getTotalCloudSize
+  };
+  
+  window.DropLitCloudGDrive = api;
+  
+  console.log(`[${MODULE_NAME}] Module loaded. Access via window.DropLitCloudGDrive`);
+  
+})();
