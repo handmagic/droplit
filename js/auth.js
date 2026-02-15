@@ -184,6 +184,12 @@ function setupAuthListener() {
         localStorage.setItem('droplit_google_refresh_token', session.provider_refresh_token);
         console.log('[Auth] Google refresh token saved');
       }
+      // Cache provider_token for immediate GDrive access
+      if (session.provider_token) {
+        window._googleProviderToken = session.provider_token;
+        window._googleProviderTokenExpiry = Date.now() + 50 * 60 * 1000; // ~50 min
+        console.log('[Auth] Google provider token cached');
+      }
       
       // Process pending invite code (from onboarding flow)
       const pendingInvite = localStorage.getItem('droplit_pending_invite');
@@ -340,7 +346,8 @@ async function signInWithGoogle() {
         redirectTo: window.location.origin + window.location.pathname,
         scopes: 'https://www.googleapis.com/auth/drive.appfolder',
         queryParams: {
-          access_type: 'offline'
+          access_type: 'offline',
+          prompt: 'consent'
         }
       }
     });
