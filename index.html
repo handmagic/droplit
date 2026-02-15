@@ -3024,6 +3024,12 @@ async function _autoMediaBackup(dropId, mediaType, dataUrl) {
         if (cloud && cloud.isEnabled()) {
           cloud.syncOne(dropId, mediaType).then(function(r) {
             if (r.success) {
+              // Ensure cloudRef is set on in-memory drop (defensive)
+              var d = ideas.find(function(x){return String(x.id)===String(dropId)});
+              if (d && r.fileId && !d.cloudRef) {
+                d.cloudRef = 'gdrive:' + r.fileId;
+                save();
+              }
               if (typeof render === 'function') render();
               _updateCloudStatusUI();
             }
