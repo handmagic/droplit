@@ -242,26 +242,42 @@
       }
       
       // Decrypt: first 12 bytes = nonce, rest = ciphertext
-      const key = await _getEncryptionKey();
-      if (!key) {
-        console.error(`[${MODULE_NAME}] No decryption key available`);
-        return null;
-      }
-      
       const nonce = data.slice(0, NONCE_LENGTH);
       const ciphertext = data.slice(NONCE_LENGTH);
       
-      const decryptedBuffer = await crypto.subtle.decrypt(
-        { name: ALGO, iv: nonce },
-        key,
-        ciphertext
-      );
+      // Try primary key first
+      const key = await _getEncryptionKey();
+      if (key) {
+        try {
+          const decryptedBuffer = await crypto.subtle.decrypt(
+            { name: ALGO, iv: nonce }, key, ciphertext
+          );
+          return new Blob([decryptedBuffer], { type: mimeType });
+        } catch (primaryErr) {
+          // Primary key failed — try all other stored keys
+          console.warn(`[${MODULE_NAME}] Primary key failed for ${dropIdStr}/${mediaType}, trying fallback keys...`);
+        }
+      }
       
-      return new Blob([decryptedBuffer], { type: mimeType });
+      // Fallback: try all user keys from IndexedDB (handles userId change after re-login)
+      const allKeys = await _getAllEncryptionKeys();
+      for (const fallbackKey of allKeys) {
+        try {
+          const decryptedBuffer = await crypto.subtle.decrypt(
+            { name: ALGO, iv: nonce }, fallbackKey, ciphertext
+          );
+          console.log(`[${MODULE_NAME}] Decrypted ${dropIdStr}/${mediaType} with fallback key`);
+          return new Blob([decryptedBuffer], { type: mimeType });
+        } catch (e) {
+          // This key didn't work either — try next
+        }
+      }
+      
+      console.error(`[${MODULE_NAME}] All keys failed for ${dropIdStr}/${mediaType}`);
+      return null;
       
     } catch (err) {
       if (err.name === 'NotFoundError') {
-        // File doesn't exist in OPFS — normal for pre-OPFS drops
         return null;
       }
       console.error(`[${MODULE_NAME}] Load failed for ${dropIdStr}/${mediaType}:`, err);
@@ -688,7 +704,54 @@
         if (session?.user?.id) return session.user.id;
       } catch (e) {}
     }
+    // Fallback: check localStorage for any known user key
+    const keyEntries = Object.keys(localStorage).filter(k => k.startsWith('droplit_has_key_'));
+    if (keyEntries.length > 0) {
+      return keyEntries[keyEntries.length - 1].replace('droplit_has_key_', '');
+    }
     return null;
+  }
+  
+  /**
+   * Get ALL encryption keys from all stored user IDs.
+   * Used as fallback when primary key fails (userId changed after re-login).
+   */
+  async function _getAllEncryptionKeys() {
+    const keysModule = window.DropLitKeys;
+    if (!keysModule?.retrieveKey) return [];
+    
+    // Find all user IDs with stored keys
+    const keyEntries = Object.keys(localStorage).filter(k => k.startsWith('droplit_has_key_'));
+    const userIds = keyEntries.map(k => k.replace('droplit_has_key_', ''));
+    
+    const keys = [];
+    for (const uid of userIds) {
+      try {
+        const keyData = await keysModule.retrieveKey(uid);
+        if (!keyData?.key) continue;
+        
+        let aesKey = null;
+        
+        if (keyData.key instanceof CryptoKey) {
+          if (keyData.key.algorithm?.name === 'AES-GCM') {
+            aesKey = keyData.key;
+          } else {
+            try {
+              const raw = await crypto.subtle.exportKey('raw', keyData.key);
+              aesKey = await crypto.subtle.importKey('raw', raw, { name: ALGO }, false, ['encrypt', 'decrypt']);
+            } catch (e) {}
+          }
+        } else if (keyData.key instanceof Uint8Array || keyData.key.byteLength) {
+          const rawBytes = keyData.key instanceof Uint8Array ? keyData.key : new Uint8Array(keyData.key);
+          const keyBytes = rawBytes.slice(0, 32);
+          aesKey = await crypto.subtle.importKey('raw', keyBytes, { name: ALGO }, false, ['encrypt', 'decrypt']);
+        }
+        
+        if (aesKey) keys.push(aesKey);
+      } catch (e) {}
+    }
+    
+    return keys;
   }
   
   // ============================================
