@@ -2521,6 +2521,7 @@ let audioRecorder = null;
 let audioRecordingChunks = [];
 let audioRecordingStream = null;
 let currentPlayingAudioId = null;
+let currentAudioObjectURL = null;
 let currentAudioElement = null;
 
 // Format duration in M:SS
@@ -2994,11 +2995,30 @@ async function saveAudioDrop(blob) {
 }
 
 // Play audio drop
-function playAudioDrop(id, event) {
+async function playAudioDrop(id, event) {
   if (event) event.stopPropagation();
   
   const item = ideas.find(x => x.id === id);
-  if (!item || !item.audioData) {
+  if (!item) {
+    toast('Audio not found');
+    return;
+  }
+  
+  // Get audio source: from localStorage or OPFS
+  let audioSrc = item.audioData;
+  
+  if (!audioSrc && item.mediaRef && window.DropLitMediaStorage?.isInitialized()) {
+    try {
+      const blob = await window.DropLitMediaStorage.loadOriginal(id, 'audio');
+      if (blob) {
+        audioSrc = URL.createObjectURL(blob);
+      }
+    } catch (err) {
+      console.warn('[Audio] OPFS load failed:', err.message);
+    }
+  }
+  
+  if (!audioSrc) {
     toast('Audio not found');
     return;
   }
@@ -3006,6 +3026,11 @@ function playAudioDrop(id, event) {
   // Stop current playback
   if (currentAudioElement) {
     currentAudioElement.pause();
+    // Revoke previous object URL if any
+    if (currentAudioObjectURL) {
+      URL.revokeObjectURL(currentAudioObjectURL);
+      currentAudioObjectURL = null;
+    }
     currentAudioElement = null;
     
     // Reset previous play button
@@ -3024,7 +3049,11 @@ function playAudioDrop(id, event) {
   }
   
   currentPlayingAudioId = id;
-  currentAudioElement = new Audio(item.audioData);
+  // Track object URL for cleanup
+  if (audioSrc.startsWith('blob:')) {
+    currentAudioObjectURL = audioSrc;
+  }
+  currentAudioElement = new Audio(audioSrc);
   
   const playBtn = document.getElementById('playbtn-' + id);
   const timeEl = document.getElementById('audiotime-' + id);
@@ -3102,7 +3131,7 @@ function updateWaveformProgress(id, progress) {
 // Transcribe audio using Whisper API
 async function transcribeAudio(id) {
   const item = ideas.find(x => x.id === id);
-  if (!item || !item.audioData) {
+  if (!item) {
     toast('Audio not found');
     return;
   }
@@ -3115,9 +3144,20 @@ async function transcribeAudio(id) {
   toast('Transcribing...');
   
   try {
-    // Convert base64 to blob
-    const response = await fetch(item.audioData);
-    const blob = await response.blob();
+    // Get audio blob: from localStorage or OPFS
+    let blob;
+    
+    if (item.audioData) {
+      const response = await fetch(item.audioData);
+      blob = await response.blob();
+    } else if (item.mediaRef && window.DropLitMediaStorage?.isInitialized()) {
+      blob = await window.DropLitMediaStorage.loadOriginal(id, 'audio');
+    }
+    
+    if (!blob) {
+      toast('Audio data not available');
+      return;
+    }
     
     // Create form data
     const formData = new FormData();
