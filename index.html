@@ -8064,28 +8064,12 @@ async function toggleCloudBackup() {
 }
 
 function initCloudBackupSettings() {
-  const cloud = window.DropLitCloudGDrive;
-  const toggle = document.getElementById('cloudBackupToggle');
-  
-  // Fallback: read localStorage directly even if module not loaded yet
+  // Read saved state directly from localStorage — works regardless of module timing
   const savedEnabled = localStorage.getItem('droplit_cloud_backup_enabled') === 'true';
-  
+  const toggle = document.getElementById('cloudBackupToggle');
   if (toggle) {
     toggle.classList.toggle('active', savedEnabled);
   }
-  
-  if (cloud) {
-    cloud.init().then(function() {
-      if (toggle) {
-        toggle.classList.toggle('active', cloud.isEnabled());
-      }
-      updateCloudBackupStatus();
-    });
-  } else {
-    // Module not loaded yet — retry after scripts finish loading
-    setTimeout(initCloudBackupSettings, 500);
-  }
-  
   updateCloudBackupStatus();
 }
 
