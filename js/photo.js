@@ -36,7 +36,26 @@ async function ocrImageNew() {
   }
   
   const item = ideas.find(x => x.id === currentImageId);
-  if (!item || !item.image) {
+  if (!item) {
+    toast('No image to process', 'error');
+    return;
+  }
+  
+  // Get image data: prefer OPFS full-size, fallback to item.image
+  let imageData = item.image;
+  if (item._opfsImageUrl) {
+    try {
+      const resp = await fetch(item._opfsImageUrl);
+      const blob = await resp.blob();
+      imageData = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) { /* use item.image */ }
+  }
+  
+  if (!imageData) {
     toast('No image to process', 'error');
     return;
   }
@@ -48,7 +67,7 @@ async function ocrImageNew() {
     const response = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'ocr', image: item.image }),
+      body: JSON.stringify({ action: 'ocr', image: imageData }),
     });
 
     const data = await response.json();
@@ -76,7 +95,26 @@ async function aiDescribeNew() {
   }
   
   const item = ideas.find(x => x.id === currentImageId);
-  if (!item || !item.image) {
+  if (!item) {
+    toast('No image to process', 'error');
+    return;
+  }
+  
+  // Get image data: prefer OPFS full-size, fallback to item.image
+  let imageData = item.image;
+  if (item._opfsImageUrl) {
+    try {
+      const resp = await fetch(item._opfsImageUrl);
+      const blob = await resp.blob();
+      imageData = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) { /* use item.image */ }
+  }
+  
+  if (!imageData) {
     toast('No image to process', 'error');
     return;
   }
@@ -88,7 +126,7 @@ async function aiDescribeNew() {
     const response = await fetch(AI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'describe', image: item.image }),
+      body: JSON.stringify({ action: 'describe', image: imageData }),
     });
 
     const data = await response.json();
@@ -349,6 +387,18 @@ function initPhotoViewerV2() {
           '<div class="pv-info-value" id="pvInfoDate">—</div>' +
         '</div>' +
         '<div class="pv-info-row">' +
+          '<div class="pv-info-label">Dimensions</div>' +
+          '<div class="pv-info-value" id="pvInfoDimensions">—</div>' +
+        '</div>' +
+        '<div class="pv-info-row">' +
+          '<div class="pv-info-label">Size</div>' +
+          '<div class="pv-info-value" id="pvInfoSize">—</div>' +
+        '</div>' +
+        '<div class="pv-info-row">' +
+          '<div class="pv-info-label">Storage</div>' +
+          '<div class="pv-info-value" id="pvInfoStorage">—</div>' +
+        '</div>' +
+        '<div class="pv-info-row">' +
           '<div class="pv-info-label">Category</div>' +
           '<div class="pv-info-value" id="pvInfoCategory">—</div>' +
         '</div>' +
@@ -397,6 +447,47 @@ function openPvInfo() {
   document.getElementById('pvInfoDate').textContent = (item.date || '') + (item.time ? ' • ' + item.time : '');
   document.getElementById('pvInfoCategory').textContent = item.category || 'photo';
   document.getElementById('pvInfoCaption').value = item.notes || item.text || '';
+  
+  // Dimensions
+  var dimEl = document.getElementById('pvInfoDimensions');
+  if (dimEl) {
+    if (item.imageDimensions) {
+      dimEl.textContent = item.imageDimensions;
+    } else if (item._imageWidth) {
+      dimEl.textContent = item._imageWidth + '×' + item._imageHeight;
+    } else {
+      // Read from viewer img
+      var viewerImg = document.getElementById('imageViewerImg');
+      if (viewerImg && viewerImg.naturalWidth) {
+        dimEl.textContent = viewerImg.naturalWidth + '×' + viewerImg.naturalHeight;
+      } else {
+        dimEl.textContent = '—';
+      }
+    }
+  }
+  
+  // File size
+  var sizeEl = document.getElementById('pvInfoSize');
+  if (sizeEl) {
+    var bytes = item.mediaSize || (item.image ? Math.round(item.image.length * 0.75) : 0);
+    if (bytes > 0) {
+      if (bytes < 1024) sizeEl.textContent = bytes + ' B';
+      else if (bytes < 1048576) sizeEl.textContent = (bytes / 1024).toFixed(1) + ' KB';
+      else sizeEl.textContent = (bytes / 1048576).toFixed(1) + ' MB';
+    } else {
+      sizeEl.textContent = '—';
+    }
+  }
+  
+  // Storage location
+  var storageEl = document.getElementById('pvInfoStorage');
+  if (storageEl) {
+    var parts = [];
+    if (item.mediaSaved) parts.push('Device (OPFS)');
+    if (item.cloudRef) parts.push('Cloud ☁️');
+    if (!item.mediaSaved && item.image) parts.push('Local (base64)');
+    storageEl.textContent = parts.length > 0 ? parts.join(' + ') : '—';
+  }
   
   document.getElementById('pvInfoModal').classList.add('show');
 }
