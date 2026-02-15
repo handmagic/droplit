@@ -8733,6 +8733,44 @@ document.addEventListener("DOMContentLoaded", async function() {
   // Wait for auth to complete
   setTimeout(async () => {
     await autoInitEncryption();
+    
+    // Initialize Media Storage (OPFS Vault)
+    if (typeof DropLitMediaStorage !== 'undefined') {
+      try {
+        const msResult = await DropLitMediaStorage.init();
+        if (msResult.success) {
+          // Auto-migrate old base64 media to OPFS
+          const migResult = await DropLitMediaStorage.migrateExistingMedia();
+          if (migResult.migrated > 0) {
+            console.log('[Media] Migrated', migResult.migrated, 'files to OPFS');
+            if (typeof render === 'function') render();
+          }
+        }
+      } catch (e) {
+        console.warn('[Media] Init error:', e.message);
+      }
+    }
+    
+    // Initialize Cloud GDrive and auto-sync if enabled
+    if (typeof DropLitCloudGDrive !== 'undefined') {
+      try {
+        await DropLitCloudGDrive.init();
+        const cloudEnabled = localStorage.getItem('droplit_cloud_backup_enabled') === 'true';
+        if (cloudEnabled) {
+          DropLitCloudGDrive.syncAll().then(function(s) {
+            if (s.uploaded > 0) {
+              if (typeof toast === 'function') toast('☁️ ' + s.uploaded + ' files backed up', 'success');
+              if (typeof render === 'function') render();
+            }
+          }).catch(function(e) {
+            console.warn('[Cloud] Auto-sync error:', e.message);
+          });
+        }
+      } catch (e) {
+        console.warn('[Cloud] Init error:', e.message);
+      }
+    }
+    
   }, 1500);
 });
 
