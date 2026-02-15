@@ -331,7 +331,11 @@ async function signInWithGoogle() {
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + window.location.pathname
+        redirectTo: window.location.origin + window.location.pathname,
+        scopes: 'https://www.googleapis.com/auth/drive.appfolder',
+        queryParams: {
+          access_type: 'offline'
+        }
       }
     });
     
@@ -1336,6 +1340,18 @@ async function manualSync() {
   if (typeof toast === 'function') toast('Syncing...', 'info');
   
   await backgroundSync();
+  
+  // Cloud media sync (if enabled)
+  if (window.DropLitCloudGDrive?.isEnabled()) {
+    try {
+      const cloudResult = await window.DropLitCloudGDrive.syncAll();
+      if (cloudResult.uploaded > 0) {
+        console.log('[Auth] Cloud sync:', cloudResult.uploaded, 'media files uploaded');
+      }
+    } catch (e) {
+      console.warn('[Auth] Cloud media sync error:', e.message);
+    }
+  }
   
   if (typeof toast === 'function') toast('Sync complete!', 'success');
 }
