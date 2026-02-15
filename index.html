@@ -8753,12 +8753,9 @@ function getSupabaseClient() {
 }
 
 // Update account UI after auth.js initializes
+// Auth listener calls updateAccountUI directly — this is just a safety net
 document.addEventListener('DOMContentLoaded', function() {
-  // Initial attempt after 500ms
-  setTimeout(updateAccountUI, 500);
-  // Retry after auth listener likely handled SIGNED_IN (covers 8s timeout)
-  setTimeout(updateAccountUI, 2000);
-  setTimeout(updateAccountUI, 9000);
+  setTimeout(updateAccountUI, 1000);
 });
 
 function openMainMenu() {
