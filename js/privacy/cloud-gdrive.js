@@ -561,22 +561,32 @@
       return _accessToken;
     }
     
+    // Helper: getSession with timeout to prevent hanging
+    async function _safeGetSession(timeoutMs = 5000) {
+      if (!window._supabaseClient) return null;
+      try {
+        const sessionPromise = window._supabaseClient.auth.getSession();
+        const timeout = new Promise((resolve) => setTimeout(() => resolve({ data: { session: null } }), timeoutMs));
+        const { data } = await Promise.race([sessionPromise, timeout]);
+        return data?.session || null;
+      } catch (err) {
+        return null;
+      }
+    }
+    
     // Strategy 1: Get provider_token from current Supabase session
     try {
-      if (window._supabaseClient) {
-        const { data } = await window._supabaseClient.auth.getSession();
-        const session = data?.session;
+      const session = await _safeGetSession();
         
-        // Save provider_refresh_token whenever we see it
-        if (session?.provider_refresh_token) {
-          localStorage.setItem(REFRESH_TOKEN_KEY, session.provider_refresh_token);
-        }
+      // Save provider_refresh_token whenever we see it
+      if (session?.provider_refresh_token) {
+        localStorage.setItem(REFRESH_TOKEN_KEY, session.provider_refresh_token);
+      }
         
-        if (session?.provider_token) {
-          _accessToken = session.provider_token;
-          _tokenExpiry = Date.now() + 50 * 60 * 1000;
-          return _accessToken;
-        }
+      if (session?.provider_token) {
+        _accessToken = session.provider_token;
+        _tokenExpiry = Date.now() + 50 * 60 * 1000;
+        return _accessToken;
       }
     } catch (err) {
       // Continue to next strategy
@@ -594,11 +604,8 @@
     if (refreshToken) {
       try {
         // Get Supabase JWT for auth
-        let supabaseToken = null;
-        if (window._supabaseClient) {
-          const { data } = await window._supabaseClient.auth.getSession();
-          supabaseToken = data?.session?.access_token;
-        }
+        const session = await _safeGetSession();
+        const supabaseToken = session?.access_token || null;
         
         const response = await fetch(TOKEN_ENDPOINT, {
           method: 'POST',
