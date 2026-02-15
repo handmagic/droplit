@@ -175,6 +175,8 @@
       flex-shrink: 0;
     }
   </style>
+
+  <script src="js/utils.js"></script>
   <script src="js/tts.js"></script>
   <script src="js/kokoro-tts.js"></script>
   <script src="js/tts-stream.js"></script>
@@ -4561,14 +4563,6 @@ function toggleRollUpMode() {
   });
 }
 
-function parseD(dateStr) {
-  // Parse ru-RU date format "DD.MM.YYYY" → timestamp
-  const parts = dateStr.split('.');
-  if (parts.length === 3) {
-    return new Date(parts[2], parts[1] - 1, parts[0]).getTime();
-  }
-  return new Date(dateStr).getTime() || 0;
-}
 
 function render(){
   const wrap=document.getElementById('ideasList'),empty=document.getElementById('emptyState'),list=filtered();
