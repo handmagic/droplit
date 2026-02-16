@@ -178,13 +178,13 @@
       .ask-ai-panel {
         position: static !important;
         transform: none !important;
-        width: 50%;
-        min-width: 400px;
-        max-width: 50vw;
+        width: var(--chat-width, 50%);
+        min-width: 320px;
+        max-width: 75vw;
         height: 100vh !important;
         height: 100dvh !important;
         border-radius: 0 !important;
-        box-shadow: 1px 0 0 var(--color-border) !important;
+        box-shadow: none !important;
         z-index: 1 !important;
         order: 1;
         flex-shrink: 0;
@@ -199,15 +199,41 @@
       .ask-ai-close { display: none !important; }
       .ask-ai-control-left { display: none !important; }
       
+      /* ═══ Resizer handle ═══ */
+      .desktop-resizer {
+        width: 5px;
+        cursor: col-resize;
+        background: var(--color-border, #e5e7eb);
+        order: 2;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 50;
+        transition: background 0.15s;
+      }
+      .desktop-resizer:hover,
+      .desktop-resizer.active {
+        background: #8B5CF6;
+      }
+      /* Wider invisible hit zone */
+      .desktop-resizer::before {
+        content: '';
+        position: absolute;
+        top: 0; bottom: 0;
+        left: -4px; right: -4px;
+      }
+      body.resizing { cursor: col-resize !important; user-select: none !important; }
+      body.resizing * { cursor: col-resize !important; user-select: none !important; pointer-events: none !important; }
+      body.resizing .desktop-resizer { pointer-events: auto !important; }
+      
       /* App container — RIGHT side */
       .app {
         max-width: none !important;
-        width: 50%;
+        width: auto;
         flex: 1;
         height: 100vh;
         height: 100dvh;
         margin: 0 !important;
-        order: 2;
+        order: 3;
         overflow: hidden;
       }
       
@@ -227,6 +253,57 @@
         left: auto;
         width: 50vw;
       }
+      
+      /* ═══ Drag & Drop visual indicators ═══ */
+      .drag-ghost {
+        position: fixed;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0.85;
+        transform: rotate(2deg) scale(0.95);
+        max-width: 300px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .drag-ghost.from-chat {
+        background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+        color: white;
+      }
+      .drag-ghost.from-feed {
+        background: var(--color-bg-card);
+        border: 2px solid #8B5CF6;
+        color: var(--color-text);
+      }
+      
+      /* Drop zone highlights */
+      .ideas-wrap.drop-hover {
+        outline: 3px dashed #8B5CF6;
+        outline-offset: -3px;
+        background: rgba(139,92,246,0.05);
+      }
+      .ask-ai-messages.drop-hover {
+        outline: 3px dashed #10B981;
+        outline-offset: -3px;
+        background: rgba(16,185,129,0.05);
+      }
+      
+      /* Draggable indicators */
+      .idea.draggable-desktop { cursor: grab; }
+      .idea.draggable-desktop:active { cursor: grabbing; }
+      .ask-ai-message.ai .ask-ai-bubble.draggable-desktop { cursor: grab; }
+      .ask-ai-message.ai .ask-ai-bubble.draggable-desktop:active { cursor: grabbing; }
+    }
+    
+    /* Hide resizer on mobile */
+    .desktop-resizer { display: none; }
+    @media (min-width: 1024px) {
+      .desktop-resizer { display: block; }
     }
   </style>
 
@@ -277,6 +354,38 @@
   <script src="js/settings.js"></script>
   <script src="js/photo.js"></script>
   <script src="js/sync.js"></script>
+  <script>
+  // v0.9.129: Safe getSupabaseContext — session check + 4s timeout
+  // Prevents ASKI chat freeze when Supabase JWT expired
+  (function(){
+    var _orig = window.getSupabaseContext;
+    window.getSupabaseContext = function(query, options) {
+      // If original not available, return empty
+      if (typeof _orig !== 'function') {
+        return Promise.resolve({ recent: [], relevant: [] });
+      }
+      // Quick session check — if no valid session, skip immediately
+      if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+        var session = supabaseClient.auth?.session?.();
+        // Some versions use getSession()
+        if (!session && supabaseClient.auth?.getSession) {
+          // Don't await getSession — it may also hang
+          // Just rely on the timeout below
+        }
+      }
+      // Race: original call vs 4s timeout
+      return Promise.race([
+        _orig(query, options),
+        new Promise(function(resolve) {
+          setTimeout(function() {
+            console.warn('[Context] Supabase context timed out (4s) — check session');
+            resolve({ recent: [], relevant: [] });
+          }, 4000);
+        })
+      ]);
+    };
+  })();
+  </script>
   <script src="js/notifications.js"></script>
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1915,7 +2024,7 @@
           <svg viewBox="0 0 24 24"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg>
         </div>
         <div class="menu-about-name">DropLit</div>
-        <div class="menu-about-ver">v0.9.128 • Syntrise Inc. © 2026</div>
+        <div class="menu-about-ver">v0.9.129 • Syntrise Inc. © 2026</div>
       </div>
 
       <!-- Footer -->
@@ -1926,8 +2035,11 @@
     </div>
   </div>
 
+  <!-- Desktop Resizer Handle (between chat and feed) -->
+  <div class="desktop-resizer" id="desktopResizer"></div>
+
   <!-- Modals -->
-  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.128 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
+  <div class="overlay" id="aboutModal"><div class="modal"><div class="about-brand"><div class="about-logo"><svg viewBox="0 0 24 24" fill="white"><path d="M12 2C12 2 5 10.5 5 15C5 18.866 8.134 22 12 22C15.866 22 19 18.866 19 15C19 10.5 12 2 12 2Z"/></svg></div><div class="about-name">DropLit</div><div class="about-ver">v0.9.129 • Syntrise Inc.</div></div><div class="modal-text" style="text-align:center">Voice-first idea capture.<br>Your data is end-to-end encrypted.<br><br><span style="font-size:11px;opacity:0.7">© 2026 Syntrise Inc. All rights reserved.</span></div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAbout()">Got it</button></div></div></div>
   <div class="overlay" id="catModal"><div class="modal type-b"><div class="modal-header"><h3>Move to Category</h3></div><div class="modal-body"><div class="cat-grid"><button class="cat-opt" data-cat="tasks" onclick="changeCat('tasks')">Tasks</button><button class="cat-opt" data-cat="ideas" onclick="changeCat('ideas')">Ideas</button><button class="cat-opt" data-cat="handmagic" onclick="changeCat('handmagic')">Handmagic</button><button class="cat-opt" data-cat="design" onclick="changeCat('design')">Design</button><button class="cat-opt" data-cat="bugs" onclick="changeCat('bugs')">Bugs</button><button class="cat-opt" data-cat="questions" onclick="changeCat('questions')">Questions</button><button class="cat-opt" data-cat="sketch" onclick="changeCat('sketch')">Sketch</button><button class="cat-opt" data-cat="scan" onclick="changeCat('scan')">Scan</button><button class="cat-opt" data-cat="inbox" onclick="changeCat('inbox')">Inbox</button></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeCatModal()">Cancel</button></div></div></div>
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
@@ -7873,6 +7985,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       panel.classList.add('show');
       document.body.classList.add('chat-open', 'desktop-split');
     }
+    // Restore saved split position
+    var savedWidth = localStorage.getItem('droplit_chat_width');
+    if (savedWidth) {
+      document.documentElement.style.setProperty('--chat-width', savedWidth);
+    }
+    // Init desktop features after render
+    setTimeout(function() { initDesktopFeatures(); }, 200);
   }
   
   // Initialize roll-up mode BEFORE render
@@ -9386,6 +9505,390 @@ async function resetEncryption() {
     
   } catch (error) {
     toast("Reset failed: " + error.message, "error");
+  }
+}
+// ═══════════════════════════════════════════════════════════════
+// DESKTOP FEATURES: Resizable Split + Drag & Drop (v0.9.129)
+// Active only on screens ≥1024px
+// ═══════════════════════════════════════════════════════════════
+
+function initDesktopFeatures() {
+  if (window.innerWidth < 1024) return;
+  console.log('[Desktop] Initializing desktop features');
+  initResizer();
+  initDragDrop();
+}
+
+// ─── RESIZABLE SPLIT ───────────────────────────────────────────
+
+function initResizer() {
+  var resizer = document.getElementById('desktopResizer');
+  var panel = document.getElementById('askAIPanel');
+  if (!resizer || !panel) return;
+  
+  var isResizing = false;
+  var startX = 0;
+  var startWidth = 0;
+  
+  function onPointerDown(e) {
+    isResizing = true;
+    startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    startWidth = panel.offsetWidth;
+    document.body.classList.add('resizing');
+    resizer.classList.add('active');
+    e.preventDefault();
+  }
+  
+  function onPointerMove(e) {
+    if (!isResizing) return;
+    var clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    var delta = clientX - startX;
+    var newWidth = Math.max(320, Math.min(startWidth + delta, window.innerWidth * 0.75));
+    var pct = (newWidth / window.innerWidth * 100).toFixed(1) + '%';
+    document.documentElement.style.setProperty('--chat-width', pct);
+    e.preventDefault();
+  }
+  
+  function onPointerUp() {
+    if (!isResizing) return;
+    isResizing = false;
+    document.body.classList.remove('resizing');
+    resizer.classList.remove('active');
+    // Save position
+    var current = getComputedStyle(document.documentElement).getPropertyValue('--chat-width').trim();
+    if (current) localStorage.setItem('droplit_chat_width', current);
+  }
+  
+  // Mouse
+  resizer.addEventListener('mousedown', onPointerDown);
+  document.addEventListener('mousemove', onPointerMove);
+  document.addEventListener('mouseup', onPointerUp);
+  // Touch
+  resizer.addEventListener('touchstart', onPointerDown, { passive: false });
+  document.addEventListener('touchmove', onPointerMove, { passive: false });
+  document.addEventListener('touchend', onPointerUp);
+  
+  console.log('[Desktop] Resizer initialized');
+}
+
+// ─── DRAG & DROP ───────────────────────────────────────────────
+
+var _dragData = null;   // Current drag payload
+var _dragGhost = null;  // Visual ghost element
+var _dragSource = null; // 'chat' or 'feed'
+
+function initDragDrop() {
+  var feedWrap = document.getElementById('ideasWrap');
+  var chatMessages = document.getElementById('askAIMessages');
+  if (!feedWrap || !chatMessages) return;
+  
+  // Mark existing items as draggable
+  _markDraggable();
+  
+  // Observe DOM for new items (feed renders, new chat messages)
+  var observer = new MutationObserver(function() { _markDraggable(); });
+  observer.observe(document.getElementById('ideasList'), { childList: true });
+  observer.observe(chatMessages, { childList: true });
+  
+  // Drop zones
+  _initDropZone(feedWrap, 'feed');
+  _initDropZone(chatMessages, 'chat');
+  
+  console.log('[Desktop] Drag & Drop initialized');
+}
+
+function _markDraggable() {
+  // Feed items → draggable to chat
+  document.querySelectorAll('.idea:not(.draggable-desktop)').forEach(function(el) {
+    el.classList.add('draggable-desktop');
+    _addDragHandlers(el, 'feed');
+  });
+  
+  // AI chat messages → draggable to feed
+  document.querySelectorAll('.ask-ai-message.ai .ask-ai-bubble:not(.draggable-desktop)').forEach(function(el) {
+    el.classList.add('draggable-desktop');
+    _addDragHandlers(el, 'chat');
+  });
+}
+
+function _addDragHandlers(el, source) {
+  var startX, startY, isDragging = false, longPressTimer = null;
+  
+  function onStart(e) {
+    var pt = e.touches ? e.touches[0] : e;
+    startX = pt.clientX;
+    startY = pt.clientY;
+    isDragging = false;
+    
+    // For touch: require long-press (300ms) before drag starts
+    if (e.touches) {
+      longPressTimer = setTimeout(function() {
+        _beginDrag(el, source, startX, startY);
+        isDragging = true;
+        // Haptic feedback if available
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, 300);
+    }
+  }
+  
+  function onMove(e) {
+    var pt = e.touches ? e.touches[0] : e;
+    var dx = pt.clientX - startX;
+    var dy = pt.clientY - startY;
+    
+    // Mouse: start drag after 8px movement
+    if (!e.touches && !isDragging && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      _beginDrag(el, source, startX, startY);
+      isDragging = true;
+    }
+    
+    // Touch: cancel long-press if moved before threshold
+    if (e.touches && !isDragging && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      return; // Normal scroll
+    }
+    
+    if (isDragging) {
+      e.preventDefault();
+      _moveDrag(pt.clientX, pt.clientY);
+    }
+  }
+  
+  function onEnd(e) {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    if (isDragging) {
+      var pt = e.changedTouches ? e.changedTouches[0] : e;
+      _endDrag(pt.clientX, pt.clientY);
+      isDragging = false;
+      e.preventDefault();
+    }
+  }
+  
+  el.addEventListener('mousedown', onStart);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onEnd);
+  el.addEventListener('touchstart', onStart, { passive: true });
+  el.addEventListener('touchmove', onMove, { passive: false });
+  el.addEventListener('touchend', onEnd, { passive: false });
+}
+
+function _beginDrag(el, source, x, y) {
+  _dragSource = source;
+  
+  if (source === 'feed') {
+    // Extract drop data from feed item
+    var id = el.getAttribute('data-id') || el.id;
+    var drop = ideas.find(function(d) { return String(d.id) === String(id); });
+    if (!drop) return;
+    _dragData = {
+      type: drop.isMedia ? (drop.mediaType || 'photo') : 'text',
+      id: drop.id,
+      text: drop.text || drop.content || '',
+      category: drop.category || 'inbox',
+      isMedia: drop.isMedia || false,
+      mediaType: drop.mediaType || null,
+      mediaId: drop.mediaId || null
+    };
+  } else {
+    // Extract from chat AI message
+    var originalText = el.dataset.originalText || el.textContent;
+    // Check if it's a diagram/chart
+    var canvas = el.querySelector('canvas');
+    var svg = el.querySelector('svg.diagram, svg[data-diagram]');
+    _dragData = {
+      type: canvas ? 'chart' : (svg ? 'diagram' : 'text'),
+      text: originalText || '',
+      element: canvas || svg || null
+    };
+  }
+  
+  // Create ghost
+  _dragGhost = document.createElement('div');
+  _dragGhost.className = 'drag-ghost ' + (source === 'chat' ? 'from-chat' : 'from-feed');
+  var preview = _dragData.text || '';
+  if (preview.length > 60) preview = preview.substring(0, 60) + '...';
+  if (_dragData.isMedia) preview = '📎 ' + (_dragData.mediaType || 'media') + ' drop';
+  if (_dragData.type === 'chart') preview = '📊 Chart';
+  if (_dragData.type === 'diagram') preview = '📐 Diagram';
+  _dragGhost.textContent = preview;
+  _dragGhost.style.left = x + 'px';
+  _dragGhost.style.top = y + 'px';
+  document.body.appendChild(_dragGhost);
+}
+
+function _moveDrag(x, y) {
+  if (!_dragGhost) return;
+  _dragGhost.style.left = (x + 12) + 'px';
+  _dragGhost.style.top = (y - 20) + 'px';
+  
+  // Highlight drop zones
+  var feedWrap = document.getElementById('ideasWrap');
+  var chatMessages = document.getElementById('askAIMessages');
+  var overFeed = _isOverElement(feedWrap, x, y);
+  var overChat = _isOverElement(chatMessages, x, y);
+  
+  if (feedWrap) feedWrap.classList.toggle('drop-hover', overFeed && _dragSource === 'chat');
+  if (chatMessages) chatMessages.classList.toggle('drop-hover', overChat && _dragSource === 'feed');
+}
+
+function _endDrag(x, y) {
+  if (!_dragData) { _cleanupDrag(); return; }
+  
+  var feedWrap = document.getElementById('ideasWrap');
+  var chatMessages = document.getElementById('askAIMessages');
+  var overFeed = _isOverElement(feedWrap, x, y);
+  var overChat = _isOverElement(chatMessages, x, y);
+  
+  if (_dragSource === 'chat' && overFeed && _dragData) {
+    // ═══ CHAT → FEED: Create drop from AI message ═══
+    _dropChatToFeed(_dragData);
+  } else if (_dragSource === 'feed' && overChat && _dragData) {
+    // ═══ FEED → CHAT: Attach drop to chat ═══
+    _dropFeedToChat(_dragData);
+  }
+  
+  _cleanupDrag();
+}
+
+function _cleanupDrag() {
+  if (_dragGhost) { _dragGhost.remove(); _dragGhost = null; }
+  _dragData = null;
+  _dragSource = null;
+  document.querySelectorAll('.drop-hover').forEach(function(el) { el.classList.remove('drop-hover'); });
+}
+
+function _isOverElement(el, x, y) {
+  if (!el) return false;
+  var r = el.getBoundingClientRect();
+  return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
+
+function _initDropZone(el, zone) {
+  // Prevent default to allow custom drop
+  el.addEventListener('dragover', function(e) { e.preventDefault(); });
+}
+
+// ─── DROP ACTIONS ──────────────────────────────────────────────
+
+function _dropChatToFeed(data) {
+  // Create a new drop from chat AI message
+  var now = new Date();
+  var dropText = data.text || '';
+  
+  // If chart/diagram, convert to image first
+  if (data.type === 'chart' && data.element) {
+    try {
+      var dataUrl = data.element.toDataURL('image/png');
+      // Create as photo drop
+      var newDrop = {
+        id: Date.now().toString(),
+        text: '📊 Chart from ASKI',
+        content: '📊 Chart from ASKI',
+        category: 'ideas',
+        isMedia: true,
+        mediaType: 'photo',
+        timestamp: now.toISOString(),
+        created_at: now.toISOString(),
+        date: now.toLocaleDateString('ru-RU'),
+        time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+        source: 'aski_drag'
+      };
+      ideas.unshift(newDrop);
+      save(newDrop);
+      // Store image to OPFS
+      if (typeof window.mediaStorage !== 'undefined') {
+        fetch(dataUrl).then(function(r) { return r.blob(); }).then(function(blob) {
+          window.mediaStorage.saveMedia(newDrop.id, blob, 'image/png');
+        });
+      }
+      render(); counts();
+      toast('Chart saved as drop', 'success');
+      return;
+    } catch(e) {
+      console.warn('[Drag] Chart convert failed, saving as text:', e);
+    }
+  }
+  
+  if (!dropText.trim()) return;
+  
+  var newDrop = {
+    id: Date.now().toString(),
+    text: dropText,
+    content: dropText,
+    category: 'ideas',
+    timestamp: now.toISOString(),
+    created_at: now.toISOString(),
+    date: now.toLocaleDateString('ru-RU'),
+    time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
+    source: 'aski_drag',
+    creator: 'aski'
+  };
+  
+  ideas.unshift(newDrop);
+  save(newDrop);
+  render(); counts();
+  if (typeof scrollToBottom === 'function') scrollToBottom();
+  toast('Drop created from ASKI', 'success');
+}
+
+async function _dropFeedToChat(data) {
+  if (data.isMedia && data.mediaType === 'photo') {
+    // Load image from OPFS and attach to chat
+    try {
+      if (typeof window.mediaStorage !== 'undefined') {
+        var blob = await window.mediaStorage.getMedia(data.id);
+        if (blob) {
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            // Use existing chat image attach flow
+            var preview = document.getElementById('chatImagePreview');
+            var previewImg = document.getElementById('chatImagePreviewImg');
+            var input = document.getElementById('askAIInput');
+            if (preview && previewImg) {
+              previewImg.src = e.target.result;
+              preview.style.display = 'block';
+              // Store for send
+              window._chatAttachedImage = {
+                data: e.target.result,
+                name: 'drop-' + data.id + '.jpg',
+                type: blob.type || 'image/jpeg'
+              };
+              if (input) input.focus();
+              toast('Photo attached to chat', 'info');
+            }
+          };
+          reader.readAsDataURL(blob);
+          return;
+        }
+      }
+    } catch(e) {
+      console.warn('[Drag] Could not load media:', e);
+    }
+  }
+  
+  if (data.isMedia && data.mediaType === 'audio') {
+    // For audio: insert text reference + transcript if available
+    var audioText = '🎵 Audio drop: ' + (data.text || 'Recording');
+    var input = document.getElementById('askAIInput');
+    if (input) {
+      input.value = audioText;
+      input.focus();
+      if (typeof autoResizeTextarea === 'function') autoResizeTextarea(input);
+      toast('Audio note added to chat', 'info');
+    }
+    return;
+  }
+  
+  // Text drop: insert into chat input
+  if (data.text) {
+    var input = document.getElementById('askAIInput');
+    if (input) {
+      input.value = data.text;
+      input.focus();
+      if (typeof autoResizeTextarea === 'function') autoResizeTextarea(input);
+      if (typeof updateAskAICharCount === 'function') updateAskAICharCount();
+      toast('Drop added to chat', 'info');
+    }
   }
 }
 
