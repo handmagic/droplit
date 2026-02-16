@@ -227,46 +227,50 @@
       body.dragging { user-select: none !important; }
       body.dragging * { user-select: none !important; }
       
-      /* ═══ Horizontal pill rows — grab-to-scroll on desktop ═══ */
-      .cat-row,
-      .pill-row,
-      .time-row {
-        cursor: grab;
-        -webkit-overflow-scrolling: touch;
+      /* ═══ Horizontal pill rows — arrow navigation on desktop ═══ */
+      .pill-scroll-wrap {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
       }
-      .cat-row:active, .pill-row:active, .time-row:active {
-        cursor: grabbing;
+      .pill-scroll-wrap > .cat-row,
+      .pill-scroll-wrap > .pill-row,
+      .pill-scroll-wrap > .time-row {
+        flex: 1;
+        min-width: 0; /* allow shrink */
       }
-      
-      /* Fade edges to hint more content */
-      .filters {
-        position: relative;
+      .pill-scroll-arrow {
+        display: none; /* hidden by default, JS shows when needed */
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        flex-shrink: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        padding: 0;
+        opacity: 0.35;
+        transition: opacity 0.15s;
+        color: var(--color-text-muted, #999);
       }
-      .cat-row-wrap {
-        position: relative;
-        overflow: hidden;
+      .pill-scroll-arrow:hover {
+        opacity: 0.85;
       }
-      .cat-row-wrap::before,
-      .cat-row-wrap::after {
-        content: '';
-        position: absolute;
-        top: 0; bottom: 0;
-        width: 24px;
-        z-index: 5;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.2s;
+      .pill-scroll-arrow svg {
+        width: 14px;
+        height: 14px;
+        stroke: currentColor;
+        stroke-width: 2.5;
+        fill: none;
       }
-      .cat-row-wrap::before {
-        left: 0;
-        background: linear-gradient(to right, var(--color-bg, #fff) 30%, transparent);
+      .pill-scroll-arrow.visible {
+        display: flex;
       }
-      .cat-row-wrap::after {
-        right: 0;
-        background: linear-gradient(to left, var(--color-bg, #fff) 30%, transparent);
+      /* Wheel→horizontal only for top filter bar (no conflict with feed scroll) */
+      .filters .cat-row,
+      .filters .time-row {
+        scroll-behavior: smooth;
       }
-      .cat-row-wrap.fade-left::before { opacity: 1; }
-      .cat-row-wrap.fade-right::after { opacity: 1; }
       
       /* App container — RIGHT side */
       .app {
@@ -770,7 +774,6 @@
         <button class="time-btn" data-time="7days">week <span class="cnt" id="cnt7d">0</span></button>
         <button class="sort-btn" id="sortBtn" onclick="toggleSort()" title="Sort order"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button>
       </div>
-      <div class="cat-row-wrap" id="catRowWrap">
       <div class="cat-row" id="cats">
         <button class="cat" data-category="command">Command <span class="cnt" id="cntCommand">0</span></button>
         <button class="cat" data-category="tasks">Tasks <span class="cnt" id="cntTasks">0</span></button>
@@ -785,7 +788,6 @@
         <button class="cat" data-category="sketch">Sketch <span class="cnt" id="cntSketch">0</span></button>
         <button class="cat" data-category="scan">Scan <span class="cnt" id="cntScan">0</span></button>
         <button class="cat-add" onclick="addCatPrompt()">+</button>
-      </div>
       </div>
     </div>
     </div>
@@ -9562,63 +9564,125 @@ function initDesktopFeatures() {
   console.log('[Desktop] Initializing desktop features');
   initResizer();
   initDragDrop();
-  initGrabScroll();
+  initArrowScroll();
 }
 
 // ─── SCROLL ARROWS FOR PILL ROWS ───────────────────────────────
 
-function initGrabScroll() {
-  // Enable mouse-grab horizontal scrolling on pill rows
+function initArrowScroll() {
+  // Wrap each scrollable pill row with arrow buttons
   var rows = document.querySelectorAll('.cat-row, .time-row, .pill-row');
+  var isInFilters; // track if row is inside static filters panel
+  var count = 0;
+  
   rows.forEach(function(row) {
-    var isDown = false, startX = 0, scrollStart = 0;
+    // Skip if already wrapped
+    if (row.parentElement && row.parentElement.classList.contains('pill-scroll-wrap')) return;
+    // Skip rows that fit (check after layout)
     
-    row.addEventListener('mousedown', function(e) {
-      // Don't interfere with button clicks
-      if (e.target.closest('button, select, input')) return;
-      isDown = true;
-      startX = e.pageX;
-      scrollStart = row.scrollLeft;
-      row.style.cursor = 'grabbing';
-    });
+    isInFilters = !!row.closest('.filters');
     
-    document.addEventListener('mousemove', function(e) {
-      if (!isDown) return;
-      e.preventDefault();
-      var dx = e.pageX - startX;
-      row.scrollLeft = scrollStart - dx;
-    });
+    // Create wrapper
+    var wrap = document.createElement('div');
+    wrap.className = 'pill-scroll-wrap';
+    row.parentNode.insertBefore(wrap, row);
     
-    document.addEventListener('mouseup', function() {
-      if (isDown) {
-        isDown = false;
-        row.style.cursor = '';
-      }
-    });
+    // Left arrow
+    var leftBtn = document.createElement('button');
+    leftBtn.className = 'pill-scroll-arrow pill-scroll-left';
+    leftBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>';
+    leftBtn.onclick = function(e) { e.stopPropagation(); row.scrollBy({ left: -120, behavior: 'smooth' }); };
     
-    // Mouse wheel → horizontal scroll
-    row.addEventListener('wheel', function(e) {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault();
-        row.scrollBy({ left: e.deltaY, behavior: 'auto' });
-      }
-    }, { passive: false });
+    // Right arrow
+    var rightBtn = document.createElement('button');
+    rightBtn.className = 'pill-scroll-arrow pill-scroll-right';
+    rightBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>';
+    rightBtn.onclick = function(e) { e.stopPropagation(); row.scrollBy({ left: 120, behavior: 'smooth' }); };
+    
+    wrap.appendChild(leftBtn);
+    wrap.appendChild(row);
+    wrap.appendChild(rightBtn);
+    
+    // Update arrow visibility based on scroll position
+    function updateArrows() {
+      var canLeft = row.scrollLeft > 2;
+      var canRight = row.scrollLeft < (row.scrollWidth - row.clientWidth - 2);
+      var overflows = row.scrollWidth > row.clientWidth + 4;
+      
+      leftBtn.classList.toggle('visible', overflows && canLeft);
+      rightBtn.classList.toggle('visible', overflows && canRight);
+    }
+    
+    row.addEventListener('scroll', updateArrows);
+    window.addEventListener('resize', updateArrows);
+    setTimeout(updateArrows, 300);
+    
+    // For filter bar only: wheel→horizontal (no conflict with feed scroll)
+    if (isInFilters) {
+      row.addEventListener('wheel', function(e) {
+        if (row.scrollWidth > row.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          e.preventDefault();
+          row.scrollBy({ left: e.deltaY, behavior: 'auto' });
+        }
+      }, { passive: false });
+    }
+    
+    count++;
   });
   
-  // Fade edges for cat-row wrapper
-  var catRow = document.getElementById('cats');
-  var catWrap = document.getElementById('catRowWrap');
-  if (catRow && catWrap) {
-    function updateFades() {
-      catWrap.classList.toggle('fade-left', catRow.scrollLeft > 4);
-      catWrap.classList.toggle('fade-right', catRow.scrollLeft < catRow.scrollWidth - catRow.clientWidth - 4);
-    }
-    catRow.addEventListener('scroll', updateFades);
-    window.addEventListener('resize', updateFades);
-    setTimeout(updateFades, 300);
+  // Also observe DOM for dynamically created pill rows (drop toolbars)
+  var observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      m.addedNodes.forEach(function(node) {
+        if (node.nodeType !== 1) return;
+        var newRows = node.querySelectorAll ? node.querySelectorAll('.pill-row:not(.pill-scroll-wrap .pill-row)') : [];
+        newRows.forEach(function(newRow) {
+          _wrapWithArrows(newRow);
+        });
+        // Check if the node itself is a pill-row
+        if (node.classList && node.classList.contains('pill-row') && 
+            !(node.parentElement && node.parentElement.classList.contains('pill-scroll-wrap'))) {
+          _wrapWithArrows(node);
+        }
+      });
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  
+  console.log('[Desktop] Arrow-scroll initialized for', count, 'rows');
+}
+
+// Wrap a single pill-row with arrows (for dynamically added rows)
+function _wrapWithArrows(row) {
+  if (row.parentElement && row.parentElement.classList.contains('pill-scroll-wrap')) return;
+  if (window.innerWidth < 1024) return;
+  
+  var wrap = document.createElement('div');
+  wrap.className = 'pill-scroll-wrap';
+  row.parentNode.insertBefore(wrap, row);
+  
+  var leftBtn = document.createElement('button');
+  leftBtn.className = 'pill-scroll-arrow pill-scroll-left';
+  leftBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>';
+  leftBtn.onclick = function(e) { e.stopPropagation(); row.scrollBy({ left: -120, behavior: 'smooth' }); };
+  
+  var rightBtn = document.createElement('button');
+  rightBtn.className = 'pill-scroll-arrow pill-scroll-right';
+  rightBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>';
+  rightBtn.onclick = function(e) { e.stopPropagation(); row.scrollBy({ left: 120, behavior: 'smooth' }); };
+  
+  wrap.appendChild(leftBtn);
+  wrap.appendChild(row);
+  wrap.appendChild(rightBtn);
+  
+  function updateArrows() {
+    var overflows = row.scrollWidth > row.clientWidth + 4;
+    leftBtn.classList.toggle('visible', overflows && row.scrollLeft > 2);
+    rightBtn.classList.toggle('visible', overflows && row.scrollLeft < row.scrollWidth - row.clientWidth - 2);
   }
   
-  console.log('[Desktop] Grab-scroll initialized for', rows.length, 'rows');
+  row.addEventListener('scroll', updateArrows);
+  setTimeout(updateArrows, 100);
 }
 
 // ─── RESIZABLE SPLIT ───────────────────────────────────────────
