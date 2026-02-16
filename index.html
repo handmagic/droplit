@@ -174,7 +174,25 @@
         overflow: hidden;
       }
       
-      /* Chat panel — LEFT side, always visible */
+      /* ═══════════════════════════════════════════════════════════
+         DESKTOP LAYOUT — Two autonomous zones
+         --layout-chat-order: 1 (left) or 3 (right)
+         --layout-feed-order: 3 (right) or 1 (left)
+         ═══════════════════════════════════════════════════════════ */
+      :root {
+        --layout-chat-order: 1;
+        --layout-feed-order: 3;
+      }
+      
+      body.desktop-split {
+        display: flex;
+        flex-direction: row;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+      }
+      
+      /* ─── CHAT ZONE (autonomous column) ─── */
       .ask-ai-panel {
         position: static !important;
         transform: none !important;
@@ -186,25 +204,43 @@
         border-radius: 0 !important;
         box-shadow: none !important;
         z-index: 1 !important;
-        order: 1;
+        order: var(--layout-chat-order);
         flex-shrink: 0;
+        display: flex !important;
+        flex-direction: column !important;
       }
+      .ask-ai-panel.show { transform: none !important; }
       
-      .ask-ai-panel.show {
-        transform: none !important;
-      }
+      /* Chat sub-layout */
+      .ask-ai-header { flex-shrink: 0; }
+      .ask-ai-messages { flex: 1; overflow-y: auto; min-height: 0; }
+      .ask-ai-input-area { flex-shrink: 0; border-top: 1px solid var(--color-border, #e5e7eb); }
       
-      /* Hide mobile-only elements */
+      /* Hide mobile-only chat elements */
       .ask-ai-handle { display: none !important; }
       .ask-ai-close { display: none !important; }
-      .ask-ai-control-left { display: none !important; } /* HIDE button not needed on desktop */
+      .ask-ai-control-left { display: none !important; }
+      
+      /* Chat controls-bottom — constrain to chat zone (not fixed full-width) */
+      .ask-ai-controls-bottom {
+        position: static !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        z-index: auto !important;
+        padding: 8px 16px !important;
+      }
+      /* Hide features (⚡) button on desktop — settings always accessible */
+      .ask-ai-control-circle.features { display: none !important; }
+      /* Hide duplicate voice-large on desktop — control-right is the voice button */
+      .ask-ai-voice-large { display: none !important; }
       
       /* Chat input area — clean desktop layout */
       .ask-ai-input-area {
         border-top: 1px solid var(--color-border, #e5e7eb);
       }
       
-      /* ═══ Resizer handle ═══ */
+      /* ─── RESIZER ─── */
       .desktop-resizer {
         width: 5px;
         cursor: col-resize;
@@ -215,11 +251,7 @@
         z-index: 50;
         transition: background 0.15s;
       }
-      .desktop-resizer:hover,
-      .desktop-resizer.active {
-        background: #8B5CF6;
-      }
-      /* Wider invisible hit zone */
+      .desktop-resizer:hover, .desktop-resizer.active { background: #8B5CF6; }
       .desktop-resizer::before {
         content: '';
         position: absolute;
@@ -228,95 +260,8 @@
       }
       body.resizing { cursor: col-resize !important; user-select: none !important; }
       body.resizing * { cursor: col-resize !important; user-select: none !important; pointer-events: none !important; }
-      body.resizing .desktop-resizer { pointer-events: auto !important; }
-      body.dragging { user-select: none !important; }
-      body.dragging * { user-select: none !important; }
-      
-      /* ═══ Horizontal pill rows — arrow navigation on desktop ═══ */
-      .pill-scroll-wrap {
-        display: flex;
-        align-items: center;
-        gap: 0;
-      }
-      .pill-scroll-wrap > .cat-row,
-      .pill-scroll-wrap > .pill-row,
-      .pill-scroll-wrap > .time-row,
-      .pill-scroll-wrap > .card-actions {
-        flex: 1;
-        min-width: 0;
-        overflow-x: auto;
-        scrollbar-width: none;
-        scroll-behavior: smooth;
-      }
-      .pill-scroll-wrap > .cat-row::-webkit-scrollbar,
-      .pill-scroll-wrap > .pill-row::-webkit-scrollbar,
-      .pill-scroll-wrap > .time-row::-webkit-scrollbar,
-      .pill-scroll-wrap > .card-actions::-webkit-scrollbar {
-        display: none;
-      }
-      /* Keep pill items from collapsing */
-      .pill-scroll-wrap .time-btn,
-      .pill-scroll-wrap .cat,
-      .pill-scroll-wrap .act {
-        flex-shrink: 0;
-      }
-      .pill-scroll-arrow {
-        display: none; /* hidden by default, JS shows when needed */
-        align-items: center;
-        justify-content: center;
-        align-self: center; /* vertical center in flex row */
-        width: 34px;
-        height: 34px;
-        flex-shrink: 0;
-        border: none;
-        background: transparent;
-        cursor: pointer;
-        padding: 0;
-        opacity: 0.4;
-        transition: opacity 0.15s;
-        color: var(--color-text-muted, #999);
-      }
-      .pill-scroll-arrow:hover {
-        opacity: 0.9;
-      }
-      .pill-scroll-arrow svg {
-        width: 18px;
-        height: 18px;
-        stroke: currentColor;
-        stroke-width: 2.5;
-        fill: none;
-      }
-      .pill-scroll-arrow.visible {
-        display: flex;
-      }
-      /* Wheel→horizontal only for top filter bar (no conflict with feed scroll) */
-      .filters .cat-row,
-      .filters .time-row {
-        scroll-behavior: smooth;
-      }
-      
-      /* ═══ card-actions inside pill-scroll-wrap ═══ */
-      /* Transfer margin/border/padding from card-actions to wrap */
-      .card .pill-scroll-wrap {
-        display: none; /* hidden like card-actions */
-        margin-top: 12px;
-        padding-top: 10px;
-        border-top: 1px solid var(--color-border);
-        align-items: center;
-      }
-      .card.active .pill-scroll-wrap {
-        display: flex;
-      }
-      .card.editing .pill-scroll-wrap { display: none; }
-      .select-mode .card.active .pill-scroll-wrap { display: none; }
-      /* Reset on card-actions itself when wrapped */
-      .pill-scroll-wrap > .card-actions {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-        border-top: none !important;
-      }
-      
-      /* App container — RIGHT side */
+
+      /* ─── FEED ZONE (autonomous column) ─── */
       .app {
         max-width: none !important;
         width: auto;
@@ -324,43 +269,45 @@
         height: 100vh;
         height: 100dvh;
         margin: 0 !important;
-        order: 3;
+        order: var(--layout-feed-order);
         overflow: hidden;
+        display: flex !important;
+        flex-direction: column !important;
+        position: relative; /* for absolute children like modals */
       }
-      
-      .ideas-wrap {
-        flex: 1;
-        overflow-y: auto;
-      }
-      
-      .scroll-fab {
-        position: fixed;
-        right: 20px;
-      }
+      .app > .header { flex-shrink: 0; }
+      .app > .filters-wrap { flex-shrink: 0; }
+      .ideas-wrap { flex: 1; overflow-y: auto; min-height: 0; }
       
       /* ═══ Desktop Footer Split ═══ */
-      /* Feed footer (fab-container) — right zone only */
+      /* Feed footer — constrain to feed zone */
       .fab-container {
         left: calc(var(--chat-width, 50%) + 5px) !important;
         right: 12px !important;
-        z-index: 50;
       }
-      /* Hide AI CHAT button on desktop — chat always visible */
-      .fab-container #fabAskAI {
-        display: none !important;
-      }
-      /* Hide camera button on desktop — use (+) in chat */
-      .fab-container #fabCamera {
-        display: none !important;
+      .fab-container #fabAskAI { display: none !important; }
+      .fab-container #fabCamera { display: none !important; }
+      /* Ensure FAB mic visible on desktop */
+      body.chat-open .fab-record {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        display: flex !important;
       }
       
-      /* Select bar — right zone only */
+      /* Chat controls-bottom (TAP TO TALK) — constrain to chat zone */
+      .ask-ai-controls-bottom {
+        left: 12px !important;
+        right: auto !important;
+        width: calc(var(--chat-width, 50%) - 24px) !important;
+      }
+      
+      .scroll-fab { position: fixed; right: 20px; }
+      
+      /* ─── MODALS — scoped to feed zone ─── */
       .select-bar {
         left: calc(var(--chat-width, 50%) + 5px) !important;
         right: 0 !important;
       }
-      
-      /* Plus menu — right zone only */
       .plus-menu {
         left: calc(var(--chat-width, 50%) + 5px) !important;
         right: 0 !important;
@@ -369,13 +316,32 @@
       .plus-menu-backdrop {
         left: calc(var(--chat-width, 50%) + 5px) !important;
       }
-      
       .main-menu {
-        max-width: calc(100vw - var(--chat-width, 50%)) !important;
+        position: fixed !important;
+        left: calc(var(--chat-width, 50%) + 5px) !important;
         right: 0 !important;
-        left: var(--chat-width, 50%) !important;
-        width: calc(100vw - var(--chat-width, 50%)) !important;
+        max-width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+        width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
       }
+      
+      /* ─── REVERSED LAYOUT (chat on right) ─── */
+      body.desktop-split.chat-right {
+        --layout-chat-order: 3;
+        --layout-feed-order: 1;
+      }
+      body.desktop-split.chat-right .select-bar {
+        left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
+      }
+      body.desktop-split.chat-right .plus-menu,
+      body.desktop-split.chat-right .plus-menu-backdrop {
+        left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
+        max-width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+      }
+      body.desktop-split.chat-right .main-menu {
+        left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
+        width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+      }
+      
       /* Constrain pill-scroll inside settings */
       .main-menu .pill-scroll-wrap {
         max-width: 100%;
@@ -899,23 +865,22 @@
         <div class="empty-text">SHOOT · PRESS · SPEAK</div>
       </div>
     </div>
+    <!-- Feed Footer -->
+    <div class="fab-container" id="fabContainer">
+      <button class="fab-camera" id="fabCamera" onclick="document.getElementById('cameraInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
+      <button class="fab-pill" id="fabAskAI" onclick="openAskAI()">AI CHAT</button>
+      <button class="fab-pill create" id="fabCreate" onclick="togglePlusMenu()">CREATE+</button>
+      <button class="fab-record" id="fabRecord" onclick="handleFabClick(event)" ontouchstart="fabTouchStart()" ontouchend="fabTouchEnd()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+    </div>
   </div>
 
 <input type="file" id="cameraInput" class="camera-input" accept="image/*" capture="environment" onchange="handlePhoto(event)">
   <input type="file" id="imageUpload" class="camera-input" accept="image/*" onchange="handleUploadedImage(event)">
   <input type="file" id="fileUpload" style="display:none" accept=".txt,.md,.csv,.json" onchange="handleUploadedFile(event)">
-  
-  <!-- FAB Container - all bottom buttons -->
-  <div class="fab-container" id="fabContainer">
-    <button class="fab-camera" id="fabCamera" onclick="document.getElementById('cameraInput').click()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-    </button>
-    <button class="fab-pill" id="fabAskAI" onclick="openAskAI()">AI CHAT</button>
-    <button class="fab-pill create" id="fabCreate" onclick="togglePlusMenu()">CREATE+</button>
-    <button class="fab-record" id="fabRecord" onclick="handleFabClick(event)" ontouchstart="fabTouchStart()" ontouchend="fabTouchEnd()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-    </button>
-  </div>
 
   <!-- Plus Menu v3 - Two Column Layout -->
   <div class="plus-menu-backdrop" id="plusBackdrop" onclick="closePlusMenu()"></div>
@@ -8140,6 +8105,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     var savedWidth = localStorage.getItem('droplit_chat_width');
     if (savedWidth) {
       document.documentElement.style.setProperty('--chat-width', savedWidth);
+    }
+    // Restore chat position (left/right)
+    if (localStorage.getItem('droplit_chat_right') === 'true') {
+      document.body.classList.add('chat-right');
     }
     // Init desktop features after render
     setTimeout(function() { initDesktopFeatures(); }, 200);
