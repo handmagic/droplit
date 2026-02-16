@@ -230,7 +230,7 @@
       /* ═══ Horizontal pill rows — arrow navigation on desktop ═══ */
       .pill-scroll-wrap {
         display: flex;
-        align-items: stretch;
+        align-items: center;
         gap: 0;
       }
       .pill-scroll-wrap > .cat-row,
@@ -259,22 +259,24 @@
         display: none; /* hidden by default, JS shows when needed */
         align-items: center;
         justify-content: center;
-        width: 22px;
+        align-self: center; /* vertical center in flex row */
+        width: 34px;
+        height: 34px;
         flex-shrink: 0;
         border: none;
         background: transparent;
         cursor: pointer;
         padding: 0;
-        opacity: 0.35;
+        opacity: 0.4;
         transition: opacity 0.15s;
         color: var(--color-text-muted, #999);
       }
       .pill-scroll-arrow:hover {
-        opacity: 0.85;
+        opacity: 0.9;
       }
       .pill-scroll-arrow svg {
-        width: 14px;
-        height: 14px;
+        width: 18px;
+        height: 18px;
         stroke: currentColor;
         stroke-width: 2.5;
         fill: none;
@@ -9632,11 +9634,35 @@ function initArrowScroll() {
   // Re-process on resize
   window.addEventListener('resize', function() { setTimeout(_processArrowRows, 100); });
   
-  // Observe DOM for dynamically created pill rows
-  var observer = new MutationObserver(function() {
-    setTimeout(_processArrowRows, 50);
+  // Observe DOM for dynamically created pill rows AND card activation
+  var _arrowDebounce = null;
+  var observer = new MutationObserver(function(mutations) {
+    var needsUpdate = false;
+    for (var i = 0; i < mutations.length; i++) {
+      var m = mutations[i];
+      // Class change on a card (activation)
+      if (m.type === 'attributes' && m.attributeName === 'class' && 
+          m.target.classList && m.target.classList.contains('card')) {
+        needsUpdate = true;
+        break;
+      }
+      // New nodes added
+      if (m.type === 'childList' && m.addedNodes.length) {
+        needsUpdate = true;
+        break;
+      }
+    }
+    if (needsUpdate) {
+      clearTimeout(_arrowDebounce);
+      _arrowDebounce = setTimeout(_processArrowRows, 80);
+    }
   });
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.body, { 
+    childList: true, 
+    subtree: true, 
+    attributes: true, 
+    attributeFilter: ['class'] 
+  });
   
   console.log('[Desktop] Arrow-scroll initialized');
 }
