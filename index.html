@@ -237,7 +237,20 @@
       .pill-scroll-wrap > .pill-row,
       .pill-scroll-wrap > .time-row {
         flex: 1;
-        min-width: 0; /* allow shrink */
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+      }
+      .pill-scroll-wrap > .cat-row::-webkit-scrollbar,
+      .pill-scroll-wrap > .pill-row::-webkit-scrollbar,
+      .pill-scroll-wrap > .time-row::-webkit-scrollbar {
+        display: none;
+      }
+      /* Keep pill items from collapsing */
+      .pill-scroll-wrap .time-btn,
+      .pill-scroll-wrap .cat {
+        flex-shrink: 0;
       }
       .pill-scroll-arrow {
         display: none; /* hidden by default, JS shows when needed */
@@ -300,6 +313,25 @@
         left: auto;
         width: 50vw;
       }
+      /* Constrain pill-scroll inside settings */
+      .main-menu .pill-scroll-wrap {
+        max-width: 100%;
+        overflow: hidden;
+      }
+      .main-menu .pill-scroll-wrap > .pill-row {
+        overflow-x: auto;
+        scrollbar-width: none;
+        flex: 1;
+        min-width: 0;
+        flex-wrap: nowrap;
+      }
+      .main-menu .pill-scroll-wrap > .pill-row::-webkit-scrollbar { display: none; }
+      /* Prevent pill buttons from shrinking below readable size */
+      .main-menu .pill-scroll-wrap > .pill-row > .pill-l,
+      .main-menu .pill-scroll-wrap > .pill-row > .pill-m,
+      .main-menu .pill-scroll-wrap > .pill-row > button {
+        flex-shrink: 0;
+      }
       
       /* ═══ Drag & Drop visual indicators ═══ */
       .drag-ghost {
@@ -318,14 +350,24 @@
         white-space: nowrap;
         text-overflow: ellipsis;
       }
-      .drag-ghost.from-chat {
-        background: linear-gradient(135deg, #8B5CF6, #7C3AED);
-        color: white;
+      /* AI message ghost — matches AI bubble style */
+      .drag-ghost.from-ai {
+        background: var(--color-bg-card, #fff);
+        color: var(--color-text, #1a1a2e);
+        border: 1.5px solid var(--color-border, #e5e7eb);
+        border-radius: 16px 16px 16px 4px;
       }
+      /* User message ghost — matches user bubble style */
+      .drag-ghost.from-user {
+        background: var(--color-primary, #8B5CF6);
+        color: white;
+        border-radius: 16px 16px 4px 16px;
+      }
+      /* Feed item ghost */
       .drag-ghost.from-feed {
-        background: var(--color-bg-card);
-        border: 2px solid #8B5CF6;
-        color: var(--color-text);
+        background: var(--color-bg-card, #fff);
+        border: 2px solid var(--color-primary, #8B5CF6);
+        color: var(--color-text, #1a1a2e);
       }
       
       /* Drop zone highlights */
@@ -9771,17 +9813,23 @@ function initDragDrop() {
 }
 
 function _markDraggable() {
-  // Feed items
+  // Feed items → desktop mouse only (no touch — conflicts with longpress multiselect)
   document.querySelectorAll('.idea:not(.draggable-desktop)').forEach(function(el) {
     el.classList.add('draggable-desktop');
     el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'feed'); });
-    el.addEventListener('touchstart', function(e) { _onDragStart(e, el, 'feed'); }, { passive: true });
+    // NO touchstart on feed items — preserves mobile longpress behavior
   });
   // AI chat bubbles
   document.querySelectorAll('.ask-ai-message.ai .ask-ai-bubble:not(.draggable-desktop)').forEach(function(el) {
     el.classList.add('draggable-desktop');
-    el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'chat'); });
-    el.addEventListener('touchstart', function(e) { _onDragStart(e, el, 'chat'); }, { passive: true });
+    el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'chat-ai'); });
+    el.addEventListener('touchstart', function(e) { _onDragStart(e, el, 'chat-ai'); }, { passive: true });
+  });
+  // User chat bubbles
+  document.querySelectorAll('.ask-ai-message.user .ask-ai-bubble:not(.draggable-desktop)').forEach(function(el) {
+    el.classList.add('draggable-desktop');
+    el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'chat-user'); });
+    el.addEventListener('touchstart', function(e) { _onDragStart(e, el, 'chat-user'); }, { passive: true });
   });
 }
 
@@ -9848,7 +9896,6 @@ function _beginDrag(el, source, x, y) {
   _dragActive = true;
   _dragSource = source;
   document.body.classList.add('dragging');
-  // Clear any text selection that started
   if (window.getSelection) window.getSelection().removeAllRanges();
   
   if (source === 'feed') {
@@ -9865,19 +9912,26 @@ function _beginDrag(el, source, x, y) {
       mediaId: drop.mediaId || null
     };
   } else {
+    // chat-ai or chat-user
     var originalText = el.dataset.originalText || el.textContent;
     var canvas = el.querySelector('canvas');
     var svg = el.querySelector('svg.diagram, svg[data-diagram]');
     _dragData = {
       type: canvas ? 'chart' : (svg ? 'diagram' : 'text'),
       text: originalText || '',
-      element: canvas || svg || null
+      element: canvas || svg || null,
+      sender: source === 'chat-user' ? 'user' : 'ai'
     };
   }
   
-  // Create ghost
+  // Create ghost with style matching source
   _dragGhost = document.createElement('div');
-  _dragGhost.className = 'drag-ghost ' + (source === 'chat' ? 'from-chat' : 'from-feed');
+  var ghostClass = 'drag-ghost';
+  if (source === 'chat-ai') ghostClass += ' from-ai';
+  else if (source === 'chat-user') ghostClass += ' from-user';
+  else ghostClass += ' from-feed';
+  _dragGhost.className = ghostClass;
+  
   var preview = _dragData.text || '';
   if (preview.length > 60) preview = preview.substring(0, 60) + '...';
   if (_dragData.isMedia) preview = '📎 ' + (_dragData.mediaType || 'media') + ' drop';
@@ -9899,7 +9953,8 @@ function _moveDrag(x, y) {
   var overFeed = _isOverElement(feedWrap, x, y);
   var overChat = _isOverElement(chatMessages, x, y);
   
-  if (feedWrap) feedWrap.classList.toggle('drop-hover', overFeed && _dragSource === 'chat');
+  var isFromChat = (_dragSource === 'chat-ai' || _dragSource === 'chat-user');
+  if (feedWrap) feedWrap.classList.toggle('drop-hover', overFeed && isFromChat);
   if (chatMessages) chatMessages.classList.toggle('drop-hover', overChat && _dragSource === 'feed');
 }
 
@@ -9910,8 +9965,9 @@ function _endDrag(x, y) {
   var chatMessages = document.getElementById('askAIMessages');
   var overFeed = _isOverElement(feedWrap, x, y);
   var overChat = _isOverElement(chatMessages, x, y);
+  var isFromChat = (_dragSource === 'chat-ai' || _dragSource === 'chat-user');
   
-  if (_dragSource === 'chat' && overFeed && _dragData) {
+  if (isFromChat && overFeed && _dragData) {
     _dropChatToFeed(_dragData);
   } else if (_dragSource === 'feed' && overChat && _dragData) {
     _dropFeedToChat(_dragData);
@@ -9989,15 +10045,15 @@ function _dropChatToFeed(data) {
     created_at: now.toISOString(),
     date: now.toLocaleDateString('ru-RU'),
     time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
-    source: 'aski_drag',
-    creator: 'aski'
+    source: 'chat_drag',
+    creator: data.sender === 'user' ? 'user' : 'aski'
   };
   
   ideas.unshift(newDrop);
   save(newDrop);
   render(); counts();
   if (typeof scrollToBottom === 'function') scrollToBottom();
-  toast('Drop created from ASKI', 'success');
+  toast('Drop created from ' + (data.sender === 'user' ? 'your message' : 'ASKI'), 'success');
 }
 
 async function _dropFeedToChat(data) {
