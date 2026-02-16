@@ -234,18 +234,18 @@
         justify-content: center;
         align-items: center;
         gap: 12px;
-        padding: 8px 16px !important;
+        padding: 10px 16px !important;
         border-top: 1px solid var(--color-border, #e5e7eb);
         background: var(--color-bg-card, #fff);
       }
-      /* Voice/Write button — not full width, auto-sized */
+      /* Voice/Write button — centered, compact */
       .ask-ai-control-right {
         flex: 0 0 auto !important;
-        min-width: 140px;
+        min-width: 160px;
         max-width: 220px;
-        height: 42px;
+        height: 48px;
       }
-      /* (+) button stays in footer bar */
+      /* (+) button in footer */
       .ask-ai-control-circle {
         flex-shrink: 0;
       }
@@ -258,6 +258,7 @@
         order: 2;
         flex-shrink: 0;
         position: relative;
+      }
       
       /* ═══ Horizontal pill rows — arrow navigation ═══ */
       .pill-scroll-wrap {
@@ -291,21 +292,25 @@
         align-items: center;
         justify-content: center;
         align-self: center;
-        width: 34px;
-        height: 34px;
+        width: 24px;
+        height: 24px;
         flex-shrink: 0;
         border: none;
-        background: transparent;
+        background: none !important;
+        -webkit-appearance: none;
+        appearance: none;
+        outline: none;
         cursor: pointer;
         padding: 0;
-        opacity: 0.4;
+        margin: 0;
+        opacity: 0.3;
         transition: opacity 0.15s;
         color: var(--color-text-muted, #999);
       }
-      .pill-scroll-arrow:hover { opacity: 0.9; }
+      .pill-scroll-arrow:hover { opacity: 0.8; }
       .pill-scroll-arrow svg {
-        width: 18px;
-        height: 18px;
+        width: 14px;
+        height: 14px;
         stroke: currentColor;
         stroke-width: 2.5;
         fill: none;
@@ -366,8 +371,7 @@
         left: calc(var(--chat-width, 50%) + 5px) !important;
         right: 0 !important;
         bottom: 0 !important;
-        padding: 8px 16px !important;
-        padding-right: 16px !important;
+        padding: 10px 16px !important;
         background: var(--color-bg-card, #fff) !important;
         border-top: 1px solid var(--color-border, #e5e7eb);
         pointer-events: auto !important;
@@ -376,14 +380,15 @@
       }
       .fab-container #fabAskAI { display: none !important; }
       .fab-container #fabCamera { display: none !important; }
-      /* Create+ centered, mic right */
+      /* Create+ centered */
       .fab-container #fabCreate {
         position: static;
         flex: 0 0 auto;
       }
+      /* Mic - absolute right with padding */
       .fab-container #fabRecord {
         position: absolute !important;
-        right: 16px !important;
+        right: 20px !important;
       }
       /* Ensure FAB mic visible on desktop */
       body.chat-open .fab-record {
