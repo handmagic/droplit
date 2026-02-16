@@ -222,18 +222,24 @@
       .ask-ai-control-circle.features { display: none !important; }
       .ask-ai-voice-large { display: none !important; }
       
+      /* Remove header shadow on desktop */
+      .app > .header {
+        box-shadow: none !important;
+      }
+      
       /* ═══ CHAT FOOTER ═══ */
       .ask-ai-input-area {
         flex-shrink: 0;
         display: flex !important;
         flex-direction: column !important;
+        padding-bottom: 0 !important;
       }
-      /* Char count — compact, right-aligned inside input area */
+      /* Char count — compact */
       .ask-ai-char-count {
         margin-top: 0 !important;
         padding: 2px 8px !important;
       }
-      /* Controls row — always at very bottom via order */
+      /* Controls row — same height as feed footer */
       .ask-ai-controls-bottom {
         position: static !important;
         left: auto !important;
@@ -245,9 +251,11 @@
         align-items: center;
         gap: 12px;
         padding: 10px 16px !important;
-        border-top: 1px solid var(--color-border, #e5e7eb);
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+        margin: 0 !important;
         background: var(--color-bg-card, #fff);
-        order: 99; /* push to bottom of flex column */
+        border-top: 1px solid var(--color-border, #e5e7eb);
+        order: 99;
       }
       /* Voice/Write button — centered, compact */
       .ask-ai-control-right {
@@ -374,7 +382,7 @@
         flex-direction: column !important;
         position: relative; /* for absolute children like modals */
       }
-      .app > .header { flex-shrink: 0; }
+      .app > .header { flex-shrink: 0; box-shadow: none !important; }
       .app > .filters-wrap { flex-shrink: 0; }
       .ideas-wrap { flex: 1; overflow-y: auto; min-height: 0; }
       
