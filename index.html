@@ -222,11 +222,6 @@
       .ask-ai-control-circle.features { display: none !important; }
       .ask-ai-voice-large { display: none !important; }
       
-      /* Remove header shadow on desktop */
-      .app > .header {
-        box-shadow: none !important;
-      }
-      
       /* ═══ CHAT FOOTER ═══ */
       .ask-ai-input-area {
         flex-shrink: 0;
@@ -239,7 +234,7 @@
         margin-top: 0 !important;
         padding: 2px 8px !important;
       }
-      /* Controls row — same height as feed footer */
+      /* Controls row — matches feed footer height */
       .ask-ai-controls-bottom {
         position: static !important;
         left: auto !important;
@@ -254,7 +249,6 @@
         padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
         margin: 0 !important;
         background: var(--color-bg-card, #fff);
-        border-top: 1px solid var(--color-border, #e5e7eb);
         order: 99;
       }
       /* Voice/Write button — centered, compact */
