@@ -290,6 +290,27 @@
         scroll-behavior: smooth;
       }
       
+      /* ═══ card-actions inside pill-scroll-wrap ═══ */
+      /* Transfer margin/border/padding from card-actions to wrap */
+      .card .pill-scroll-wrap {
+        display: none; /* hidden like card-actions */
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid var(--color-border);
+        align-items: center;
+      }
+      .card.active .pill-scroll-wrap {
+        display: flex;
+      }
+      .card.editing .pill-scroll-wrap { display: none; }
+      .select-mode .card.active .pill-scroll-wrap { display: none; }
+      /* Reset on card-actions itself when wrapped */
+      .pill-scroll-wrap > .card-actions {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+      }
+      
       /* App container — RIGHT side */
       .app {
         max-width: none !important;
