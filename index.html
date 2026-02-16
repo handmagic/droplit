@@ -197,7 +197,12 @@
       /* Hide mobile-only elements */
       .ask-ai-handle { display: none !important; }
       .ask-ai-close { display: none !important; }
-      .ask-ai-control-left { display: none !important; }
+      .ask-ai-control-left { display: none !important; } /* HIDE button not needed on desktop */
+      
+      /* Chat input area — clean desktop layout */
+      .ask-ai-input-area {
+        border-top: 1px solid var(--color-border, #e5e7eb);
+      }
       
       /* ═══ Resizer handle ═══ */
       .desktop-resizer {
@@ -331,6 +336,38 @@
       .scroll-fab {
         position: fixed;
         right: 20px;
+      }
+      
+      /* ═══ Desktop Footer Split ═══ */
+      /* Feed footer (fab-container) — right zone only */
+      .fab-container {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
+        right: 12px !important;
+        z-index: 50;
+      }
+      /* Hide AI CHAT button on desktop — chat always visible */
+      .fab-container #fabAskAI {
+        display: none !important;
+      }
+      /* Hide camera button on desktop — use (+) in chat */
+      .fab-container #fabCamera {
+        display: none !important;
+      }
+      
+      /* Select bar — right zone only */
+      .select-bar {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
+        right: 0 !important;
+      }
+      
+      /* Plus menu — right zone only */
+      .plus-menu {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
+        right: 0 !important;
+        max-width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+      }
+      .plus-menu-backdrop {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
       }
       
       .main-menu {
