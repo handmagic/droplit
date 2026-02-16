@@ -404,8 +404,8 @@
       }
       
       /* Draggable indicators */
-      .idea.draggable-desktop { cursor: grab; }
-      .idea.draggable-desktop:active { cursor: grabbing; }
+      #ideasList > .card.draggable-desktop { cursor: grab; }
+      #ideasList > .card.draggable-desktop:active { cursor: grabbing; }
       .ask-ai-message .ask-ai-bubble.draggable-desktop { cursor: grab; }
       .ask-ai-message .ask-ai-bubble.draggable-desktop:active { cursor: grabbing; }
     }
@@ -2660,6 +2660,10 @@ function saveMerged(){
 
 // Card interactions
 function handleCardClick(id,e){
+  // Suppress click if drag just happened or shift-multiselect was used
+  if (window._dragJustEnded) { window._dragJustEnded = false; return; }
+  if (e.shiftKey && window.innerWidth >= 1024) return; // handled by _onFeedMouseDown
+  
   // Ignore clicks on category badge, action buttons, textarea, checkbox, markers
   if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox')||e.target.closest('.card-markers')||e.target.closest('.card-avatar'))return;
   
@@ -9856,7 +9860,7 @@ function initDragDrop() {
 
 function _markDraggable() {
   // Feed items → desktop: 200ms hold = drag, shift+click = multiselect
-  document.querySelectorAll('.idea:not(.draggable-desktop)').forEach(function(el) {
+  document.querySelectorAll('#ideasList > .card:not(.draggable-desktop)').forEach(function(el) {
     el.classList.add('draggable-desktop');
     el.addEventListener('mousedown', function(e) { _onFeedMouseDown(e, el); });
     // NO touchstart on feed items — preserves mobile longpress behavior
@@ -9981,6 +9985,9 @@ function _globalDragEnd(e) {
     var pt = e.changedTouches ? e.changedTouches[0] : e;
     _endDrag(pt.clientX, pt.clientY);
     e.preventDefault();
+    // Suppress the click that follows mouseup on the card
+    window._dragJustEnded = true;
+    setTimeout(function() { window._dragJustEnded = false; }, 50);
   }
   
   // Always reset start state
