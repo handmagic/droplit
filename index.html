@@ -235,7 +235,8 @@
       }
       .pill-scroll-wrap > .cat-row,
       .pill-scroll-wrap > .pill-row,
-      .pill-scroll-wrap > .time-row {
+      .pill-scroll-wrap > .time-row,
+      .pill-scroll-wrap > .card-actions {
         flex: 1;
         min-width: 0;
         overflow-x: auto;
@@ -244,12 +245,14 @@
       }
       .pill-scroll-wrap > .cat-row::-webkit-scrollbar,
       .pill-scroll-wrap > .pill-row::-webkit-scrollbar,
-      .pill-scroll-wrap > .time-row::-webkit-scrollbar {
+      .pill-scroll-wrap > .time-row::-webkit-scrollbar,
+      .pill-scroll-wrap > .card-actions::-webkit-scrollbar {
         display: none;
       }
       /* Keep pill items from collapsing */
       .pill-scroll-wrap .time-btn,
-      .pill-scroll-wrap .cat {
+      .pill-scroll-wrap .cat,
+      .pill-scroll-wrap .act {
         flex-shrink: 0;
       }
       .pill-scroll-arrow {
@@ -308,10 +311,10 @@
       }
       
       .main-menu {
-        max-width: 50vw;
-        right: 0;
-        left: auto;
-        width: 50vw;
+        max-width: calc(100vw - var(--chat-width, 50%)) !important;
+        right: 0 !important;
+        left: var(--chat-width, 50%) !important;
+        width: calc(100vw - var(--chat-width, 50%)) !important;
       }
       /* Constrain pill-scroll inside settings */
       .main-menu .pill-scroll-wrap {
@@ -9645,7 +9648,7 @@ function initArrowScroll() {
 
 function _processArrowRows() {
   if (window.innerWidth < 1024) return;
-  var rows = document.querySelectorAll('.cat-row, .time-row, .pill-row');
+  var rows = document.querySelectorAll('.cat-row, .time-row, .pill-row, .card-actions');
   rows.forEach(function(row) {
     _wrapWithArrows(row);
   });
