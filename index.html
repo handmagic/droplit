@@ -214,7 +214,6 @@
       /* Chat sub-layout */
       .ask-ai-header { flex-shrink: 0; }
       .ask-ai-messages { flex: 1; overflow-y: auto; min-height: 0; }
-      .ask-ai-input-area { flex-shrink: 0; }
       
       /* Hide mobile-only chat elements */
       .ask-ai-handle { display: none !important; }
@@ -223,7 +222,18 @@
       .ask-ai-control-circle.features { display: none !important; }
       .ask-ai-voice-large { display: none !important; }
       
-      /* ═══ CHAT FOOTER — unified bar ═══ */
+      /* ═══ CHAT FOOTER ═══ */
+      .ask-ai-input-area {
+        flex-shrink: 0;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      /* Char count — compact, right-aligned inside input area */
+      .ask-ai-char-count {
+        margin-top: 0 !important;
+        padding: 2px 8px !important;
+      }
+      /* Controls row — always at very bottom via order */
       .ask-ai-controls-bottom {
         position: static !important;
         left: auto !important;
@@ -237,6 +247,7 @@
         padding: 10px 16px !important;
         border-top: 1px solid var(--color-border, #e5e7eb);
         background: var(--color-bg-card, #fff);
+        order: 99; /* push to bottom of flex column */
       }
       /* Voice/Write button — centered, compact */
       .ask-ai-control-right {
