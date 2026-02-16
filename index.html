@@ -214,30 +214,40 @@
       /* Chat sub-layout */
       .ask-ai-header { flex-shrink: 0; }
       .ask-ai-messages { flex: 1; overflow-y: auto; min-height: 0; }
-      .ask-ai-input-area { flex-shrink: 0; border-top: 1px solid var(--color-border, #e5e7eb); }
+      .ask-ai-input-area { flex-shrink: 0; }
       
       /* Hide mobile-only chat elements */
       .ask-ai-handle { display: none !important; }
       .ask-ai-close { display: none !important; }
       .ask-ai-control-left { display: none !important; }
+      .ask-ai-control-circle.features { display: none !important; }
+      .ask-ai-voice-large { display: none !important; }
       
-      /* Chat controls-bottom — constrain to chat zone (not fixed full-width) */
+      /* ═══ CHAT FOOTER — unified bar ═══ */
       .ask-ai-controls-bottom {
         position: static !important;
         left: auto !important;
         right: auto !important;
         bottom: auto !important;
         z-index: auto !important;
+        display: flex !important;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
         padding: 8px 16px !important;
-      }
-      /* Hide features (⚡) button on desktop — settings always accessible */
-      .ask-ai-control-circle.features { display: none !important; }
-      /* Hide duplicate voice-large on desktop — control-right is the voice button */
-      .ask-ai-voice-large { display: none !important; }
-      
-      /* Chat input area — clean desktop layout */
-      .ask-ai-input-area {
         border-top: 1px solid var(--color-border, #e5e7eb);
+        background: var(--color-bg-card, #fff);
+      }
+      /* Voice/Write button — not full width, auto-sized */
+      .ask-ai-control-right {
+        flex: 0 0 auto !important;
+        min-width: 140px;
+        max-width: 220px;
+        height: 42px;
+      }
+      /* (+) button stays in footer bar */
+      .ask-ai-control-circle {
+        flex-shrink: 0;
       }
       
       /* ─── RESIZER ─── */
@@ -248,6 +258,78 @@
         order: 2;
         flex-shrink: 0;
         position: relative;
+      
+      /* ═══ Horizontal pill rows — arrow navigation ═══ */
+      .pill-scroll-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0;
+      }
+      .pill-scroll-wrap > .cat-row,
+      .pill-scroll-wrap > .pill-row,
+      .pill-scroll-wrap > .time-row,
+      .pill-scroll-wrap > .card-actions {
+        flex: 1;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+      }
+      .pill-scroll-wrap > .cat-row::-webkit-scrollbar,
+      .pill-scroll-wrap > .pill-row::-webkit-scrollbar,
+      .pill-scroll-wrap > .time-row::-webkit-scrollbar,
+      .pill-scroll-wrap > .card-actions::-webkit-scrollbar {
+        display: none;
+      }
+      .pill-scroll-wrap .time-btn,
+      .pill-scroll-wrap .cat,
+      .pill-scroll-wrap .act {
+        flex-shrink: 0;
+      }
+      .pill-scroll-arrow {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        align-self: center;
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        padding: 0;
+        opacity: 0.4;
+        transition: opacity 0.15s;
+        color: var(--color-text-muted, #999);
+      }
+      .pill-scroll-arrow:hover { opacity: 0.9; }
+      .pill-scroll-arrow svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        stroke-width: 2.5;
+        fill: none;
+      }
+      .pill-scroll-arrow.visible { display: flex; }
+      /* Wheel→horizontal for top filters only */
+      .filters .cat-row,
+      .filters .time-row { scroll-behavior: smooth; }
+      /* card-actions inside pill-scroll-wrap */
+      .card .pill-scroll-wrap {
+        display: none;
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid var(--color-border);
+        align-items: center;
+      }
+      .card.active .pill-scroll-wrap { display: flex; }
+      .card.editing .pill-scroll-wrap { display: none; }
+      .select-mode .card.active .pill-scroll-wrap { display: none; }
+      .pill-scroll-wrap > .card-actions {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+      }
         z-index: 50;
         transition: background 0.15s;
       }
@@ -279,26 +361,35 @@
       .app > .filters-wrap { flex-shrink: 0; }
       .ideas-wrap { flex: 1; overflow-y: auto; min-height: 0; }
       
-      /* ═══ Desktop Footer Split ═══ */
-      /* Feed footer — constrain to feed zone */
+      /* ═══ FEED FOOTER — proper bar ═══ */
       .fab-container {
         left: calc(var(--chat-width, 50%) + 5px) !important;
-        right: 12px !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        padding: 8px 16px !important;
+        padding-right: 16px !important;
+        background: var(--color-bg-card, #fff) !important;
+        border-top: 1px solid var(--color-border, #e5e7eb);
+        pointer-events: auto !important;
+        justify-content: center !important;
+        gap: 16px !important;
       }
       .fab-container #fabAskAI { display: none !important; }
       .fab-container #fabCamera { display: none !important; }
+      /* Create+ centered, mic right */
+      .fab-container #fabCreate {
+        position: static;
+        flex: 0 0 auto;
+      }
+      .fab-container #fabRecord {
+        position: absolute !important;
+        right: 16px !important;
+      }
       /* Ensure FAB mic visible on desktop */
       body.chat-open .fab-record {
         opacity: 1 !important;
         pointer-events: auto !important;
         display: flex !important;
-      }
-      
-      /* Chat controls-bottom (TAP TO TALK) — constrain to chat zone */
-      .ask-ai-controls-bottom {
-        left: 12px !important;
-        right: auto !important;
-        width: calc(var(--chat-width, 50%) - 24px) !important;
       }
       
       .scroll-fab { position: fixed; right: 20px; }
