@@ -353,17 +353,12 @@
         white-space: nowrap;
         text-overflow: ellipsis;
       }
-      /* AI message ghost — matches AI bubble style */
+      /* AI message ghost — inherits from real AI bubble */
       .drag-ghost.from-ai {
-        background: var(--color-bg-card, #fff);
-        color: var(--color-text, #1a1a2e);
-        border: 1.5px solid var(--color-border, #e5e7eb);
         border-radius: 16px 16px 16px 4px;
       }
-      /* User message ghost — matches user bubble style */
+      /* User message ghost — inherits from real user bubble */
       .drag-ghost.from-user {
-        background: var(--color-primary, #8B5CF6);
-        color: white;
         border-radius: 16px 16px 4px 16px;
       }
       /* Feed item ghost */
@@ -388,8 +383,8 @@
       /* Draggable indicators */
       .idea.draggable-desktop { cursor: grab; }
       .idea.draggable-desktop:active { cursor: grabbing; }
-      .ask-ai-message.ai .ask-ai-bubble.draggable-desktop { cursor: grab; }
-      .ask-ai-message.ai .ask-ai-bubble.draggable-desktop:active { cursor: grabbing; }
+      .ask-ai-message .ask-ai-bubble.draggable-desktop { cursor: grab; }
+      .ask-ai-message .ask-ai-bubble.draggable-desktop:active { cursor: grabbing; }
     }
     
     /* Hide resizer on mobile */
@@ -9931,6 +9926,13 @@ function _beginDrag(el, source, x, y) {
   else if (source === 'chat-user') ghostClass += ' from-user';
   else ghostClass += ' from-feed';
   _dragGhost.className = ghostClass;
+  
+  // Copy background/color from real bubble so ghost always matches
+  if (source === 'chat-ai' || source === 'chat-user') {
+    var cs = window.getComputedStyle(el);
+    _dragGhost.style.background = cs.background || cs.backgroundColor;
+    _dragGhost.style.color = cs.color;
+  }
   
   var preview = _dragData.text || '';
   if (preview.length > 60) preview = preview.substring(0, 60) + '...';
