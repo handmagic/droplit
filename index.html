@@ -163,6 +163,71 @@
       from { opacity: 0; }
       to { opacity: 1; }
     }
+
+    /* ═══ Desktop Split Layout (≥1024px): Chat LEFT, Feed RIGHT ═══ */
+    @media (min-width: 1024px) {
+      body {
+        display: flex;
+        flex-direction: row;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+      }
+      
+      /* Chat panel — LEFT side, always visible */
+      .ask-ai-panel {
+        position: static !important;
+        transform: none !important;
+        width: 50%;
+        min-width: 400px;
+        max-width: 50vw;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+        box-shadow: 1px 0 0 var(--color-border) !important;
+        z-index: 1 !important;
+        order: 1;
+        flex-shrink: 0;
+      }
+      
+      .ask-ai-panel.show {
+        transform: none !important;
+      }
+      
+      /* Hide mobile-only elements */
+      .ask-ai-handle { display: none !important; }
+      .ask-ai-close { display: none !important; }
+      .ask-ai-control-left { display: none !important; }
+      
+      /* App container — RIGHT side */
+      .app {
+        max-width: none !important;
+        width: 50%;
+        flex: 1;
+        height: 100vh;
+        height: 100dvh;
+        margin: 0 !important;
+        order: 2;
+        overflow: hidden;
+      }
+      
+      .ideas-wrap {
+        flex: 1;
+        overflow-y: auto;
+      }
+      
+      .scroll-fab {
+        position: fixed;
+        right: 20px;
+      }
+      
+      .main-menu {
+        max-width: 50vw;
+        right: 0;
+        left: auto;
+        width: 50vw;
+      }
+    }
   </style>
 
   <script src="js/utils.js"></script>
@@ -188,6 +253,27 @@
     }
   </script>
   <script src="js/chat.js"></script>
+  <script>
+  // Desktop split: prevent closing chat panel on wide screens
+  (function(){
+    var _origCloseAskAI = window.closeAskAI;
+    window.closeAskAI = function() {
+      if (window.innerWidth >= 1024) return; // Don't close on desktop
+      if (typeof _origCloseAskAI === 'function') _origCloseAskAI();
+    };
+    // Also override openAskAI to be no-op on desktop (already open)
+    var _origOpenAskAI = window.openAskAI;
+    window.openAskAI = function() {
+      if (window.innerWidth >= 1024) {
+        // Just focus the input
+        var inp = document.getElementById('askAIInput');
+        if (inp) inp.focus();
+        return;
+      }
+      if (typeof _origOpenAskAI === 'function') _origOpenAskAI();
+    };
+  })();
+  </script>
   <script src="js/settings.js"></script>
   <script src="js/photo.js"></script>
   <script src="js/sync.js"></script>
@@ -7780,6 +7866,15 @@ document.addEventListener('visibilitychange', () => {
 });
 
 document.addEventListener('DOMContentLoaded',()=>{
+  // ═══ Desktop Split Layout: auto-show chat panel ═══
+  if (window.innerWidth >= 1024) {
+    const panel = document.getElementById('askAIPanel');
+    if (panel) {
+      panel.classList.add('show');
+      document.body.classList.add('chat-open', 'desktop-split');
+    }
+  }
+  
   // Initialize roll-up mode BEFORE render
   if (localStorage.getItem('droplit_rollup_mode') === 'true') {
     rollUpMode = true;
