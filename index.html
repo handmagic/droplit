@@ -9612,119 +9612,116 @@ function initDesktopFeatures() {
 // ─── SCROLL ARROWS FOR PILL ROWS ───────────────────────────────
 
 function initArrowScroll() {
-  // Wrap each scrollable pill row with arrow buttons
-  var rows = document.querySelectorAll('.cat-row, .time-row, .pill-row');
-  var isInFilters; // track if row is inside static filters panel
-  var count = 0;
+  if (window.innerWidth < 1024) return;
   
-  rows.forEach(function(row) {
-    // Skip if already wrapped
-    if (row.parentElement && row.parentElement.classList.contains('pill-scroll-wrap')) return;
-    // Skip rows that fit (check after layout)
-    
-    isInFilters = !!row.closest('.filters');
-    
-    // Create wrapper
-    var wrap = document.createElement('div');
-    wrap.className = 'pill-scroll-wrap';
-    row.parentNode.insertBefore(wrap, row);
-    
-    // Left arrow
-    var leftBtn = document.createElement('button');
-    leftBtn.className = 'pill-scroll-arrow pill-scroll-left';
-    leftBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>';
-    leftBtn.onclick = function(e) { e.stopPropagation(); row.scrollBy({ left: -120, behavior: 'smooth' }); };
-    
-    // Right arrow
-    var rightBtn = document.createElement('button');
-    rightBtn.className = 'pill-scroll-arrow pill-scroll-right';
-    rightBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>';
-    rightBtn.onclick = function(e) { e.stopPropagation(); row.scrollBy({ left: 120, behavior: 'smooth' }); };
-    
-    wrap.appendChild(leftBtn);
-    wrap.appendChild(row);
-    wrap.appendChild(rightBtn);
-    
-    // Update arrow visibility based on scroll position
-    function updateArrows() {
-      var canLeft = row.scrollLeft > 2;
-      var canRight = row.scrollLeft < (row.scrollWidth - row.clientWidth - 2);
-      var overflows = row.scrollWidth > row.clientWidth + 4;
-      
-      leftBtn.classList.toggle('visible', overflows && canLeft);
-      rightBtn.classList.toggle('visible', overflows && canRight);
-    }
-    
-    row.addEventListener('scroll', updateArrows);
-    window.addEventListener('resize', updateArrows);
-    setTimeout(updateArrows, 300);
-    
-    // For filter bar only: wheel→horizontal (no conflict with feed scroll)
-    if (isInFilters) {
-      row.addEventListener('wheel', function(e) {
-        if (row.scrollWidth > row.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-          e.preventDefault();
-          row.scrollBy({ left: e.deltaY, behavior: 'auto' });
-        }
-      }, { passive: false });
-    }
-    
-    count++;
-  });
+  // Process visible rows now
+  _processArrowRows();
   
-  // Also observe DOM for dynamically created pill rows (drop toolbars)
-  var observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      m.addedNodes.forEach(function(node) {
-        if (node.nodeType !== 1) return;
-        var newRows = node.querySelectorAll ? node.querySelectorAll('.pill-row:not(.pill-scroll-wrap .pill-row)') : [];
-        newRows.forEach(function(newRow) {
-          _wrapWithArrows(newRow);
-        });
-        // Check if the node itself is a pill-row
-        if (node.classList && node.classList.contains('pill-row') && 
-            !(node.parentElement && node.parentElement.classList.contains('pill-scroll-wrap'))) {
-          _wrapWithArrows(node);
-        }
-      });
-    });
+  // Re-process when filters become visible
+  var _origToggleFilters = window.toggleFilters;
+  window.toggleFilters = function() {
+    if (typeof _origToggleFilters === 'function') _origToggleFilters();
+    setTimeout(_processArrowRows, 100);
+  };
+  
+  // Re-process when settings opens
+  var _origOpenMainMenu = window.openMainMenu;
+  window.openMainMenu = function() {
+    if (typeof _origOpenMainMenu === 'function') _origOpenMainMenu();
+    setTimeout(_processArrowRows, 150);
+  };
+  
+  // Re-process on resize
+  window.addEventListener('resize', function() { setTimeout(_processArrowRows, 100); });
+  
+  // Observe DOM for dynamically created pill rows
+  var observer = new MutationObserver(function() {
+    setTimeout(_processArrowRows, 50);
   });
   observer.observe(document.body, { childList: true, subtree: true });
   
-  console.log('[Desktop] Arrow-scroll initialized for', count, 'rows');
+  console.log('[Desktop] Arrow-scroll initialized');
 }
 
-// Wrap a single pill-row with arrows (for dynamically added rows)
+function _processArrowRows() {
+  if (window.innerWidth < 1024) return;
+  var rows = document.querySelectorAll('.cat-row, .time-row, .pill-row');
+  rows.forEach(function(row) {
+    _wrapWithArrows(row);
+  });
+}
+
 function _wrapWithArrows(row) {
-  if (row.parentElement && row.parentElement.classList.contains('pill-scroll-wrap')) return;
   if (window.innerWidth < 1024) return;
   
+  var alreadyWrapped = row.parentElement && row.parentElement.classList.contains('pill-scroll-wrap');
+  
+  if (alreadyWrapped) {
+    // Just update arrow visibility
+    _updateArrowVisibility(row);
+    return;
+  }
+  
+  // Don't wrap rows with flex-wrap (voice selectors etc)
+  var style = window.getComputedStyle(row);
+  if (style.flexWrap === 'wrap') return;
+  
+  var isInFilters = !!row.closest('.filters');
+  
+  // Create wrapper
   var wrap = document.createElement('div');
   wrap.className = 'pill-scroll-wrap';
   row.parentNode.insertBefore(wrap, row);
   
+  // Left arrow
   var leftBtn = document.createElement('button');
   leftBtn.className = 'pill-scroll-arrow pill-scroll-left';
+  leftBtn.setAttribute('tabindex', '-1');
   leftBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>';
-  leftBtn.onclick = function(e) { e.stopPropagation(); row.scrollBy({ left: -120, behavior: 'smooth' }); };
+  leftBtn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); row.scrollBy({ left: -120, behavior: 'smooth' }); };
   
+  // Right arrow
   var rightBtn = document.createElement('button');
   rightBtn.className = 'pill-scroll-arrow pill-scroll-right';
+  rightBtn.setAttribute('tabindex', '-1');
   rightBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>';
-  rightBtn.onclick = function(e) { e.stopPropagation(); row.scrollBy({ left: 120, behavior: 'smooth' }); };
+  rightBtn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); row.scrollBy({ left: 120, behavior: 'smooth' }); };
   
   wrap.appendChild(leftBtn);
   wrap.appendChild(row);
   wrap.appendChild(rightBtn);
   
-  function updateArrows() {
-    var overflows = row.scrollWidth > row.clientWidth + 4;
-    leftBtn.classList.toggle('visible', overflows && row.scrollLeft > 2);
-    rightBtn.classList.toggle('visible', overflows && row.scrollLeft < row.scrollWidth - row.clientWidth - 2);
+  // Listen for scroll to update arrows
+  row.addEventListener('scroll', function() { _updateArrowVisibility(row); });
+  
+  // For filter bar: wheel→horizontal
+  if (isInFilters) {
+    row.addEventListener('wheel', function(e) {
+      if (row.scrollWidth > row.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        row.scrollBy({ left: e.deltaY, behavior: 'auto' });
+      }
+    }, { passive: false });
   }
   
-  row.addEventListener('scroll', updateArrows);
-  setTimeout(updateArrows, 100);
+  // Initial check
+  setTimeout(function() { _updateArrowVisibility(row); }, 50);
+}
+
+function _updateArrowVisibility(row) {
+  var wrap = row.parentElement;
+  if (!wrap || !wrap.classList.contains('pill-scroll-wrap')) return;
+  
+  var leftBtn = wrap.querySelector('.pill-scroll-left');
+  var rightBtn = wrap.querySelector('.pill-scroll-right');
+  if (!leftBtn || !rightBtn) return;
+  
+  var overflows = row.scrollWidth > row.clientWidth + 4;
+  var canLeft = row.scrollLeft > 2;
+  var canRight = row.scrollLeft < (row.scrollWidth - row.clientWidth - 2);
+  
+  leftBtn.classList.toggle('visible', overflows && canLeft);
+  rightBtn.classList.toggle('visible', overflows && canRight);
 }
 
 // ─── RESIZABLE SPLIT ───────────────────────────────────────────
