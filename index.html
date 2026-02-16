@@ -250,16 +250,6 @@
         flex-shrink: 0;
       }
       
-      /* ─── RESIZER ─── */
-      .desktop-resizer {
-        width: 5px;
-        cursor: col-resize;
-        background: var(--color-border, #e5e7eb);
-        order: 2;
-        flex-shrink: 0;
-        position: relative;
-      }
-      
       /* ═══ Horizontal pill rows — arrow navigation ═══ */
       .pill-scroll-wrap {
         display: flex;
@@ -292,25 +282,27 @@
         align-items: center;
         justify-content: center;
         align-self: center;
-        width: 24px;
-        height: 24px;
+        width: 34px;
+        height: 34px;
         flex-shrink: 0;
-        border: none;
+        border: 0 !important;
         background: none !important;
-        -webkit-appearance: none;
-        appearance: none;
-        outline: none;
+        background-color: transparent !important;
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        outline: none !important;
+        box-shadow: none !important;
         cursor: pointer;
         padding: 0;
         margin: 0;
-        opacity: 0.3;
+        opacity: 0.4;
         transition: opacity 0.15s;
         color: var(--color-text-muted, #999);
       }
-      .pill-scroll-arrow:hover { opacity: 0.8; }
+      .pill-scroll-arrow:hover { opacity: 0.85; }
       .pill-scroll-arrow svg {
-        width: 14px;
-        height: 14px;
+        width: 18px;
+        height: 18px;
         stroke: currentColor;
         stroke-width: 2.5;
         fill: none;
@@ -335,6 +327,15 @@
         padding-top: 0 !important;
         border-top: none !important;
       }
+      
+      /* ─── RESIZER ─── */
+      .desktop-resizer {
+        width: 5px;
+        cursor: col-resize;
+        background: var(--color-border, #e5e7eb);
+        order: 2;
+        flex-shrink: 0;
+        position: relative;
         z-index: 50;
         transition: background 0.15s;
       }
