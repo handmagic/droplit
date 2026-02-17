@@ -374,21 +374,12 @@
         overflow: hidden;
         display: flex !important;
         flex-direction: column !important;
-        position: relative; /* for absolute children like modals */
+        position: relative;
+        box-shadow: none !important;
+        border-radius: 0 !important;
       }
       .app > .header { flex-shrink: 0; }
-      /* Filters — always visible, static (not absolute) on desktop */
-      .app > .filters-wrap {
-        flex-shrink: 0;
-        height: auto !important;
-        overflow: visible;
-      }
-      .app > .filters-wrap > .filters {
-        position: static !important;
-        transform: none !important;
-        opacity: 1 !important;
-        box-shadow: none !important;
-      }
+      .app > .filters-wrap { flex-shrink: 0; }
       .ideas-wrap { flex: 1; overflow-y: auto; min-height: 0; }
       
       /* ═══ FEED FOOTER — proper bar ═══ */
