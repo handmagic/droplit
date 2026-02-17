@@ -225,16 +225,17 @@
       /* ═══ CHAT FOOTER ═══ */
       .ask-ai-input-area {
         flex-shrink: 0;
-        display: flex !important;
-        flex-direction: column !important;
-        padding-bottom: 0 !important;
+        padding-bottom: 0 !important; /* remove 68px reserved for fixed controls */
       }
+      /* Voice mode — let styles.css handle (padding:0, bg:transparent) */
+      /* Text mode — input-area keeps its padding for input-row */
+      
       /* Char count — compact */
       .ask-ai-char-count {
         margin-top: 0 !important;
         padding: 2px 8px !important;
       }
-      /* Controls row — matches feed footer height */
+      /* Controls row — static, same height as feed footer (68px total) */
       .ask-ai-controls-bottom {
         position: static !important;
         left: auto !important;
@@ -246,10 +247,8 @@
         align-items: center;
         gap: 12px;
         padding: 10px 16px !important;
-        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
         margin: 0 !important;
         background: var(--color-bg-card, #fff);
-        order: 99;
       }
       /* Voice/Write button — centered, compact */
       .ask-ai-control-right {
