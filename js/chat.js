@@ -1100,10 +1100,14 @@ function createDropFromImage(btn) {
   
   if (typeof ideas !== 'undefined') {
     ideas.push(newIdea);
-    if (typeof save === 'function') save();
-    if (typeof render === 'function') render();
-    if (typeof counts === 'function') counts();
+    if (typeof save === 'function') save(newIdea);
     if (typeof playDropSound === 'function') playDropSound();
+    if (typeof resetToShowAll === 'function') {
+      resetToShowAll();
+    } else {
+      if (typeof render === 'function') render();
+      if (typeof counts === 'function') counts();
+    }
   }
   
   // Update button state
@@ -5685,11 +5689,12 @@ function createDropFromAI(btn) {
   
   console.log('[createDropFromAI] Creating drop with markdown:', text.substring(0, 50) + '...');
   
+  const c = typeof detectCat === 'function' ? detectCat(text) : 'inbox';
   const now = new Date();
   const drop = {
     id: Date.now(),
     text: text,
-    category: 'inbox',
+    category: c,
     timestamp: now.toISOString(),
     date: now.toLocaleDateString('ru-RU'),
     time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
@@ -5700,27 +5705,38 @@ function createDropFromAI(btn) {
     encrypted: window.DROPLIT_PRIVACY_ENABLED || false
   };
   
-  ideas.unshift(drop);
+  ideas.push(drop);
   save(drop);
-  // NO render() - causes 2-3 second delays!
-  counts();
   
-  // Update button to show "created" state IMMEDIATELY
+  // Play signature sound — confirms drop creation
+  if (typeof playDropSound === 'function') playDropSound();
+  
+  // Update button IMMEDIATELY — green checkmark
   btn.classList.add('created');
   btn.innerHTML = `
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
     Drop created
   `;
-  btn.blur(); // Remove focus to prevent red outline
+  btn.style.color = '#22c55e';
+  btn.style.borderColor = '#22c55e';
+  btn.blur();
+  
+  // Render feed to show the new drop (same as saveIdea)
+  if (typeof resetToShowAll === 'function') {
+    resetToShowAll();
+  } else {
+    if (typeof render === 'function') render();
+    if (typeof counts === 'function') counts();
+  }
   
   console.log('[createDropFromAI] Drop created successfully, id:', drop.id);
   
-  // Sync with Syntrise if enabled
-  if (typeof syncDropToSyntrise === 'function') {
-    syncDropToSyntrise(drop);
-  }
+  // Sync
+  if (typeof syncDropToSyntrise === 'function') syncDropToSyntrise(drop);
   
-  toast('Drop created');
+  const encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
+  const catName = typeof CATS !== 'undefined' && CATS[c] ? CATS[c].name : c;
+  toast(encIcon + 'Saved to ' + catName, 'success');
 }
 
 // copyAIResponse removed in v4.28 — unified to copyAskAIMessage
