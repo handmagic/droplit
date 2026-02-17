@@ -10278,24 +10278,29 @@ function _dropChatToFeed(data) {
   
   if (!dropText.trim()) return;
   
+  var c = typeof detectCat === 'function' ? detectCat(dropText) : 'ideas';
   var newDrop = {
     id: Date.now(),
     text: dropText,
     content: dropText,
-    category: 'ideas',
+    category: c,
     timestamp: now.toISOString(),
     created_at: now.toISOString(),
     date: now.toLocaleDateString('ru-RU'),
     time: now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}),
     source: 'chat_drag',
-    creator: data.sender === 'user' ? 'user' : 'aski'
+    creator: data.sender === 'user' ? 'user' : 'aski',
+    encrypted: window.DROPLIT_PRIVACY_ENABLED || false
   };
   
-  ideas.unshift(newDrop);
+  ideas.push(newDrop);
   save(newDrop);
-  render(); counts();
-  if (typeof scrollToBottom === 'function') scrollToBottom();
-  toast('Drop created from ' + (data.sender === 'user' ? 'your message' : 'ASKI'), 'success');
+  playDropSound();
+  resetToShowAll();
+  
+  var encIcon = window.DROPLIT_PRIVACY_ENABLED ? '🔐 ' : '';
+  var catName = CATS[c] ? CATS[c].name : c;
+  toast(encIcon + 'Saved to ' + catName, 'success');
 }
 
 async function _dropFeedToChat(data) {
