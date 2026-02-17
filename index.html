@@ -225,7 +225,7 @@
       /* ═══ CHAT FOOTER ═══ */
       .ask-ai-input-area {
         flex-shrink: 0;
-        padding-bottom: 0 !important; /* remove 68px reserved for fixed controls */
+        padding-bottom: 68px !important; /* space for fixed controls-bottom */
       }
       /* Voice mode — let styles.css handle (padding:0, bg:transparent) */
       /* Text mode — input-area keeps its padding for input-row */
@@ -235,13 +235,14 @@
         margin-top: 0 !important;
         padding: 2px 8px !important;
       }
-      /* Controls row — static, same height as feed footer (68px total) */
+      /* Controls row — fixed to bottom of chat zone, same level as feed footer */
       .ask-ai-controls-bottom {
-        position: static !important;
-        left: auto !important;
+        position: fixed !important;
+        left: 0 !important;
         right: auto !important;
-        bottom: auto !important;
-        z-index: auto !important;
+        bottom: 0 !important;
+        width: var(--chat-width, 50%) !important;
+        z-index: 10 !important;
         display: flex !important;
         justify-content: center;
         align-items: center;
@@ -249,6 +250,7 @@
         padding: 10px 16px !important;
         margin: 0 !important;
         background: var(--color-bg-card, #fff);
+        border-top: 1px solid var(--color-border, #e5e7eb);
       }
       /* Voice/Write button — centered, compact */
       .ask-ai-control-right {
@@ -379,6 +381,10 @@
       }
       .app > .header { flex-shrink: 0; }
       .app > .filters-wrap { flex-shrink: 0; }
+      /* Remove filters shadow on desktop — leaks onto header when hidden */
+      .filters {
+        box-shadow: none !important;
+      }
       .ideas-wrap { flex: 1; overflow-y: auto; min-height: 0; }
       
       /* ═══ FEED FOOTER — proper bar ═══ */
