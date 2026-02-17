@@ -174,25 +174,7 @@
         overflow: hidden;
       }
       
-      /* ═══════════════════════════════════════════════════════════
-         DESKTOP LAYOUT — Two autonomous zones
-         --layout-chat-order: 1 (left) or 3 (right)
-         --layout-feed-order: 3 (right) or 1 (left)
-         ═══════════════════════════════════════════════════════════ */
-      :root {
-        --layout-chat-order: 1;
-        --layout-feed-order: 3;
-      }
-      
-      body.desktop-split {
-        display: flex;
-        flex-direction: row;
-        height: 100vh;
-        height: 100dvh;
-        overflow: hidden;
-      }
-      
-      /* ─── CHAT ZONE (autonomous column) ─── */
+      /* Chat panel — LEFT side, always visible */
       .ask-ai-panel {
         position: static !important;
         transform: none !important;
@@ -204,24 +186,20 @@
         border-radius: 0 !important;
         box-shadow: none !important;
         z-index: 1 !important;
-        order: var(--layout-chat-order);
+        order: 1;
         flex-shrink: 0;
-        display: flex !important;
-        flex-direction: column !important;
       }
-      .ask-ai-panel.show { transform: none !important; }
       
-      /* Chat sub-layout */
-      .ask-ai-header { flex-shrink: 0; }
-      .ask-ai-messages { flex: 1; overflow-y: auto; min-height: 0; }
-      .ask-ai-input-area { flex-shrink: 0; border-top: 1px solid var(--color-border, #e5e7eb); }
+      .ask-ai-panel.show {
+        transform: none !important;
+      }
       
-      /* Hide mobile-only chat elements */
+      /* Hide mobile-only elements */
       .ask-ai-handle { display: none !important; }
       .ask-ai-close { display: none !important; }
       .ask-ai-control-left { display: none !important; }
       
-      /* ─── RESIZER ─── */
+      /* ═══ Resizer handle ═══ */
       .desktop-resizer {
         width: 5px;
         cursor: col-resize;
@@ -232,7 +210,11 @@
         z-index: 50;
         transition: background 0.15s;
       }
-      .desktop-resizer:hover, .desktop-resizer.active { background: #8B5CF6; }
+      .desktop-resizer:hover,
+      .desktop-resizer.active {
+        background: #8B5CF6;
+      }
+      /* Wider invisible hit zone */
       .desktop-resizer::before {
         content: '';
         position: absolute;
@@ -241,8 +223,74 @@
       }
       body.resizing { cursor: col-resize !important; user-select: none !important; }
       body.resizing * { cursor: col-resize !important; user-select: none !important; pointer-events: none !important; }
-
-      /* ─── FEED ZONE (autonomous column) ─── */
+      body.resizing .desktop-resizer { pointer-events: auto !important; }
+      body.dragging { user-select: none !important; }
+      body.dragging * { user-select: none !important; }
+      
+      /* ═══ Horizontal pill rows — arrow navigation on desktop ═══ */
+      .pill-scroll-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0;
+      }
+      .pill-scroll-wrap > .cat-row,
+      .pill-scroll-wrap > .pill-row,
+      .pill-scroll-wrap > .time-row,
+      .pill-scroll-wrap > .card-actions {
+        flex: 1;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+      }
+      .pill-scroll-wrap > .cat-row::-webkit-scrollbar,
+      .pill-scroll-wrap > .pill-row::-webkit-scrollbar,
+      .pill-scroll-wrap > .time-row::-webkit-scrollbar,
+      .pill-scroll-wrap > .card-actions::-webkit-scrollbar {
+        display: none;
+      }
+      /* Keep pill items from collapsing */
+      .pill-scroll-wrap .time-btn,
+      .pill-scroll-wrap .cat,
+      .pill-scroll-wrap .act {
+        flex-shrink: 0;
+      }
+      .pill-scroll-arrow {
+        display: none; /* hidden by default, JS shows when needed */
+        align-items: center;
+        justify-content: center;
+        align-self: center; /* vertical center in flex row */
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        padding: 0;
+        opacity: 0.4;
+        transition: opacity 0.15s;
+        color: var(--color-text-muted, #999);
+      }
+      .pill-scroll-arrow:hover {
+        opacity: 0.9;
+      }
+      .pill-scroll-arrow svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        stroke-width: 2.5;
+        fill: none;
+      }
+      .pill-scroll-arrow.visible {
+        display: flex;
+      }
+      /* Wheel→horizontal only for top filter bar (no conflict with feed scroll) */
+      .filters .cat-row,
+      .filters .time-row {
+        scroll-behavior: smooth;
+      }
+      
+      /* App container — RIGHT side */
       .app {
         max-width: none !important;
         width: auto;
@@ -250,55 +298,25 @@
         height: 100vh;
         height: 100dvh;
         margin: 0 !important;
-        order: var(--layout-feed-order);
+        order: 3;
         overflow: hidden;
-        display: flex !important;
-        flex-direction: column !important;
-        position: relative; /* for absolute children like modals */
       }
-      .app > .header { flex-shrink: 0; }
-      .app > .filters-wrap { flex-shrink: 0; }
-      .ideas-wrap { flex: 1; overflow-y: auto; min-height: 0; }
       
-      /* ─── FEED FOOTER (inside feed zone, not fixed) ─── */
-      .fab-container {
-        position: relative !important;
-        bottom: auto !important;
-        left: auto !important;
-        right: auto !important;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        padding: 8px 16px;
-        border-top: 1px solid var(--color-border, #e5e7eb);
-        background: var(--color-bg, #fff);
-        z-index: 50;
+      .ideas-wrap {
+        flex: 1;
+        overflow-y: auto;
       }
-      .fab-container #fabAskAI { display: none !important; }
-      .fab-container #fabCamera { display: none !important; }
       
-      .scroll-fab { position: absolute; right: 20px; }
+      .scroll-fab {
+        position: fixed;
+        right: 20px;
+      }
       
-      /* ─── MODALS — scoped to feed zone (position: relative on .app) ─── */
-      .select-bar {
-        position: absolute !important;
-        bottom: 0; left: 0 !important; right: 0 !important;
-      }
-      .plus-menu {
-        position: absolute !important;
-        left: 0 !important; right: 0 !important; bottom: 0 !important;
-        max-width: 100% !important;
-      }
-      .plus-menu-backdrop {
-        position: absolute !important;
-        left: 0 !important; right: 0 !important; top: 0 !important; bottom: 0 !important;
-      }
       .main-menu {
-        position: absolute !important;
-        top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
-        max-width: 100% !important; width: 100% !important;
+        max-width: calc(100vw - var(--chat-width, 50%)) !important;
+        right: 0 !important;
+        left: var(--chat-width, 50%) !important;
+        width: calc(100vw - var(--chat-width, 50%)) !important;
       }
       /* Constrain pill-scroll inside settings */
       .main-menu .pill-scroll-wrap {
@@ -365,8 +383,8 @@
       }
       
       /* Draggable indicators */
-      #ideasList > .card.draggable-desktop { cursor: grab; }
-      #ideasList > .card.draggable-desktop:active { cursor: grabbing; }
+      .idea.draggable-desktop { cursor: grab; }
+      .idea.draggable-desktop:active { cursor: grabbing; }
       .ask-ai-message .ask-ai-bubble.draggable-desktop { cursor: grab; }
       .ask-ai-message .ask-ai-bubble.draggable-desktop:active { cursor: grabbing; }
     }
@@ -823,22 +841,23 @@
         <div class="empty-text">SHOOT · PRESS · SPEAK</div>
       </div>
     </div>
-    <!-- Feed Footer -->
-    <div class="fab-container" id="fabContainer">
-      <button class="fab-camera" id="fabCamera" onclick="document.getElementById('cameraInput').click()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-      </button>
-      <button class="fab-pill" id="fabAskAI" onclick="openAskAI()">AI CHAT</button>
-      <button class="fab-pill create" id="fabCreate" onclick="togglePlusMenu()">CREATE+</button>
-      <button class="fab-record" id="fabRecord" onclick="handleFabClick(event)" ontouchstart="fabTouchStart()" ontouchend="fabTouchEnd()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-      </button>
-    </div>
   </div>
 
 <input type="file" id="cameraInput" class="camera-input" accept="image/*" capture="environment" onchange="handlePhoto(event)">
   <input type="file" id="imageUpload" class="camera-input" accept="image/*" onchange="handleUploadedImage(event)">
   <input type="file" id="fileUpload" style="display:none" accept=".txt,.md,.csv,.json" onchange="handleUploadedFile(event)">
+  
+  <!-- FAB Container - all bottom buttons -->
+  <div class="fab-container" id="fabContainer">
+    <button class="fab-camera" id="fabCamera" onclick="document.getElementById('cameraInput').click()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    </button>
+    <button class="fab-pill" id="fabAskAI" onclick="openAskAI()">AI CHAT</button>
+    <button class="fab-pill create" id="fabCreate" onclick="togglePlusMenu()">CREATE+</button>
+    <button class="fab-record" id="fabRecord" onclick="handleFabClick(event)" ontouchstart="fabTouchStart()" ontouchend="fabTouchEnd()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
+  </div>
 
   <!-- Plus Menu v3 - Two Column Layout -->
   <div class="plus-menu-backdrop" id="plusBackdrop" onclick="closePlusMenu()"></div>
@@ -2620,10 +2639,6 @@ function saveMerged(){
 
 // Card interactions
 function handleCardClick(id,e){
-  // Suppress click if drag just happened or shift-multiselect was used
-  if (window._dragJustEnded) { window._dragJustEnded = false; return; }
-  if (e.shiftKey && window.innerWidth >= 1024) return; // handled by _onFeedMouseDown
-  
   // Ignore clicks on category badge, action buttons, textarea, checkbox, markers
   if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox')||e.target.closest('.card-markers')||e.target.closest('.card-avatar'))return;
   
@@ -9819,13 +9834,13 @@ function initDragDrop() {
 }
 
 function _markDraggable() {
-  // Feed items → desktop: 200ms hold = drag, shift+click = multiselect
-  document.querySelectorAll('#ideasList > .card:not(.draggable-desktop)').forEach(function(el) {
+  // Feed items → desktop mouse only (no touch — conflicts with longpress multiselect)
+  document.querySelectorAll('.idea:not(.draggable-desktop)').forEach(function(el) {
     el.classList.add('draggable-desktop');
-    el.addEventListener('mousedown', function(e) { _onFeedMouseDown(e, el); });
+    el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'feed'); });
     // NO touchstart on feed items — preserves mobile longpress behavior
   });
-  // AI chat bubbles — immediate drag on move (no delay needed)
+  // AI chat bubbles
   document.querySelectorAll('.ask-ai-message.ai .ask-ai-bubble:not(.draggable-desktop)').forEach(function(el) {
     el.classList.add('draggable-desktop');
     el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'chat-ai'); });
@@ -9837,38 +9852,6 @@ function _markDraggable() {
     el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'chat-user'); });
     el.addEventListener('touchstart', function(e) { _onDragStart(e, el, 'chat-user'); }, { passive: true });
   });
-}
-
-// Feed item mouse handler: hold 200ms → drag ready, shift+click → multiselect
-var _feedHoldTimer = null;
-var _feedDragReady = false;
-
-function _onFeedMouseDown(e, el) {
-  // Don't start on buttons, links, inputs
-  if (e.target.closest('button, a, input, textarea, select, .card-actions, .card-markers, .card-edit-actions')) return;
-  
-  // Shift+click → multiselect
-  if (e.shiftKey) {
-    e.preventDefault();
-    e.stopPropagation();
-    _toggleMultiselect(el);
-    return;
-  }
-  
-  var pt = e;
-  _dragStartX = pt.clientX;
-  _dragStartY = pt.clientY;
-  _dragEl = el;
-  _dragElSource = 'feed';
-  _feedDragReady = false;
-  
-  // After 200ms holding, become drag-ready
-  _feedHoldTimer = setTimeout(function() {
-    _feedDragReady = true;
-    // Visual hint: slight scale + cursor change
-    el.style.opacity = '0.7';
-    el.style.transition = 'opacity 0.1s';
-  }, 200);
 }
 
 function _onDragStart(e, el, source) {
@@ -9896,24 +9879,10 @@ function _globalDragMove(e) {
   var pt = e.touches ? e.touches[0] : e;
   var dx = pt.clientX - _dragStartX;
   var dy = pt.clientY - _dragStartY;
-  var dist = Math.abs(dx) + Math.abs(dy);
   
-  // Feed items: only start drag if hold timer passed (200ms)
-  if (!_dragActive && !e.touches && _dragEl && _dragElSource === 'feed') {
-    if (_feedDragReady && dist > 6) {
-      if (window.getSelection) window.getSelection().removeAllRanges();
-      _beginDrag(_dragEl, 'feed', _dragStartX, _dragStartY);
-    } else if (!_feedDragReady && dist > 4) {
-      // Moved before 200ms — cancel hold, let normal click/scroll happen
-      clearTimeout(_feedHoldTimer);
-      _dragEl.style.opacity = '';
-      _dragEl = null;
-    }
-    return;
-  }
-  
-  // Chat messages: immediate drag on 8px move (no delay)
-  if (!_dragActive && !e.touches && _dragEl && dist > 8) {
+  // Mouse: start after 8px threshold
+  if (!_dragActive && !e.touches && _dragEl && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    // Clear any text selection that started during mousedown→move
     if (window.getSelection) window.getSelection().removeAllRanges();
     _beginDrag(_dragEl, _dragElSource, _dragStartX, _dragStartY);
   }
@@ -9932,22 +9901,11 @@ function _globalDragMove(e) {
 
 function _globalDragEnd(e) {
   if (_longPressTimer) { clearTimeout(_longPressTimer); _longPressTimer = null; }
-  if (_feedHoldTimer) { clearTimeout(_feedHoldTimer); _feedHoldTimer = null; }
-  
-  // Reset feed hold visual
-  if (_dragEl && _dragElSource === 'feed' && !_dragActive) {
-    _dragEl.style.opacity = '';
-    _dragEl.style.transition = '';
-  }
-  _feedDragReady = false;
   
   if (_dragActive) {
     var pt = e.changedTouches ? e.changedTouches[0] : e;
     _endDrag(pt.clientX, pt.clientY);
     e.preventDefault();
-    // Suppress the click that follows mouseup on the card
-    window._dragJustEnded = true;
-    setTimeout(function() { window._dragJustEnded = false; }, 50);
   }
   
   // Always reset start state
@@ -10051,10 +10009,6 @@ function _cleanupDrag() {
   _dragData = null;
   _dragSource = null;
   _dragActive = false;
-  _feedDragReady = false;
-  if (_feedHoldTimer) { clearTimeout(_feedHoldTimer); _feedHoldTimer = null; }
-  // Reset opacity on any feed item that was held
-  if (_dragEl && _dragEl.style) { _dragEl.style.opacity = ''; _dragEl.style.transition = ''; }
   _dragEl = null;
   _dragElSource = null;
   document.body.classList.remove('dragging');
@@ -10065,28 +10019,6 @@ function _isOverElement(el, x, y) {
   if (!el) return false;
   var r = el.getBoundingClientRect();
   return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-}
-
-// ─── DESKTOP MULTISELECT (Shift+Click) ────────────────────────
-
-function _toggleMultiselect(el) {
-  var card = el.closest('.card');
-  if (!card) return;
-  var id = card.getAttribute('data-id');
-  if (!id) return;
-  
-  // Enter select mode if not already
-  if (typeof enterSelectMode === 'function' && !document.body.classList.contains('select-mode')) {
-    enterSelectMode();
-  }
-  
-  // Toggle selection on this card
-  if (typeof toggleSelectCard === 'function') {
-    toggleSelectCard(id);
-  } else {
-    // Fallback: manual toggle
-    card.classList.toggle('selected');
-  }
 }
 
 // ─── DROP ACTIONS ──────────────────────────────────────────────
