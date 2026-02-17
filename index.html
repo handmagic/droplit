@@ -214,132 +214,12 @@
       /* Chat sub-layout */
       .ask-ai-header { flex-shrink: 0; }
       .ask-ai-messages { flex: 1; overflow-y: auto; min-height: 0; }
+      .ask-ai-input-area { flex-shrink: 0; border-top: 1px solid var(--color-border, #e5e7eb); }
       
       /* Hide mobile-only chat elements */
       .ask-ai-handle { display: none !important; }
       .ask-ai-close { display: none !important; }
       .ask-ai-control-left { display: none !important; }
-      .ask-ai-control-circle.features { display: none !important; }
-      .ask-ai-voice-large { display: none !important; }
-      
-      /* ═══ CHAT FOOTER ═══ */
-      .ask-ai-input-area {
-        flex-shrink: 0;
-        display: flex !important;
-        flex-direction: column !important;
-        padding-bottom: 0 !important;
-      }
-      /* Char count — compact */
-      .ask-ai-char-count {
-        margin-top: 0 !important;
-        padding: 2px 8px !important;
-      }
-      /* Controls row — matches feed footer height */
-      .ask-ai-controls-bottom {
-        position: static !important;
-        left: auto !important;
-        right: auto !important;
-        bottom: auto !important;
-        z-index: auto !important;
-        display: flex !important;
-        justify-content: center;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 16px !important;
-        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
-        margin: 0 !important;
-        background: var(--color-bg-card, #fff);
-        order: 99;
-      }
-      /* Voice/Write button — centered, compact */
-      .ask-ai-control-right {
-        flex: 0 0 auto !important;
-        min-width: 160px;
-        max-width: 220px;
-        height: 48px;
-      }
-      /* (+) button in footer */
-      .ask-ai-control-circle {
-        flex-shrink: 0;
-      }
-      
-      /* ═══ Horizontal pill rows — arrow navigation ═══ */
-      .pill-scroll-wrap {
-        display: flex;
-        align-items: center;
-        gap: 0;
-      }
-      .pill-scroll-wrap > .cat-row,
-      .pill-scroll-wrap > .pill-row,
-      .pill-scroll-wrap > .time-row,
-      .pill-scroll-wrap > .card-actions {
-        flex: 1;
-        min-width: 0;
-        overflow-x: auto;
-        scrollbar-width: none;
-        scroll-behavior: smooth;
-      }
-      .pill-scroll-wrap > .cat-row::-webkit-scrollbar,
-      .pill-scroll-wrap > .pill-row::-webkit-scrollbar,
-      .pill-scroll-wrap > .time-row::-webkit-scrollbar,
-      .pill-scroll-wrap > .card-actions::-webkit-scrollbar {
-        display: none;
-      }
-      .pill-scroll-wrap .time-btn,
-      .pill-scroll-wrap .cat,
-      .pill-scroll-wrap .act {
-        flex-shrink: 0;
-      }
-      .pill-scroll-arrow {
-        display: none;
-        align-items: center;
-        justify-content: center;
-        align-self: center;
-        width: 34px;
-        height: 34px;
-        flex-shrink: 0;
-        border: 0 !important;
-        background: none !important;
-        background-color: transparent !important;
-        -webkit-appearance: none !important;
-        appearance: none !important;
-        outline: none !important;
-        box-shadow: none !important;
-        cursor: pointer;
-        padding: 0;
-        margin: 0;
-        opacity: 0.4;
-        transition: opacity 0.15s;
-        color: var(--color-text-muted, #999);
-      }
-      .pill-scroll-arrow:hover { opacity: 0.85; }
-      .pill-scroll-arrow svg {
-        width: 18px;
-        height: 18px;
-        stroke: currentColor;
-        stroke-width: 2.5;
-        fill: none;
-      }
-      .pill-scroll-arrow.visible { display: flex; }
-      /* Wheel→horizontal for top filters only */
-      .filters .cat-row,
-      .filters .time-row { scroll-behavior: smooth; }
-      /* card-actions inside pill-scroll-wrap */
-      .card .pill-scroll-wrap {
-        display: none;
-        margin-top: 12px;
-        padding-top: 10px;
-        border-top: 1px solid var(--color-border);
-        align-items: center;
-      }
-      .card.active .pill-scroll-wrap { display: flex; }
-      .card.editing .pill-scroll-wrap { display: none; }
-      .select-mode .card.active .pill-scroll-wrap { display: none; }
-      .pill-scroll-wrap > .card-actions {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-        border-top: none !important;
-      }
       
       /* ─── RESIZER ─── */
       .desktop-resizer {
@@ -376,82 +256,50 @@
         flex-direction: column !important;
         position: relative; /* for absolute children like modals */
       }
-      .app > .header { flex-shrink: 0; box-shadow: none !important; }
+      .app > .header { flex-shrink: 0; }
       .app > .filters-wrap { flex-shrink: 0; }
       .ideas-wrap { flex: 1; overflow-y: auto; min-height: 0; }
       
-      /* ═══ FEED FOOTER — proper bar ═══ */
+      /* ─── FEED FOOTER (inside feed zone, not fixed) ─── */
       .fab-container {
-        left: calc(var(--chat-width, 50%) + 5px) !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        padding: 10px 16px !important;
-        background: var(--color-bg-card, #fff) !important;
+        position: relative !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: auto !important;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 8px 16px;
         border-top: 1px solid var(--color-border, #e5e7eb);
-        pointer-events: auto !important;
-        justify-content: center !important;
-        gap: 16px !important;
+        background: var(--color-bg, #fff);
+        z-index: 50;
       }
       .fab-container #fabAskAI { display: none !important; }
       .fab-container #fabCamera { display: none !important; }
-      /* Create+ centered */
-      .fab-container #fabCreate {
-        position: static;
-        flex: 0 0 auto;
-      }
-      /* Mic - absolute right with padding */
-      .fab-container #fabRecord {
-        position: absolute !important;
-        right: 20px !important;
-      }
-      /* Ensure FAB mic visible on desktop */
-      body.chat-open .fab-record {
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        display: flex !important;
-      }
       
-      .scroll-fab { position: fixed; right: 20px; }
+      .scroll-fab { position: absolute; right: 20px; }
       
-      /* ─── MODALS — scoped to feed zone ─── */
+      /* ─── MODALS — scoped to feed zone (position: relative on .app) ─── */
       .select-bar {
-        left: calc(var(--chat-width, 50%) + 5px) !important;
-        right: 0 !important;
+        position: absolute !important;
+        bottom: 0; left: 0 !important; right: 0 !important;
       }
       .plus-menu {
-        left: calc(var(--chat-width, 50%) + 5px) !important;
-        right: 0 !important;
-        max-width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+        position: absolute !important;
+        left: 0 !important; right: 0 !important; bottom: 0 !important;
+        max-width: 100% !important;
       }
       .plus-menu-backdrop {
-        left: calc(var(--chat-width, 50%) + 5px) !important;
+        position: absolute !important;
+        left: 0 !important; right: 0 !important; top: 0 !important; bottom: 0 !important;
       }
       .main-menu {
-        position: fixed !important;
-        left: calc(var(--chat-width, 50%) + 5px) !important;
-        right: 0 !important;
-        max-width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
-        width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+        position: absolute !important;
+        top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+        max-width: 100% !important; width: 100% !important;
       }
-      
-      /* ─── REVERSED LAYOUT (chat on right) ─── */
-      body.desktop-split.chat-right {
-        --layout-chat-order: 3;
-        --layout-feed-order: 1;
-      }
-      body.desktop-split.chat-right .select-bar {
-        left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
-      }
-      body.desktop-split.chat-right .plus-menu,
-      body.desktop-split.chat-right .plus-menu-backdrop {
-        left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
-        max-width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
-      }
-      body.desktop-split.chat-right .main-menu {
-        left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
-        width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
-      }
-      
       /* Constrain pill-scroll inside settings */
       .main-menu .pill-scroll-wrap {
         max-width: 100%;
@@ -8215,10 +8063,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     var savedWidth = localStorage.getItem('droplit_chat_width');
     if (savedWidth) {
       document.documentElement.style.setProperty('--chat-width', savedWidth);
-    }
-    // Restore chat position (left/right)
-    if (localStorage.getItem('droplit_chat_right') === 'true') {
-      document.body.classList.add('chat-right');
     }
     // Init desktop features after render
     setTimeout(function() { initDesktopFeatures(); }, 200);
