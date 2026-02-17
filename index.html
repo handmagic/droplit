@@ -387,9 +387,6 @@
       .insights-banner {
         left: calc(var(--chat-width, 50%) + 5px) !important;
       }
-      .insights-banner:not(.show) {
-        visibility: hidden !important;
-      }
       .app > .filters-wrap { flex-shrink: 0; }
       .ideas-wrap { flex: 1; overflow-y: auto; min-height: 0; }
       
@@ -538,6 +535,10 @@
     
     /* Hide resizer on mobile */
     .desktop-resizer { display: none; }
+    /* Insights banner — hide completely when not shown (prevents shadow leak) */
+    .insights-banner:not(.show) {
+      visibility: hidden !important;
+    }
     /* Mobile-safe: pill-scroll-wrap is transparent passthrough */
     @media (max-width: 1023px) {
       .pill-scroll-wrap {
