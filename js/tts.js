@@ -104,11 +104,11 @@ let isTTSPlaying = false;
 let currentTTSAudio = null;
 let activeSpeakBtn = null;
 
-// Unified speak button SVG icons (v4.28)
-const SPEAK_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
-const STOP_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>';
+// SVG icons for chat speak button
+const _speakSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
+const _stopSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>';
 
-// Update speak button state — unified for chat and feed (v4.28)
+// Update speak button state (chat messages only)
 function updateSpeakButton(btn, state) {
   if (!btn) return;
   
@@ -118,19 +118,16 @@ function updateSpeakButton(btn, state) {
   
   switch(state) {
     case 'wait':
-      btn.innerHTML = SPEAK_ICON + ' Wait...';
-      btn.classList.add('waiting');
-      btn.style.color = '#EAB308';
-      btn.style.borderColor = '#EAB308';
+      btn.innerHTML = _speakSvg + ' Wait...';
       break;
     case 'stop':
-      btn.innerHTML = STOP_ICON + ' Stop';
+      btn.innerHTML = _stopSvg + ' Stop';
       btn.classList.add('speaking');
       btn.style.color = '#EF4444';
       btn.style.borderColor = '#EF4444';
       break;
     default: // 'speak'
-      btn.innerHTML = SPEAK_ICON + ' Speak';
+      btn.innerHTML = _speakSvg + ' Speak';
       break;
   }
 }
@@ -748,35 +745,14 @@ function speakDrop(id, e) {
   
   console.log('[speakDrop] Called with id:', id);
   
-  const btn = document.querySelector(`.card[data-id="${id}"] .act-tts`);
-  
-  // If this button is already playing or waiting — stop it
-  if (btn === activeSpeakBtn) {
-    stopTTS();
-    updateSpeakButton(btn, 'speak');
-    updateTTSButton(id, false);
-    activeSpeakBtn = null;
-    isTTSPlaying = false;
-    return;
-  }
-  
-  // Stop any other playback (chat or feed)
-  stopTTS();
-  if (activeSpeakBtn) {
-    updateSpeakButton(activeSpeakBtn, 'speak');
-  }
-  // Reset any feed playing states
-  document.querySelectorAll('.act-tts.playing').forEach(function(b) {
-    b.innerHTML = SPEAK_ICON + ' Speak';
-    b.classList.remove('playing');
-  });
-  
+  // ideas is a global variable from main script
   const item = typeof ideas !== 'undefined' ? ideas.find(x => x.id === id) : null;
   if (!item) {
     console.warn('[speakDrop] Item not found for id:', id);
     return;
   }
   
+  // Get text to speak
   let textToSpeak = '';
   if (item.category === 'audio' && item.transcription) {
     textToSpeak = item.transcription;
@@ -789,43 +765,39 @@ function speakDrop(id, e) {
   console.log('[speakDrop] Text length:', textToSpeak?.length || 0);
   
   if (!textToSpeak) {
-    if (typeof toast === 'function') toast('Nothing to speak', 'warning');
+    if (typeof toast === 'function') toast('Nothing to read', 'warning');
     return;
   }
   
-  // Set Wait state
+  // Stop if already playing
+  if (isTTSPlaying || currentTTSAudio) {
+    console.log('[speakDrop] Stopping current playback');
+    stopTTS();
+    speechSynthesis.cancel();
+    isTTSPlaying = false;
+    updateTTSButton(id, false);
+    if (typeof toast === 'function') toast('Stopped', 'info');
+    return;
+  }
+  
+  // Use settings-based TTS
   isTTSPlaying = true;
-  activeSpeakBtn = btn;
-  if (btn) updateSpeakButton(btn, 'wait');
-  updateTTSButton(id, false); // Remove old .playing until actually playing
+  updateTTSButton(id, true);
   
   console.log('[speakDrop] Starting TTS...');
-  speakTextWithCallback(textToSpeak, 
-    // onEnd
-    function() {
-      isTTSPlaying = false;
-      activeSpeakBtn = null;
-      if (btn) updateSpeakButton(btn, 'speak');
-      updateTTSButton(id, false);
-    },
-    // onStart — audio actually started playing
-    function() {
-      if (btn) updateSpeakButton(btn, 'stop');
-      updateTTSButton(id, true);
-    }
-  );
+  speakTextWithCallback(textToSpeak, function() {
+    isTTSPlaying = false;
+    updateTTSButton(id, false);
+  });
+  
+  if (typeof toast === 'function') toast('Reading...', 'info');
 }
 
 function updateTTSButton(id, isPlaying) {
   const btn = document.querySelector(`.card[data-id="${id}"] .act-tts`);
   if (btn) {
-    if (isPlaying) {
-      btn.innerHTML = STOP_ICON + ' Stop';
-      btn.classList.add('playing');
-    } else {
-      btn.innerHTML = SPEAK_ICON + ' Speak';
-      btn.classList.remove('playing');
-    }
+    btn.innerHTML = isPlaying ? 'Stop' : 'Read';
+    btn.classList.toggle('playing', isPlaying);
   }
 }
 
