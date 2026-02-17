@@ -383,6 +383,13 @@
         flex-shrink: 0;
         clip-path: inset(0 -20px -20px -20px);
       }
+      /* Insights banner — constrain to feed zone, hide shadow when not shown */
+      .insights-banner {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
+      }
+      .insights-banner:not(.show) {
+        visibility: hidden !important;
+      }
       .app > .filters-wrap { flex-shrink: 0; }
       .ideas-wrap { flex: 1; overflow-y: auto; min-height: 0; }
       
