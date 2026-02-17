@@ -10248,7 +10248,7 @@ function _dropChatToFeed(data) {
       var dataUrl = data.element.toDataURL('image/png');
       // Create as photo drop
       var newDrop = {
-        id: Date.now().toString(),
+        id: Date.now(),
         text: '📊 Chart from ASKI',
         content: '📊 Chart from ASKI',
         category: 'ideas',
@@ -10279,7 +10279,7 @@ function _dropChatToFeed(data) {
   if (!dropText.trim()) return;
   
   var newDrop = {
-    id: Date.now().toString(),
+    id: Date.now(),
     text: dropText,
     content: dropText,
     category: 'ideas',
