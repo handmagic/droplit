@@ -174,7 +174,25 @@
         overflow: hidden;
       }
       
-      /* Chat panel — LEFT side, always visible */
+      /* ═══════════════════════════════════════════════════════════
+         DESKTOP LAYOUT — Two autonomous zones
+         --layout-chat-order: 1 (left) or 3 (right)
+         --layout-feed-order: 3 (right) or 1 (left)
+         ═══════════════════════════════════════════════════════════ */
+      :root {
+        --layout-chat-order: 1;
+        --layout-feed-order: 3;
+      }
+      
+      body.desktop-split {
+        display: flex;
+        flex-direction: row;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+      }
+      
+      /* ─── CHAT ZONE (autonomous column) ─── */
       .ask-ai-panel {
         position: static !important;
         transform: none !important;
@@ -186,48 +204,66 @@
         border-radius: 0 !important;
         box-shadow: none !important;
         z-index: 1 !important;
-        order: 1;
+        order: var(--layout-chat-order);
         flex-shrink: 0;
+        display: flex !important;
+        flex-direction: column !important;
       }
+      .ask-ai-panel.show { transform: none !important; }
       
-      .ask-ai-panel.show {
-        transform: none !important;
-      }
+      /* Chat sub-layout */
+      .ask-ai-header { flex-shrink: 0; }
+      .ask-ai-messages { flex: 1; overflow-y: auto; min-height: 0; }
       
-      /* Hide mobile-only elements */
+      /* Hide mobile-only chat elements */
       .ask-ai-handle { display: none !important; }
       .ask-ai-close { display: none !important; }
       .ask-ai-control-left { display: none !important; }
+      .ask-ai-control-circle.features { display: none !important; }
+      .ask-ai-voice-large { display: none !important; }
       
-      /* ═══ Resizer handle ═══ */
-      .desktop-resizer {
-        width: 5px;
-        cursor: col-resize;
-        background: var(--color-border, #e5e7eb);
-        order: 2;
+      /* ═══ CHAT FOOTER ═══ */
+      .ask-ai-input-area {
         flex-shrink: 0;
-        position: relative;
-        z-index: 50;
-        transition: background 0.15s;
+        display: flex !important;
+        flex-direction: column !important;
+        padding-bottom: 0 !important;
       }
-      .desktop-resizer:hover,
-      .desktop-resizer.active {
-        background: #8B5CF6;
+      /* Char count — compact */
+      .ask-ai-char-count {
+        margin-top: 0 !important;
+        padding: 2px 8px !important;
       }
-      /* Wider invisible hit zone */
-      .desktop-resizer::before {
-        content: '';
-        position: absolute;
-        top: 0; bottom: 0;
-        left: -4px; right: -4px;
+      /* Controls row — matches feed footer height */
+      .ask-ai-controls-bottom {
+        position: static !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        z-index: auto !important;
+        display: flex !important;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px !important;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+        margin: 0 !important;
+        background: var(--color-bg-card, #fff);
+        order: 99;
       }
-      body.resizing { cursor: col-resize !important; user-select: none !important; }
-      body.resizing * { cursor: col-resize !important; user-select: none !important; pointer-events: none !important; }
-      body.resizing .desktop-resizer { pointer-events: auto !important; }
-      body.dragging { user-select: none !important; }
-      body.dragging * { user-select: none !important; }
+      /* Voice/Write button — centered, compact */
+      .ask-ai-control-right {
+        flex: 0 0 auto !important;
+        min-width: 160px;
+        max-width: 220px;
+        height: 48px;
+      }
+      /* (+) button in footer */
+      .ask-ai-control-circle {
+        flex-shrink: 0;
+      }
       
-      /* ═══ Horizontal pill rows — arrow navigation on desktop ═══ */
+      /* ═══ Horizontal pill rows — arrow navigation ═══ */
       .pill-scroll-wrap {
         display: flex;
         align-items: center;
@@ -249,31 +285,34 @@
       .pill-scroll-wrap > .card-actions::-webkit-scrollbar {
         display: none;
       }
-      /* Keep pill items from collapsing */
       .pill-scroll-wrap .time-btn,
       .pill-scroll-wrap .cat,
       .pill-scroll-wrap .act {
         flex-shrink: 0;
       }
       .pill-scroll-arrow {
-        display: none; /* hidden by default, JS shows when needed */
+        display: none;
         align-items: center;
         justify-content: center;
-        align-self: center; /* vertical center in flex row */
+        align-self: center;
         width: 34px;
         height: 34px;
         flex-shrink: 0;
-        border: none;
-        background: transparent;
+        border: 0 !important;
+        background: none !important;
+        background-color: transparent !important;
+        -webkit-appearance: none !important;
+        appearance: none !important;
+        outline: none !important;
+        box-shadow: none !important;
         cursor: pointer;
         padding: 0;
+        margin: 0;
         opacity: 0.4;
         transition: opacity 0.15s;
         color: var(--color-text-muted, #999);
       }
-      .pill-scroll-arrow:hover {
-        opacity: 0.9;
-      }
+      .pill-scroll-arrow:hover { opacity: 0.85; }
       .pill-scroll-arrow svg {
         width: 18px;
         height: 18px;
@@ -281,16 +320,49 @@
         stroke-width: 2.5;
         fill: none;
       }
-      .pill-scroll-arrow.visible {
-        display: flex;
-      }
-      /* Wheel→horizontal only for top filter bar (no conflict with feed scroll) */
+      .pill-scroll-arrow.visible { display: flex; }
+      /* Wheel→horizontal for top filters only */
       .filters .cat-row,
-      .filters .time-row {
-        scroll-behavior: smooth;
+      .filters .time-row { scroll-behavior: smooth; }
+      /* card-actions inside pill-scroll-wrap */
+      .card .pill-scroll-wrap {
+        display: none;
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid var(--color-border);
+        align-items: center;
+      }
+      .card.active .pill-scroll-wrap { display: flex; }
+      .card.editing .pill-scroll-wrap { display: none; }
+      .select-mode .card.active .pill-scroll-wrap { display: none; }
+      .pill-scroll-wrap > .card-actions {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
       }
       
-      /* App container — RIGHT side */
+      /* ─── RESIZER ─── */
+      .desktop-resizer {
+        width: 5px;
+        cursor: col-resize;
+        background: var(--color-border, #e5e7eb);
+        order: 2;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 50;
+        transition: background 0.15s;
+      }
+      .desktop-resizer:hover, .desktop-resizer.active { background: #8B5CF6; }
+      .desktop-resizer::before {
+        content: '';
+        position: absolute;
+        top: 0; bottom: 0;
+        left: -4px; right: -4px;
+      }
+      body.resizing { cursor: col-resize !important; user-select: none !important; }
+      body.resizing * { cursor: col-resize !important; user-select: none !important; pointer-events: none !important; }
+
+      /* ─── FEED ZONE (autonomous column) ─── */
       .app {
         max-width: none !important;
         width: auto;
@@ -298,26 +370,99 @@
         height: 100vh;
         height: 100dvh;
         margin: 0 !important;
-        order: 3;
+        order: var(--layout-feed-order);
         overflow: hidden;
+        display: flex !important;
+        flex-direction: column !important;
+        position: relative; /* for absolute children like modals */
       }
-      
-      .ideas-wrap {
-        flex: 1;
-        overflow-y: auto;
+      .app > .header { flex-shrink: 0; }
+      /* Filters — always visible, static (not absolute) on desktop */
+      .app > .filters-wrap {
+        flex-shrink: 0;
+        height: auto !important;
+        overflow: visible;
       }
-      
-      .scroll-fab {
-        position: fixed;
-        right: 20px;
+      .app > .filters-wrap > .filters {
+        position: static !important;
+        transform: none !important;
+        opacity: 1 !important;
+        box-shadow: none !important;
       }
+      .ideas-wrap { flex: 1; overflow-y: auto; min-height: 0; }
       
-      .main-menu {
-        max-width: calc(100vw - var(--chat-width, 50%)) !important;
+      /* ═══ FEED FOOTER — proper bar ═══ */
+      .fab-container {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
         right: 0 !important;
-        left: var(--chat-width, 50%) !important;
-        width: calc(100vw - var(--chat-width, 50%)) !important;
+        bottom: 0 !important;
+        padding: 10px 16px !important;
+        background: var(--color-bg-card, #fff) !important;
+        border-top: 1px solid var(--color-border, #e5e7eb);
+        pointer-events: auto !important;
+        justify-content: center !important;
+        gap: 16px !important;
       }
+      .fab-container #fabAskAI { display: none !important; }
+      .fab-container #fabCamera { display: none !important; }
+      /* Create+ centered */
+      .fab-container #fabCreate {
+        position: static;
+        flex: 0 0 auto;
+      }
+      /* Mic - absolute right with padding */
+      .fab-container #fabRecord {
+        position: absolute !important;
+        right: 20px !important;
+      }
+      /* Ensure FAB mic visible on desktop */
+      body.chat-open .fab-record {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        display: flex !important;
+      }
+      
+      .scroll-fab { position: fixed; right: 20px; }
+      
+      /* ─── MODALS — scoped to feed zone ─── */
+      .select-bar {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
+        right: 0 !important;
+      }
+      .plus-menu {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
+        right: 0 !important;
+        max-width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+      }
+      .plus-menu-backdrop {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
+      }
+      .main-menu {
+        position: fixed !important;
+        left: calc(var(--chat-width, 50%) + 5px) !important;
+        right: 0 !important;
+        max-width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+        width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+      }
+      
+      /* ─── REVERSED LAYOUT (chat on right) ─── */
+      body.desktop-split.chat-right {
+        --layout-chat-order: 3;
+        --layout-feed-order: 1;
+      }
+      body.desktop-split.chat-right .select-bar {
+        left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
+      }
+      body.desktop-split.chat-right .plus-menu,
+      body.desktop-split.chat-right .plus-menu-backdrop {
+        left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
+        max-width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+      }
+      body.desktop-split.chat-right .main-menu {
+        left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
+        width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+      }
+      
       /* Constrain pill-scroll inside settings */
       .main-menu .pill-scroll-wrap {
         max-width: 100%;
@@ -383,14 +528,23 @@
       }
       
       /* Draggable indicators */
-      .idea.draggable-desktop { cursor: grab; }
-      .idea.draggable-desktop:active { cursor: grabbing; }
+      #ideasList > .card.draggable-desktop { cursor: grab; }
+      #ideasList > .card.draggable-desktop:active { cursor: grabbing; }
       .ask-ai-message .ask-ai-bubble.draggable-desktop { cursor: grab; }
       .ask-ai-message .ask-ai-bubble.draggable-desktop:active { cursor: grabbing; }
     }
     
     /* Hide resizer on mobile */
     .desktop-resizer { display: none; }
+    /* Mobile-safe: pill-scroll-wrap is transparent passthrough */
+    @media (max-width: 1023px) {
+      .pill-scroll-wrap {
+        display: contents !important;
+      }
+      .pill-scroll-arrow {
+        display: none !important;
+      }
+    }
     @media (min-width: 1024px) {
       .desktop-resizer { display: block; }
     }
@@ -841,23 +995,22 @@
         <div class="empty-text">SHOOT · PRESS · SPEAK</div>
       </div>
     </div>
+    <!-- Feed Footer -->
+    <div class="fab-container" id="fabContainer">
+      <button class="fab-camera" id="fabCamera" onclick="document.getElementById('cameraInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </button>
+      <button class="fab-pill" id="fabAskAI" onclick="openAskAI()">AI CHAT</button>
+      <button class="fab-pill create" id="fabCreate" onclick="togglePlusMenu()">CREATE+</button>
+      <button class="fab-record" id="fabRecord" onclick="handleFabClick(event)" ontouchstart="fabTouchStart()" ontouchend="fabTouchEnd()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+    </div>
   </div>
 
 <input type="file" id="cameraInput" class="camera-input" accept="image/*" capture="environment" onchange="handlePhoto(event)">
   <input type="file" id="imageUpload" class="camera-input" accept="image/*" onchange="handleUploadedImage(event)">
   <input type="file" id="fileUpload" style="display:none" accept=".txt,.md,.csv,.json" onchange="handleUploadedFile(event)">
-  
-  <!-- FAB Container - all bottom buttons -->
-  <div class="fab-container" id="fabContainer">
-    <button class="fab-camera" id="fabCamera" onclick="document.getElementById('cameraInput').click()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-    </button>
-    <button class="fab-pill" id="fabAskAI" onclick="openAskAI()">AI CHAT</button>
-    <button class="fab-pill create" id="fabCreate" onclick="togglePlusMenu()">CREATE+</button>
-    <button class="fab-record" id="fabRecord" onclick="handleFabClick(event)" ontouchstart="fabTouchStart()" ontouchend="fabTouchEnd()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-    </button>
-  </div>
 
   <!-- Plus Menu v3 - Two Column Layout -->
   <div class="plus-menu-backdrop" id="plusBackdrop" onclick="closePlusMenu()"></div>
@@ -2639,6 +2792,10 @@ function saveMerged(){
 
 // Card interactions
 function handleCardClick(id,e){
+  // Suppress click if drag just happened or shift-multiselect was used
+  if (window._dragJustEnded) { window._dragJustEnded = false; return; }
+  if (e.shiftKey && window.innerWidth >= 1024) return; // handled by _onFeedMouseDown
+  
   // Ignore clicks on category badge, action buttons, textarea, checkbox, markers
   if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox')||e.target.closest('.card-markers')||e.target.closest('.card-avatar'))return;
   
@@ -8079,6 +8236,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (savedWidth) {
       document.documentElement.style.setProperty('--chat-width', savedWidth);
     }
+    // Restore chat position (left/right)
+    if (localStorage.getItem('droplit_chat_right') === 'true') {
+      document.body.classList.add('chat-right');
+    }
     // Init desktop features after render
     setTimeout(function() { initDesktopFeatures(); }, 200);
   }
@@ -9834,13 +9995,13 @@ function initDragDrop() {
 }
 
 function _markDraggable() {
-  // Feed items → desktop mouse only (no touch — conflicts with longpress multiselect)
-  document.querySelectorAll('.idea:not(.draggable-desktop)').forEach(function(el) {
+  // Feed items → desktop: 200ms hold = drag, shift+click = multiselect
+  document.querySelectorAll('#ideasList > .card:not(.draggable-desktop)').forEach(function(el) {
     el.classList.add('draggable-desktop');
-    el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'feed'); });
+    el.addEventListener('mousedown', function(e) { _onFeedMouseDown(e, el); });
     // NO touchstart on feed items — preserves mobile longpress behavior
   });
-  // AI chat bubbles
+  // AI chat bubbles — immediate drag on move (no delay needed)
   document.querySelectorAll('.ask-ai-message.ai .ask-ai-bubble:not(.draggable-desktop)').forEach(function(el) {
     el.classList.add('draggable-desktop');
     el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'chat-ai'); });
@@ -9852,6 +10013,38 @@ function _markDraggable() {
     el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'chat-user'); });
     el.addEventListener('touchstart', function(e) { _onDragStart(e, el, 'chat-user'); }, { passive: true });
   });
+}
+
+// Feed item mouse handler: hold 200ms → drag ready, shift+click → multiselect
+var _feedHoldTimer = null;
+var _feedDragReady = false;
+
+function _onFeedMouseDown(e, el) {
+  // Don't start on buttons, links, inputs
+  if (e.target.closest('button, a, input, textarea, select, .card-actions, .card-markers, .card-edit-actions')) return;
+  
+  // Shift+click → multiselect
+  if (e.shiftKey) {
+    e.preventDefault();
+    e.stopPropagation();
+    _toggleMultiselect(el);
+    return;
+  }
+  
+  var pt = e;
+  _dragStartX = pt.clientX;
+  _dragStartY = pt.clientY;
+  _dragEl = el;
+  _dragElSource = 'feed';
+  _feedDragReady = false;
+  
+  // After 200ms holding, become drag-ready
+  _feedHoldTimer = setTimeout(function() {
+    _feedDragReady = true;
+    // Visual hint: slight scale + cursor change
+    el.style.opacity = '0.7';
+    el.style.transition = 'opacity 0.1s';
+  }, 200);
 }
 
 function _onDragStart(e, el, source) {
@@ -9879,10 +10072,24 @@ function _globalDragMove(e) {
   var pt = e.touches ? e.touches[0] : e;
   var dx = pt.clientX - _dragStartX;
   var dy = pt.clientY - _dragStartY;
+  var dist = Math.abs(dx) + Math.abs(dy);
   
-  // Mouse: start after 8px threshold
-  if (!_dragActive && !e.touches && _dragEl && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
-    // Clear any text selection that started during mousedown→move
+  // Feed items: only start drag if hold timer passed (200ms)
+  if (!_dragActive && !e.touches && _dragEl && _dragElSource === 'feed') {
+    if (_feedDragReady && dist > 6) {
+      if (window.getSelection) window.getSelection().removeAllRanges();
+      _beginDrag(_dragEl, 'feed', _dragStartX, _dragStartY);
+    } else if (!_feedDragReady && dist > 4) {
+      // Moved before 200ms — cancel hold, let normal click/scroll happen
+      clearTimeout(_feedHoldTimer);
+      _dragEl.style.opacity = '';
+      _dragEl = null;
+    }
+    return;
+  }
+  
+  // Chat messages: immediate drag on 8px move (no delay)
+  if (!_dragActive && !e.touches && _dragEl && dist > 8) {
     if (window.getSelection) window.getSelection().removeAllRanges();
     _beginDrag(_dragEl, _dragElSource, _dragStartX, _dragStartY);
   }
@@ -9901,11 +10108,22 @@ function _globalDragMove(e) {
 
 function _globalDragEnd(e) {
   if (_longPressTimer) { clearTimeout(_longPressTimer); _longPressTimer = null; }
+  if (_feedHoldTimer) { clearTimeout(_feedHoldTimer); _feedHoldTimer = null; }
+  
+  // Reset feed hold visual
+  if (_dragEl && _dragElSource === 'feed' && !_dragActive) {
+    _dragEl.style.opacity = '';
+    _dragEl.style.transition = '';
+  }
+  _feedDragReady = false;
   
   if (_dragActive) {
     var pt = e.changedTouches ? e.changedTouches[0] : e;
     _endDrag(pt.clientX, pt.clientY);
     e.preventDefault();
+    // Suppress the click that follows mouseup on the card
+    window._dragJustEnded = true;
+    setTimeout(function() { window._dragJustEnded = false; }, 50);
   }
   
   // Always reset start state
@@ -10009,6 +10227,10 @@ function _cleanupDrag() {
   _dragData = null;
   _dragSource = null;
   _dragActive = false;
+  _feedDragReady = false;
+  if (_feedHoldTimer) { clearTimeout(_feedHoldTimer); _feedHoldTimer = null; }
+  // Reset opacity on any feed item that was held
+  if (_dragEl && _dragEl.style) { _dragEl.style.opacity = ''; _dragEl.style.transition = ''; }
   _dragEl = null;
   _dragElSource = null;
   document.body.classList.remove('dragging');
@@ -10019,6 +10241,28 @@ function _isOverElement(el, x, y) {
   if (!el) return false;
   var r = el.getBoundingClientRect();
   return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
+
+// ─── DESKTOP MULTISELECT (Shift+Click) ────────────────────────
+
+function _toggleMultiselect(el) {
+  var card = el.closest('.card');
+  if (!card) return;
+  var id = card.getAttribute('data-id');
+  if (!id) return;
+  
+  // Enter select mode if not already
+  if (typeof enterSelectMode === 'function' && !document.body.classList.contains('select-mode')) {
+    enterSelectMode();
+  }
+  
+  // Toggle selection on this card
+  if (typeof toggleSelectCard === 'function') {
+    toggleSelectCard(id);
+  } else {
+    // Fallback: manual toggle
+    card.classList.toggle('selected');
+  }
 }
 
 // ─── DROP ACTIONS ──────────────────────────────────────────────
