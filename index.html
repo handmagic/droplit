@@ -2796,7 +2796,7 @@ function saveMerged(){
 function handleCardClick(id,e){
   // Suppress click if drag just happened or shift-multiselect was used
   if (window._dragJustEnded) { window._dragJustEnded = false; return; }
-  if (e.shiftKey && window.innerWidth >= 1024) return; // handled by _onFeedMouseDown
+  if (e.shiftKey && window.innerWidth >= 1024) return; // desktop multiselect
   
   // Ignore clicks on category badge, action buttons, textarea, checkbox, markers
   if(e.target.closest('.card-cat')||e.target.closest('.act')||e.target.closest('.card-ta')||e.target.closest('.card-checkbox')||e.target.closest('.card-markers')||e.target.closest('.card-avatar'))return;
@@ -9997,10 +9997,19 @@ function initDragDrop() {
 }
 
 function _markDraggable() {
-  // Feed items → desktop: 200ms hold = drag, shift+click = multiselect
+  // Feed items → desktop: immediate drag like chat, shift+click = multiselect
   document.querySelectorAll('#ideasList > .card:not(.draggable-desktop)').forEach(function(el) {
     el.classList.add('draggable-desktop');
-    el.addEventListener('mousedown', function(e) { _onFeedMouseDown(e, el); });
+    el.addEventListener('mousedown', function(e) {
+      if (e.target.closest('button, a, input, textarea, select, .card-actions, .card-markers, .card-edit-actions')) return;
+      if (e.shiftKey && window.innerWidth >= 1024) {
+        e.preventDefault();
+        e.stopPropagation();
+        _toggleMultiselect(el);
+        return;
+      }
+      _onDragStart(e, el, 'feed');
+    });
     // NO touchstart on feed items — preserves mobile longpress behavior
   });
   // AI chat bubbles — immediate drag on move (no delay needed)
@@ -10015,38 +10024,6 @@ function _markDraggable() {
     el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'chat-user'); });
     el.addEventListener('touchstart', function(e) { _onDragStart(e, el, 'chat-user'); }, { passive: true });
   });
-}
-
-// Feed item mouse handler: hold 200ms → drag ready, shift+click → multiselect
-var _feedHoldTimer = null;
-var _feedDragReady = false;
-
-function _onFeedMouseDown(e, el) {
-  // Don't start on buttons, links, inputs
-  if (e.target.closest('button, a, input, textarea, select, .card-actions, .card-markers, .card-edit-actions')) return;
-  
-  // Shift+click → multiselect
-  if (e.shiftKey) {
-    e.preventDefault();
-    e.stopPropagation();
-    _toggleMultiselect(el);
-    return;
-  }
-  
-  var pt = e;
-  _dragStartX = pt.clientX;
-  _dragStartY = pt.clientY;
-  _dragEl = el;
-  _dragElSource = 'feed';
-  _feedDragReady = false;
-  
-  // After 200ms holding, become drag-ready
-  _feedHoldTimer = setTimeout(function() {
-    _feedDragReady = true;
-    // Visual hint: slight scale + cursor change
-    el.style.opacity = '0.7';
-    el.style.transition = 'opacity 0.1s';
-  }, 200);
 }
 
 function _onDragStart(e, el, source) {
@@ -10076,21 +10053,7 @@ function _globalDragMove(e) {
   var dy = pt.clientY - _dragStartY;
   var dist = Math.abs(dx) + Math.abs(dy);
   
-  // Feed items: only start drag if hold timer passed (200ms)
-  if (!_dragActive && !e.touches && _dragEl && _dragElSource === 'feed') {
-    if (_feedDragReady && dist > 6) {
-      if (window.getSelection) window.getSelection().removeAllRanges();
-      _beginDrag(_dragEl, 'feed', _dragStartX, _dragStartY);
-    } else if (!_feedDragReady && dist > 4) {
-      // Moved before 200ms — cancel hold, let normal click/scroll happen
-      clearTimeout(_feedHoldTimer);
-      _dragEl.style.opacity = '';
-      _dragEl = null;
-    }
-    return;
-  }
-  
-  // Chat messages: immediate drag on 8px move (no delay)
+  // Mouse: start drag after 8px threshold (same for feed and chat)
   if (!_dragActive && !e.touches && _dragEl && dist > 8) {
     if (window.getSelection) window.getSelection().removeAllRanges();
     _beginDrag(_dragEl, _dragElSource, _dragStartX, _dragStartY);
@@ -10110,14 +10073,6 @@ function _globalDragMove(e) {
 
 function _globalDragEnd(e) {
   if (_longPressTimer) { clearTimeout(_longPressTimer); _longPressTimer = null; }
-  if (_feedHoldTimer) { clearTimeout(_feedHoldTimer); _feedHoldTimer = null; }
-  
-  // Reset feed hold visual
-  if (_dragEl && _dragElSource === 'feed' && !_dragActive) {
-    _dragEl.style.opacity = '';
-    _dragEl.style.transition = '';
-  }
-  _feedDragReady = false;
   
   if (_dragActive) {
     var pt = e.changedTouches ? e.changedTouches[0] : e;
@@ -10229,10 +10184,6 @@ function _cleanupDrag() {
   _dragData = null;
   _dragSource = null;
   _dragActive = false;
-  _feedDragReady = false;
-  if (_feedHoldTimer) { clearTimeout(_feedHoldTimer); _feedHoldTimer = null; }
-  // Reset opacity on any feed item that was held
-  if (_dragEl && _dragEl.style) { _dragEl.style.opacity = ''; _dragEl.style.transition = ''; }
   _dragEl = null;
   _dragElSource = null;
   document.body.classList.remove('dragging');
