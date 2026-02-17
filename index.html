@@ -10025,6 +10025,22 @@ function _markDraggable() {
     el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'chat-user'); });
     el.addEventListener('touchstart', function(e) { _onDragStart(e, el, 'chat-user'); }, { passive: true });
   });
+  
+  // v4.28: Watch for new chat messages and auto-attach drag listeners
+  var chatContainer = document.getElementById('askAIMessages');
+  if (chatContainer && !chatContainer._dragObserver) {
+    chatContainer._dragObserver = new MutationObserver(function() {
+      document.querySelectorAll('.ask-ai-message.ai .ask-ai-bubble:not(.draggable-desktop)').forEach(function(el) {
+        el.classList.add('draggable-desktop');
+        el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'chat-ai'); });
+      });
+      document.querySelectorAll('.ask-ai-message.user .ask-ai-bubble:not(.draggable-desktop)').forEach(function(el) {
+        el.classList.add('draggable-desktop');
+        el.addEventListener('mousedown', function(e) { _onDragStart(e, el, 'chat-user'); });
+      });
+    });
+    chatContainer._dragObserver.observe(chatContainer, { childList: true, subtree: true });
+  }
 }
 
 function _onDragStart(e, el, source) {
