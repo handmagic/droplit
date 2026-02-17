@@ -647,13 +647,13 @@ function renderHistoryMessage(msg) {
     content += `<div class="chat-history-media-ref">📐 Diagram saved to feed</div>`;
   }
   
-  // Build action buttons (v4.27)
+  // Build action buttons (v4.28 - unified with streaming)
   let actionButtons = '';
   
   // Copy button (for all messages with text)
   if (msg.text) {
     actionButtons += `
-      <button class="ask-ai-action-btn" onclick="copyHistoryMessage(this)" title="Copy">
+      <button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)" title="Copy">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
         </svg>
@@ -661,14 +661,23 @@ function renderHistoryMessage(msg) {
       </button>`;
   }
   
-  // Speak button (only for AI messages)
+  // Speak button (only for AI messages) — uses tts.js speakAskAIMessage with Wait/Stop states
   if (!isUser && msg.text) {
     actionButtons += `
-      <button class="ask-ai-action-btn" onclick="speakHistoryMessage(this)" title="Speak">
+      <button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)" title="Speak">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
         </svg>
         Speak
+      </button>`;
+  }
+  
+  // Create Drop button (for AI messages with text)
+  if (!isUser && msg.text) {
+    actionButtons += `
+      <button class="ask-ai-action-btn" onclick="createDropFromAI(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Create Drop
       </button>`;
   }
   
@@ -690,26 +699,30 @@ function renderHistoryMessage(msg) {
   return msgDiv;
 }
 
-// Copy history message text (v4.27)
-function copyHistoryMessage(btn) {
+// Copy message text — unified for history and streaming (v4.28)
+// Uses copyAskAIMessage name for both, with "Copied!" feedback on button
+function copyAskAIMessage(btn) {
   const bubble = btn.closest('.ask-ai-message')?.querySelector('.ask-ai-bubble');
   const text = bubble?.dataset?.originalText || bubble?.textContent || '';
-  if (text) {
-    navigator.clipboard.writeText(text);
-    toast('Copied', 'success');
-  }
+  if (!text) return;
+  
+  navigator.clipboard.writeText(text).then(() => {
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+    btn.style.color = '#22c55e';
+    btn.style.borderColor = '#22c55e';
+    setTimeout(() => { 
+      btn.innerHTML = origHtml; 
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }, 1500);
+  }).catch(() => {
+    toast('Failed to copy');
+  });
 }
 
 // Speak history message (v4.27)
-function speakHistoryMessage(btn) {
-  const bubble = btn.closest('.ask-ai-message')?.querySelector('.ask-ai-bubble');
-  const text = bubble?.dataset?.originalText || bubble?.textContent || '';
-  if (text && typeof speakText === 'function') {
-    speakText(text);
-  } else if (text && typeof askiSpeak === 'function') {
-    askiSpeak(text);
-  }
-}
+// speakHistoryMessage removed in v4.28 - unified to speakAskAIMessage in tts.js
 
 // Add "Load more" button
 function addLoadMoreButton(container, nextPage) {
@@ -828,30 +841,7 @@ function handleChatControlLeft() {
   // If ASKI is speaking, processing, or any TTS active - STOP everything
   if (askiIsSpeaking || askiIsProcessing || currentTTSAudio || streamingTTSIsActive) {
     console.log('[Chat] STOP pressed — suppressing all audio');
-    
-    // v4.29: Suppress kills current + blocks in-flight fetches from playing
-    if (window.suppressAudio) {
-      window.suppressAudio();
-    } else {
-      askiStopSpeaking();
-      stopTTS();
-    }
-    streamingTTSIsActive = false;
-    
-    // Reset processing state
-    askiIsProcessing = false;
-    askiIsSpeaking = false;
-    voiceModeLocked = false;
-    setAskiBusy(false);
-    
-    // Reset LEFT button → HIDE
-    updateChatControlLeft('hide');
-    
-    // Reset RIGHT button → TAP TO TALK / sleeping
-    if (isVoiceModeEnabled()) {
-      voiceModeSleeping = true;
-      updateVoiceModeIndicator('sleeping');
-    }
+    stopAllAudioActivity();
     return;
   }
   // Otherwise - close chat
@@ -3343,6 +3333,44 @@ function isAutoSpeakEnabled() {
   return localStorage.getItem('aski_auto_speak') === 'true' || isVoiceModeEnabled();
 }
 
+// v4.28: Global stop for ALL audio activity (TTS, recognition, streaming)
+// Call this before starting any new audio/voice operation
+function stopAllAudioActivity() {
+  console.log('[Audio] Stopping all audio activity');
+  
+  // Stop TTS playback
+  if (typeof stopTTS === 'function') stopTTS();
+  if (window.suppressAudio) window.suppressAudio();
+  else if (typeof askiStopSpeaking === 'function') askiStopSpeaking();
+  if (currentTTSAudio) { try { currentTTSAudio.pause(); currentTTSAudio = null; } catch(e){} }
+  
+  // Stop voice recognition
+  stopVoiceModeListening();
+  
+  // Reset streaming TTS
+  streamingTTSIsActive = false;
+  
+  // Reset states
+  askiIsProcessing = false;
+  askiIsSpeaking = false;
+  voiceModeLocked = false;
+  setAskiBusy(false);
+  
+  // Reset active Speak button in tts.js
+  if (typeof activeSpeakBtn !== 'undefined' && activeSpeakBtn) {
+    if (typeof updateSpeakButton === 'function') updateSpeakButton(activeSpeakBtn, 'speak');
+    activeSpeakBtn = null;
+  }
+  
+  // Reset UI
+  updateChatControlLeft('hide');
+  if (isVoiceModeEnabled()) {
+    voiceModeSleeping = true;
+    updateVoiceModeIndicator('sleeping');
+  }
+}
+window.stopAllAudioActivity = stopAllAudioActivity;
+
 function setAutoSpeak(enabled) {
   localStorage.setItem('aski_auto_speak', enabled ? 'true' : 'false');
   toast(enabled ? 'Auto-speak enabled' : 'Auto-speak disabled');
@@ -4885,9 +4913,9 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
   if (isUser) {
     // If image present, don't show Create Drop in text actions (already under image)
     const textActions = imageUrl 
-      ? `<button class="ask-ai-action-btn" onclick="copyAIResponse(this)">Copy</button>`
+      ? `<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button>`
       : `${createDropBtn}
-         <button class="ask-ai-action-btn" onclick="copyAIResponse(this)">Copy</button>`;
+         <button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button>`;
     
     msgDiv.innerHTML = `
       ${imageHtml}
@@ -4907,7 +4935,7 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
           Speak
         </button>
         ${createDropBtn}
-        <button class="ask-ai-action-btn" onclick="copyAIResponse(this)">Copy</button>
+        <button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button>
       </div>
       <div class="ask-ai-time">${time}</div>
     `;
@@ -5248,6 +5276,19 @@ async function handleOllamaStreamingResponse(response) {
 
 async function sendAskAIMessage() {
   console.log('sendAskAIMessage called');
+  
+  // v4.28: Stop ALL active audio/TTS before processing new message
+  // This prevents ASKI from hearing itself (self-listening loop)
+  if (typeof stopTTS === 'function') stopTTS();
+  if (window.suppressAudio) window.suppressAudio();
+  if (currentTTSAudio) { try { currentTTSAudio.pause(); currentTTSAudio = null; } catch(e){} }
+  streamingTTSIsActive = false;
+  askiIsSpeaking = false;
+  // Reset any active Speak buttons
+  if (typeof activeSpeakBtn !== 'undefined' && activeSpeakBtn) {
+    if (typeof updateSpeakButton === 'function') updateSpeakButton(activeSpeakBtn, 'speak');
+    activeSpeakBtn = null;
+  }
   
   // v4.29: Clear audio suppression — new message = allow audio again
   if (window.setAudioSuppressed) window.setAudioSuppressed(false);
@@ -5682,17 +5723,7 @@ function createDropFromAI(btn) {
   toast('Drop created');
 }
 
-function copyAIResponse(btn) {
-  const bubble = btn.closest('.ask-ai-message').querySelector('.ask-ai-bubble');
-  const text = bubble.textContent;
-  
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = 'Copied!';
-    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
-  }).catch(() => {
-    toast('Failed to copy');
-  });
-}
+// copyAIResponse removed in v4.28 — unified to copyAskAIMessage
 
 function toggleAskAIVoice() {
   const btn = document.getElementById('askAIControlRight');
