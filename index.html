@@ -536,10 +536,8 @@
     /* Hide resizer on mobile */
     .desktop-resizer { display: none; }
     
-    /* Unified Speak button states (v4.28) */
-    .ask-ai-action-btn.waiting { border-color: #EAB308 !important; color: #EAB308 !important; }
+    /* Chat Speak button Stop state (v4.28) */
     .ask-ai-action-btn.speaking { border-color: #EF4444 !important; color: #EF4444 !important; animation: pulse 1s infinite; }
-    @keyframes tts-pulse { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
     
     /* Insights banner — hide completely when not shown (prevents shadow leak) */
     .insights-banner:not(.show) {
@@ -5151,7 +5149,7 @@ function render(){
       h+='<div class="card-actions">';
       if(i.category==='audio'){
         h+='<button class="act ai" onclick="transcribeAudio('+i.id+')">Transcribe</button>';
-        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button>';
+        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">Read</button>';
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
         h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
@@ -5169,7 +5167,7 @@ function render(){
         h+='<button class="act" onclick="closeActiveCard()">Close</button>';
       } else if(i.isMedia){
         h+='<button class="act" onclick="viewImage('+i.id+',event)">View</button>';
-        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button>';
+        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">Read</button>';
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
         h+='<button class="act" onclick="copyIdea('+i.id+')">Copy</button>';
         h+='<button class="act" onclick="duplicateCard('+i.id+')">Dup</button>';
@@ -5182,7 +5180,7 @@ function render(){
         h+='<button class="act danger" onclick="reqDel('+i.id+')">Del</button>';
       } else {
         h+='<button class="act ai" onclick="openAITools('+i.id+')">AI Tools</button>';
-        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button>';
+        h+='<button class="act act-tts" onclick="speakDrop('+i.id+',event)">Read</button>';
         h+='<button class="act" onclick="startEdit('+i.id+')">Edit</button>';
         h+='<button class="act" onclick="openSendModal('+i.id+')">Share</button>';
         h+='<button class="act" onclick="openFileExportModal('+i.id+')">Export</button>';
