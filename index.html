@@ -379,7 +379,11 @@
         box-shadow: none !important;
         border-radius: 0 !important;
       }
-      .app > .header { flex-shrink: 0; }
+      .app > .header {
+        flex-shrink: 0;
+        /* Clip shadow to downward only — prevents leak above header */
+        clip-path: inset(0 -16px -16px -16px);
+      }
       .app > .filters-wrap { flex-shrink: 0; }
       .ideas-wrap { flex: 1; overflow-y: auto; min-height: 0; }
       
