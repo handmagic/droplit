@@ -3530,13 +3530,23 @@ function unlockVoiceMode() {
   voiceModeLocked = false;
   askiIsProcessing = false;
   
-  // After Aski finishes speaking - auto-start listening for conversation flow
   if (isVoiceModeEnabled() && document.getElementById('askAIPanel')?.classList.contains('show')) {
+    // Voice mode ON — auto-start listening for conversation flow
     voiceModeSleeping = false;
-    voiceModeCyclesLeft = getListenCycles(); // Use setting
+    voiceModeCyclesLeft = getListenCycles();
     playVoiceBeep('start');
     updateVoiceModeIndicator('waiting');
     setTimeout(startVoiceModeListening, 500);
+  } else {
+    // Voice mode OFF — reset to WRITE
+    setAskiBusy(false);
+    const controlRight = document.getElementById('askAIControlRight');
+    const controlRightText = document.getElementById('askAIControlRightText');
+    if (controlRight) {
+      controlRight.classList.remove('listening', 'processing');
+    }
+    if (controlRightText) controlRightText.textContent = 'WRITE';
+    updateChatControlLeft('hide');
   }
 }
 
@@ -5320,7 +5330,13 @@ async function sendAskAIMessage() {
   voiceModeLocked = true;
   askiIsProcessing = true;
   stopVoiceModeListening();
-  updateVoiceModeIndicator('processing');
+  if (isVoiceModeEnabled()) {
+    updateVoiceModeIndicator('processing');
+  } else {
+    // Text mode — show subtle processing state
+    setAskiBusy(true);
+    updateChatControlLeft('stop');
+  }
   
   // Save for retry
   lastUserMessage = text;
