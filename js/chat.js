@@ -550,6 +550,17 @@ async function decryptChatData(encB64, nonceB64, key) {
 }
 
 // Read chat history (handles both encrypted and plaintext)
+// Read chat history — sync for plaintext, async for encrypted
+// Returns array directly for sync callers, or Promise for async callers
+function readChatHistoryFromStorageSync() {
+  // Fast path: read plaintext (no async needed)
+  try {
+    const plain = localStorage.getItem(CHAT_HISTORY_KEY);
+    if (plain) return JSON.parse(plain);
+  } catch (e) {}
+  return [];
+}
+
 async function readChatHistoryFromStorage() {
   const key = await getChatEncryptionKey();
   
@@ -570,11 +581,7 @@ async function readChatHistoryFromStorage() {
   }
   
   // Fallback to plaintext
-  try {
-    return JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
-  } catch (e) {
-    return [];
-  }
+  return readChatHistoryFromStorageSync();
 }
 
 // Write chat history (encrypts if key available, migrates plaintext)
@@ -699,12 +706,35 @@ async function saveToChatHistory(role, text, imageData = null, extras = {}) {
 }
 
 // Load chat history with pagination
-async function loadChatHistory(page = 0, append = false) {
+function loadChatHistory(page = 0, append = false) {
   if (isLoadingHistory) return;
   isLoadingHistory = true;
   
   try {
-    const history = await readChatHistoryFromStorage();
+    // Sync read first (handles plaintext immediately)
+    let history = readChatHistoryFromStorageSync();
+    
+    // If no plaintext found, check if encrypted exists — load async
+    if (history.length === 0 && localStorage.getItem(CHAT_HISTORY_ENC_KEY)) {
+      readChatHistoryFromStorage().then(encHistory => {
+        isLoadingHistory = false;
+        if (encHistory.length > 0) {
+          _renderChatHistoryPage(encHistory, page, append);
+        }
+      }).catch(() => { isLoadingHistory = false; });
+      return;
+    }
+    
+    _renderChatHistoryPage(history, page, append);
+  } catch (e) {
+    console.error('[ChatHistory] Load error:', e);
+    isLoadingHistory = false;
+  }
+}
+
+// Internal: render a page of history into DOM
+function _renderChatHistoryPage(history, page, append) {
+  try {
     chatHistoryTotal = history.length;
     
     if (history.length === 0) {
