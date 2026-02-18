@@ -236,6 +236,19 @@ function cleanTextForTTS(text) {
   return stripEmojiForTTS(stripMarkdownForTTS(text));
 }
 
+// Streaming-safe cleaner — only strips individual chars safe for partial chunks (v4.30)
+// Full markdown patterns like **bold** can't be matched in partial streaming chunks
+function cleanChunkForTTS(text) {
+  if (!text) return '';
+  return text
+    // Remove individual markdown syntax characters
+    .replace(/[*_~`#>|]/g, '')
+    // Remove emoji
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{200D}\u{20E3}]/gu, '')
+    // Collapse spaces
+    .replace(/  +/g, ' ');
+}
+
 function speakTextWithCallback(text, onEnd, onStart) {
   if (!text) return;
   
