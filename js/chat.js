@@ -661,6 +661,12 @@ function generateThumbnail(base64Data, maxSize = CHAT_THUMBNAIL_SIZE) {
 
 // Save message to history
 async function saveToChatHistory(role, text, imageData = null, extras = {}) {
+  // Skip saving if history recording is disabled (incognito mode)
+  if (!isChatSaveEnabled()) {
+    console.log('[ChatHistory] Save skipped (incognito mode)');
+    return null;
+  }
+  
   try {
     // Load existing history (handles decryption automatically)
     let history = await readChatHistoryFromStorage();
@@ -707,6 +713,14 @@ async function saveToChatHistory(role, text, imageData = null, extras = {}) {
 // Load chat history with pagination
 function loadChatHistory(page = 0, append = false) {
   if (isLoadingHistory) return;
+  
+  // Skip loading if history display is disabled
+  if (!isChatShowEnabled()) {
+    console.log('[ChatHistory] Display skipped (history hidden)');
+    chatHistoryLoaded = true;
+    return;
+  }
+  
   isLoadingHistory = true;
   
   try {
@@ -1005,6 +1019,70 @@ function clearChatHistory() {
   toast('Chat history cleared', 'success');
 }
 
+// ============================================
+// CHAT HISTORY CONTROLS (v4.30)
+// Save: toggle recording new messages to storage
+// Show: toggle visibility of previous messages
+// ============================================
+
+function toggleChatSaveHistory() {
+  const current = localStorage.getItem('aski_save_history') !== 'false'; // default ON
+  const newVal = !current;
+  localStorage.setItem('aski_save_history', newVal);
+  updateChatHistoryButtons();
+  toast(newVal ? 'Chat history: saving' : 'Chat history: not saving (incognito)', newVal ? 'success' : 'info');
+}
+
+function toggleChatShowHistory() {
+  const current = localStorage.getItem('aski_show_history') !== 'false'; // default ON
+  const newVal = !current;
+  localStorage.setItem('aski_show_history', newVal);
+  
+  const messagesDiv = document.getElementById('askAIMessages');
+  if (!messagesDiv) return;
+  
+  if (newVal) {
+    // Show — reload history
+    const historyMsgs = messagesDiv.querySelectorAll('.history-message');
+    if (historyMsgs.length === 0) {
+      loadChatHistory(0, false);
+    } else {
+      historyMsgs.forEach(m => m.style.display = '');
+    }
+  } else {
+    // Hide — hide history messages, keep current session
+    messagesDiv.querySelectorAll('.history-message').forEach(m => m.style.display = 'none');
+  }
+  
+  updateChatHistoryButtons();
+  toast(newVal ? 'History visible' : 'History hidden', 'info');
+}
+
+function isChatSaveEnabled() {
+  return localStorage.getItem('aski_save_history') !== 'false';
+}
+
+function isChatShowEnabled() {
+  return localStorage.getItem('aski_show_history') !== 'false';
+}
+
+function updateChatHistoryButtons() {
+  const saveBtn = document.getElementById('chatSaveHistoryBtn');
+  const showBtn = document.getElementById('chatShowHistoryBtn');
+  
+  if (saveBtn) {
+    const on = isChatSaveEnabled();
+    saveBtn.classList.toggle('active', on);
+    saveBtn.textContent = on ? 'SAVE' : 'SAVE OFF';
+  }
+  
+  if (showBtn) {
+    const on = isChatShowEnabled();
+    showBtn.classList.toggle('active', on);
+    showBtn.textContent = on ? 'HISTORY' : 'HIDDEN';
+  }
+}
+
 // Get chat history stats
 async function getChatHistoryStats() {
   try {
@@ -1045,6 +1123,9 @@ function openAskAI() {
   
   // Update AutoDrop indicator
   updateAutoDropIndicator();
+  
+  // Update history control buttons (v4.30)
+  updateChatHistoryButtons();
   
   // Show bottom controls in BOTH modes (v1.8 unified controls)
   const controlsBottom = document.getElementById('askAIControlsBottom');
