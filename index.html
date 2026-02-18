@@ -563,6 +563,54 @@
       #ideasList > .card.draggable-desktop:active { cursor: grabbing; }
       .ask-ai-message .ask-ai-bubble.draggable-desktop { cursor: grab; }
       .ask-ai-message .ask-ai-bubble.draggable-desktop:active { cursor: grabbing; }
+      
+      /* ═══ MODAL SCOPING — Desktop Split Layout (v4.30) ═══ */
+      
+      /* ─── Feed-scoped modals: overlay covers feed only, chat stays interactive ─── */
+      #catModal, #sendModal, #exportModal, #delModal, #creatorModal, 
+      #addCatModal, #fileExportOverlay, #mergeModal, #sensitiveWarningModal,
+      .text-input-modal, .cmd-modal, .magic-modal, .audio-recorder-modal, 
+      .ai-tools-modal, .ai-result-modal, .photo-ai-modal, .photo-markers-modal {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
+        right: 0 !important;
+      }
+      
+      /* ─── Chat-scoped modal: overlay covers chat only ─── */
+      #clearHistoryModal {
+        left: 0 !important;
+        right: auto !important;
+        width: var(--chat-width, 50%) !important;
+      }
+      
+      /* ─── App-level modals: full screen (onboarding, about, encryption) ─── */
+      /* #onboardingModal, #aboutModal, #securityInfoModal — keep inset:0 (default) */
+      
+      /* ─── Reversed layout (chat on right) ─── */
+      body.desktop-split.chat-right #catModal,
+      body.desktop-split.chat-right #sendModal,
+      body.desktop-split.chat-right #exportModal,
+      body.desktop-split.chat-right #delModal,
+      body.desktop-split.chat-right #creatorModal,
+      body.desktop-split.chat-right #addCatModal,
+      body.desktop-split.chat-right #fileExportOverlay,
+      body.desktop-split.chat-right #mergeModal,
+      body.desktop-split.chat-right #sensitiveWarningModal,
+      body.desktop-split.chat-right .text-input-modal,
+      body.desktop-split.chat-right .cmd-modal,
+      body.desktop-split.chat-right .magic-modal,
+      body.desktop-split.chat-right .audio-recorder-modal,
+      body.desktop-split.chat-right .ai-tools-modal,
+      body.desktop-split.chat-right .ai-result-modal,
+      body.desktop-split.chat-right .photo-ai-modal,
+      body.desktop-split.chat-right .photo-markers-modal {
+        left: 0 !important;
+        right: calc(var(--chat-width, 50%) + 5px) !important;
+      }
+      body.desktop-split.chat-right #clearHistoryModal {
+        left: auto !important;
+        right: 0 !important;
+        width: var(--chat-width, 50%) !important;
+      }
     }
     
     /* Hide resizer on mobile */
