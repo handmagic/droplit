@@ -216,16 +216,13 @@ function speakTextWithCallback(text, onEnd, onStart) {
     return;
   }
   
-  // Try ElevenLabs first if selected, with fallback to OpenAI
+  // Route by provider setting
   if (provider === 'elevenlabs' && elevenlabsKey) {
     speakWithElevenLabsCallback(text, elevenlabsKey, elevenlabsVoice, onEnd, onStart, apiKey, voice);
-  } else if (apiKey && apiKey.startsWith('sk-')) {
-    // Use OpenAI if available (regardless of provider setting)
-    speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart);
   } else if (provider === 'openai' && apiKey && apiKey.startsWith('sk-')) {
     speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart);
-  } else {
-    // Browser TTS - starts immediately, no loading delay
+  } else if (provider === 'browser') {
+    // Browser TTS explicitly selected
     console.log('[TTS] Using browser speech synthesis');
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -234,6 +231,23 @@ function speakTextWithCallback(text, onEnd, onStart) {
       utterance.onstart = function() {
         if (onStart) onStart();
       };
+      utterance.onend = function() {
+        if (onEnd) onEnd();
+        if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
+      };
+      window.speechSynthesis.speak(utterance);
+    }
+  } else if (apiKey && apiKey.startsWith('sk-')) {
+    // Fallback: OpenAI key exists but provider not explicitly set
+    speakWithOpenAICallback(text, apiKey, voice, onEnd, onStart);
+  } else {
+    // Final fallback: browser
+    console.log('[TTS] Fallback to browser speech synthesis');
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ru-RU';
+      utterance.onstart = function() { if (onStart) onStart(); };
       utterance.onend = function() {
         if (onEnd) onEnd();
         if (typeof unlockVoiceMode === 'function') unlockVoiceMode();
@@ -498,14 +512,24 @@ function speakText(text) {
     return;
   }
   
-  // Try ElevenLabs first if selected, with fallback to OpenAI
+  // Route by provider setting
   if (provider === 'elevenlabs' && elevenlabsKey) {
     speakWithElevenLabsFallback(text, elevenlabsKey, elevenlabsVoice, openaiKey, openaiVoice);
+  } else if (provider === 'openai' && openaiKey && openaiKey.startsWith('sk-')) {
+    speakWithOpenAI(text, openaiKey, openaiVoice);
+  } else if (provider === 'browser') {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ru-RU';
+      utterance.onend = function() { 
+        if (typeof unlockVoiceMode === 'function') unlockVoiceMode(); 
+      };
+      window.speechSynthesis.speak(utterance);
+    }
   } else if (openaiKey && openaiKey.startsWith('sk-')) {
-    // Use OpenAI if available
     speakWithOpenAI(text, openaiKey, openaiVoice);
   } else {
-    // Browser fallback
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
@@ -854,6 +878,28 @@ function stopAllTTS() {
   }
   isTTSPlaying = false;
 }
+
+// ============================================
+// KEYBOARD SHORTCUT — Escape stops all TTS (v4.30)
+// ============================================
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    // Only act if TTS is actually playing
+    if (isTTSPlaying || currentTTSAudio || 
+        (window.KokoroTTS && window.KokoroTTS.isSpeaking) ||
+        (window.speechSynthesis && window.speechSynthesis.speaking)) {
+      e.preventDefault();
+      stopTTS();
+      stopAllTTS();
+      // Reset active speak button
+      if (typeof activeSpeakBtn !== 'undefined' && activeSpeakBtn) {
+        if (typeof updateSpeakButton === 'function') updateSpeakButton(activeSpeakBtn, 'speak');
+        activeSpeakBtn = null;
+      }
+      console.log('[TTS] Stopped via Escape');
+    }
+  }
+});
 
 // ============================================
 // EXPORTS (for future module use)
