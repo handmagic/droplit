@@ -5808,8 +5808,8 @@ function handleImageMouseUp() {
 }
 
 // Double-click to toggle fit (desktop)
-// Double-click cycle: fit-height → fit-width → reset
-let dblClickFitState = 0; // 0=default, 1=fit-height, 2=fit-width
+// Double-click toggle: fit-height ↔ fit-width
+let dblClickFitState = 0; // 0=fit-width (default), 1=fit-height
 
 function handleImageDblClick(e) {
   e.preventDefault();
@@ -5817,7 +5817,6 @@ function handleImageDblClick(e) {
   const content = document.getElementById('imageViewerContent');
   if (!img || !content) return;
   
-  // Get actual available area (subtract padding)
   const style = getComputedStyle(content);
   const padTop = parseFloat(style.paddingTop) || 0;
   const padBottom = parseFloat(style.paddingBottom) || 0;
@@ -5826,25 +5825,17 @@ function handleImageDblClick(e) {
   const contentRect = content.getBoundingClientRect();
   const availW = contentRect.width - padLeft - padRight;
   const availH = contentRect.height - padTop - padBottom;
-  
-  // Current displayed size (constrained by CSS)
   const displayW = img.offsetWidth;
   const displayH = img.offsetHeight;
   
   if (dblClickFitState === 0) {
-    // Fit to height
+    // Currently fit-width (default) → switch to fit-height
     const fitScale = availH / displayH;
     scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, fitScale));
     offsetX = 0; offsetY = 0;
     dblClickFitState = 1;
-  } else if (dblClickFitState === 1) {
-    // Fit to width
-    const fitScale = availW / displayW;
-    scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, fitScale));
-    offsetX = 0; offsetY = 0;
-    dblClickFitState = 2;
   } else {
-    // Reset
+    // Currently fit-height → switch to fit-width (reset to default)
     resetTransform();
     dblClickFitState = 0;
     applyTransform(true);
