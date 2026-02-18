@@ -4849,156 +4849,111 @@ function undoEditPanel() {
 }
 
 // ============================================
-// AI EDIT TOOLS — Utility + Implementations (v4.30)
+// AI EDIT TOOLS — Text Editor buttons (v4.30)
+// Uses same /api/ai textActions as runAITool()
+// Ollama path: direct call with systemPrompt
 // ============================================
 
-// Lightweight one-shot AI call for text processing tools
-// Routes through Ollama (local) or Cloud (/api/ai) based on user settings
-async function aiToolCall(systemPrompt, userText) {
-  const provider = localStorage.getItem('llm_provider') || 'claude';
-  
-  if (provider === 'ollama') {
-    const url = localStorage.getItem('ollama_url') || 'http://localhost:11434';
-    const model = localStorage.getItem('ollama_model') || 'gemma3:4b';
-    
-    const response = await fetch(url + '/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userText }
-        ],
-        stream: false,
-        options: { num_ctx: 4096, temperature: 0.3 }
-      })
-    });
-    
-    if (!response.ok) throw new Error('Ollama error: ' + response.status);
-    const data = await response.json();
-    return data.message?.content || '';
-    
-  } else {
-    // Cloud path
-    const response = await fetch('/api/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'tool',
-        systemPrompt: systemPrompt,
-        text: userText,
-        model: localStorage.getItem('selected_model') || 'sonnet'
-      })
-    });
-    
-    if (!response.ok) throw new Error('API error: ' + response.status);
-    const data = await response.json();
-    return data.result || data.text || data.content || '';
-  }
-}
-
-// Wrapper: show loading, call AI, update textarea
-async function runAiEditTool(toolLabel, systemPrompt, btn) {
+async function runAiEditAction(actionName, label, systemPrompt) {
   const textarea = document.getElementById('editPanelTextarea');
   if (!textarea || !textarea.value.trim()) {
     toast('No text to process', 'warning');
     return;
   }
   
+  const btn = event?.target?.closest?.('button');
+  const originalLabel = btn ? btn.textContent.trim() : label;
   const originalText = textarea.value;
-  const originalLabel = btn ? btn.textContent : toolLabel;
   
-  // UI: disable button, show loading
+  // UI: loading state
   if (btn) { btn.disabled = true; btn.textContent = '⏳ ...'; }
-  toast(toolLabel + ': Processing...', 'info');
   
   try {
-    const result = await aiToolCall(systemPrompt, originalText);
+    let resultText = '';
+    const provider = localStorage.getItem('llm_provider') || 'claude';
     
-    if (result && result.trim()) {
-      textarea.value = result.trim();
+    if (provider === 'ollama') {
+      // Ollama: direct call with systemPrompt
+      const url = localStorage.getItem('ollama_url') || 'http://localhost:11434';
+      const model = localStorage.getItem('ollama_model') || 'gemma3:4b';
+      
+      const response = await fetch(url + '/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: originalText }
+          ],
+          stream: false,
+          options: { num_ctx: 4096, temperature: 0.3 }
+        })
+      });
+      
+      if (!response.ok) throw new Error('Ollama error: ' + response.status);
+      const data = await response.json();
+      resultText = data.message?.content || '';
+      
+    } else {
+      // Cloud: same pattern as runAITool() — action goes to textActions on server
+      const response = await fetch(AI_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: actionName,
+          text: originalText
+        })
+      });
+      
+      if (!response.ok) throw new Error('API error: ' + response.status);
+      const data = await response.json();
+      
+      if (data.success && data.result) {
+        resultText = data.result;
+      } else if (data.error) {
+        throw new Error(data.error);
+      }
+    }
+    
+    if (resultText && resultText.trim()) {
+      textarea.value = resultText.trim();
       document.getElementById('editPanelChars').textContent = textarea.value.length;
-      toast(toolLabel + ' complete!', 'success');
+      toast(label + ' done!', 'success');
     } else {
       toast('No result from AI', 'warning');
     }
   } catch (e) {
-    console.error('[AI Tool]', toolLabel, 'error:', e);
+    console.error('[AI Edit]', actionName, e);
     toast('Error: ' + e.message, 'error');
   }
   
-  // Restore button
   if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
 }
 
-async function aiEditOrganize() {
-  const btn = event?.target?.closest?.('button');
-  await runAiEditTool('Organize', 
-    `You are a text structuring assistant. Your task is to take raw, unstructured text (possibly voice-dictated, missing punctuation, stream-of-consciousness) and transform it into a well-organized, structured document.
-
-Rules:
-- Extract key points and thesis statements
-- Group related ideas under clear headings (use ## for sections)
-- Use bullet points for lists of items
-- Add brief transitions between sections if needed
-- Fix grammar, punctuation, and sentence structure
-- Preserve ALL original meaning and ideas — do not add new content
-- If the text contains action items or tasks, group them separately
-- Keep the language of the original text (if Russian, output in Russian; if English, in English)
-- Output ONLY the structured result, no explanations or preamble`,
-    btn
+// Organize — NEW action (uses 'organize' textAction on server)
+function aiEditOrganize() {
+  runAiEditAction('organize', 'Organize',
+    'You are a text structuring assistant. Take raw, unstructured text (possibly voice-dictated, missing punctuation) and transform it into a well-organized structured document. Extract key points and thesis statements. Group related ideas under clear headings (use ## for sections). Use bullet points for lists. Fix grammar and punctuation. Preserve ALL original meaning — do not add new content. If there are action items, group them separately. Keep the language of the original text. Output ONLY the structured result.'
   );
 }
 
-async function aiEditEnhance() {
-  const btn = event?.target?.closest?.('button');
-  await runAiEditTool('Enhance',
-    `You are a text enhancement assistant. Your task is to clean up and polish text while preserving its original meaning and voice.
-
-Rules:
-- Fix grammar, spelling, and punctuation
-- Improve sentence structure and flow
-- Remove filler words and redundancies
-- Keep the original tone and style
-- Do NOT add new information or change meaning
-- Do NOT restructure or reorganize — keep the original order
-- Keep the language of the original text
-- Output ONLY the enhanced text, no explanations`,
-    btn
+// Enhance, Summarize, Expand — use existing server textActions
+function aiEditEnhance() {
+  runAiEditAction('enhance', 'Enhance',
+    'You are a text editor. Fix spelling, grammar and punctuation errors. Return ONLY the corrected text. Do NOT add explanations or commentary. Preserve original meaning, style and language.'
   );
 }
 
-async function aiEditSummarize() {
-  const btn = event?.target?.closest?.('button');
-  await runAiEditTool('Summarize',
-    `You are a summarization assistant. Create a concise summary of the given text.
-
-Rules:
-- Capture the key points and main ideas
-- Keep it to 2-5 sentences for short texts, or a few paragraphs for long ones
-- Preserve important details, names, dates, numbers
-- Keep the language of the original text
-- Output ONLY the summary, no explanations or labels like "Summary:"`,
-    btn
+function aiEditSummarize() {
+  runAiEditAction('summarize', 'Summarize',
+    'Summarize the text concisely. Capture key points and main ideas. Keep it to 2-5 sentences. Preserve important details. Keep the language of the original text. Output ONLY the summary.'
   );
 }
 
-async function aiEditExpand() {
-  const btn = event?.target?.closest?.('button');
-  await runAiEditTool('Expand',
-    `You are a text expansion assistant. Your task is to elaborate on the given text, adding detail and depth.
-
-Rules:
-- Expand each point with additional context, examples, or explanations
-- Maintain the original structure and flow
-- Keep the same tone and style
-- Add relevant details that support the original ideas
-- Do NOT contradict or change the original meaning
-- Roughly double the length of the original text
-- Keep the language of the original text
-- Output ONLY the expanded text, no explanations`,
-    btn
+function aiEditExpand() {
+  runAiEditAction('expand', 'Expand',
+    'Expand the text with additional context, examples, and explanations. Maintain the original structure and tone. Roughly double the length. Do NOT contradict original meaning. Keep the language of the original text. Output ONLY the expanded text.'
   );
 }
 
