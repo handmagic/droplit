@@ -478,15 +478,16 @@ body.font-large .card-header-content { height: 52px; }
 .ask-ai-btn-history { background: rgba(255,255,255,0.25) !important; color: white !important; border-color: transparent !important; opacity: 0.7; }
 .ask-ai-btn-history.active { background: #10B981 !important; color: white !important; border-color: transparent !important; opacity: 1; }
 
-/* Chevron button — opens tools panel */
+/* Chevron button — opens tools panel (matches logo-btn size) */
 .ask-ai-header-chevron {
-  width: 32px; height: 32px; border: none; border-radius: 50%;
+  width: 48px; height: 48px; border: none; border-radius: 50%;
   background: rgba(255,255,255,0.15); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  color: white; transition: all 0.2s;
+  color: white; transition: all 0.2s; flex-shrink: 0;
 }
+.ask-ai-header-chevron:active { opacity: 0.7; transform: scale(0.95); }
 .ask-ai-header-chevron:hover { background: rgba(255,255,255,0.25); }
-.ask-ai-header-chevron svg { transition: transform 0.3s; }
+.ask-ai-header-chevron svg { width: 22px; height: 22px; transition: transform 0.3s; }
 body.chat-tools-open .ask-ai-header-chevron svg { transform: rotate(180deg); }
 
 /* Chat tools panel — slides down like feed filters */
