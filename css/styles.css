@@ -500,6 +500,29 @@ body.font-large .card-header-content { height: 52px; }
 .ask-ai-message.user .ask-ai-bubble pre { background: rgba(255,255,255,0.15); }
 .ask-ai-message.user .ask-ai-bubble blockquote { border-left-color: rgba(255,255,255,0.5); }
 .ask-ai-message.user .ask-ai-bubble li::before { color: rgba(255,255,255,0.7); }
+
+/* User context block — collapsible long content (v4.29) */
+.user-context-block { cursor: pointer; position: relative; }
+.user-context-block .user-context-full { display: none; }
+.user-context-block .user-context-preview { opacity: 0.85; font-style: italic; font-size: 0.88em; }
+.user-context-block .user-context-toggle { 
+  font-size: 0.72rem; font-weight: 600; opacity: 0.6; margin-top: 6px; text-align: center;
+}
+.user-context-block.expanded .user-context-preview { display: none; }
+.user-context-block.expanded .user-context-full { 
+  display: block; max-height: 400px; overflow-y: auto; 
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.3) transparent;
+}
+.user-context-block.expanded .user-context-toggle::after { content: none; }
+.user-context-block.expanded .user-context-toggle { display: none; }
+
+/* Markdown in user bubbles */
+.ask-ai-message.user .ask-ai-bubble h2,
+.ask-ai-message.user .ask-ai-bubble h3,
+.ask-ai-message.user .ask-ai-bubble h4 { margin: 8px 0 4px 0; font-weight: 600; }
+.ask-ai-message.user .ask-ai-bubble ul,
+.ask-ai-message.user .ask-ai-bubble ol { margin: 4px 0; padding-left: 18px; }
+.ask-ai-message.user .ask-ai-bubble p { margin: 4px 0; }
 .ask-ai-time { font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px; padding: 0 6px; }
 .ask-ai-message.user .ask-ai-time { text-align: right; }
 .ask-ai-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
