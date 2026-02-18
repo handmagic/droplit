@@ -5307,9 +5307,19 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
     // Auto-speak if enabled
     if (isAutoSpeakEnabled()) {
       updateVoiceModeIndicator('speaking');
+      // Activate the Speak button on this message so user can stop it
+      const speakBtn = msgDiv.querySelector('.speak-btn');
+      if (speakBtn && typeof updateSpeakButton === 'function') {
+        updateSpeakButton(speakBtn, 'stop');
+        activeSpeakBtn = speakBtn;
+      }
       setTimeout(() => {
         askiSpeak(text, null, () => {
-          // After speaking, UNLOCK voice mode (this will restart listening)
+          // After speaking, reset button and unlock
+          if (speakBtn && typeof updateSpeakButton === 'function') {
+            updateSpeakButton(speakBtn, 'speak');
+          }
+          activeSpeakBtn = null;
           unlockVoiceMode();
         });
       }, 300);
