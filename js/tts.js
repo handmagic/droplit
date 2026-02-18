@@ -171,7 +171,32 @@ function speakAskAIMessage(btn) {
   );
 }
 
+// Strip emoji from text before TTS (v4.29)
+function stripEmojiForTTS(text) {
+  return text
+    // Remove emoji characters (comprehensive Unicode ranges)
+    .replace(/[\u{1F600}-\u{1F64F}]/gu, '')  // Emoticons
+    .replace(/[\u{1F300}-\u{1F5FF}]/gu, '')  // Misc Symbols & Pictographs
+    .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')  // Transport & Map
+    .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')  // Flags
+    .replace(/[\u{2600}-\u{26FF}]/gu, '')    // Misc symbols
+    .replace(/[\u{2700}-\u{27BF}]/gu, '')    // Dingbats
+    .replace(/[\u{FE00}-\u{FE0F}]/gu, '')    // Variation selectors
+    .replace(/[\u{1F900}-\u{1F9FF}]/gu, '')  // Supplemental Symbols
+    .replace(/[\u{1FA00}-\u{1FA6F}]/gu, '')  // Chess symbols
+    .replace(/[\u{1FA70}-\u{1FAFF}]/gu, '')  // Symbols Extended-A
+    .replace(/[\u{200D}]/gu, '')              // Zero-width joiner
+    .replace(/[\u{20E3}]/gu, '')              // Combining enclosing keycap
+    .replace(/[\u{FE0F}]/gu, '')              // Variation selector-16
+    .replace(/  +/g, ' ')                     // Collapse double spaces
+    .trim();
+}
+
 function speakTextWithCallback(text, onEnd, onStart) {
+  if (!text) return;
+  
+  // Clean emoji before any TTS provider
+  text = stripEmojiForTTS(text);
   if (!text) return;
   
   stopTTS();
@@ -443,6 +468,9 @@ async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart
 }
 
 function speakText(text) {
+  if (!text) return;
+  
+  text = stripEmojiForTTS(text);
   if (!text) return;
   
   stopTTS();
