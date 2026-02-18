@@ -499,8 +499,7 @@ async function getChatEncryptionKey() {
   // Return cached key if available
   if (_chatEncryptionKey) return _chatEncryptionKey;
   
-  // Check if privacy system is active and user is logged in
-  if (!window.DROPLIT_PRIVACY_ENABLED) return null;
+  // Need DropLitKeys module and a logged-in user
   if (!window.DropLitKeys) return null;
   if (typeof currentUser === 'undefined' || !currentUser?.id) return null;
   
@@ -714,22 +713,53 @@ function loadChatHistory(page = 0, append = false) {
     // Sync read first (handles plaintext immediately)
     let history = readChatHistoryFromStorageSync();
     
-    // If no plaintext found, check if encrypted exists — load async
-    if (history.length === 0 && localStorage.getItem(CHAT_HISTORY_ENC_KEY)) {
-      readChatHistoryFromStorage().then(encHistory => {
-        isLoadingHistory = false;
-        if (encHistory.length > 0) {
-          _renderChatHistoryPage(encHistory, page, append);
-        }
-      }).catch(() => { isLoadingHistory = false; });
+    // If plaintext found — render immediately
+    if (history.length > 0) {
+      _renderChatHistoryPage(history, page, append);
       return;
     }
     
-    _renderChatHistoryPage(history, page, append);
+    // No plaintext — check if encrypted exists
+    if (localStorage.getItem(CHAT_HISTORY_ENC_KEY)) {
+      console.log('[ChatHistory] Encrypted data found, attempting async decrypt...');
+      _loadEncryptedChatHistory(page, append, 0);
+      return;
+    }
+    
+    // Nothing at all
+    _renderChatHistoryPage([], page, append);
   } catch (e) {
     console.error('[ChatHistory] Load error:', e);
     isLoadingHistory = false;
   }
+}
+
+// Retry encrypted load — privacy modules may not be ready yet
+function _loadEncryptedChatHistory(page, append, attempt) {
+  const MAX_ATTEMPTS = 10;
+  const RETRY_DELAY = 500; // ms
+  
+  readChatHistoryFromStorage().then(history => {
+    if (history.length > 0) {
+      console.log('[ChatHistory] Decrypted successfully on attempt', attempt + 1);
+      isLoadingHistory = false;
+      _renderChatHistoryPage(history, page, append);
+    } else if (attempt < MAX_ATTEMPTS) {
+      // Key not ready yet — privacy still initializing, retry
+      console.log('[ChatHistory] Key not ready, retry', attempt + 1, '/', MAX_ATTEMPTS);
+      setTimeout(() => _loadEncryptedChatHistory(page, append, attempt + 1), RETRY_DELAY);
+    } else {
+      console.warn('[ChatHistory] Failed to decrypt after', MAX_ATTEMPTS, 'attempts');
+      isLoadingHistory = false;
+    }
+  }).catch(e => {
+    console.error('[ChatHistory] Decrypt error:', e);
+    if (attempt < MAX_ATTEMPTS) {
+      setTimeout(() => _loadEncryptedChatHistory(page, append, attempt + 1), RETRY_DELAY);
+    } else {
+      isLoadingHistory = false;
+    }
+  });
 }
 
 // Internal: render a page of history into DOM
