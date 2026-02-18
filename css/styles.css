@@ -1590,7 +1590,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 .img-act.delete { background: rgba(239,68,68,0.15); color: #EF4444; }
 .img-act:active { background: var(--color-bg-soft); }
 .img-act.primary { background: var(--color-primary); color: white; }
-.image-counter { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: white; padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 600; z-index: 10; }
+.image-counter { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.5); color: white; padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 600; z-index: 10; display: none !important; }
 
 /* Desktop zoom controls (v4.30) — hidden on mobile */
 .image-zoom-controls { display: none; }
@@ -2248,6 +2248,7 @@ body.editing-mode #catModal { z-index: 1200; }
 
 /* Counter - bottom center */
 .pv-counter {
+  display: none;
   position: absolute;
   bottom: 16px;
   left: 50%;
@@ -2261,7 +2262,6 @@ body.editing-mode #catModal { z-index: 1200; }
   font-size: 0.8rem;
   font-weight: 600;
   color: white;
-  display: inline-flex;
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(8px);
