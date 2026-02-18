@@ -2569,8 +2569,8 @@ async function askiSpeak(text, lang = null, onEnd = null) {
   // v4.29: New audio session — invalidates any in-flight TTS fetches
   if (window.newAudioSession) window.newAudioSession();
   
-  // Remove emojis before speaking
-  const cleanText = removeEmojis(text);
+  // Clean markdown + emoji before speaking (v4.30)
+  const cleanText = typeof cleanTextForTTS === 'function' ? cleanTextForTTS(text) : removeEmojis(text);
   if (!cleanText) {
     if (onEnd) onEnd();
     return;
@@ -4647,7 +4647,7 @@ async function handleStreamingResponse(response) {
               
               // Feed to streaming TTS (strip emoji — v4.29)
               if (streamingTTSActive) {
-                const cleanChunk = typeof stripEmojiForTTS === 'function' ? stripEmojiForTTS(parsed.content) : parsed.content;
+                const cleanChunk = typeof cleanTextForTTS === 'function' ? cleanTextForTTS(parsed.content) : parsed.content;
                 if (cleanChunk) {
                   if (streamingEngine === 'openai') {
                     window.OpenAIStreamingTTS.feedText(cleanChunk);
@@ -5087,7 +5087,7 @@ async function handleStreamingResponse(response) {
               
               // Feed to streaming TTS (strip emoji — v4.29)
               if (streamingTTSActive) {
-                const cleanChunk = typeof stripEmojiForTTS === 'function' ? stripEmojiForTTS(parsed.delta.text) : parsed.delta.text;
+                const cleanChunk = typeof cleanTextForTTS === 'function' ? cleanTextForTTS(parsed.delta.text) : parsed.delta.text;
                 if (cleanChunk) {
                   if (streamingEngine === 'openai') {
                     window.OpenAIStreamingTTS.feedText(cleanChunk);
@@ -5568,7 +5568,7 @@ async function handleOllamaStreamingResponse(response) {
               if (beforeThink) {
                 fullText += beforeThink;
                 textSpan.textContent = fullText;
-                if (kokoroStreamActive) window.KokoroTTS.pushText(typeof stripEmojiForTTS === 'function' ? stripEmojiForTTS(beforeThink) : beforeThink);
+                if (kokoroStreamActive) window.KokoroTTS.pushText(typeof cleanTextForTTS === 'function' ? cleanTextForTTS(beforeThink) : beforeThink);
               }
               
               const endIdx = afterThink.indexOf('</think>');
@@ -5578,7 +5578,7 @@ async function handleOllamaStreamingResponse(response) {
                 if (remaining) {
                   fullText += remaining;
                   textSpan.textContent = fullText;
-                  if (kokoroStreamActive) window.KokoroTTS.pushText(typeof stripEmojiForTTS === 'function' ? stripEmojiForTTS(remaining) : remaining);
+                  if (kokoroStreamActive) window.KokoroTTS.pushText(typeof cleanTextForTTS === 'function' ? cleanTextForTTS(remaining) : remaining);
                 }
                 console.log('[Ollama] Thinking:', thinkingContent.substring(0, 100) + '...');
               } else {
@@ -5593,7 +5593,7 @@ async function handleOllamaStreamingResponse(response) {
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             
             if (kokoroStreamActive) {
-              window.KokoroTTS.pushText(typeof stripEmojiForTTS === 'function' ? stripEmojiForTTS(chunk) : chunk);
+              window.KokoroTTS.pushText(typeof cleanTextForTTS === 'function' ? cleanTextForTTS(chunk) : chunk);
             }
           }
           
