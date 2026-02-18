@@ -5808,15 +5808,43 @@ function handleImageMouseUp() {
 }
 
 // Double-click to toggle fit (desktop)
+// Double-click cycle: fit-height → fit-width → reset
+let dblClickFitState = 0; // 0=default, 1=fit-height, 2=fit-width
+
 function handleImageDblClick(e) {
   e.preventDefault();
-  if (scale > 1) {
-    // Zoomed in — reset to fit
-    resetTransform();
+  const img = document.getElementById('imageViewerImg');
+  const content = document.getElementById('imageViewerContent');
+  if (!img || !content) return;
+  
+  const contentRect = content.getBoundingClientRect();
+  const naturalW = img.naturalWidth || img.offsetWidth;
+  const naturalH = img.naturalHeight || img.offsetHeight;
+  // Current displayed size (constrained by CSS)
+  const displayW = img.offsetWidth;
+  const displayH = img.offsetHeight;
+  
+  if (dblClickFitState === 0) {
+    // Fit to height — scale so image fills container vertically
+    const fitScale = contentRect.height / displayH;
+    scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, fitScale));
+    offsetX = 0; offsetY = 0;
+    dblClickFitState = 1;
+  } else if (dblClickFitState === 1) {
+    // Fit to width — scale so image fills container horizontally
+    const fitScale = contentRect.width / displayW;
+    scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, fitScale));
+    offsetX = 0; offsetY = 0;
+    dblClickFitState = 2;
   } else {
-    // Fit — zoom to 2x centered on click point
-    scale = DOUBLE_TAP_SCALE;
+    // Reset to default
+    resetTransform();
+    dblClickFitState = 0;
+    applyTransform(true);
+    updateZoomLevel();
+    return;
   }
+  
   clampOffset();
   applyTransform(true);
   updateZoomLevel();
@@ -5850,6 +5878,7 @@ function bindImageMouseEvents(content) {
 const _origResetTransform = resetTransform;
 resetTransform = function() {
   _origResetTransform();
+  dblClickFitState = 0;
   updateZoomLevel();
   const content = document.getElementById('imageViewerContent');
   if (content) content.style.cursor = '';
