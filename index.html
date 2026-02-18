@@ -1595,8 +1595,8 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
         <textarea class="ask-ai-input" id="askAIInput" placeholder="Ask anything..." maxlength="2000" rows="2" oninput="updateAskAICharCount(); autoResizeTextarea(this);" onkeypress="if(event.key==='Enter' && !event.shiftKey && this.value.trim()) { event.preventDefault(); sendAskAIMessage(); }"></textarea>
-        <button class="ask-ai-btn ask-ai-btn-send" id="askAISendBtn" onclick="console.log('Send clicked'); sendAskAIMessage()">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9 22 2Z"/></svg>
+        <button class="ask-ai-btn ask-ai-btn-send" id="askAISendBtn" onclick="console.log('Send clicked'); sendAskAIMessage()" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
         </button>
       </div>
 	  <div class="ask-ai-controls-bottom" id="askAIControlsBottom">
