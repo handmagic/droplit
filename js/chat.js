@@ -229,6 +229,57 @@ function renderChatMarkdown(text) {
   return escapeHtml(text);
 }
 
+// ============================================
+// SMART USER MESSAGE RENDERING (v4.29)
+// Decides: plain text vs markdown render vs context block
+// Used for paste, drag, and typed messages
+// ============================================
+
+const CONTEXT_BLOCK_THRESHOLD = 300; // chars — above this = context block
+const CONTEXT_BLOCK_MAX_HEIGHT = 400; // px — collapse after this
+
+// Detect if text contains meaningful markdown
+function hasMarkdownContent(text) {
+  if (!text) return false;
+  return /^#{1,4}\s/m.test(text) ||         // Headers
+         /\*\*\S/.test(text) ||               // Bold
+         /^\s*[-*]\s/m.test(text) ||          // Unordered list
+         /^\s*\d+\.\s/m.test(text) ||         // Ordered list
+         /```/.test(text) ||                   // Code block
+         /`[^`]+`/.test(text) ||              // Inline code
+         /^\s*>/m.test(text) ||               // Blockquote
+         /\[.+\]\(.+\)/.test(text);           // Links
+}
+
+// Render user message — smart: short = plaintext, long/markdown = rendered context block
+function renderUserMessage(text) {
+  if (!text) return '';
+  
+  const isLong = text.length > CONTEXT_BLOCK_THRESHOLD;
+  const hasMd = hasMarkdownContent(text);
+  
+  // Short plain text — standard escaped render
+  if (!isLong && !hasMd) {
+    return escapeHtml(text);
+  }
+  
+  // Has markdown or is long — render with markdown
+  const rendered = renderChatMarkdown(text);
+  
+  // Long content — wrap in collapsible context block
+  if (isLong) {
+    const preview = text.substring(0, 120).replace(/\n/g, ' ').trim();
+    return `<div class="user-context-block" onclick="this.classList.toggle('expanded')">
+      <div class="user-context-preview">${escapeHtml(preview)}…</div>
+      <div class="user-context-full">${rendered}</div>
+      <div class="user-context-toggle">Show more</div>
+    </div>`;
+  }
+  
+  // Short with markdown — just render
+  return rendered;
+}
+
 // Get current AI persona name
 function getCurrentPersonaName() {
   if (typeof getAIPersona === 'function') {
@@ -748,7 +799,7 @@ function renderHistoryMessage(msg) {
   
   // Text content in bubble (v4.26 fix)
   if (msg.text) {
-    const rendered = isUser ? escapeHtml(msg.text) : renderChatMarkdown(msg.text);
+    const rendered = isUser ? renderUserMessage(msg.text) : renderChatMarkdown(msg.text);
     content += `<div class="ask-ai-bubble" data-original-text="${escapeHtml(msg.text)}">${rendered}</div>`;
   }
   
@@ -5063,7 +5114,7 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
     
     msgDiv.innerHTML = `
       ${imageHtml}
-      <div class="ask-ai-bubble" data-original-text="${escapeHtml(text)}">${escapeHtml(text)}</div>
+      <div class="ask-ai-bubble" data-original-text="${escapeHtml(text)}">${renderUserMessage(text)}</div>
       <div class="ask-ai-actions">
         ${textActions}
       </div>
