@@ -885,12 +885,18 @@ function stopAllTTS() {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     // Only act if TTS is actually playing
-    if (isTTSPlaying || currentTTSAudio || 
+    const isAskiSpeaking = typeof askiIsSpeaking !== 'undefined' && askiIsSpeaking;
+    if (isTTSPlaying || currentTTSAudio || isAskiSpeaking ||
         (window.KokoroTTS && window.KokoroTTS.isSpeaking) ||
         (window.speechSynthesis && window.speechSynthesis.speaking)) {
       e.preventDefault();
       stopTTS();
       stopAllTTS();
+      // Stop askiSpeak system too
+      if (isAskiSpeaking && typeof askiStopSpeaking === 'function') {
+        askiStopSpeaking();
+        askiIsSpeaking = false;
+      }
       // Reset active speak button
       if (typeof activeSpeakBtn !== 'undefined' && activeSpeakBtn) {
         if (typeof updateSpeakButton === 'function') updateSpeakButton(activeSpeakBtn, 'speak');
