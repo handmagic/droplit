@@ -2488,16 +2488,16 @@
     <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
     <div class="image-viewer-markers" id="imageViewerMarkers" onclick="openPhotoMarkers()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg></div>
     <div class="image-viewer-ai" onclick="openPhotoAI()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></div>
-    <div class="image-counter" id="imageCounter">1 / 1</div>
     <div class="image-zoom-controls" id="imageZoomControls">
-      <button class="image-zoom-btn" onclick="imageZoomIn()" title="Zoom in">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-      </button>
+      <span class="image-zoom-counter" id="imageZoomCounter">1 / 1</span>
       <button class="image-zoom-btn" onclick="imageZoomOut()" title="Zoom out">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
       </button>
       <button class="image-zoom-btn" onclick="imageFitToView()" title="Fit to view">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+      <button class="image-zoom-btn" onclick="imageZoomIn()" title="Zoom in">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
       </button>
       <span class="image-zoom-level" id="imageZoomLevel">100%</span>
     </div>
@@ -5571,10 +5571,13 @@ function showImagePanel(){
 
 function updateNavigation(){
   const counter=document.getElementById('imageCounter');
+  const zoomCounter=document.getElementById('imageZoomCounter');
   const prevBtn=document.getElementById('imgNavPrev');
   const nextBtn=document.getElementById('imgNavNext');
   
-  counter.textContent=(currentMediaIndex+1)+' / '+allMediaIds.length;
+  const counterText = (currentMediaIndex+1)+' / '+allMediaIds.length;
+  counter.textContent=counterText;
+  if(zoomCounter) zoomCounter.textContent=counterText;
   
   if(allMediaIds.length>1){
     prevBtn.classList.toggle('show',currentMediaIndex>0);
@@ -5673,18 +5676,19 @@ function resetTransform(){
   offsetY = 0;
 }
 
-function applyTransform(animate = true){
+function applyTransform(animate = true, useZoomedClass = false){
   const img = document.getElementById('imageViewerImg');
   if(!img) return;
   
   img.style.transition = animate ? 'transform 0.25s ease-out' : 'none';
   img.style.transform = `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`;
   
-  // Update class for CSS
-  if(scale > 1){
+  // Only apply zoomed class for touch pinch zoom (removes size constraints)
+  // Desktop wheel/button zoom uses transform-only (keeps constrained layout)
+  if(useZoomedClass && scale > 1){
     img.classList.remove('portrait','landscape');
     img.classList.add('zoomed');
-  } else {
+  } else if(scale <= 1) {
     img.classList.remove('zoomed');
     if(currentImageOrientation){
       img.classList.add(currentImageOrientation);
@@ -5908,7 +5912,7 @@ function handleTouchMove(e){
     scale = newScale;
     
     // Apply without animation for smooth feel
-    applyTransform(false);
+    applyTransform(false, true);
     
   } else if(isPanning && touches.length === 1){
     // PAN MOVE
@@ -6103,7 +6107,7 @@ function doubleTapZoom(tapX, tapY){
     clampOffset();
   }
   
-  applyTransform(true);
+  applyTransform(true, true);
 }
 
 function getPinchDistance(touches){
