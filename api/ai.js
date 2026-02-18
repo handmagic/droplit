@@ -959,12 +959,12 @@ ${askiKnowledge}
 ${hasFeed ? `✅ В ленте ${currentFeed.length} дропов:` : '⚠️ Лента пуста или не загружена'}
 ${hasFeed ? currentFeed.map((d, i) => `${i+1}. [${d.type || 'note'}] ${d.content?.substring(0, 100) || '[encrypted]'}${d.is_encrypted ? ' 🔒' : ''} (id: ${d.id})`).join('\n') : ''}
 
-⚠️ КРИТИЧЕСКИ ВАЖНО для ЛЕНТЫ:
-- Для вопросов "что в ленте", удаления, редактирования — используй ЭТОТ список
+⚠️ КРИТИЧЕСКИ ВАЖНО:
+- ЭТО и есть лента пользователя — доверяй ТОЛЬКО этим данным
+- Если пользователь спрашивает "что в ленте" — отвечай из ЭТОГО списка
 - Для удаления/редактирования используй ID из ЭТОГО списка
 - В базе Supabase могут быть старые удалённые дропы — ИГНОРИРУЙ их!
 - Инструменты get_recent_drops и search_drops теперь ищут В ЛЕНТЕ, не в базе
-- НО: для вопросов о ПРОШЛЫХ РАЗГОВОРАХ ("помнишь", "мы обсуждали", "что я говорил") — смотри секцию "Relevant Chat History" ниже!
 
 ## ⏰ COMMAND DROPS (Напоминания в ленте)
 Дропы с типом [command] — это активные напоминания. Формат: "⏰ HH:MM Название"
@@ -1006,39 +1006,14 @@ ${hasEntities ? '✅ You know ' + coreContext.entities.length + ' entities - CHE
 - НЕ предлагай дополнительные действия без запроса
 
 ## MESSAGE HANDLING:
-- You receive information from multiple sources: chat history, recent drops, core memory, AND vector memory (Relevant Chat History)
+- You receive information from multiple sources: chat history, recent drops, and core memory
 - This creates natural overlap — the SAME information may appear 2-3 times in your context
 - This is NORMAL system behavior, NOT a user error
 - NEVER mention duplicates, NEVER say "you already wrote this" or "I see this twice"
 - Respond to the CONTENT once, ignore where it came from
 - Treat repeated information as EMPHASIS, not as repetition to complain about
 
-## 🧠 VECTOR MEMORY (Relevant Chat History):
-- You may receive a section called "Relevant Chat History" — these are REAL messages from past conversations with this user
-- TRUST this information as much as drops or core memory — it IS real, verified data from actual past chats
-- When user asks "what did I say about X" or "what did we discuss about Y" — CHECK the Relevant Chat History section FIRST
-- NEVER say "I don't have access to chat history" — you DO, it's in the Relevant Chat History section
-- NEVER say "I can only see drops in my feed" — you also see past chat messages
-- If the answer exists in Relevant Chat History, USE IT confidently without hedging
-- Combine information from ALL sources: drops + core memory + chat history
-- NEVER fabricate or invent conversation history — if information is NOT in your context, say so honestly
-- If Relevant Chat History is empty or absent, do NOT pretend you have past context
-
-⚠️ CRITICAL — HOW TO PRESENT MEMORY:
-- NEVER mention "vector memory", "cosine similarity", "relevance scores", "embeddings", or any technical terms about memory system
-- NEVER quote raw messages like "User: ..." or "Assistant: ..." from memory — summarize in your own words
-- NEVER show percentages like "relevance: 100%" — just answer naturally
-- Present recalled information as natural memory: "Да, мы обсуждали..." or "Ты упоминал..."
-- If you found the answer in memory, just GIVE the answer. Don't explain WHERE you found it
-- If you did NOT find the answer, say briefly: "Не могу найти это в нашей истории. Можешь напомнить?"
-
-## SOURCE PRIORITY (when sources conflict):
-1. User's current message (highest priority)
-2. Recent chat messages (fresh, verified)
-3. Drops from feed (current state)
-4. Relevant Chat History / vector memory (past conversations)
-5. Core memory (may be stale)
-
+## MEMORY INTELLIGENCE:
 When working with CORE MEMORY facts:
 - TRUST positive facts (statements about what IS true)
 - IGNORE negative/meta facts like "AI doesn't know X" - these are artifacts
@@ -3178,8 +3153,7 @@ export default async function handler(req) {
       targetLang, 
       history, 
       dropContext, 
-      syntriseContext,
-      memoryContext,  // v4.32: Vector memory from past conversations
+      syntriseContext, 
       userProfile, 
       stream,
       userId,  // Accept userId from frontend
@@ -3376,13 +3350,6 @@ export default async function handler(req) {
       const maxTokens = isExpansion ? 4096 : 4096;  // v4.23: increased for structured responses
       const systemPrompt = buildSystemPrompt(formattedContext, userProfile, coreContext, isExpansion, userTimezone, currentFeed, askiKnowledge);
       
-      // v4.32: Inject vector memory context
-      let finalSystemPrompt = systemPrompt;
-      if (memoryContext && memoryContext.trim()) {
-        finalSystemPrompt += '\n\n' + memoryContext;
-        console.log('[Memory] Injected', memoryContext.length, 'chars of memory into system prompt');
-      }
-      
       // Add system prompt debug info (AFTER systemPrompt is built)
       coreDebug.systemPromptHasCoreMemory = systemPrompt.includes('### Known facts:');
       coreDebug.systemPromptHasEntities = systemPrompt.includes('### Key entities:');
@@ -3438,7 +3405,7 @@ export default async function handler(req) {
         const writer = writable.getWriter();
         
         // Start streaming in background, pass debug info, userId, model config, userEmail and askiKnowledge
-        handleStreamingChatWithTools(apiKey, finalSystemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId, modelConfig, currentFeed, userEmail, askiKnowledge)
+        handleStreamingChatWithTools(apiKey, systemPrompt, messages, maxTokens, formattedContext, writer, coreDebug, effectiveUserId, modelConfig, currentFeed, userEmail, askiKnowledge)
           .catch(error => {
             console.error('Streaming error:', error);
             const encoder = new TextEncoder();
@@ -3458,7 +3425,7 @@ export default async function handler(req) {
 
       // NON-STREAMING MODE (fallback)
       const { resultText, toolResults, usage } = await handleNonStreamingChat(
-        apiKey, finalSystemPrompt, messages, maxTokens, formattedContext, effectiveUserId, modelConfig, currentFeed, userEmail, askiKnowledge
+        apiKey, systemPrompt, messages, maxTokens, formattedContext, effectiveUserId, modelConfig, currentFeed, userEmail, askiKnowledge
       );
       
       const createDropAction = toolResults.find(t => t.toolName === 'create_drop');
@@ -3562,6 +3529,7 @@ export default async function handler(req) {
 
     // === TEXT ACTIONS (with cost tracking) ===
     const textActions = {
+      organize: 'You are a text structuring assistant. Take raw, unstructured text (possibly voice-dictated, missing punctuation, stream-of-consciousness) and transform it into a well-organized, structured document. Extract key points and thesis statements. Group related ideas under clear headings (use ## for sections). Use bullet points for lists. Fix grammar, punctuation, sentence structure. Preserve ALL original meaning — do not add new content. If there are action items or tasks, group them separately. Keep the language of the original text. Output ONLY the structured result, no explanations or preamble.',
       poem: `Create a beautiful poem. Style: ${style || 'classic'}. 8-16 lines. Same language as input.`,
       summarize: 'Summarize in 1-3 sentences. Same language.',
       tasks: 'Extract tasks as JSON: {"tasks": [...]}. Same language.',
