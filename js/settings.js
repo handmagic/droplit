@@ -999,7 +999,7 @@ function setChatAutoDelete(value) {
 }
 
 // Apply auto-delete based on setting
-function applyChatAutoDelete() {
+async function applyChatAutoDelete() {
   const setting = localStorage.getItem(CHAT_AUTO_DELETE_KEY) || 'never';
   if (setting === 'never') return;
   
@@ -1007,7 +1007,13 @@ function applyChatAutoDelete() {
   if (isNaN(days) || days <= 0) return;
   
   try {
-    const history = JSON.parse(localStorage.getItem('droplit_chat_history') || '[]');
+    // Use encrypted-aware read if available
+    let history;
+    if (typeof readChatHistoryFromStorage === 'function') {
+      history = await readChatHistoryFromStorage();
+    } else {
+      history = JSON.parse(localStorage.getItem('droplit_chat_history') || '[]');
+    }
     if (history.length === 0) return;
     
     const cutoffDate = new Date();
@@ -1022,7 +1028,12 @@ function applyChatAutoDelete() {
     const deletedCount = originalCount - filtered.length;
     
     if (deletedCount > 0) {
-      localStorage.setItem('droplit_chat_history', JSON.stringify(filtered));
+      // Use encrypted-aware write if available
+      if (typeof writeChatHistoryToStorage === 'function') {
+        await writeChatHistoryToStorage(filtered);
+      } else {
+        localStorage.setItem('droplit_chat_history', JSON.stringify(filtered));
+      }
       console.log('[ChatHistory] Auto-deleted', deletedCount, 'old messages');
       
       // Update stats
@@ -1034,8 +1045,19 @@ function applyChatAutoDelete() {
 }
 
 // Update chat history stats display
-function updateChatHistoryStats() {
+async function updateChatHistoryStats() {
   try {
+    // Use chat.js getChatHistoryStats if available (handles encrypted)
+    if (typeof getChatHistoryStats === 'function') {
+      const stats = await getChatHistoryStats();
+      const countEl = document.getElementById('chatHistoryCount');
+      if (countEl) {
+        const encIcon = stats.encrypted ? ' 🔐' : '';
+        countEl.textContent = `${stats.count} (${stats.sizeKB} KB)${encIcon}`;
+      }
+      return;
+    }
+    // Fallback — direct plaintext read
     const history = JSON.parse(localStorage.getItem('droplit_chat_history') || '[]');
     const countEl = document.getElementById('chatHistoryCount');
     if (countEl) {
