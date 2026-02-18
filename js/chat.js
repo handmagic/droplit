@@ -231,12 +231,13 @@ function renderChatMarkdown(text) {
 
 // ============================================
 // SMART USER MESSAGE RENDERING (v4.29)
-// Decides: plain text vs markdown render vs context block
-// Used for paste, drag, and typed messages
+// Decides: plain text vs markdown render, collapsible for very long content
+// Used for paste, drag, typed messages, and history
 // ============================================
 
-const CONTEXT_BLOCK_THRESHOLD = 300; // chars — above this = context block
-const CONTEXT_BLOCK_MAX_HEIGHT = 400; // px — collapse after this
+const USER_MSG_MAX_INPUT = 10000;  // Max chars in textarea
+const USER_MSG_COLLAPSE_AT = 5000; // Show "Collapse" button above this
+const USER_MSG_COLLAPSED_PREVIEW = 800; // Visible chars when collapsed
 
 // Detect if text contains meaningful markdown
 function hasMarkdownContent(text) {
@@ -251,33 +252,41 @@ function hasMarkdownContent(text) {
          /\[.+\]\(.+\)/.test(text);           // Links
 }
 
-// Render user message — smart: short = plaintext, long/markdown = rendered context block
+// Render user message — always markdown, collapsible for 5000+ chars
 function renderUserMessage(text) {
   if (!text) return '';
   
-  const isLong = text.length > CONTEXT_BLOCK_THRESHOLD;
   const hasMd = hasMarkdownContent(text);
   
-  // Short plain text — standard escaped render
-  if (!isLong && !hasMd) {
-    return escapeHtml(text);
-  }
+  // Render: markdown if detected, otherwise escaped with line breaks
+  const rendered = hasMd ? renderChatMarkdown(text) : escapeHtml(text).replace(/\n/g, '<br>');
   
-  // Has markdown or is long — render with markdown
-  const rendered = renderChatMarkdown(text);
-  
-  // Long content — wrap in collapsible context block
-  if (isLong) {
-    const preview = text.substring(0, 120).replace(/\n/g, ' ').trim();
-    return `<div class="user-context-block" onclick="this.classList.toggle('expanded')">
-      <div class="user-context-preview">${escapeHtml(preview)}…</div>
-      <div class="user-context-full">${rendered}</div>
-      <div class="user-context-toggle">Show more</div>
+  // Very long messages — show full by default, add Collapse button
+  if (text.length > USER_MSG_COLLAPSE_AT) {
+    const previewText = text.substring(0, USER_MSG_COLLAPSED_PREVIEW);
+    const previewRendered = hasMd ? renderChatMarkdown(previewText + '…') : escapeHtml(previewText).replace(/\n/g, '<br>') + '…';
+    
+    return `<div class="user-long-msg">
+      <div class="user-long-full">${rendered}</div>
+      <div class="user-long-preview" style="display:none">${previewRendered}</div>
+      <button class="user-long-toggle" onclick="toggleUserLongMsg(this)">Collapse</button>
     </div>`;
   }
   
-  // Short with markdown — just render
   return rendered;
+}
+
+// Toggle collapse/expand for long user messages
+function toggleUserLongMsg(btn) {
+  const container = btn.closest('.user-long-msg');
+  if (!container) return;
+  const full = container.querySelector('.user-long-full');
+  const preview = container.querySelector('.user-long-preview');
+  const isCollapsed = full.style.display === 'none';
+  
+  full.style.display = isCollapsed ? '' : 'none';
+  preview.style.display = isCollapsed ? 'none' : '';
+  btn.textContent = isCollapsed ? 'Collapse' : 'Show all';
 }
 
 // Get current AI persona name
