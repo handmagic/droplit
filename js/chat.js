@@ -1970,7 +1970,9 @@ function updateAskAICharCount() {
   const counter = document.getElementById('askAICharCount');
   counter.textContent = `${count} / 2000`;
   counter.classList.toggle('warning', count > 1800);
-  document.getElementById('askAISendBtn').disabled = count === 0;
+  // Enable send button when text exists OR image is attached
+  const hasImage = document.getElementById('chatImagePreview')?.style.display !== 'none' && document.getElementById('chatImagePreview')?.querySelector('img');
+  document.getElementById('askAISendBtn').disabled = count === 0 && !hasImage;
 }
 
 // Auto-resize textarea as user types
@@ -3603,7 +3605,7 @@ function updateVoiceModeIndicator(state) {
       if (controlRight) {
         controlRight.classList.remove('listening');
         controlRight.classList.remove('processing');
-        if (controlRightText) controlRightText.textContent = 'TAP TO TALK';
+        if (controlRightText) controlRightText.textContent = isVoiceModeEnabled() ? 'TAP TO TALK' : 'WRITE';
       }
       updateChatControlLeft('hide');
       break;
@@ -3616,7 +3618,7 @@ function updateVoiceModeIndicator(state) {
       if (controlRight) {
         controlRight.classList.remove('listening');
         controlRight.classList.remove('processing');
-        if (controlRightText) controlRightText.textContent = 'TAP TO TALK';
+        if (controlRightText) controlRightText.textContent = isVoiceModeEnabled() ? 'TAP TO TALK' : 'WRITE';
       }
       updateChatControlLeft('hide');
       break;
@@ -3629,7 +3631,7 @@ function updateVoiceModeIndicator(state) {
       if (controlRight) {
         controlRight.classList.remove('listening');
         controlRight.classList.remove('processing');
-        if (controlRightText) controlRightText.textContent = 'TAP TO TALK';
+        if (controlRightText) controlRightText.textContent = isVoiceModeEnabled() ? 'TAP TO TALK' : 'WRITE';
       }
       updateChatControlLeft('hide');
   }
