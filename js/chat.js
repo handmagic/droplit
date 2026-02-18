@@ -4414,12 +4414,15 @@ async function handleStreamingResponse(response) {
                 await initStreamingTTSIfNeeded();
               }
               
-              // Feed to streaming TTS
+              // Feed to streaming TTS (strip emoji — v4.29)
               if (streamingTTSActive) {
-                if (streamingEngine === 'openai') {
-                  window.OpenAIStreamingTTS.feedText(parsed.content);
-                } else {
-                  window.StreamingTTS.feedText(parsed.content);
+                const cleanChunk = typeof stripEmojiForTTS === 'function' ? stripEmojiForTTS(parsed.content) : parsed.content;
+                if (cleanChunk) {
+                  if (streamingEngine === 'openai') {
+                    window.OpenAIStreamingTTS.feedText(cleanChunk);
+                  } else {
+                    window.StreamingTTS.feedText(cleanChunk);
+                  }
                 }
               }
             }
@@ -4851,12 +4854,15 @@ async function handleStreamingResponse(response) {
                 await initStreamingTTSIfNeeded();
               }
               
-              // Feed to streaming TTS
+              // Feed to streaming TTS (strip emoji — v4.29)
               if (streamingTTSActive) {
-                if (streamingEngine === 'openai') {
-                  window.OpenAIStreamingTTS.feedText(parsed.delta.text);
-                } else {
-                  window.StreamingTTS.feedText(parsed.delta.text);
+                const cleanChunk = typeof stripEmojiForTTS === 'function' ? stripEmojiForTTS(parsed.delta.text) : parsed.delta.text;
+                if (cleanChunk) {
+                  if (streamingEngine === 'openai') {
+                    window.OpenAIStreamingTTS.feedText(cleanChunk);
+                  } else {
+                    window.StreamingTTS.feedText(cleanChunk);
+                  }
                 }
               }
             }
@@ -5296,7 +5302,7 @@ async function handleOllamaStreamingResponse(response) {
               if (beforeThink) {
                 fullText += beforeThink;
                 textSpan.textContent = fullText;
-                if (kokoroStreamActive) window.KokoroTTS.pushText(beforeThink);
+                if (kokoroStreamActive) window.KokoroTTS.pushText(typeof stripEmojiForTTS === 'function' ? stripEmojiForTTS(beforeThink) : beforeThink);
               }
               
               const endIdx = afterThink.indexOf('</think>');
@@ -5306,7 +5312,7 @@ async function handleOllamaStreamingResponse(response) {
                 if (remaining) {
                   fullText += remaining;
                   textSpan.textContent = fullText;
-                  if (kokoroStreamActive) window.KokoroTTS.pushText(remaining);
+                  if (kokoroStreamActive) window.KokoroTTS.pushText(typeof stripEmojiForTTS === 'function' ? stripEmojiForTTS(remaining) : remaining);
                 }
                 console.log('[Ollama] Thinking:', thinkingContent.substring(0, 100) + '...');
               } else {
@@ -5321,7 +5327,7 @@ async function handleOllamaStreamingResponse(response) {
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             
             if (kokoroStreamActive) {
-              window.KokoroTTS.pushText(chunk);
+              window.KokoroTTS.pushText(typeof stripEmojiForTTS === 'function' ? stripEmojiForTTS(chunk) : chunk);
             }
           }
           
