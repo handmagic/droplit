@@ -429,12 +429,36 @@
         right: 0 !important;
       }
       .plus-menu {
+        /* Center in feed area — horizontally and vertically */
         left: calc(var(--chat-width, 50%) + 5px) !important;
         right: 0 !important;
-        max-width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+        bottom: auto !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        width: min(360px, calc(100vw - var(--chat-width, 50%) - 40px)) !important;
+        max-width: none !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+      }
+      .plus-menu.show {
+        transform: translateY(-50%) !important;
       }
       .plus-menu-backdrop {
         left: calc(var(--chat-width, 50%) + 5px) !important;
+      }
+      
+      /* Edit panel — constrained to feed area */
+      .edit-panel {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
+        right: 0 !important;
+        width: auto !important;
+      }
+      
+      /* Image viewer — constrained to feed area */
+      .image-viewer {
+        left: calc(var(--chat-width, 50%) + 5px) !important;
+        right: 0 !important;
+        width: auto !important;
       }
       .main-menu {
         position: fixed !important;
@@ -455,7 +479,15 @@
       body.desktop-split.chat-right .plus-menu,
       body.desktop-split.chat-right .plus-menu-backdrop {
         left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
-        max-width: calc(100vw - var(--chat-width, 50%) - 5px) !important;
+        max-width: min(360px, calc(100vw - var(--chat-width, 50%) - 40px)) !important;
+      }
+      body.desktop-split.chat-right .edit-panel {
+        left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
+        width: auto !important;
+      }
+      body.desktop-split.chat-right .image-viewer {
+        left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
+        width: auto !important;
       }
       body.desktop-split.chat-right .main-menu {
         left: 0 !important; right: calc(var(--chat-width, 50%) + 5px) !important;
