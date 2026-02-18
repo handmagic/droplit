@@ -5756,11 +5756,11 @@ function handleImageWheel(e) {
   if (!document.getElementById('imageViewer')?.classList.contains('show')) return;
   e.preventDefault();
   
-  const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-  const oldScale = scale;
-  scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, scale + delta));
+  // Multiplicative zoom — consistent feel on mouse and trackpad
+  const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1; // 10% per tick
+  scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, scale * zoomFactor));
   
-  if (scale <= 1) { offsetX = 0; offsetY = 0; }
+  if (scale < 1.05 && scale > 0.95) { scale = 1; offsetX = 0; offsetY = 0; } // Snap to 1x
   clampOffset();
   applyTransform(false);
   updateZoomLevel();
