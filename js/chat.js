@@ -419,6 +419,7 @@ function restoreChatDraft() {
 // ============================================
 
 const CHAT_HISTORY_KEY = 'droplit_chat_history';
+const CHAT_HISTORY_ENC_KEY = 'droplit_chat_history_enc'; // Encrypted version
 const CHAT_PAGE_SIZE = 50; // Messages per page
 const CHAT_MAX_MESSAGES = 2000; // Max stored messages
 const CHAT_THUMBNAIL_SIZE = 200; // Max thumbnail dimension
@@ -428,6 +429,118 @@ let chatHistoryLoaded = false;
 let chatHistoryPage = 0;
 let chatHistoryTotal = 0;
 let isLoadingHistory = false;
+let _chatEncryptionKey = null; // Cached CryptoKey for session
+
+// ============================================
+// CHAT ENCRYPTION HELPERS (v4.29)
+// ============================================
+
+async function getChatEncryptionKey() {
+  // Return cached key if available
+  if (_chatEncryptionKey) return _chatEncryptionKey;
+  
+  // Check if privacy system is active and user is logged in
+  if (!window.DROPLIT_PRIVACY_ENABLED) return null;
+  if (!window.DropLitKeys) return null;
+  if (typeof currentUser === 'undefined' || !currentUser?.id) return null;
+  
+  try {
+    const keyData = await window.DropLitKeys.retrieveKey(currentUser.id);
+    if (keyData?.key) {
+      _chatEncryptionKey = keyData.key;
+      console.log('[ChatCrypto] Encryption key loaded');
+      return _chatEncryptionKey;
+    }
+  } catch (e) {
+    console.warn('[ChatCrypto] Key retrieval failed:', e.message);
+  }
+  return null;
+}
+
+// Encrypt string → { encrypted, nonce } base64
+async function encryptChatData(plaintext, key) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plaintext);
+  const nonce = crypto.getRandomValues(new Uint8Array(12));
+  
+  const encryptedBuffer = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: nonce },
+    key,
+    data
+  );
+  
+  // Convert to base64
+  const encB64 = btoa(String.fromCharCode(...new Uint8Array(encryptedBuffer)));
+  const nonceB64 = btoa(String.fromCharCode(...nonce));
+  return { encrypted: encB64, nonce: nonceB64 };
+}
+
+// Decrypt { encrypted, nonce } → plaintext string
+async function decryptChatData(encB64, nonceB64, key) {
+  const encrypted = Uint8Array.from(atob(encB64), c => c.charCodeAt(0));
+  const nonce = Uint8Array.from(atob(nonceB64), c => c.charCodeAt(0));
+  
+  const decryptedBuffer = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: nonce },
+    key,
+    encrypted
+  );
+  
+  return new TextDecoder().decode(decryptedBuffer);
+}
+
+// Read chat history (handles both encrypted and plaintext)
+async function readChatHistoryFromStorage() {
+  const key = await getChatEncryptionKey();
+  
+  // Try encrypted storage first
+  if (key) {
+    try {
+      const encData = localStorage.getItem(CHAT_HISTORY_ENC_KEY);
+      if (encData) {
+        const { encrypted, nonce } = JSON.parse(encData);
+        const plaintext = await decryptChatData(encrypted, nonce, key);
+        const history = JSON.parse(plaintext);
+        console.log('[ChatCrypto] Decrypted', history.length, 'messages');
+        return history;
+      }
+    } catch (e) {
+      console.warn('[ChatCrypto] Decrypt failed, trying plaintext:', e.message);
+    }
+  }
+  
+  // Fallback to plaintext
+  try {
+    return JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+// Write chat history (encrypts if key available, migrates plaintext)
+async function writeChatHistoryToStorage(history) {
+  const key = await getChatEncryptionKey();
+  const json = JSON.stringify(history);
+  
+  if (key) {
+    try {
+      const { encrypted, nonce } = await encryptChatData(json, key);
+      localStorage.setItem(CHAT_HISTORY_ENC_KEY, JSON.stringify({ encrypted, nonce }));
+      
+      // Remove plaintext version (migration complete)
+      if (localStorage.getItem(CHAT_HISTORY_KEY)) {
+        localStorage.removeItem(CHAT_HISTORY_KEY);
+        console.log('[ChatCrypto] Migrated plaintext → encrypted');
+      }
+      return;
+    } catch (e) {
+      console.error('[ChatCrypto] Encrypt failed, saving plaintext:', e.message);
+    }
+  }
+  
+  // Fallback: plaintext
+  localStorage.setItem(CHAT_HISTORY_KEY, json);
+}
 
 // Compact message structure for storage
 function createStorableMessage(role, text, imageData = null, extras = {}) {
@@ -483,8 +596,8 @@ function generateThumbnail(base64Data, maxSize = CHAT_THUMBNAIL_SIZE) {
 // Save message to history
 async function saveToChatHistory(role, text, imageData = null, extras = {}) {
   try {
-    // Load existing history
-    let history = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+    // Load existing history (handles decryption automatically)
+    let history = await readChatHistoryFromStorage();
     
     // Generate thumbnail if image provided
     let thumbnail = null;
@@ -513,8 +626,8 @@ async function saveToChatHistory(role, text, imageData = null, extras = {}) {
       return m;
     });
     
-    // Save
-    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+    // Save (handles encryption automatically)
+    await writeChatHistoryToStorage(history);
     chatHistoryTotal = history.length;
     
     console.log('[ChatHistory] Saved message, total:', history.length);
@@ -526,12 +639,12 @@ async function saveToChatHistory(role, text, imageData = null, extras = {}) {
 }
 
 // Load chat history with pagination
-function loadChatHistory(page = 0, append = false) {
+async function loadChatHistory(page = 0, append = false) {
   if (isLoadingHistory) return;
   isLoadingHistory = true;
   
   try {
-    const history = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+    const history = await readChatHistoryFromStorage();
     chatHistoryTotal = history.length;
     
     if (history.length === 0) {
@@ -753,6 +866,7 @@ function clearChatHistory() {
   if (!confirm('Clear all chat history? This cannot be undone.')) return;
   
   localStorage.removeItem(CHAT_HISTORY_KEY);
+  localStorage.removeItem(CHAT_HISTORY_ENC_KEY);
   askAIMessages = [];
   chatHistoryTotal = 0;
   chatHistoryPage = 0;
@@ -772,10 +886,11 @@ function clearChatHistory() {
 }
 
 // Get chat history stats
-function getChatHistoryStats() {
+async function getChatHistoryStats() {
   try {
-    const history = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+    const history = await readChatHistoryFromStorage();
     const sizeBytes = new Blob([JSON.stringify(history)]).size;
+    const isEncrypted = !!localStorage.getItem(CHAT_HISTORY_ENC_KEY);
     const oldestMsg = history[0];
     const newestMsg = history[history.length - 1];
     
@@ -783,7 +898,8 @@ function getChatHistoryStats() {
       count: history.length,
       sizeKB: Math.round(sizeBytes / 1024),
       oldest: oldestMsg ? new Date(oldestMsg.ts).toLocaleDateString() : null,
-      newest: newestMsg ? new Date(newestMsg.ts).toLocaleDateString() : null
+      newest: newestMsg ? new Date(newestMsg.ts).toLocaleDateString() : null,
+      encrypted: isEncrypted
     };
   } catch (e) {
     return { count: 0, sizeKB: 0, oldest: null, newest: null };
@@ -1045,21 +1161,21 @@ function deleteChatMessage(msgId) {
   }
 }
 
-// Delete message from chat history (localStorage) - v4.27
-function deleteHistoryMessage(msgId) {
+// Delete message from chat history (localStorage) - v4.27 + encrypted v4.29
+async function deleteHistoryMessage(msgId) {
   // Remove from DOM
   const msgEl = document.querySelector(`[data-msg-id="${msgId}"]`);
   if (msgEl) {
     msgEl.remove();
   }
   
-  // Remove from localStorage
+  // Remove from storage (handles encryption)
   try {
-    let history = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
+    let history = await readChatHistoryFromStorage();
     const idx = history.findIndex(m => m.id === msgId);
     if (idx !== -1) {
       history.splice(idx, 1);
-      localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
+      await writeChatHistoryToStorage(history);
       chatHistoryTotal = history.length;
       console.log('[ChatHistory] Deleted message:', msgId);
       toast('Message deleted', 'success');
