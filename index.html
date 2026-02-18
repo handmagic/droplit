@@ -2489,6 +2489,18 @@
     <div class="image-viewer-markers" id="imageViewerMarkers" onclick="openPhotoMarkers()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg></div>
     <div class="image-viewer-ai" onclick="openPhotoAI()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></div>
     <div class="image-counter" id="imageCounter">1 / 1</div>
+    <div class="image-zoom-controls" id="imageZoomControls">
+      <button class="image-zoom-btn" onclick="imageZoomIn()" title="Zoom in">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </button>
+      <button class="image-zoom-btn" onclick="imageZoomOut()" title="Zoom out">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </button>
+      <button class="image-zoom-btn" onclick="imageFitToView()" title="Fit to view">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+      <span class="image-zoom-level" id="imageZoomLevel">100%</span>
+    </div>
     <div class="image-viewer-nav prev" id="imgNavPrev" onclick="navigateImage(-1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg></div>
     <div class="image-viewer-nav next" id="imgNavNext" onclick="navigateImage(1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg></div>
     <div class="image-viewer-content" id="imageViewerContent">
@@ -5703,6 +5715,140 @@ function clampOffset(){
   offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, offsetX));
   offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, offsetY));
 }
+
+// ============================================
+// DESKTOP ZOOM/PAN CONTROLS (v4.30)
+// Buttons + mouse wheel + drag pan + double-click fit
+// ============================================
+
+const ZOOM_STEP = 0.25;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 5;
+
+function updateZoomLevel() {
+  const el = document.getElementById('imageZoomLevel');
+  if (el) el.textContent = Math.round(scale * 100) + '%';
+}
+
+function imageZoomIn() {
+  scale = Math.min(ZOOM_MAX, scale + ZOOM_STEP);
+  clampOffset();
+  applyTransform(true);
+  updateZoomLevel();
+}
+
+function imageZoomOut() {
+  scale = Math.max(ZOOM_MIN, scale - ZOOM_STEP);
+  if (scale <= 1) { offsetX = 0; offsetY = 0; }
+  clampOffset();
+  applyTransform(true);
+  updateZoomLevel();
+}
+
+function imageFitToView() {
+  resetTransform();
+  applyTransform(true);
+  updateZoomLevel();
+}
+
+// Mouse wheel zoom (desktop)
+function handleImageWheel(e) {
+  if (!document.getElementById('imageViewer')?.classList.contains('show')) return;
+  e.preventDefault();
+  
+  const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+  const oldScale = scale;
+  scale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, scale + delta));
+  
+  if (scale <= 1) { offsetX = 0; offsetY = 0; }
+  clampOffset();
+  applyTransform(false);
+  updateZoomLevel();
+}
+
+// Mouse drag pan (desktop)
+let isMousePanning = false;
+let mousePanStartX = 0;
+let mousePanStartY = 0;
+let mousePanStartOffsetX = 0;
+let mousePanStartOffsetY = 0;
+
+function handleImageMouseDown(e) {
+  if (scale <= 1) return;
+  if (e.button !== 0) return; // Left button only
+  e.preventDefault();
+  isMousePanning = true;
+  mousePanStartX = e.clientX;
+  mousePanStartY = e.clientY;
+  mousePanStartOffsetX = offsetX;
+  mousePanStartOffsetY = offsetY;
+  document.getElementById('imageViewerContent').style.cursor = 'grabbing';
+}
+
+function handleImageMouseMove(e) {
+  if (!isMousePanning) return;
+  const dx = (e.clientX - mousePanStartX) / scale;
+  const dy = (e.clientY - mousePanStartY) / scale;
+  offsetX = mousePanStartOffsetX + dx;
+  offsetY = mousePanStartOffsetY + dy;
+  clampOffset();
+  applyTransform(false);
+}
+
+function handleImageMouseUp() {
+  if (!isMousePanning) return;
+  isMousePanning = false;
+  const content = document.getElementById('imageViewerContent');
+  if (content) content.style.cursor = scale > 1 ? 'grab' : '';
+}
+
+// Double-click to toggle fit (desktop)
+function handleImageDblClick(e) {
+  e.preventDefault();
+  if (scale > 1) {
+    // Zoomed in — reset to fit
+    resetTransform();
+  } else {
+    // Fit — zoom to 2x centered on click point
+    scale = DOUBLE_TAP_SCALE;
+  }
+  clampOffset();
+  applyTransform(true);
+  updateZoomLevel();
+}
+
+// Init desktop mouse handlers
+(function initDesktopImageControls() {
+  if (window.innerWidth < 1024) return;
+  
+  const content = document.getElementById('imageViewerContent');
+  if (!content) {
+    // Retry after DOM ready
+    document.addEventListener('DOMContentLoaded', function() {
+      const c = document.getElementById('imageViewerContent');
+      if (c) bindImageMouseEvents(c);
+    });
+    return;
+  }
+  bindImageMouseEvents(content);
+})();
+
+function bindImageMouseEvents(content) {
+  content.addEventListener('wheel', handleImageWheel, { passive: false });
+  content.addEventListener('mousedown', handleImageMouseDown);
+  document.addEventListener('mousemove', handleImageMouseMove);
+  document.addEventListener('mouseup', handleImageMouseUp);
+  content.addEventListener('dblclick', handleImageDblClick);
+}
+
+// Update zoom level on image load/reset
+const _origResetTransform = resetTransform;
+resetTransform = function() {
+  _origResetTransform();
+  updateZoomLevel();
+  const content = document.getElementById('imageViewerContent');
+  if (content) content.style.cursor = '';
+};
 
 // ============================================
 // TOUCH HANDLERS
