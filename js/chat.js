@@ -3598,6 +3598,9 @@ function toggleAskiSpeak(btn) {
     if (window.suppressAudio) window.suppressAudio();
     else askiStopSpeaking();
     askiIsSpeaking = false;
+    // Reset button state
+    if (typeof updateSpeakButton === 'function') updateSpeakButton(btn, 'speak');
+    activeSpeakBtn = null;
     return;
   }
   
@@ -3606,7 +3609,16 @@ function toggleAskiSpeak(btn) {
   
   const bubble = btn.closest('.ask-ai-message').querySelector('.ask-ai-bubble');
   const text = bubble.textContent;
-  askiSpeak(text);
+  
+  // Set button to Stop state
+  if (typeof updateSpeakButton === 'function') updateSpeakButton(btn, 'stop');
+  activeSpeakBtn = btn;
+  
+  askiSpeak(text, null, () => {
+    // onEnd — reset button
+    if (typeof updateSpeakButton === 'function') updateSpeakButton(btn, 'speak');
+    activeSpeakBtn = null;
+  });
 }
 
 // Update speaking indicator in header
@@ -5176,13 +5188,23 @@ async function handleStreamingResponse(response) {
   }
   
   // Handle TTS
+  // Find the Speak button for visual feedback (v4.30)
+  const autoSpeakBtn = msgDiv.querySelector('.ask-ai-action-btn[onclick*="speakAskAIMessage"]');
+  
   if (streamingTTSActive) {
+    // Activate Speak button during streaming TTS
+    if (autoSpeakBtn && typeof updateSpeakButton === 'function') {
+      updateSpeakButton(autoSpeakBtn, 'stop');
+      activeSpeakBtn = autoSpeakBtn;
+    }
     if (streamingEngine === 'openai') {
       // OpenAI sentence-by-sentence streaming
       window.OpenAIStreamingTTS.onEnd = () => {
         console.log('[Chat] OpenAI Streaming TTS ended, unlocking voice mode');
         streamingTTSIsActive = false;
         updateChatControlLeft('hide');
+        if (autoSpeakBtn && typeof updateSpeakButton === 'function') updateSpeakButton(autoSpeakBtn, 'speak');
+        activeSpeakBtn = null;
         unlockVoiceMode();
       };
       window.OpenAIStreamingTTS.finish();
@@ -5192,16 +5214,31 @@ async function handleStreamingResponse(response) {
         console.log('[Chat] ElevenLabs Streaming TTS ended, unlocking voice mode');
         streamingTTSIsActive = false;
         updateChatControlLeft('hide');
+        if (autoSpeakBtn && typeof updateSpeakButton === 'function') updateSpeakButton(autoSpeakBtn, 'speak');
+        activeSpeakBtn = null;
         unlockVoiceMode();
       });
       window.StreamingTTS.finish();
     }
   } else if (isAutoSpeakEnabled() && fullText) {
-    // Fallback to regular TTS (non-streaming)
+    // Fallback to regular TTS (non-streaming) — activate button
+    if (autoSpeakBtn && typeof updateSpeakButton === 'function') {
+      updateSpeakButton(autoSpeakBtn, 'stop');
+      activeSpeakBtn = autoSpeakBtn;
+    }
     try {
-      speakText(fullText);
+      speakTextWithCallback(fullText, 
+        function() { // onEnd
+          if (autoSpeakBtn && typeof updateSpeakButton === 'function') updateSpeakButton(autoSpeakBtn, 'speak');
+          activeSpeakBtn = null;
+          unlockVoiceMode();
+        },
+        null // onStart
+      );
     } catch (e) {
       console.error('TTS error:', e);
+      if (autoSpeakBtn && typeof updateSpeakButton === 'function') updateSpeakButton(autoSpeakBtn, 'speak');
+      activeSpeakBtn = null;
       unlockVoiceMode();
     }
   } else {
