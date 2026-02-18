@@ -3586,21 +3586,38 @@ function askiStopSpeaking() {
   if (speechSynthesis.speaking) {
     speechSynthesis.cancel();
   }
+  // Stop streaming TTS engines
+  if (window.OpenAIStreamingTTS) try { window.OpenAIStreamingTTS.stop(); } catch(e) {}
+  if (window.StreamingTTS) try { window.StreamingTTS.stop(); } catch(e) {}
+  if (window.KokoroTTS) try { window.KokoroTTS.stop(); } catch(e) {}
+  
   askiIsSpeaking = false;
   askiCurrentUtterance = null;
+  streamingTTSIsActive = false;
   updateSpeakingIndicator(false);
+  
+  // Reset active speak button (v4.30)
+  if (typeof activeSpeakBtn !== 'undefined' && activeSpeakBtn) {
+    if (typeof updateSpeakButton === 'function') updateSpeakButton(activeSpeakBtn, 'speak');
+    activeSpeakBtn = null;
+  }
 }
 
 // Toggle speak for a message
 function toggleAskiSpeak(btn) {
-  if (askiIsSpeaking) {
-    // v4.29: Suppress to block in-flight fetches too
+  // Check if ANY TTS is active (askiSpeak system OR streaming TTS system)
+  const isAnySpeaking = askiIsSpeaking || streamingTTSIsActive || 
+    (typeof activeSpeakBtn !== 'undefined' && activeSpeakBtn) ||
+    (window.KokoroTTS && window.KokoroTTS.isSpeaking) ||
+    (window.speechSynthesis && window.speechSynthesis.speaking);
+  
+  if (isAnySpeaking) {
+    // Stop everything
     if (window.suppressAudio) window.suppressAudio();
-    else askiStopSpeaking();
+    askiStopSpeaking(); // This now resets activeSpeakBtn too
     askiIsSpeaking = false;
-    // Reset button state
+    // Also reset this specific button in case activeSpeakBtn was different
     if (typeof updateSpeakButton === 'function') updateSpeakButton(btn, 'speak');
-    activeSpeakBtn = null;
     return;
   }
   
@@ -5189,7 +5206,10 @@ async function handleStreamingResponse(response) {
   
   // Handle TTS
   // Find the Speak button for visual feedback (v4.30)
-  const autoSpeakBtn = msgDiv.querySelector('.ask-ai-action-btn[onclick*="speakAskAIMessage"]');
+  const autoSpeakBtn = msgDiv.querySelector('.ask-ai-action-btn[onclick*="speakAskAIMessage"]') 
+    || msgDiv.querySelector('.speak-btn') 
+    || msgDiv.querySelector('.ask-ai-action-btn[onclick*="Speak"]');
+  console.log('[Chat] Auto-speak button found:', !!autoSpeakBtn, 'streamingTTS:', streamingTTSActive);
   
   if (streamingTTSActive) {
     // Activate Speak button during streaming TTS
