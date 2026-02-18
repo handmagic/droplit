@@ -4190,6 +4190,8 @@ async function handleStreamingResponse(response) {
   
   const msgDiv = document.createElement('div');
   msgDiv.className = 'ask-ai-message ai';
+  const streamMsgId = 'msg-' + Date.now();
+  msgDiv.id = streamMsgId;
   msgDiv.innerHTML = '<div class="ask-ai-bubble"><span class="streaming-text"></span><span class="streaming-indicator"></span></div><div class="ask-ai-time">' + time + '</div>';
   messagesDiv.appendChild(msgDiv);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -4807,7 +4809,9 @@ async function handleStreamingResponse(response) {
     ? '<button class="ask-ai-action-btn created autodrop-saved"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Saved</button>'
     : '<button class="ask-ai-action-btn" onclick="createDropFromAI(this)">Create Drop</button>';
   
-  actionsDiv.innerHTML = '<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button><button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button>' + createDropBtn;
+  const delBtn = '<button class="ask-ai-action-btn" style="border-color: #EF4444; color: #EF4444;" onclick="deleteChatMessage(\'' + streamMsgId + '\')" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Del</button>';
+  
+  actionsDiv.innerHTML = '<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button><button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button>' + createDropBtn + delBtn;
   bubble.after(actionsDiv);
   
   askAIMessages.push({ text: fullText, isUser: false });
@@ -4926,12 +4930,14 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
     }
   }
   
+  const delBtnHtml = `<button class="ask-ai-action-btn" style="border-color: #EF4444; color: #EF4444;" onclick="deleteChatMessage('${msgId}')" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Del</button>`;
+  
   if (isUser) {
     // If image present, don't show Create Drop in text actions (already under image)
     const textActions = imageUrl 
-      ? `<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button>`
+      ? `<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button>${delBtnHtml}`
       : `${createDropBtn}
-         <button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button>`;
+         <button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button>${delBtnHtml}`;
     
     msgDiv.innerHTML = `
       ${imageHtml}
@@ -4952,6 +4958,7 @@ function addAskAIMessage(text, isUser = true, imageUrl = null) {
         </button>
         ${createDropBtn}
         <button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button>
+        ${delBtnHtml}
       </div>
       <div class="ask-ai-time">${time}</div>
     `;
@@ -5099,6 +5106,8 @@ async function handleOllamaStreamingResponse(response) {
   
   const msgDiv = document.createElement('div');
   msgDiv.className = 'ask-ai-message ai';
+  const streamMsgId = 'msg-' + Date.now();
+  msgDiv.id = streamMsgId;
   msgDiv.innerHTML = '<div class="ask-ai-bubble"><span class="streaming-text"></span><span class="streaming-indicator" style="font-size:10px; opacity:0.5; margin-left:4px;">🧠 local</span></div><div class="ask-ai-time">' + time + '</div>';
   messagesDiv.appendChild(msgDiv);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -5257,7 +5266,8 @@ async function handleOllamaStreamingResponse(response) {
   const createDropBtn = autoDropEnabled 
     ? '<button class="ask-ai-action-btn created autodrop-saved"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Saved</button>'
     : '<button class="ask-ai-action-btn" onclick="createDropFromAI(this)">Create Drop</button>';
-  actionsDiv.innerHTML = '<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button><button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button>' + createDropBtn;
+  const delBtn = '<button class="ask-ai-action-btn" style="border-color: #EF4444; color: #EF4444;" onclick="deleteChatMessage(\'' + streamMsgId + '\')" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg> Del</button>';
+  actionsDiv.innerHTML = '<button class="ask-ai-action-btn" onclick="copyAskAIMessage(this)">Copy</button><button class="ask-ai-action-btn" onclick="speakAskAIMessage(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Speak</button>' + createDropBtn + delBtn;
   bubble.after(actionsDiv);
   
   // Save to history
