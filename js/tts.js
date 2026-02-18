@@ -192,11 +192,55 @@ function stripEmojiForTTS(text) {
     .trim();
 }
 
+// Strip markdown syntax for TTS (v4.30)
+function stripMarkdownForTTS(text) {
+  return text
+    // Code blocks (``` ... ```) — remove entirely (code shouldn't be read aloud)
+    .replace(/```[\s\S]*?```/g, ' ')
+    // Inline code (`...`) — keep content, remove backticks
+    .replace(/`([^`]+)`/g, '$1')
+    // Images ![alt](url) — remove entirely
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '')
+    // Links [text](url) — keep text only
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    // Headers ## — remove hash marks
+    .replace(/^#{1,6}\s+/gm, '')
+    // Bold/italic ***text***, **text**, *text*, ___text___, __text__, _text_
+    .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
+    .replace(/_{1,3}([^_]+)_{1,3}/g, '$1')
+    // Strikethrough ~~text~~
+    .replace(/~~([^~]+)~~/g, '$1')
+    // Horizontal rules (---, ***, ___)
+    .replace(/^[-*_]{3,}\s*$/gm, '')
+    // Blockquotes > 
+    .replace(/^>\s+/gm, '')
+    // Unordered list markers (-, *, +)
+    .replace(/^[\s]*[-*+]\s+/gm, '')
+    // Ordered list markers (1., 2., etc)
+    .replace(/^[\s]*\d+\.\s+/gm, '')
+    // HTML tags (rare in LLM output but possible)
+    .replace(/<[^>]+>/g, '')
+    // Pipe tables — remove pipes, keep cell text
+    .replace(/\|/g, ', ')
+    .replace(/^[-:|\s]+$/gm, '')
+    // Collapse multiple newlines to single
+    .replace(/\n{3,}/g, '\n\n')
+    // Collapse multiple spaces
+    .replace(/  +/g, ' ')
+    .trim();
+}
+
+// Combined cleaner — emoji + markdown (v4.30)
+function cleanTextForTTS(text) {
+  if (!text) return '';
+  return stripEmojiForTTS(stripMarkdownForTTS(text));
+}
+
 function speakTextWithCallback(text, onEnd, onStart) {
   if (!text) return;
   
-  // Clean emoji before any TTS provider
-  text = stripEmojiForTTS(text);
+  // Clean markdown + emoji before any TTS provider
+  text = cleanTextForTTS(text);
   if (!text) return;
   
   stopTTS();
@@ -484,7 +528,7 @@ async function speakWithElevenLabsCallback(text, apiKey, voiceId, onEnd, onStart
 function speakText(text) {
   if (!text) return;
   
-  text = stripEmojiForTTS(text);
+  text = cleanTextForTTS(text);
   if (!text) return;
   
   stopTTS();
