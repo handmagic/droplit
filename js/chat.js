@@ -4664,7 +4664,7 @@ async function handleStreamingResponse(response) {
               
               // Feed to streaming TTS (strip emoji — v4.29)
               if (streamingTTSActive) {
-                const cleanChunk = typeof cleanTextForTTS === 'function' ? cleanTextForTTS(parsed.content) : parsed.content;
+                const cleanChunk = typeof cleanChunkForTTS === 'function' ? cleanChunkForTTS(parsed.content) : parsed.content;
                 if (cleanChunk) {
                   if (streamingEngine === 'openai') {
                     window.OpenAIStreamingTTS.feedText(cleanChunk);
@@ -5104,7 +5104,7 @@ async function handleStreamingResponse(response) {
               
               // Feed to streaming TTS (strip emoji — v4.29)
               if (streamingTTSActive) {
-                const cleanChunk = typeof cleanTextForTTS === 'function' ? cleanTextForTTS(parsed.delta.text) : parsed.delta.text;
+                const cleanChunk = typeof cleanChunkForTTS === 'function' ? cleanChunkForTTS(parsed.delta.text) : parsed.delta.text;
                 if (cleanChunk) {
                   if (streamingEngine === 'openai') {
                     window.OpenAIStreamingTTS.feedText(cleanChunk);
@@ -5541,6 +5541,11 @@ async function handleOllamaStreamingResponse(response) {
       onStart: () => { console.log('[Ollama+Kokoro] First sound'); },
       onEnd: () => { 
         console.log('[Ollama+Kokoro] TTS done');
+        // Reset Speak button (v4.30)
+        if (typeof activeSpeakBtn !== 'undefined' && activeSpeakBtn) {
+          if (typeof updateSpeakButton === 'function') updateSpeakButton(activeSpeakBtn, 'speak');
+          activeSpeakBtn = null;
+        }
         unlockVoiceMode(); 
       }
     });
@@ -5588,7 +5593,7 @@ async function handleOllamaStreamingResponse(response) {
               if (beforeThink) {
                 fullText += beforeThink;
                 textSpan.textContent = fullText;
-                if (kokoroStreamActive) window.KokoroTTS.pushText(typeof cleanTextForTTS === 'function' ? cleanTextForTTS(beforeThink) : beforeThink);
+                if (kokoroStreamActive) window.KokoroTTS.pushText(typeof cleanChunkForTTS === 'function' ? cleanChunkForTTS(beforeThink) : beforeThink);
               }
               
               const endIdx = afterThink.indexOf('</think>');
@@ -5598,7 +5603,7 @@ async function handleOllamaStreamingResponse(response) {
                 if (remaining) {
                   fullText += remaining;
                   textSpan.textContent = fullText;
-                  if (kokoroStreamActive) window.KokoroTTS.pushText(typeof cleanTextForTTS === 'function' ? cleanTextForTTS(remaining) : remaining);
+                  if (kokoroStreamActive) window.KokoroTTS.pushText(typeof cleanChunkForTTS === 'function' ? cleanChunkForTTS(remaining) : remaining);
                 }
                 console.log('[Ollama] Thinking:', thinkingContent.substring(0, 100) + '...');
               } else {
@@ -5613,7 +5618,7 @@ async function handleOllamaStreamingResponse(response) {
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             
             if (kokoroStreamActive) {
-              window.KokoroTTS.pushText(typeof cleanTextForTTS === 'function' ? cleanTextForTTS(chunk) : chunk);
+              window.KokoroTTS.pushText(typeof cleanChunkForTTS === 'function' ? cleanChunkForTTS(chunk) : chunk);
             }
           }
           
