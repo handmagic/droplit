@@ -1301,7 +1301,7 @@ body.font-large .balance-value { font-size: 2rem; }
 .select-btn.delete { background: var(--color-error); color: white; border-color: transparent; }
 
 /* Modals - TYPE-C (compact, 320px) */
-.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; padding: 20px; z-index: 100; backdrop-filter: blur(4px); }
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.2); align-items: center; justify-content: center; padding: 20px; z-index: 100; }
 .overlay.show { display: flex; }
 .modal { width: 100%; max-width: 320px; background: var(--color-bg-card); border-radius: var(--radius-lg); padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: modalIn 0.25s ease; }
 .modal.type-b { max-width: 360px; padding: 0; overflow: hidden; }
@@ -2145,6 +2145,79 @@ body.dark .edit-panel-close-btn { background: var(--color-bg-soft); }
 
 /* catModal above edit panel */
 body.editing-mode #catModal { z-index: 1200; }
+
+/* ─── Editing mode: all modals above edit-panel (z-index 1100) ─── */
+body.editing-mode #translateModal,
+body.editing-mode #fileExportOverlay,
+body.editing-mode #sendModal,
+body.editing-mode #delModal,
+body.editing-mode #exportModal,
+body.editing-mode .cmd-modal,
+body.editing-mode .magic-modal,
+body.editing-mode .ai-tools-modal,
+body.editing-mode .ai-result-modal { z-index: 1200; }
+
+/* ─── Unified modal backdrop: match Plus Menu (rgba 0,0,0,0.2) ─── */
+.overlay,
+.cmd-modal,
+.magic-modal,
+.audio-recorder-modal,
+.ai-tools-modal,
+.ai-result-modal,
+.text-input-modal,
+.photo-ai-modal,
+.photo-markers-modal,
+.pv-info-modal {
+  background: rgba(0,0,0,0.2) !important;
+}
+
+/* ─── Unified modal animation: match Plus Menu fade+slide ─── */
+.cmd-modal,
+.magic-modal,
+.audio-recorder-modal,
+.ai-tools-modal,
+.ai-result-modal,
+.photo-ai-modal,
+.photo-markers-modal,
+.pv-info-modal {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+.cmd-modal.show,
+.magic-modal.show,
+.audio-recorder-modal.show,
+.ai-tools-modal.show,
+.ai-result-modal.show,
+.photo-ai-modal.show,
+.photo-markers-modal.show,
+.pv-info-modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Modal content slide-up (match Plus Menu translateY) */
+.cmd-content,
+.magic-content,
+.audio-recorder-content,
+.ai-tools-content,
+.ai-result-content,
+.photo-ai-content,
+.pv-info-content {
+  transform: translateY(20px);
+  transition: transform 0.2s ease;
+}
+.cmd-modal.show .cmd-content,
+.magic-modal.show .magic-content,
+.audio-recorder-modal.show .audio-recorder-content,
+.ai-tools-modal.show .ai-tools-content,
+.ai-result-modal.show .ai-result-content,
+.photo-ai-modal.show .photo-ai-content,
+.pv-info-modal.show .pv-info-content {
+  transform: translateY(0);
+}
+
+/* Overlay modals — unified with Plus Menu */
 
 /* ============================================
    PHOTO VIEWER v2 - New Header & Tools
