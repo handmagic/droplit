@@ -5691,15 +5691,40 @@ async function handleOllamaStreamingResponse(response) {
   }
   
   // TTS
+  // Find Speak button for visual feedback (v4.30)
+  const ollamaSpeakBtn = msgDiv.querySelector('.ask-ai-action-btn[onclick*="speakAskAIMessage"]');
+  console.log('[Ollama] Auto-speak button found:', !!ollamaSpeakBtn, 'kokoroStream:', kokoroStreamActive);
+  
   if (kokoroStreamActive) {
+    // Activate button during Kokoro stream playback
+    if (ollamaSpeakBtn && typeof updateSpeakButton === 'function') {
+      updateSpeakButton(ollamaSpeakBtn, 'stop');
+      activeSpeakBtn = ollamaSpeakBtn;
+    }
     // Close stream — flushes remaining text via TextSplitterStream
     window.KokoroTTS.closeStream();
+    // Override onEnd to reset button
+    const origStreamOnEnd = window.KokoroTTS._streamOnEnd;
     // unlockVoiceMode called by stream onEnd callback
   } else if (isAutoSpeakEnabled() && fullText) {
+    // Activate button
+    if (ollamaSpeakBtn && typeof updateSpeakButton === 'function') {
+      updateSpeakButton(ollamaSpeakBtn, 'stop');
+      activeSpeakBtn = ollamaSpeakBtn;
+    }
     try {
-      speakText(fullText);
+      speakTextWithCallback(fullText,
+        function() { // onEnd
+          if (ollamaSpeakBtn && typeof updateSpeakButton === 'function') updateSpeakButton(ollamaSpeakBtn, 'speak');
+          activeSpeakBtn = null;
+          unlockVoiceMode();
+        },
+        null // onStart
+      );
     } catch (e) {
       console.error('[Ollama] TTS error:', e);
+      if (ollamaSpeakBtn && typeof updateSpeakButton === 'function') updateSpeakButton(ollamaSpeakBtn, 'speak');
+      activeSpeakBtn = null;
     }
   }
   
