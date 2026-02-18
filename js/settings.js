@@ -55,6 +55,7 @@ function openMainMenu() {
   updateUndoList();
   updateTokenBalance();
   initFontSize();
+  initColorTheme();
   // Initialize voice/TTS settings UI with saved values
   initVoiceSettings();
   // Initialize chat history settings (v0.9.120)
@@ -863,6 +864,35 @@ function initFontSize() {
   });
 }
 
+// ============================================
+// COLOR THEME (v0.9.130)
+// ============================================
+
+function setColorTheme(theme) {
+  // Remove all theme classes
+  document.body.classList.remove('theme-default', 'theme-breeze');
+  // Apply selected theme (default = no class needed, but add for consistency)
+  document.body.classList.add('theme-' + theme);
+  localStorage.setItem('droplit_color_theme', theme);
+  
+  // Update selector buttons
+  document.querySelectorAll('#colorThemeSelector .pill-m').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === theme);
+  });
+  
+  toast(theme === 'default' ? 'Default theme' : theme.charAt(0).toUpperCase() + theme.slice(1) + ' theme', 'success');
+}
+
+function initColorTheme() {
+  const saved = localStorage.getItem('droplit_color_theme') || 'default';
+  document.body.classList.remove('theme-default', 'theme-breeze');
+  document.body.classList.add('theme-' + saved);
+  
+  document.querySelectorAll('#colorThemeSelector .pill-m').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === saved);
+  });
+}
+
 function exportData() {
   const data = {
     version: '0.8.2',
@@ -1030,6 +1060,8 @@ window.DropLitSettings = {
   toggleDarkMode,
   setFontSize,
   initFontSize,
+  setColorTheme,
+  initColorTheme,
   initVoiceSettings,
   exportData,
   handleImportFile,
