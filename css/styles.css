@@ -1596,21 +1596,22 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 .image-zoom-controls { display: none; }
 @media (min-width: 1024px) {
   .image-zoom-controls {
-    display: flex; align-items: center; gap: 8px;
+    display: flex; align-items: center; gap: 6px;
     position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
-    padding: 6px 12px; border-radius: 28px; z-index: 10;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+    padding: 6px 16px; border-radius: 28px; z-index: 10;
   }
 }
+.image-zoom-counter { color: rgba(255,255,255,0.7); font-size: 0.72rem; font-weight: 600; min-width: 44px; text-align: center; padding-right: 4px; border-right: 1px solid rgba(255,255,255,0.15); margin-right: 2px; }
 .image-zoom-btn {
   width: 44px; height: 44px; border: none; border-radius: var(--radius-full);
-  background: rgba(255,255,255,0.15); color: white; cursor: pointer;
+  background: rgba(255,255,255,0.1); color: white; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.15s;
 }
-.image-zoom-btn:hover { background: rgba(255,255,255,0.3); }
-.image-zoom-btn:active { background: rgba(255,255,255,0.4); }
-.image-zoom-level { color: rgba(255,255,255,0.7); font-size: 0.72rem; font-weight: 600; min-width: 44px; text-align: center; }
+.image-zoom-btn:hover { background: rgba(255,255,255,0.25); }
+.image-zoom-btn:active { background: rgba(255,255,255,0.35); }
+.image-zoom-level { color: rgba(255,255,255,0.7); font-size: 0.72rem; font-weight: 600; min-width: 44px; text-align: center; padding-left: 4px; border-left: 1px solid rgba(255,255,255,0.15); margin-left: 2px; }
 
 @media print {
   body * { visibility: hidden; }
