@@ -1001,6 +1001,10 @@
         <button class="pill-s ai" onclick="aiEditEnhance()">Enhance</button>
         <button class="pill-s ai" onclick="aiEditSummarize()">Summarize</button>
         <button class="pill-s ai" onclick="aiEditExpand()">Expand</button>
+        <button class="pill-s ai" onclick="aiEditRewrite()">Rewrite</button>
+        <button class="pill-s ai" onclick="aiEditTranslate()">Translate</button>
+        <button class="pill-s ai" onclick="if(editId){saveEditPanel();openFileExportModal(editId)}">Export</button>
+        <button class="pill-s ai" onclick="if(editId){saveEditPanel();openSendModal(editId)}">Share</button>
       </div>
     </div>
     <div class="edit-panel-body">
@@ -4955,6 +4959,111 @@ function aiEditExpand() {
   runAiEditAction('expand', 'Expand',
     'Expand the text with additional context, examples, and explanations. Maintain the original structure and tone. Roughly double the length. Do NOT contradict original meaning. Keep the language of the original text. Output ONLY the expanded text.'
   );
+}
+
+function aiEditRewrite() {
+  runAiEditAction('rewrite', 'Rewrite',
+    'Rewrite the text in a professional tone. Keep the same meaning but improve clarity and professionalism. Keep the language of the original text. Output ONLY the rewritten text.'
+  );
+}
+
+// Translate — show language picker, then call API
+function aiEditTranslate() {
+  const textarea = document.getElementById('editPanelTextarea');
+  if (!textarea || !textarea.value.trim()) {
+    toast('No text to translate', 'warning');
+    return;
+  }
+  
+  // Create inline language picker
+  const existing = document.getElementById('editTranslatePicker');
+  if (existing) { existing.remove(); return; } // toggle off
+  
+  const picker = document.createElement('div');
+  picker.id = 'editTranslatePicker';
+  picker.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;background:rgba(139,92,246,0.08);border-radius:12px;margin-top:6px;';
+  
+  const langs = [
+    { code: 'English', flag: '🇬🇧', label: 'English' },
+    { code: 'Russian', flag: '🇷🇺', label: 'Русский' },
+    { code: 'Spanish', flag: '🇪🇸', label: 'Español' },
+    { code: 'German', flag: '🇩🇪', label: 'Deutsch' },
+    { code: 'French', flag: '🇫🇷', label: 'Français' },
+    { code: 'Chinese', flag: '🇨🇳', label: '中文' },
+    { code: 'Japanese', flag: '🇯🇵', label: '日本語' },
+    { code: 'Portuguese', flag: '🇧🇷', label: 'Português' }
+  ];
+  
+  langs.forEach(l => {
+    const btn = document.createElement('button');
+    btn.className = 'pill-s ai';
+    btn.textContent = l.flag + ' ' + l.label;
+    btn.onclick = function() {
+      picker.remove();
+      runAiEditTranslate(l.code);
+    };
+    picker.appendChild(btn);
+  });
+  
+  // Insert after the AI tools row
+  const toolsRow = document.querySelector('.edit-panel-tools-ai');
+  if (toolsRow) toolsRow.after(picker);
+}
+
+async function runAiEditTranslate(targetLang) {
+  const textarea = document.getElementById('editPanelTextarea');
+  if (!textarea || !textarea.value.trim()) return;
+  
+  const btn = document.querySelector('.edit-panel-tools-ai .pill-s.ai[onclick*="Translate"]');
+  const originalLabel = btn ? btn.textContent.trim() : 'Translate';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ ...'; }
+  
+  try {
+    const provider = localStorage.getItem('llm_provider') || 'claude';
+    let resultText = '';
+    
+    if (provider === 'ollama') {
+      const url = localStorage.getItem('ollama_url') || 'http://localhost:11434';
+      const model = localStorage.getItem('ollama_model') || 'gemma3:4b';
+      const response = await fetch(url + '/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model, stream: false,
+          messages: [
+            { role: 'system', content: 'Translate to ' + targetLang + '. Output ONLY the translation.' },
+            { role: 'user', content: textarea.value }
+          ],
+          options: { num_ctx: 4096, temperature: 0.3 }
+        })
+      });
+      if (!response.ok) throw new Error('Ollama error: ' + response.status);
+      const data = await response.json();
+      resultText = data.message?.content || '';
+    } else {
+      const response = await fetch(AI_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'translate', text: textarea.value, targetLang })
+      });
+      if (!response.ok) throw new Error('API error: ' + response.status);
+      const data = await response.json();
+      resultText = (data.success && data.result) ? data.result : '';
+    }
+    
+    if (resultText && resultText.trim()) {
+      textarea.value = resultText.trim();
+      document.getElementById('editPanelChars').textContent = textarea.value.length;
+      toast('Translated to ' + targetLang + '!', 'success');
+    } else {
+      toast('Translation failed', 'warning');
+    }
+  } catch (e) {
+    console.error('[AI Edit] Translate error:', e);
+    toast('Error: ' + e.message, 'error');
+  }
+  
+  if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
 }
 
 // Open category modal from edit panel
