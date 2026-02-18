@@ -7211,11 +7211,12 @@ function closeTranslateModal() {
 }
 
 async function runTranslate(targetLang) {
+  // Save flag BEFORE close resets it
+  const fromEditor = _translateFromEditor;
   closeTranslateModal();
   
   // ─── TEXT EDITOR PATH (v4.30) ───
-  if (_translateFromEditor) {
-    _translateFromEditor = false;
+  if (fromEditor) {
     const textarea = document.getElementById('editPanelTextarea');
     if (!textarea || !textarea.value.trim()) { toast('No text', 'warning'); return; }
     
