@@ -4858,6 +4858,10 @@ function undoEditPanel() {
 // Ollama path: direct call with systemPrompt
 // ============================================
 
+// Flag: AI result preview is for text editor (not drop)
+let _aiResultFromEditor = false;
+let _aiResultEditorOriginalText = '';
+
 async function runAiEditAction(actionName, label, systemPrompt) {
   const textarea = document.getElementById('editPanelTextarea');
   if (!textarea || !textarea.value.trim()) {
@@ -4865,19 +4869,20 @@ async function runAiEditAction(actionName, label, systemPrompt) {
     return;
   }
   
-  const btn = event?.target?.closest?.('button');
-  const originalLabel = btn ? btn.textContent.trim() : label;
   const originalText = textarea.value;
   
-  // UI: loading state
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ ...'; }
+  // Set editor flag and save original for undo
+  _aiResultFromEditor = true;
+  _aiResultEditorOriginalText = originalText;
+  
+  // Show loading modal (same as drop AI Tools)
+  showAILoading(actionName);
   
   try {
     let resultText = '';
     const provider = localStorage.getItem('llm_provider') || 'claude';
     
     if (provider === 'ollama') {
-      // Ollama: direct call with systemPrompt
       const url = localStorage.getItem('ollama_url') || 'http://localhost:11434';
       const model = localStorage.getItem('ollama_model') || 'gemma3:4b';
       
@@ -4900,7 +4905,6 @@ async function runAiEditAction(actionName, label, systemPrompt) {
       resultText = data.message?.content || '';
       
     } else {
-      // Cloud: same pattern as runAITool() — action goes to textActions on server
       const response = await fetch(AI_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -4920,19 +4924,21 @@ async function runAiEditAction(actionName, label, systemPrompt) {
       }
     }
     
+    hideAILoading();
+    
     if (resultText && resultText.trim()) {
-      textarea.value = resultText.trim();
-      document.getElementById('editPanelChars').textContent = textarea.value.length;
-      toast(label + ' done!', 'success');
+      // Show preview modal (same as drop AI Tools)
+      showAIResult2(actionName, resultText.trim(), null, null);
     } else {
+      _aiResultFromEditor = false;
       toast('No result from AI', 'warning');
     }
   } catch (e) {
+    hideAILoading();
+    _aiResultFromEditor = false;
     console.error('[AI Edit]', actionName, e);
     toast('Error: ' + e.message, 'error');
   }
-  
-  if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
 }
 
 // Organize — NEW action (uses 'organize' textAction on server)
@@ -6917,6 +6923,7 @@ async function generateMagic() {
 // ============================================
 
 const AI_LOADING_LABELS = {
+  organize: 'Organizing',
   poem: 'Creating poem',
   greeting: 'Crafting greeting',
   speech: 'Writing speech',
@@ -7220,9 +7227,12 @@ async function runTranslate(targetLang) {
     const textarea = document.getElementById('editPanelTextarea');
     if (!textarea || !textarea.value.trim()) { toast('No text', 'warning'); return; }
     
-    const btn = document.querySelector('.edit-panel-tools-ai .pill-s.ai[onclick*="Translate"]');
-    const originalLabel = btn ? btn.textContent.trim() : 'Translate';
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ ...'; }
+    // Set editor flag for replaceOriginal
+    _aiResultFromEditor = true;
+    _aiResultEditorOriginalText = textarea.value;
+    
+    // Show loading modal
+    showAILoading('translate');
     
     try {
       const provider = localStorage.getItem('llm_provider') || 'claude';
@@ -7257,19 +7267,20 @@ async function runTranslate(targetLang) {
         resultText = (data.success && data.result) ? data.result : '';
       }
       
+      hideAILoading();
+      
       if (resultText && resultText.trim()) {
-        textarea.value = resultText.trim();
-        document.getElementById('editPanelChars').textContent = textarea.value.length;
-        toast('Translated to ' + targetLang, 'success');
+        showAIResult2('translate', resultText.trim(), null, null);
       } else {
+        _aiResultFromEditor = false;
         toast('Translation failed', 'warning');
       }
     } catch (e) {
+      hideAILoading();
+      _aiResultFromEditor = false;
       console.error('[AI Edit] Translate:', e);
       toast('Error: ' + e.message, 'error');
     }
-    
-    if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
     return;
   }
   
@@ -7313,6 +7324,7 @@ function showAIResult2(tool, text, currentCategory, suggestedCategory) {
   aiToolsSuggestedCategory = suggestedCategory;
   
   const titles = {
+    organize: 'Organized',
     summarize: 'Summary',
     expand: 'Expanded',
     rewrite: 'Rewritten',
@@ -7346,25 +7358,39 @@ function closeAIResult2() {
   document.getElementById('aiResultModal2').classList.remove('show');
   aiToolsResult = null;
   aiToolsSuggestedCategory = null;
-  aiToolsDropId = null; // Reset here when user closes without action
+  if (!_aiResultFromEditor) aiToolsDropId = null;
+  _aiResultFromEditor = false;
+  _aiResultEditorOriginalText = '';
 }
 
 function replaceOriginal() {
+  // ─── TEXT EDITOR PATH (v4.30) ───
+  if (_aiResultFromEditor && aiToolsResult) {
+    const textarea = document.getElementById('editPanelTextarea');
+    if (textarea) {
+      textarea.value = aiToolsResult;
+      document.getElementById('editPanelChars').textContent = textarea.value.length;
+      toast('Text replaced', 'success');
+    }
+    _aiResultFromEditor = false;
+    _aiResultEditorOriginalText = '';
+    closeAIResult2();
+    return;
+  }
+  
+  // ─── DROP PATH (original) ───
   if (!aiToolsDropId || !aiToolsResult) return;
   
   const drop = ideas.find(x => x.id === aiToolsDropId);
   if (drop) {
-    // Save for undo
     saveUndo('replace', { id: drop.id, originalText: drop.text });
-    
-    // Save original in drop too
     if (!drop.originalText) {
       drop.originalText = drop.text;
     }
     drop.text = aiToolsResult;
     save();
     render();
-    toast('Replaced! ✓', 'success');
+    toast('Replaced!', 'success');
   }
   
   closeAIResult2();
@@ -7374,7 +7400,9 @@ function replaceOriginal() {
 function createNewDrop() {
   if (!aiToolsResult) return;
   
-  const sourceDrop = ideas.find(x => x.id === aiToolsDropId);
+  // v4.30: From editor, use editId as source
+  const sourceId = aiToolsDropId || (_aiResultFromEditor ? editId : null);
+  const sourceDrop = sourceId ? ideas.find(x => x.id === sourceId) : null;
   const category = aiToolsSuggestedCategory || sourceDrop?.category || 'ideas';
   
   const idea = {
