@@ -6238,6 +6238,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load persistent chat history (v4.25)
   loadChatHistory(0, false);
   
+  // Initialize chat control button states (v4.30)
+  updateChatHistoryButtons();
+  
   // v4.32: Start Infinite Memory in background (23MB model, cached after first load)
   initMemory();
   
