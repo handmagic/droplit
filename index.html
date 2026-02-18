@@ -1574,13 +1574,25 @@
           <div class="ask-ai-subtitle" id="askiSubtitle">AI Assistant</div>
         </div>
       </div>
-      <button class="pill-s ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()" style="position: relative; z-index: 10; min-width: 100px;">AUTODROP</button>
-      <div class="ask-ai-header-actions">
-        <button class="ask-ai-header-pill" id="chatSaveHistoryBtn" onclick="toggleChatSaveHistory()" title="Save chat history">SAVE</button>
-        <button class="ask-ai-header-pill" id="chatShowHistoryBtn" onclick="toggleChatShowHistory()" title="Show/hide chat history">HISTORY</button>
-        <button class="ask-ai-header-pill danger" id="chatClearHistoryBtn" onclick="clearChatHistory()" title="Clear all history">CLEAR</button>
+      <div class="ask-ai-header-center">
+        <button class="pill-s ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()" style="min-width: 100px;">AUTODROP</button>
+        <button class="pill-s ask-ai-btn-autosave" id="autoSaveIndicator" onclick="toggleChatSaveHistory()" style="min-width: 100px;">AUTOSAVE</button>
       </div>
-      <button class="ask-ai-close" onclick="closeAskAI()">×</button>
+      <div class="ask-ai-header-right-actions">
+        <button class="ask-ai-header-chevron" id="chatPanelToggle" onclick="toggleChatPanel()">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="ask-ai-close" onclick="closeAskAI()">×</button>
+      </div>
+    </div>
+    <!-- Chat tools panel (v4.30) -->
+    <div class="ask-ai-tools-wrap">
+      <div class="ask-ai-tools-panel" id="chatToolsPanel">
+        <div class="ask-ai-tools-row">
+          <button class="pill-s ask-ai-btn-history" id="chatShowHistoryBtn" onclick="toggleChatShowHistory()">HISTORY</button>
+          <button class="pill-s danger" onclick="showClearHistoryModal()">CLEAR HISTORY</button>
+        </div>
+      </div>
     </div>
     <div class="ask-ai-messages" id="askAIMessages">
       <div class="ask-ai-empty" id="askAIEmpty">
@@ -2309,6 +2321,7 @@
   <div class="overlay" id="sendModal"><div class="modal type-b"><div class="modal-header"><h3>Share Drop</h3></div><div class="modal-body"><div class="send-opts"><div class="send-opt" onclick="sendAI()"><div class="send-icon">AI</div><div class="send-info"><div class="send-title">AI Assistant</div><div class="send-desc">Copy + open Claude</div></div><span class="send-badge">Pro</span></div><div class="send-div">or share via</div><div class="send-opt" onclick="shareNative()"><div class="send-icon">...</div><div class="send-info"><div class="send-title">Share...</div><div class="send-desc">WhatsApp, Telegram</div></div></div><div class="send-opt" onclick="sendMail()"><div class="send-icon">@</div><div class="send-info"><div class="send-title">Email</div><div class="send-desc">Send via email</div></div></div><div class="send-opt" onclick="copyClip()"><div class="send-icon">#</div><div class="send-info"><div class="send-title">Copy</div><div class="send-desc">Copy to clipboard</div></div></div></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeSendModal()">Cancel</button></div></div></div>
   <div class="overlay" id="exportModal"><div class="modal type-b"><div class="modal-header"><h3>Export Data</h3></div><div class="modal-body"><div class="export-box" id="exportBox"></div></div><div class="modal-actions"><button class="modal-btn sec" onclick="closeExportModal()">Close</button><button class="modal-btn pri" onclick="copyExport()">Copy All</button></div></div></div>
   <div class="overlay" id="delModal"><div class="modal"><div class="modal-title">Delete this idea?</div><div class="modal-text">This action cannot be undone.</div><div class="modal-actions"><button class="modal-btn sec" onclick="closeDelModal()">Cancel</button><button class="modal-btn danger" onclick="confirmDel()">Delete</button></div></div></div>
+  <div class="overlay" id="clearHistoryModal"><div class="modal"><div class="modal-title">Clear chat history?</div><div class="modal-text">All messages will be permanently deleted. This cannot be undone.</div><div class="modal-actions"><button class="modal-btn sec" onclick="closeClearHistoryModal()">Cancel</button><button class="modal-btn danger" onclick="confirmClearHistory()">Clear All</button></div></div></div>
   <div class="overlay" id="creatorModal"><div class="modal type-b creator-modal"><div class="modal-header" id="creatorModalHeader"><div class="creator-modal-avatar" id="creatorModalAvatar"></div><div class="creator-modal-info"><h3 id="creatorModalName">Creator</h3><span class="creator-modal-role" id="creatorModalRole"></span></div></div><div class="modal-body"><div class="creator-info"><div class="creator-info-row"><span class="creator-info-label">Created</span><span class="creator-info-value" id="creatorModalDate">—</span></div><div class="creator-info-row"><span class="creator-info-label">Copyright</span><span class="creator-info-value" id="creatorModalCopyright">© 2025</span></div></div></div><div class="modal-actions"><button class="modal-btn" id="creatorFilterBtn" onclick="filterByCreator()">Show only</button><button class="modal-btn sec" onclick="closeCreatorModal()">Close</button></div></div></div>
   <div class="overlay" id="settingsModal"><div class="modal type-b"><div class="modal-header"><h3>Settings</h3></div><div class="modal-body"><div class="modal-text" style="margin-bottom:0;">Syntrise CORE:<br>Sync your ideas to cloud</div></div><div class="modal-actions"><button class="modal-btn sec" onclick="syncToCloud()">Sync</button><button class="modal-btn sec" onclick="closeSettings();openFileExportModal()">Export</button><button class="modal-btn pri" onclick="closeSettings()">Done</button></div></div></div>
   <div class="overlay" id="addCatModal"><div class="modal"><div class="modal-title">Add Category</div><div class="modal-text">Custom categories coming in a future update!</div><div class="modal-actions"><button class="modal-btn pri" onclick="closeAddCatModal()">OK</button></div></div></div>
