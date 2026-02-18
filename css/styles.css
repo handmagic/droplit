@@ -1936,6 +1936,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  scroll-behavior: smooth;
 }
 .edit-panel-tools-ai::-webkit-scrollbar { display: none; }
 .edit-panel-tools-ai .pill-s {
