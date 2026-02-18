@@ -503,7 +503,7 @@ body.chat-tools-open .ask-ai-header-chevron svg { transform: rotate(180deg); }
 body.chat-tools-open .ask-ai-tools-panel {
   transform: translateY(0); opacity: 1; pointer-events: auto;
 }
-.ask-ai-tools-row { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; }
+.ask-ai-tools-row { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; justify-content: center; }
 .ask-ai-avatar { width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; border: 2px solid rgba(255,255,255,0.5); }
 .ask-ai-title { font-size: 1.15rem; font-weight: 600; }
 .ask-ai-subtitle { font-size: 0.8rem; opacity: 0.85; }
