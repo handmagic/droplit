@@ -1575,6 +1575,11 @@
         </div>
       </div>
       <button class="pill-s ask-ai-btn-autodrop" id="autoDropIndicator" onclick="toggleAutoDropFromChat()" style="position: relative; z-index: 10; min-width: 100px;">AUTODROP</button>
+      <div class="ask-ai-header-actions">
+        <button class="ask-ai-header-pill" id="chatSaveHistoryBtn" onclick="toggleChatSaveHistory()" title="Save chat history">SAVE</button>
+        <button class="ask-ai-header-pill" id="chatShowHistoryBtn" onclick="toggleChatShowHistory()" title="Show/hide chat history">HISTORY</button>
+        <button class="ask-ai-header-pill danger" id="chatClearHistoryBtn" onclick="clearChatHistory()" title="Clear all history">CLEAR</button>
+      </div>
       <button class="ask-ai-close" onclick="closeAskAI()">×</button>
     </div>
     <div class="ask-ai-messages" id="askAIMessages">
