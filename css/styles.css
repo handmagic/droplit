@@ -1505,7 +1505,7 @@ body.font-large .pill-xl { height: 62px; padding: 0 36px; font-size: 1.1rem; }
 /* Image viewer */
 .image-viewer { background: rgba(0,0,0,0.95); padding: 0; overflow: hidden; z-index: 600; }
 .image-viewer.show { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; }
-.image-viewer-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 50px 0 0; touch-action: none; min-height: 0; position: relative; }
+.image-viewer-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0; touch-action: none; min-height: 0; position: relative; }
 .image-viewer img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; border-radius: 0; transform-origin: center center; user-select: none; -webkit-user-drag: none; will-change: transform; transition: transform 0.2s ease; }
 .image-viewer img.portrait { width: 100%; max-width: 100%; height: auto; max-height: none; }
 .image-viewer img.landscape { width: auto; max-width: 100%; height: auto; max-height: 100%; }
