@@ -2488,6 +2488,7 @@
     <div class="image-viewer-close" onclick="closeImageViewer()">✕</div>
     <div class="image-viewer-markers" id="imageViewerMarkers" onclick="openPhotoMarkers()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.47"/></svg></div>
     <div class="image-viewer-ai" onclick="openPhotoAI()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></div>
+    <div class="image-counter" id="imageCounter" style="display:none">1 / 1</div>
     <div class="image-zoom-controls" id="imageZoomControls">
       <span class="image-zoom-counter" id="imageZoomCounter">1 / 1</span>
       <button class="image-zoom-btn" onclick="imageZoomOut()" title="Zoom out">
@@ -5576,7 +5577,7 @@ function updateNavigation(){
   const nextBtn=document.getElementById('imgNavNext');
   
   const counterText = (currentMediaIndex+1)+' / '+allMediaIds.length;
-  counter.textContent=counterText;
+  if(counter) counter.textContent=counterText;
   if(zoomCounter) zoomCounter.textContent=counterText;
   
   if(allMediaIds.length>1){
