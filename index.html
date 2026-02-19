@@ -8514,6 +8514,41 @@ async function generatePDF(drops, includeDate, includeCategory, docOptions = {})
     const pageSize = docOptions.pageSize || 'a4';
     const doc = new jsPDF({ format: pageSize });
     
+    // ─── Load Cyrillic-compatible font (v4.30) ───
+    let cyrillicFont = false;
+    try {
+      // PT Sans — full TTF from Google Fonts repo (442KB, includes Cyrillic)
+      const fontUrl = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/ptsans/PT_Sans-Web-Regular.ttf';
+      const fontBoldUrl = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/ptsans/PT_Sans-Web-Bold.ttf';
+      
+      const [fontResp, fontBoldResp] = await Promise.all([
+        fetch(fontUrl).catch(() => null),
+        fetch(fontBoldUrl).catch(() => null)
+      ]);
+      
+      if (fontResp && fontResp.ok) {
+        const fontBuf = await fontResp.arrayBuffer();
+        const fontBase64 = arrayBufferToBase64(fontBuf);
+        doc.addFileToVFS('PTSans-Regular.ttf', fontBase64);
+        doc.addFont('PTSans-Regular.ttf', 'PTSans', 'normal');
+        
+        if (fontBoldResp && fontBoldResp.ok) {
+          const fontBoldBuf = await fontBoldResp.arrayBuffer();
+          const fontBoldBase64 = arrayBufferToBase64(fontBoldBuf);
+          doc.addFileToVFS('PTSans-Bold.ttf', fontBoldBase64);
+          doc.addFont('PTSans-Bold.ttf', 'PTSans', 'bold');
+        }
+        
+        doc.setFont('PTSans', 'normal');
+        cyrillicFont = true;
+        console.log('[Export] PT Sans loaded — Cyrillic supported');
+      }
+    } catch (fontErr) {
+      console.warn('[Export] Font load failed, fallback to Helvetica:', fontErr.message);
+    }
+    
+    const fontFamily = cyrillicFont ? 'PTSans' : 'helvetica';
+    
     const userPlan = localStorage.getItem('droplit_user_plan') || 'beta';
     const showBranding = !['business', 'owner', 'vip'].includes(userPlan);
     
@@ -8543,7 +8578,7 @@ async function generatePDF(drops, includeDate, includeCategory, docOptions = {})
       // Header with category/date
       if (includeCategory || includeDate) {
         doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
+        doc.setFont(fontFamily, 'bold');
         
         let header = '';
         if (includeCategory) {
@@ -8561,7 +8596,7 @@ async function generatePDF(drops, includeDate, includeCategory, docOptions = {})
       
       // Content
       doc.setFontSize(13);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont(fontFamily, 'normal');
       
       const text = drop.text || drop.content || '';
       const paragraphs = text.split(/\n/);
@@ -8583,8 +8618,7 @@ async function generatePDF(drops, includeDate, includeCategory, docOptions = {})
           .replace(/^[\-\*]\s+/, '• ')
           .replace(/^\d+\.\s+/, (m) => m);
         
-        // Note: Cyrillic will show as "?" - jsPDF limitation
-        // For Cyrillic, recommend DOCX or TXT export
+        // v4.30: Cyrillic supported via PTSans font
         
         try {
           const lines = doc.splitTextToSize(cleanText, pageWidth);
@@ -8616,7 +8650,7 @@ async function generatePDF(drops, includeDate, includeCategory, docOptions = {})
     if (showBranding) {
       const footerY = isLetter ? 265 : 285;
       doc.setFontSize(9);
-      doc.setFont('helvetica', 'italic');
+      doc.setFont(cyrillicFont ? fontFamily : 'helvetica', cyrillicFont ? 'normal' : 'italic');
       doc.setTextColor(150, 150, 150);
       doc.text('Created with DropLit.app', 105, footerY, { align: 'center' });
     }
@@ -8657,6 +8691,17 @@ function loadScript(src) {
     script.onerror = reject;
     document.head.appendChild(script);
   });
+}
+
+// Helper: chunked ArrayBuffer to base64 (avoids stack overflow)
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
 }
 
 // ═══════════════════════════════════════════════════════════════
