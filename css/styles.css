@@ -3065,15 +3065,11 @@ body.font-large .pv-counter { height: 36px; padding: 0 16px; font-size: 0.9rem; 
     }
     /* File Export Modal */
     .export-file-modal {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      position: relative;
       background: #fff;
       border-radius: 16px;
       max-width: 360px;
       width: 92%;
-      z-index: 10001;
       overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
